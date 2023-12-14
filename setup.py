@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from policyengine_api.constants import __version__
+from policyengine_api_light.constants import __version__
 
 setup(
     name="policyengine-api",
