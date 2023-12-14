@@ -1,0 +1,73 @@
+name: Push
+
+on: 
+  push:
+    branches:
+      - master
+
+jobs:
+  Lint:
+    runs-on: ubuntu-latest
+    if: |
+      (github.repository == 'PolicyEngine/policyengine-uk')
+      && (github.event.head_commit.message == 'Update PolicyEngine API')
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check formatting
+        uses: "lgeiger/black-action@master"
+        with:
+          args: ". -l 79 --check"
+  versioning:
+    name: Update versioning
+    if: |
+      (github.repository == 'PolicyEngine/policyengine-api')
+      && !(github.event.head_commit.message == 'Update PolicyEngine API')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.POLICYENGINE_GITHUB }}
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Build changelog
+        run: pip install yaml-changelog && make changelog
+      - name: Preview changelog update
+        run: ".github/get-changelog-diff.sh"
+      - name: Update changelog
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: "."
+          committer_name: Github Actions[bot]
+          author_name: Github Actions[bot]
+          message: Update PolicyEngine API
+  deploy:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    if: |
+      (github.repository == 'PolicyEngine/policyengine-api')
+      && (github.event.head_commit.message == 'Update PolicyEngine API')
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: GCP authentication
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+      - name: Set up GCloud
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: Deploy
+        run: make deploy
+        env:
+          POLICYENGINE_DB_PASSWORD: ${{ secrets.POLICYENGINE_DB_PASSWORD }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+          POLICYENGINE_GITHUB_MICRODATA_AUTH_TOKEN: ${{ secrets.POLICYENGINE_GITHUB_MICRODATA_AUTH_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
