@@ -9,9 +9,9 @@
             "type": "python",
             "request": "launch",
             "stopOnEntry": false,
-            "program": "${workspaceRoot}/policyengine_api/debug.py",
+            "program": "${workspaceRoot}/policyengine_api_light/debug.py",
             "env": {
-                "FLASK_APP": "${workspaceRoot}/policyengine_api/debug.py"
+                "FLASK_APP": "${workspaceRoot}/policyengine_api_light/debug.py"
             },
             "args": [
                 "run"
