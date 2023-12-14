@@ -1,0 +1,3 @@
+dispatch:
+- url: api.policyengine.org/*
+  service: default

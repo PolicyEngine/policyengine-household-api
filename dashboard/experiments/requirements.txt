@@ -1,0 +1,5 @@
+pip>=23
+streamlit
+openai
+pandas
+requests
