@@ -1,8 +1,8 @@
-from policyengine_api.country import validate_country, COUNTRIES
-from policyengine_api.endpoints.policy import get_current_law_policy_id
-from policyengine_api.utils import hash_object
-from policyengine_api.data import database, local_database
-from policyengine_api.constants import COUNTRY_PACKAGE_VERSIONS
+from policyengine_api_light.country import validate_country, COUNTRIES
+from policyengine_api_light.endpoints.policy import get_current_law_policy_id
+from policyengine_api_light.utils import hash_object
+from policyengine_api_light.data import database, local_database
+from policyengine_api_light.constants import COUNTRY_PACKAGE_VERSIONS
 from .reform_impact import set_reform_impact_data
 from flask import request
 import json

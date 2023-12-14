@@ -1,16 +1,16 @@
 import flask
 import json
-from policyengine_api.constants import (
+from policyengine_api_light.constants import (
     COUNTRY_PACKAGE_VERSIONS,
 )
-from policyengine_api.country import PolicyEngineCountry, create_policy_reform
-from policyengine_api.endpoints.policy import (
+from policyengine_api_light.country import PolicyEngineCountry, create_policy_reform
+from policyengine_api_light.endpoints.policy import (
     get_current_law_policy_id,
 )
-from policyengine_api.data import PolicyEngineDatabase, local_database
+from policyengine_api_light.data import PolicyEngineDatabase, local_database
 from .compare import compare_economic_outputs
 from .single_economy import compute_economy
-from policyengine_api.utils import hash_object
+from policyengine_api_light.utils import hash_object
 from datetime import datetime
 
 

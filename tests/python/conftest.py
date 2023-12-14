@@ -5,7 +5,7 @@ from subprocess import Popen, TimeoutExpired
 import sys
 import redis
 import pytest
-from policyengine_api.api import app
+from policyengine_api_light.api import app
 
 
 @contextmanager
@@ -30,6 +30,6 @@ def client():
     with running(["redis-server"], 3):
         redis_client = redis.Redis()
         redis_client.ping()
-        with running([sys.executable, "policyengine_api/worker.py"], 3):
+        with running([sys.executable, "policyengine_api_light/worker.py"], 3):
             with app.test_client() as test_client:
                 yield test_client

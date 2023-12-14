@@ -2,7 +2,7 @@ import yaml
 import json
 import pytest
 from pathlib import Path
-from policyengine_api.api import app
+from policyengine_api_light.api import app
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import sqlite3
-from policyengine_api.constants import REPO, VERSION, COUNTRY_PACKAGE_VERSIONS
-from policyengine_api.utils import hash_object
+from policyengine_api_light.constants import REPO, VERSION, COUNTRY_PACKAGE_VERSIONS
+from policyengine_api_light.utils import hash_object
 from pathlib import Path
 import json
 from google.cloud.sql.connector import Connector
@@ -28,7 +28,7 @@ class PolicyEngineDatabase:
         if local:
             # Local development uses a sqlite database.
             self.db_url = (
-                REPO / "policyengine_api" / "data" / "policyengine.db"
+                REPO / "policyengine_api_light" / "data" / "policyengine.db"
             )
             if initialize or not Path(self.db_url).exists():
                 self.initialize()
@@ -41,7 +41,7 @@ class PolicyEngineDatabase:
 
     def _create_pool(self):
         instance_connection_name = (
-            "policyengine-api:us-central1:policyengine-api-data"
+            "policyengine-api-light:us-central1:policyengine-api-data"
         )
         self.connector = Connector()
         db_user = "policyengine"
@@ -106,7 +106,7 @@ class PolicyEngineDatabase:
         Pre-seed the database with records in the relevant folder
         """
 
-        folder = REPO / "policyengine_api" / "data" / "seed"
+        folder = REPO / "policyengine_api_light" / "data" / "seed"
 
         # Recursively loop through all SQL scripts in folder
         for dirpath, dirnames, filenames in os.walk(folder):
@@ -140,7 +140,7 @@ class PolicyEngineDatabase:
 
         with open(
             REPO
-            / "policyengine_api"
+            / "policyengine_api_light"
             / "data"
             / f"initialise{'_local' if self.local else ''}.sql",
             "r",

@@ -6,7 +6,7 @@ import policyengine_uk
 import policyengine_us
 import policyengine_canada
 import policyengine_ng
-from policyengine_api.endpoints.economy.reform_impact import (
+from policyengine_api_light.endpoints.economy.reform_impact import (
     set_reform_impact_data,
 )
 

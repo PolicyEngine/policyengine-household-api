@@ -1,2 +1,2 @@
 def setup_data():
-    import policyengine_api.endpoints.search
+    import policyengine_api_light.endpoints.search

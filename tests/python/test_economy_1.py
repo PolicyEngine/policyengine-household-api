@@ -4,7 +4,7 @@ Test basics for /economy endpoints.
 import json
 import time
 import datetime
-from policyengine_api.data import local_database
+from policyengine_api_light.data import local_database
 
 
 def test_economy_1(rest_client):

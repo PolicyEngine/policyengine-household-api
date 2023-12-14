@@ -1,7 +1,7 @@
-from policyengine_api.country import COUNTRIES, validate_country
-from policyengine_api.data import database
-from policyengine_api.utils import hash_object
-from policyengine_api.constants import VERSION, COUNTRY_PACKAGE_VERSIONS
+from policyengine_api_light.country import COUNTRIES, validate_country
+from policyengine_api_light.data import database
+from policyengine_api_light.utils import hash_object
+from policyengine_api_light.constants import VERSION, COUNTRY_PACKAGE_VERSIONS
 from policyengine_core.reforms import Reform
 from policyengine_core.parameters import ParameterNode, Parameter
 from policyengine_core.periods import instant

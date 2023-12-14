@@ -1,4 +1,4 @@
-from policyengine_api.country import validate_country
+from policyengine_api_light.country import validate_country
 import pandas as pd
 import numpy as np
 from pathlib import Path

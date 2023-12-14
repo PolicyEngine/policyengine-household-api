@@ -1,4 +1,4 @@
-from policyengine_api.country import COUNTRIES, validate_country
+from policyengine_api_light.country import COUNTRIES, validate_country
 
 
 def get_metadata(country_id: str) -> dict:

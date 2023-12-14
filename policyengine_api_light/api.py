@@ -6,7 +6,7 @@ from flask_cors import CORS
 import flask
 import yaml
 from flask_caching import Cache
-from policyengine_api.utils import make_cache_key
+from policyengine_api_light.utils import make_cache_key
 from .constants import VERSION
 
 # from werkzeug.middleware.profiler import ProfilerMiddleware
@@ -113,14 +113,14 @@ def readiness_check():
 
 # Add OpenAPI spec (__file__.parent / openapi_spec.yaml)
 
-with open(Path(__file__).parent / "openapi_spec.yaml", encoding="utf-8") as f:
-    openapi_spec = yaml.safe_load(f)
-    openapi_spec["info"]["version"] = VERSION
+# with open(Path(__file__).parent / "openapi_spec.yaml", encoding="utf-8") as f:
+#     openapi_spec = yaml.safe_load(f)
+#     openapi_spec["info"]["version"] = VERSION
 
 
-@app.route("/specification", methods=["GET"])
-def get_specification():
-    return flask.jsonify(openapi_spec)
+# @app.route("/specification", methods=["GET"])
+# def get_specification():
+#     return flask.jsonify(openapi_spec)
 
 
 print("API initialised.")

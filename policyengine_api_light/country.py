@@ -3,7 +3,7 @@ from flask import Response
 import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
 from typing import Union
-from policyengine_api.utils import get_safe_json
+from policyengine_api_light.utils import get_safe_json
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,

@@ -1,4 +1,4 @@
-from policyengine_api.country import COUNTRIES, create_policy_reform
+from policyengine_api_light.country import COUNTRIES, create_policy_reform
 from policyengine_core.simulations import Microsimulation
 from policyengine_core.experimental import MemoryConfig
 import json

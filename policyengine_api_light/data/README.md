@@ -1,4 +1,4 @@
-# `policyengine_api.data`
+# `policyengine_api_light.data`
 
 This module contains the code managing the database used by the main and compute-intensive APIs.
 

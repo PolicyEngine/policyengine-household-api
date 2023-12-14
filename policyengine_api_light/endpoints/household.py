@@ -1,19 +1,19 @@
-from policyengine_api.country import (
+from policyengine_api_light.country import (
     COUNTRIES,
     validate_country,
     PolicyEngineCountry,
 )
-from policyengine_api.data import database, local_database
+from policyengine_api_light.data import database, local_database
 import json
 from flask import Response, request
-from policyengine_api.utils import hash_object
-from policyengine_api.constants import COUNTRY_PACKAGE_VERSIONS
+from policyengine_api_light.utils import hash_object
+from policyengine_api_light.constants import COUNTRY_PACKAGE_VERSIONS
 import sqlalchemy.exc
-from policyengine_api.constants import COUNTRY_PACKAGE_VERSIONS
+from policyengine_api_light.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_core.parameters import get_parameter
 from policyengine_core.periods import instant
 from policyengine_core.enums import Enum
-from policyengine_api.country import PolicyEngineCountry, COUNTRIES
+from policyengine_api_light.country import PolicyEngineCountry, COUNTRIES
 import json
 import dpath
 import math

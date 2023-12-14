@@ -1,7 +1,7 @@
 import openai
 import os
-from policyengine_api.data import local_database
-from policyengine_api.utils import hash_object
+from policyengine_api_light.data import local_database
+from policyengine_api_light.utils import hash_object
 import time
 import flask
 from rq import Queue
