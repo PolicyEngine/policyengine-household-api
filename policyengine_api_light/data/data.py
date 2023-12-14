@@ -1,5 +1,9 @@
 import sqlite3
-from policyengine_api_light.constants import REPO, VERSION, COUNTRY_PACKAGE_VERSIONS
+from policyengine_api_light.constants import (
+    REPO,
+    VERSION,
+    COUNTRY_PACKAGE_VERSIONS,
+)
 from policyengine_api_light.utils import hash_object
 from pathlib import Path
 import json

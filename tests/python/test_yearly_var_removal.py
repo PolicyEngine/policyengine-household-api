@@ -1,7 +1,9 @@
 import pytest
 import json
 
-from policyengine_api_light.endpoints.household import get_household_under_policy
+from policyengine_api_light.endpoints.household import (
+    get_household_under_policy,
+)
 from policyengine_api_light.endpoints.metadata import get_metadata
 from policyengine_api_light.endpoints.policy import get_policy
 from policyengine_api_light.constants import COUNTRY_PACKAGE_VERSIONS
