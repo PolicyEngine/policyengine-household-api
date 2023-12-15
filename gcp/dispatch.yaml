@@ -1,0 +1,3 @@
+dispatch:
+- url: light.api.policyengine.org/*
+  service: default
