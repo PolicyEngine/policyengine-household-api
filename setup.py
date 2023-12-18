@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from policyengine_api_light.constants import __version__
 
 setup(
-    name="policyengine-api",
+    name="policyengine-api-light",
     version=__version__,
     author="PolicyEngine",
     author_email="hello@policyengine.org",
@@ -40,7 +40,7 @@ setup(
     # script policyengine-api-setup -> policyengine_api_light.setup_data:setup_data
     entry_points={
         "console_scripts": [
-            "policyengine-api-setup=policyengine_api_light.setup_data:setup_data",
+            "policyengine-api-light-setup=policyengine_api_light.setup_data:setup_data",
         ],
     },
 )

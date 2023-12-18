@@ -1,5 +1,0 @@
-- bump: minor
-  changes:
-    changed:
-    - Migrated existing API into API-light folder
-    - Updated paths to match API name
