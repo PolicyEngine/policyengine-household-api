@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Change links to re-enable changelog building 
