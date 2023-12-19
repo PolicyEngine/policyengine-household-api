@@ -18,3 +18,8 @@
     added:
     - Changelog update.
   date: 2023-12-19 16:47:18
+- bump: patch
+  changes:
+    changed:
+    - Temporarily disabled GCP deployment
+  date: 2023-12-19 21:26:41
