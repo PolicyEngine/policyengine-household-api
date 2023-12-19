@@ -13,3 +13,8 @@
     changed:
     - Manually added last changelog entries
   date: 2023-12-18 18:22:16
+- bump: patch
+  changes:
+    added:
+    - Changelog update.
+  date: 2023-12-19 16:47:18
