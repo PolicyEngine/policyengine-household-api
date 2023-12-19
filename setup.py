@@ -6,7 +6,7 @@ setup(
     version=__version__,
     author="PolicyEngine",
     author_email="hello@policyengine.org",
-    description="PolicyEngine API",
+    description="PolicyEngine API Light",
     packages=find_packages(),
     install_requires=[
         "click>=8",
