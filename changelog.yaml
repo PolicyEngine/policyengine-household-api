@@ -8,3 +8,8 @@
     changed:
     - Change links to re-enable changelog building
   date: 2023-12-18 18:04:42
+- bump: patch
+  changes:
+    changed:
+    - Manually added last changelog entries
+  date: 2023-12-18 18:22:16
