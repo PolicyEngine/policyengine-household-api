@@ -4,4 +4,4 @@ def get_home() -> str:
     Returns:
         str: The home page.
     """
-    return f"<h1>PolicyEngine households API</h1><p>Use this API to compute the impact of public policy on individual households.</p>"
+    return f"<h1>PolicyEngine API light</h1><p>Use this API to compute the impact of public policy via a lightweight API.</p>"
