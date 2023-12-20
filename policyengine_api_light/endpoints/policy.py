@@ -1,5 +1,3 @@
-
-
 def get_current_law_policy_id(country_id: str) -> int:
     return {
         "uk": 1,

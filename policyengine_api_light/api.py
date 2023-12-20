@@ -28,18 +28,16 @@ app.route("/<country_id>/metadata", methods=["GET"])(get_metadata)
 app.route("/<country_id>/calculate", methods=["POST"])(get_calculate)
 
 app.route("/<country_id>/calculate-full", methods=["POST"])(
-  (
-    lambda *args, **kwargs: get_calculate(
-      *args, **kwargs, add_missing=True
-    )
-  )
+    (lambda *args, **kwargs: get_calculate(*args, **kwargs, add_missing=True))
 )
+
 
 @app.route("/liveness_check", methods=["GET"])
 def liveness_check():
     return flask.Response(
         "OK", status=200, headers={"Content-Type": "text/plain"}
     )
+
 
 @app.route("/readiness_check", methods=["GET"])
 def readiness_check():
