@@ -23,3 +23,8 @@
     changed:
     - Temporarily disabled GCP deployment
   date: 2023-12-19 21:26:41
+- bump: patch
+  changes:
+    changed:
+    - Removed unused code portions
+  date: 2023-12-20 23:33:36
