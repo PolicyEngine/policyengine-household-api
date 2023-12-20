@@ -13,7 +13,6 @@ from .endpoints import (
     get_home,
     get_metadata,
     get_calculate,
-    get_search,
 )
 
 print("Initialising API...")
@@ -26,9 +25,7 @@ app.route("/", methods=["GET"])(get_home)
 
 app.route("/<country_id>/metadata", methods=["GET"])(get_metadata)
 
-app.route("/<country_id>/calculate", methods=["POST"])(
-    (get_calculate)
-)
+app.route("/<country_id>/calculate", methods=["POST"])(get_calculate)
 
 app.route("/<country_id>/calculate-full", methods=["POST"])(
   (
@@ -37,8 +34,6 @@ app.route("/<country_id>/calculate-full", methods=["POST"])(
     )
   )
 )
-
-app.route("/<country_id>/search", methods=["GET"])(get_search)
 
 @app.route("/liveness_check", methods=["GET"])
 def liveness_check():

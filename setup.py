@@ -37,10 +37,4 @@ setup(
             "pytest-timeout",
         ],
     },
-    # script policyengine-api-setup -> policyengine_api_light.setup_data:setup_data
-    entry_points={
-        "console_scripts": [
-            "policyengine-api-light-setup=policyengine_api_light.setup_data:setup_data",
-        ],
-    },
 )
