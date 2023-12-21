@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Pointed Dockerfile toward correct target

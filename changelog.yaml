@@ -53,3 +53,8 @@
     added:
     - First version deployment ready.
   date: 2023-12-21 17:17:09
+- bump: patch
+  changes:
+    changed:
+    - Pointed Dockerfile toward correct target
+  date: 2023-12-21 19:29:40
