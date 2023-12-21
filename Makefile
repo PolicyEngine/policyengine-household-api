@@ -5,7 +5,7 @@ debug:
 	FLASK_APP=policyengine_api_light.api FLASK_DEBUG=1 flask run --without-threads
 
 test:
-	pytest -vv --durations=0 --timeout=150 -rP tests
+	pytest -vv --timeout=150 -rP tests
 
 debug-test:
 	FLASK_DEBUG=1 pytest -vv --durations=0 --timeout=150 -rP tests
