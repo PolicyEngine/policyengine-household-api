@@ -88,3 +88,8 @@
     changed:
     - Changed urllib3 specification to accord with policyengine-core
   date: 2023-12-21 20:51:01
+- bump: patch
+  changes:
+    removed:
+    - Reference to deleting non-existent db password
+  date: 2023-12-21 21:38:11
