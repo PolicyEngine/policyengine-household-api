@@ -73,3 +73,8 @@
     changed:
     - Updated Dockerfile address
   date: 2023-12-21 20:17:34
+- bump: patch
+  changes:
+    adds:
+    - Specify urllib version in setup.py
+  date: 2023-12-21 20:34:42

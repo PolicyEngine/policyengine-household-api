@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    adds:
-    - Specify urllib version in setup.py
