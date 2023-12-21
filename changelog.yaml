@@ -48,3 +48,8 @@
     changed:
     - Added tests to ensure API-light in sync with API
   date: 2023-12-21 04:50:12
+- bump: minor
+  changes:
+    added:
+    - First version deployment ready.
+  date: 2023-12-21 17:17:09
