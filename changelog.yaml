@@ -28,3 +28,8 @@
     changed:
     - Removed unused code portions
   date: 2023-12-20 23:33:36
+- bump: patch
+  changes:
+    changed:
+    - Removed deprecated economy, metadata, and policy folders
+  date: 2023-12-21 02:02:43
