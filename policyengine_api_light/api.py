@@ -21,6 +21,7 @@ app.route("/", methods=["GET"])(get_home)
 
 app.route("/<country_id>/calculate", methods=["POST"])(get_calculate)
 
+
 @app.route("/liveness_check", methods=["GET"])
 def liveness_check():
     return flask.Response(
