@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    removed:
+    - Reference to deleting non-existent db password
