@@ -20,6 +20,7 @@ setup(
         "policyengine_uk==0.62.0",
         "policyengine_us==0.571.2",
         "Flask-Caching==2.0.2",
+        "urllib>=2",
     ],
     extras_require={
         "dev": [
