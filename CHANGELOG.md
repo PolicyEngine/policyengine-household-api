@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2023-12-21 20:51:01
+
+### Changed
+
+- Changed urllib3 specification to accord with policyengine-core
+
 ## [0.2.6] - 2023-12-21 20:41:57
 
 ### Changed
@@ -105,6 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.2.7]: https://github.com/PolicyEngine/policyengine-api-light/compare/0.2.6...0.2.7
 [0.2.6]: https://github.com/PolicyEngine/policyengine-api-light/compare/0.2.5...0.2.6
 [0.2.5]: https://github.com/PolicyEngine/policyengine-api-light/compare/0.2.4...0.2.5
 [0.2.4]: https://github.com/PolicyEngine/policyengine-api-light/compare/0.2.3...0.2.4

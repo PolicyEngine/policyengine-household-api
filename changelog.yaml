@@ -83,3 +83,8 @@
     changed:
     - Corrected import for urllib3
   date: 2023-12-21 20:41:57
+- bump: patch
+  changes:
+    changed:
+    - Changed urllib3 specification to accord with policyengine-core
+  date: 2023-12-21 20:51:01
