@@ -38,3 +38,8 @@
     changed:
     - Removed deprecated tests
   date: 2023-12-21 02:18:35
+- bump: patch
+  changes:
+    changed:
+    - Re-enabled local testing in GitHub Actions
+  date: 2023-12-21 02:25:10
