@@ -68,3 +68,8 @@
     changed:
     - Repo address now lowercase
   date: 2023-12-21 19:37:10
+- bump: patch
+  changes:
+    changed:
+    - Updated Dockerfile address
+  date: 2023-12-21 20:17:34
