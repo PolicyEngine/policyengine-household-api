@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Added tests to ensure API-light in sync with API
