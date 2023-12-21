@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Corrected import for urllib3

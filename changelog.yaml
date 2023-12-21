@@ -78,3 +78,8 @@
     adds:
     - Specify urllib version in setup.py
   date: 2023-12-21 20:34:42
+- bump: patch
+  changes:
+    changed:
+    - Corrected import for urllib3
+  date: 2023-12-21 20:41:57
