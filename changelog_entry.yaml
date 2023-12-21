@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Changed urllib3 specification to accord with policyengine-core
