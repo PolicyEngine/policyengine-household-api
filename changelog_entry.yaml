@@ -1,5 +1,0 @@
-- bump: patch
-  changes:
-    removed:
-    - Removed the add_yearly_variables function
-    - Removed conditional yearly variable seeding in get_calculate

@@ -103,3 +103,9 @@
     changed:
     - Moved auth protection to main API file
   date: 2024-01-03 03:14:38
+- bump: patch
+  changes:
+    removed:
+    - Removed the add_yearly_variables function
+    - Removed conditional yearly variable seeding in get_calculate
+  date: 2024-01-03 17:52:46
