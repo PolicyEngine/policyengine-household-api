@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Moved auth protection to main API file

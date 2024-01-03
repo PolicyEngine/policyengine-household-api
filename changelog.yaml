@@ -98,3 +98,8 @@
     added:
     - Added authentication via auth0
   date: 2024-01-03 02:30:44
+- bump: patch
+  changes:
+    changed:
+    - Moved auth protection to main API file
+  date: 2024-01-03 03:14:38
