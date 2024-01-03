@@ -93,3 +93,8 @@
     removed:
     - Reference to deleting non-existent db password
   date: 2023-12-21 21:38:11
+- bump: minor
+  changes:
+    added:
+    - Added authentication via auth0
+  date: 2024-01-03 02:30:44
