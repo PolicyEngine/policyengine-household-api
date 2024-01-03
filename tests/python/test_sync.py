@@ -14,6 +14,8 @@ API_URL = "https://api.policyengine.org/"
 def test_calculate_sync(client):
     """Confirm that the calculate endpoint outputs the same data as the main API"""
 
+    print("Bearer " + os.getenv("AUTH0_TEST_TOKEN_NO_DOMAIN"))
+
     country_id = "us"
 
     # Load the sample data
