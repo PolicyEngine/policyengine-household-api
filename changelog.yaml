@@ -109,3 +109,8 @@
     - Removed the add_yearly_variables function
     - Removed conditional yearly variable seeding in get_calculate
   date: 2024-01-03 17:52:46
+- bump: patch
+  changes:
+    added:
+    - Added tests for malformed and missing auth tokens
+  date: 2024-01-03 18:54:18
