@@ -1,6 +1,10 @@
+import os
 import requests
 import json
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from tests.python.utils import client, extract_json_from_file
 
@@ -25,7 +29,10 @@ def test_calculate_sync(client):
     # Mock a POST request to API-light
     resLight = client.post(
         "/" + country_id + "/calculate",
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + os.getenv("AUTH0_TEST_TOKEN_NO_DOMAIN")
+        },
         json=input_data,
     ).get_json()
 

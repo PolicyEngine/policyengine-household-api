@@ -8,7 +8,7 @@ from flask import Response, request
 from policyengine_api_light.country import COUNTRIES
 import json
 import logging
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from ..auth.validation import Auth0JWTBearerTokenValidator
 
