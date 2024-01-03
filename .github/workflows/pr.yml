@@ -52,4 +52,4 @@ jobs:
         env:
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AUTH0_TEST_TOKEN_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          AUTH0_TEST_TOKEN_NO_DOMAIN: ${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }}
