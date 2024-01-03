@@ -11,6 +11,14 @@ from tests.python.utils import client, extract_json_from_file
 API_URL = "https://api.policyengine.org/"
 
 
+def test_dotenv(client):
+    output = os.getenv("AUTH0_TEST_TOKEN_NO_DOMAIN")
+    print(output)
+    print(len(output))
+    print(type(output))
+    print(str(output))
+
+
 def test_calculate_sync(client):
     """Confirm that the calculate endpoint outputs the same data as the main API"""
 
