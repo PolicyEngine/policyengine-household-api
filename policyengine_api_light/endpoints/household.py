@@ -2,24 +2,11 @@ from policyengine_api_light.country import (
     COUNTRIES,
     validate_country,
 )
-import os
 import json
 from flask import Response, request
 from policyengine_api_light.country import COUNTRIES
 import json
 import logging
-from dotenv import load_dotenv
-from authlib.integrations.flask_oauth2 import ResourceProtector
-from ..auth.validation import Auth0JWTBearerTokenValidator
-
-load_dotenv()
-
-# Configure authentication
-require_auth = ResourceProtector()
-validator = Auth0JWTBearerTokenValidator(
-    os.getenv("AUTH0_ADDRESS_NO_DOMAIN"), os.getenv("AUTH0_AUDIENCE_NO_DOMAIN")
-)
-require_auth.register_token_validator(validator)
 
 
 def add_yearly_variables(household, country_id):
@@ -56,7 +43,6 @@ def add_yearly_variables(household, country_id):
     return household
 
 
-@require_auth(None)
 def get_calculate(country_id: str, add_missing: bool = False) -> dict:
     """Lightweight endpoint for passing in household and policy JSON objects and calculating without storing data.
 
