@@ -31,7 +31,8 @@ def test_calculate_sync(client):
         "/" + country_id + "/calculate",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + os.getenv("AUTH0_TEST_TOKEN_NO_DOMAIN")
+            "Authorization": "Bearer "
+            + os.getenv("AUTH0_TEST_TOKEN_NO_DOMAIN"),
         },
         json=input_data,
     ).get_json()
