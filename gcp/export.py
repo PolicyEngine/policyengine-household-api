@@ -11,6 +11,7 @@ except Exception as e:
     pass
 ADDRESS = os.environ["AUTH0_ADDRESS_NO_DOMAIN"]
 AUDIENCE = os.environ["AUTH0_AUDIENCE_NO_DOMAIN"]
+TEST_TOKEN = os.environ["AUTH0_TEST_TOKEN_NO_DOMAIN"]
 
 # Export GAE to to .gac.json
 
@@ -25,6 +26,7 @@ for dockerfile_location in [
         dockerfile = f.read()
         dockerfile = dockerfile.replace(".address", ADDRESS)
         dockerfile = dockerfile.replace(".audience", AUDIENCE)
+        dockerfile = dockerfile.replace(".test-token", TEST_TOKEN)
 
     with open(dockerfile_location, "w") as f:
         f.write(dockerfile)
