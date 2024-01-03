@@ -22,7 +22,7 @@ setup(
         "policyengine_us==0.571.2",
         "Flask-Caching==2.0.2",
         "urllib3<1.27,>=1.21.1",
-        "python-dotenv"
+        "python-dotenv",
     ],
     extras_require={
         "dev": [

@@ -17,8 +17,7 @@ load_dotenv()
 # Configure authentication
 require_auth = ResourceProtector()
 validator = Auth0JWTBearerTokenValidator(
-    os.getenv("AUTH0_ADDRESS_NO_DOMAIN"),
-    os.getenv("AUTH0_AUDIENCE_NO_DOMAIN")
+    os.getenv("AUTH0_ADDRESS_NO_DOMAIN"), os.getenv("AUTH0_AUDIENCE_NO_DOMAIN")
 )
 require_auth.register_token_validator(validator)
 
@@ -55,6 +54,7 @@ def add_yearly_variables(household, country_id):
                                 variables[variable]["name"]
                             ] = {2023: None}
     return household
+
 
 @require_auth(None)
 def get_calculate(country_id: str, add_missing: bool = False) -> dict:

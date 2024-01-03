@@ -23,12 +23,8 @@ for dockerfile_location in [
 ]:
     with open(dockerfile_location, "r") as f:
         dockerfile = f.read()
-        dockerfile = dockerfile.replace(
-            ".address", ADDRESS
-        )
-        dockerfile = dockerfile.replace(
-            ".audience", AUDIENCE
-        )
-      
+        dockerfile = dockerfile.replace(".address", ADDRESS)
+        dockerfile = dockerfile.replace(".audience", AUDIENCE)
+
     with open(dockerfile_location, "w") as f:
         f.write(dockerfile)
