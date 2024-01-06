@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Corrected environment variables to correspond with different auth0 tenant
