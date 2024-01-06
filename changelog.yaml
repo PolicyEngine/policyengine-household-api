@@ -114,3 +114,8 @@
     added:
     - Added tests for malformed and missing auth tokens
   date: 2024-01-03 18:54:18
+- bump: patch
+  changes:
+    changed:
+    - Corrected environment variables to correspond with different auth0 tenant
+  date: 2024-01-06 23:24:52
