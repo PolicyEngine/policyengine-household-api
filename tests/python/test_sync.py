@@ -26,7 +26,7 @@ def test_calculate_sync(client):
         API_URL + "/" + country_id + "/calculate", json=input_data
     ).json()
 
-    # Mock a POST request to API-light
+    # Mock a POST request to household-API
     resLight = client.post(
         "/" + country_id + "/calculate",
         headers={

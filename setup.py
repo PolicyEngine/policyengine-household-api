@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
-from policyengine_api_light.constants import __version__
+from policyengine_household_api.constants import __version__
 
 setup(
-    name="policyengine-api-light",
+    name="policyengine-household-api",
     version=__version__,
     author="PolicyEngine",
     author_email="hello@policyengine.org",
-    description="PolicyEngine API Light",
+    description="PolicyEngine Household API",
     packages=find_packages(),
     install_requires=[
         "Authlib<1.3.0",

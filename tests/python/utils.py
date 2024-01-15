@@ -1,7 +1,7 @@
 import pytest
 import json
 import requests
-from policyengine_api_light.api import app
+from policyengine_household_api.api import app
 
 
 @pytest.fixture

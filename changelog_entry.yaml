@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Correct repo name and updated references (except GCP)
