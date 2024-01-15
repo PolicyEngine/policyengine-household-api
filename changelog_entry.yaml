@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Fixed GCP app folder name
