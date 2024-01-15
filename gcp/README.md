@@ -4,9 +4,9 @@ The deployment actions build Docker images and deploy them to Google App Engine.
 
 To update the starter image:
 * `python setup.py sdist` to build the python package
-* `twine upload dist/*` to upload the package to pypi as `policyengine-api-light`
+* `twine upload dist/*` to upload the package to pypi as `policyengine-household-api`
 * `cd gcp`
 * `docker build .`
 * `docker images` to get the image id (the most recent one should be the one you just built)
-* `docker tag <image id> nikhilwoodruff/policyengine-api-light`
-* `docker push nikhilwoodruff/policyengine-api-light`
+* `docker tag <image id> anthvolk/policyengine-household-api`
+* `docker push anthvolk/policyengine-household-api`

@@ -18,9 +18,9 @@ TEST_TOKEN = os.environ["AUTH0_TEST_TOKEN_NO_DOMAIN"]
 with open(".gac.json", "w") as f:
     f.write(GAE)
 
-# in gcp/policyengine_api_light/Dockerfile, replace env variables
+# in gcp/policyengine_household_api/Dockerfile, replace env variables
 for dockerfile_location in [
-    "gcp/policyengine_api_light/Dockerfile",
+    "gcp/policyengine_household_api/Dockerfile",
 ]:
     with open(dockerfile_location, "r") as f:
         dockerfile = f.read()
