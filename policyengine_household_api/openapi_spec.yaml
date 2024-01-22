@@ -504,7 +504,7 @@ paths:
     post:
       summary: Calculate household and policy without storing data
       operationId: get_calculate
-      description: Lightweight endpoint for passing in household and policy JSON objects and calculating without storing data. Specify the country ID.
+      description: Lightweight endpoint for passing in household JSON objects and calculating without storing data. Specify the country ID.
       parameters:
         - name: country_id
           in: path

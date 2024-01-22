@@ -1,6 +1,6 @@
-# PolicyEngine API Light
+# PolicyEngine Household API 
 
-A lighter version of the PolicyEngine API that only runs the `calculate` endpoint. To debug locally, run `make debug`. 
+A version of the PolicyEngine API that runs the `calculate` endpoint over household object. To debug locally, run `make debug`. 
 
 ## Development rules
 
