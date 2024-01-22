@@ -10,7 +10,7 @@ import logging
 
 
 def get_calculate(country_id: str, add_missing: bool = False) -> dict:
-    """Lightweight endpoint for passing in household and policy JSON objects and calculating without storing data.
+    """Lightweight endpoint for passing in household JSON objects and calculating without storing data.
 
     Args:
         country_id (str): The country ID.
