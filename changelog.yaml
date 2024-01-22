@@ -139,3 +139,8 @@
     changed:
     - Properly updated GCP service account address
   date: 2024-01-22 19:16:47
+- bump: patch
+  changes:
+    changed:
+    - Update README and home page to reflect proper name
+  date: 2024-01-22 20:36:31
