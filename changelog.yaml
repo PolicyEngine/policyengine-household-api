@@ -129,3 +129,8 @@
     changed:
     - Fixed GCP app folder name
   date: 2024-01-15 21:51:07
+- bump: patch
+  changes:
+    changed:
+    - Updated GCP service account name
+  date: 2024-01-22 18:46:37
