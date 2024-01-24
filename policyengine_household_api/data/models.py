@@ -1,5 +1,5 @@
 from policyengine_household_api.api import db
-from sqlalchemy import Integer, String, Date, Time
+from sqlalchemy import Integer, String, Date, Time, Boolean
 from sqlalchemy.orm import mapped_column
 
 class Visit(db.Model):
@@ -14,3 +14,4 @@ class Visit(db.Model):
   endpoint = mapped_column(String(64))
   method = mapped_column(String(32))
   content_length_bytes = mapped_column(Integer)
+  auth_is_valid = mapped_column(Boolean)
