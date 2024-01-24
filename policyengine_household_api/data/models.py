@@ -5,6 +5,7 @@ class Visit(db.Model):
   client_id = db.Column(db.String, nullable=False)
   date = db.Column(db.Date)
   time = db.Column(db.Time)
+  api_version = db.Column(db.String)
   endpoint = db.Column(db.String)
   method = db.Column(db.String)
   content_length_bytes = db.Column(db.Integer)
