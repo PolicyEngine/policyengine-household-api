@@ -11,6 +11,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
 from authlib.integrations.flask_oauth2 import ResourceProtector
+from policyengine_household_api.middleware.analytics import AnalyticsWrapper
 
 # Internal imports
 from .auth.validation import Auth0JWTBearerTokenValidator
@@ -55,6 +56,8 @@ db.init_app(app)
 from policyengine_household_api.data.models import Visit
 with app.app_context():
     db.create_all()
+
+app.wsgi_app = AnalyticsWrapper(app.wsgi_app)
 
 
 app.route("/", methods=["GET"])(get_home)
