@@ -43,8 +43,13 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "creator": getconn
 }
 
+# Configure database schema
 db = SQLAlchemy()
 db.init_app(app)
+
+from policyengine_household_api.data.models import Visit
+with app.app_context():
+    db.create_all()
 
 app.route("/", methods=["GET"])(get_home)
 
