@@ -7,12 +7,14 @@ import os
 # External imports
 from flask_cors import CORS
 import flask
+from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from authlib.integrations.flask_oauth2 import ResourceProtector
 
 # Internal imports
 from .auth.validation import Auth0JWTBearerTokenValidator
 from .constants import VERSION
+from .data.setup import getconn
 
 # Endpoints
 from .endpoints import (
@@ -34,6 +36,15 @@ print("Initialising API...")
 app = application = flask.Flask(__name__)
 
 CORS(app)
+
+# Configure database connection
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://"
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "creator": getconn
+}
+
+db = SQLAlchemy()
+db.init_app(app)
 
 app.route("/", methods=["GET"])(get_home)
 
