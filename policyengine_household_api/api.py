@@ -8,6 +8,7 @@ import os
 from flask_cors import CORS
 import flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
 from authlib.integrations.flask_oauth2 import ResourceProtector
 
@@ -44,12 +45,17 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 # Configure database schema
-db = SQLAlchemy()
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
-from policyengine_household_api.data.models import Visit
+# Note that this only updates if table already exists
+from policyengine_household_api.data.models import Visits
 with app.app_context():
     db.create_all()
+
 
 app.route("/", methods=["GET"])(get_home)
 
