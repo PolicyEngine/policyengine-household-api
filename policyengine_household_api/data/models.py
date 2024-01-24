@@ -2,7 +2,10 @@ from policyengine_household_api.api import db
 from sqlalchemy import Integer, String, Date, Time
 from sqlalchemy.orm import mapped_column
 
-class Visits(db.Model):
+class Visit(db.Model):
+  # Note that the model represents one visit,
+  # while the table name is plural
+  __tablename__ = "visits"
   id = mapped_column(Integer, primary_key=True)
   client_id = mapped_column(String(255), nullable=False)
   date = mapped_column(Date)

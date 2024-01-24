@@ -52,7 +52,7 @@ db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 # Note that this only updates if table already exists
-from policyengine_household_api.data.models import Visits
+from policyengine_household_api.data.models import Visit
 with app.app_context():
     db.create_all()
 
