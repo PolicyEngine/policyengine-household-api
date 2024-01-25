@@ -144,3 +144,8 @@
     changed:
     - Update README and home page to reflect proper name
   date: 2024-01-22 20:36:31
+- bump: patch
+  changes:
+    changed:
+    - Fix Black version
+  date: 2024-01-25 22:35:48
