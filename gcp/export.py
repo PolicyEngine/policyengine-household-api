@@ -12,6 +12,9 @@ except Exception as e:
 ADDRESS = os.environ["AUTH0_ADDRESS_NO_DOMAIN"]
 AUDIENCE = os.environ["AUTH0_AUDIENCE_NO_DOMAIN"]
 TEST_TOKEN = os.environ["AUTH0_TEST_TOKEN_NO_DOMAIN"]
+DB_USER = os.environ["USER_ANALYTICS_DB_USERNAME"]
+DBPW = os.environ["USER_ANALYTICS_DB_PASSWORD"]
+DB_CONN = os.environ["USER_ANALYTICS_DB_CONNECTION"]
 
 # Export GAE to to .gac.json
 
@@ -27,6 +30,9 @@ for dockerfile_location in [
         dockerfile = dockerfile.replace(".address", ADDRESS)
         dockerfile = dockerfile.replace(".audience", AUDIENCE)
         dockerfile = dockerfile.replace(".test-token", TEST_TOKEN)
+        dockerfile = dockerfile.replace(".dbuser", DB_USER)
+        dockerfile = dockerfile.replace(".dbpw", DBPW)
+        dockerfile = dockerfile.replace(".dbconn", DB_CONN)
 
     with open(dockerfile_location, "w") as f:
         f.write(dockerfile)

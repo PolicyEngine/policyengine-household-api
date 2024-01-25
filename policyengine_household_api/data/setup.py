@@ -12,9 +12,9 @@ connector = Connector()
 def getconn():
 
   conn = connector.connect(
-    "policyengine-household-api:us-central1:household-api-user-analytics", # Cloud SQL Instance Connection Name
+    os.getenv("USER_ANALYTICS_CONNECTION_NAME"),
     "pymysql",
-    user="policyengine",
+    user=os.getenv("USER_ANALYTICS_DB_USERNAME"),
     password=os.getenv("USER_ANALYTICS_DB_PASSWORD"),
     db="user_analytics",
     ip_type= IPTypes.PUBLIC  # IPTypes.PRIVATE for private IP
