@@ -1,4 +1,4 @@
 - bump: minor
   changes:
     added:
-    - User analytics tracking
+    - Fix environment variables
