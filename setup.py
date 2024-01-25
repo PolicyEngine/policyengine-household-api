@@ -10,11 +10,11 @@ setup(
     packages=find_packages(),
     install_requires=[
         "Authlib<1.3.0",
-        "flask>=1",
+        "flask>=2.2",
         "flask-cors>=3",
+        "flask-sqlalchemy>=3",
         "google-cloud-logging",
         "gunicorn",
-        "markupsafe==2.0.1",
         "policyengine_canada==0.87.0",
         "policyengine-ng==0.5.1",
         "policyengine-il==0.1.0",

@@ -8,7 +8,7 @@ def log_analytics(func):
   @wraps(func)
   def decorated_function(*args, **kwargs):
     
-    
+    print(request)
     # Create a record that will be emitted to the db
     new_visit = Visit()
 
