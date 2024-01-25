@@ -149,3 +149,8 @@
     changed:
     - Fix Black version
   date: 2024-01-25 22:35:48
+- bump: minor
+  changes:
+    added:
+    - User analytics tracking
+  date: 2024-01-25 23:10:35
