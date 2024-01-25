@@ -154,3 +154,8 @@
     added:
     - User analytics tracking
   date: 2024-01-25 23:10:35
+- bump: minor
+  changes:
+    added:
+    - Fix environment variables
+  date: 2024-01-25 23:27:28
