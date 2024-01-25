@@ -56,15 +56,14 @@ from policyengine_household_api.data.models import Visit
 with app.app_context():
     db.create_all()
 
-from policyengine_household_api.middleware.analytics import AnalyticsWrapper
-app.wsgi_app = AnalyticsWrapper(app.wsgi_app)
-
+from policyengine_household_api.decorators.analytics import log_analytics
 
 app.route("/", methods=["GET"])(get_home)
 
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth(None)
+@log_analytics
 def calculate(country_id):
     return get_calculate(country_id)
 
