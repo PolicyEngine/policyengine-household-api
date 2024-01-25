@@ -11,13 +11,13 @@ connector = Connector()
 # Configure connector
 def getconn():
 
-  conn = connector.connect(
-    os.getenv("USER_ANALYTICS_CONNECTION_NAME"),
-    "pymysql",
-    user=os.getenv("USER_ANALYTICS_DB_USERNAME"),
-    password=os.getenv("USER_ANALYTICS_DB_PASSWORD"),
-    db="user_analytics",
-    ip_type= IPTypes.PUBLIC  # IPTypes.PRIVATE for private IP
-  )
+    conn = connector.connect(
+        os.getenv("USER_ANALYTICS_CONNECTION_NAME"),
+        "pymysql",
+        user=os.getenv("USER_ANALYTICS_DB_USERNAME"),
+        password=os.getenv("USER_ANALYTICS_DB_PASSWORD"),
+        db="user_analytics",
+        ip_type=IPTypes.PUBLIC,  # IPTypes.PRIVATE for private IP
+    )
 
-  return conn
+    return conn

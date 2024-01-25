@@ -40,29 +40,29 @@ app = application = flask.Flask(__name__)
 CORS(app)
 
 # Configure database connection
-if (os.getenv("FLASK_DEBUG") == "1"):
+if os.getenv("FLASK_DEBUG") == "1":
     db_url = REPO / "policyengine_household_api" / "data" / "policyengine.db"
     print(db_url)
     if Path(db_url).exists():
         Path(db_url).unlink()
     if not Path(db_url).exists():
         Path(db_url).touch()
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////" + str(db_url)
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////" + str(db_url)
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://"
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        "creator": getconn
-    }
+    app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
 
 # Configure database schema
 class Base(DeclarativeBase):
     pass
+
 
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
 # Note that this only updates if table already exists
 from policyengine_household_api.data.models import Visit
+
 with app.app_context():
     db.create_all()
 

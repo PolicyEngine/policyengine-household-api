@@ -7,37 +7,39 @@ from policyengine_household_api.api import db
 
 from policyengine_household_api.data.models import Visit
 
+
 def log_analytics(func):
-  @wraps(func)
-  def decorated_function(*args, **kwargs):
-    
-    # Create a record that will be emitted to the db
-    new_visit = Visit()
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
 
-    # Pull client_id from JWT
-    auth_header = str(request.authorization)
-    token = auth_header.split(" ")[1]
-    decoded_token = jwt.decode(token, options={"verify_signature": False})
-    client_id = decoded_token["sub"]
-    new_visit.client_id = client_id
+        # Create a record that will be emitted to the db
+        new_visit = Visit()
 
-    # Set API version
-    new_visit.api_version = VERSION
+        # Pull client_id from JWT
+        auth_header = str(request.authorization)
+        token = auth_header.split(" ")[1]
+        decoded_token = jwt.decode(token, options={"verify_signature": False})
+        client_id = decoded_token["sub"]
+        new_visit.client_id = client_id
 
-    # Set endpoint and method
-    new_visit.endpoint = request.endpoint
-    new_visit.method = request.method
+        # Set API version
+        new_visit.api_version = VERSION
 
-    # Set content_length_bytes
-    new_visit.content_length_bytes = request.content_length
+        # Set endpoint and method
+        new_visit.endpoint = request.endpoint
+        new_visit.method = request.method
 
-    # Set the date and time
-    now = datetime.utcnow()
-    new_visit.datetime = now
+        # Set content_length_bytes
+        new_visit.content_length_bytes = request.content_length
 
-    # Emit the new record to the db
-    db.session.add(new_visit)
-    db.session.commit()
+        # Set the date and time
+        now = datetime.utcnow()
+        new_visit.datetime = now
 
-    return func(*args, **kwargs)
-  return decorated_function
+        # Emit the new record to the db
+        db.session.add(new_visit)
+        db.session.commit()
+
+        return func(*args, **kwargs)
+
+    return decorated_function
