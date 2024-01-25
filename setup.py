@@ -25,7 +25,7 @@ setup(
         "Flask-Caching==2.0.2",
         "urllib3<1.27,>=1.21.1",
         "python-dotenv",
-        "pymysql"
+        "pymysql",
         "black==22.12.0",  # This is because policyengine_canada uses black<23
     ],
     extras_require={
