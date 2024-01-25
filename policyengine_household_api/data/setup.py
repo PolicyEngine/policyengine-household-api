@@ -12,7 +12,7 @@ connector = Connector()
 def getconn():
 
     conn = connector.connect(
-        os.getenv("USER_ANALYTICS_CONNECTION_NAME"),
+        os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME"),
         "pymysql",
         user=os.getenv("USER_ANALYTICS_DB_USERNAME"),
         password=os.getenv("USER_ANALYTICS_DB_PASSWORD"),
