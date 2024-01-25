@@ -10,6 +10,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "Authlib<1.3.0",
+        "cloud-sql-python-connector",
         "flask>=2.2",
         "flask-cors>=3",
         "flask-sqlalchemy>=3",
@@ -20,9 +21,11 @@ setup(
         "policyengine-il==0.1.0",
         "policyengine_uk==0.62.0",
         "policyengine_us==0.571.2",
+        "pyjwt",
         "Flask-Caching==2.0.2",
         "urllib3<1.27,>=1.21.1",
         "python-dotenv",
+        "pymysql"
         "black==22.12.0",  # This is because policyengine_canada uses black<23
     ],
     extras_require={

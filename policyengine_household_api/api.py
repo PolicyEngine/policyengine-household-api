@@ -3,6 +3,7 @@ This is the main Flask app for the PolicyEngine API.
 """
 # Python imports
 import os
+from pathlib import Path
 
 # External imports
 from flask_cors import CORS
@@ -14,7 +15,7 @@ from authlib.integrations.flask_oauth2 import ResourceProtector
 
 # Internal imports
 from .auth.validation import Auth0JWTBearerTokenValidator
-from .constants import VERSION
+from .constants import VERSION, REPO
 from .data.setup import getconn
 
 # Endpoints
@@ -39,10 +40,19 @@ app = application = flask.Flask(__name__)
 CORS(app)
 
 # Configure database connection
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://"
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "creator": getconn
-}
+if (os.getenv("FLASK_DEBUG") == "1"):
+    db_url = REPO / "policyengine_household_api" / "data" / "policyengine.db"
+    print(db_url)
+    if Path(db_url).exists():
+        Path(db_url).unlink()
+    if not Path(db_url).exists():
+        Path(db_url).touch()
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////" + str(db_url)
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://"
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "creator": getconn
+    }
 
 # Configure database schema
 class Base(DeclarativeBase):
