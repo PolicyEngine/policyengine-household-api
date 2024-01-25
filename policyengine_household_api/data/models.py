@@ -14,4 +14,3 @@ class Visit(db.Model):
   endpoint = mapped_column(String(64))
   method = mapped_column(String(32))
   content_length_bytes = mapped_column(Integer)
-  auth_is_valid = mapped_column(Boolean)
