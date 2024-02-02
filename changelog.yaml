@@ -159,3 +159,8 @@
     added:
     - Fix environment variables
   date: 2024-01-25 23:27:28
+- bump: patch
+  changes:
+    changed:
+    - Removed the '@clients' parameter from the client_id portion of the JWT
+  date: 2024-02-02 16:57:55
