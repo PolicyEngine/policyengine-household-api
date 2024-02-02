@@ -53,6 +53,7 @@ else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
 
+
 # Configure database schema
 class Base(DeclarativeBase):
     pass
