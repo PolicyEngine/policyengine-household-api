@@ -3,6 +3,7 @@ import os
 from tests.python.utils import client
 from policyengine_household_api.api import app
 
+
 def test_calc_demo(client):
     """
     Ensure that calculate_demo properly calculates;
