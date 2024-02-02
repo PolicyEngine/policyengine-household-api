@@ -27,7 +27,7 @@ setup(
         "python-dotenv",
         "pymysql",
         "black==22.12.0",  # This is because policyengine_canada uses black<23
-        "ratelimiter"
+        "ratelimiter",
     ],
     extras_require={
         "dev": [
