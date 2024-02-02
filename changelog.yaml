@@ -169,3 +169,8 @@
     changed:
     - Added calculate_demo endpoint for use on API documentation page
   date: 2024-02-02 20:47:10
+- bump: patch
+  changes:
+    changed:
+    - Prevented strange version increase for policyengine-ng
+  date: 2024-02-02 21:49:10
