@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Added calculate_demo endpoint for use on API documentation page
