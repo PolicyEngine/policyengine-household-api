@@ -12,6 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
 from authlib.integrations.flask_oauth2 import ResourceProtector
+from ratelimiter import RateLimiter
 
 # Internal imports
 from .auth.validation import Auth0JWTBearerTokenValidator
@@ -90,6 +91,12 @@ def readiness_check():
     return flask.Response(
         "OK", status=200, headers={"Content-Type": "text/plain"}
     )
+
+
+@app.route("/<country_id>/calculate_demo", methods=["POST"])
+@RateLimiter(max_calls=1, period=1)
+def calculate_demo(country_id):
+    return get_calculate(country_id)
 
 
 print("API initialised.")
