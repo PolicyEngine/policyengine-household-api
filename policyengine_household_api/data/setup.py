@@ -8,9 +8,9 @@ load_dotenv()
 # Initialize connector object
 connector = Connector()
 
+
 # Configure connector
 def getconn():
-
     conn = connector.connect(
         os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME"),
         "pymysql",

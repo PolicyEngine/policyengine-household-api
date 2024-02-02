@@ -11,7 +11,6 @@ from policyengine_household_api.data.models import Visit
 def log_analytics(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
-
         # Create a record that will be emitted to the db
         new_visit = Visit()
 
