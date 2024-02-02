@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Removed the '@clients' parameter from the client_id portion of the JWT
