@@ -17,7 +17,7 @@ setup(
         "google-cloud-logging",
         "gunicorn",
         "policyengine_canada==0.87.0",
-        "policyengine-ng==0.5.2",
+        "policyengine-ng==0.5.1", 
         "policyengine-il==0.1.0",
         "policyengine_uk==0.62.0",
         "policyengine_us==0.571.2",
