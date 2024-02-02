@@ -21,7 +21,10 @@ def log_analytics(func):
         decoded_token = jwt.decode(token, options={"verify_signature": False})
         client_id = decoded_token["sub"]
         suffix_to_slice = "@clients"
-        if len(client_id) >= len(suffix_to_slice) and client_id[-len(suffix_to_slice) :] == suffix_to_slice:
+        if (
+            len(client_id) >= len(suffix_to_slice)
+            and client_id[-len(suffix_to_slice) :] == suffix_to_slice
+        ):
             client_id = client_id[: -len(suffix_to_slice)]
         new_visit.client_id = client_id
 
