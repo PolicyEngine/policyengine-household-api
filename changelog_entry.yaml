@@ -1,0 +1,5 @@
+- bump: patch
+  changes:
+    changed:
+    - Upgraded black to v. 24.3.0
+    - Upgraded policyengine-canada to v. 0.95.0
