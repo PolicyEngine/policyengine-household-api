@@ -9,10 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
-      - uses: psf/black@22.12.0
+      - uses: psf/black@24.3.0
         with:
           options: ". -l 79 --check"
-          version: "22.12.0"
+          version: "24.3.0"
   check-version:
     name: Check version
     runs-on: ubuntu-latest
