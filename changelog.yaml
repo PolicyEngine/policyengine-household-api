@@ -174,3 +174,11 @@
     changed:
     - Prevented strange version increase for policyengine-ng
   date: 2024-02-02 21:49:10
+- bump: patch
+  changes:
+    changed:
+    - Upgraded black to v. 24.3.0
+    - Upgraded policyengine-canada to v. 0.95.0
+    - Upgraded policyengine-uk to v. 0.74.1
+    - Upgraded policyengine-us to v. 0.754.0
+  date: 2024-05-13 16:23:57
