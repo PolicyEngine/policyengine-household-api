@@ -182,3 +182,8 @@
     - Upgraded policyengine-uk to v. 0.74.1
     - Upgraded policyengine-us to v. 0.754.0
   date: 2024-05-13 16:23:57
+- bump: patch
+  changes:
+    changed:
+    - Fixed main branch reference in bump_country_package
+  date: 2024-05-22 20:32:02
