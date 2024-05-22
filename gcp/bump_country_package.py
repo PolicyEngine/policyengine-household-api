@@ -73,7 +73,7 @@ def bump_country_package(country, version):
     os.system(f"git push -u origin {branch_name} -f")
     # Create a pull request using the GitHub CLI
     os.system(
-        f"gh pr create --title 'Update {country_package_full_name} to {version}' --body 'Update {country_package_full_name} to {version}' --base master --head {branch_name}"
+        f"gh pr create --title 'Update {country_package_full_name} to {version}' --body 'Update {country_package_full_name} to {version}' --base main --head {branch_name}"
     )
 
 

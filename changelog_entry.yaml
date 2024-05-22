@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Fixed main branch reference in bump_country_package
