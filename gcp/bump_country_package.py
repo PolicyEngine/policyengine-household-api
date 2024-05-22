@@ -26,7 +26,7 @@ def main():
 
 
 def bump_country_package(country, version):
-    time.sleep(60 * 5)
+    # time.sleep(60 * 5)
     # Update the version in the country package's setup.py
     setup_py_path = f"setup.py"
     with open(setup_py_path, "r") as f:
