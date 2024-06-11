@@ -242,3 +242,8 @@
     changed:
     - Update PolicyEngine US to 0.785.0
   date: 2024-06-10 19:50:12
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 0.785.2
+  date: 2024-06-11 14:56:37
