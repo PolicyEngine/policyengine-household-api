@@ -257,3 +257,8 @@
     changed:
     - Update PolicyEngine US to 0.788.0
   date: 2024-06-13 16:57:12
+- bump: patch
+  changes:
+    changed:
+    - Updated authlib version
+  date: 2024-06-13 17:21:10
