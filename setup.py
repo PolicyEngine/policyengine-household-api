@@ -9,7 +9,7 @@ setup(
     description="PolicyEngine Household API",
     packages=find_packages(),
     install_requires=[
-        "Authlib<1.3.0",
+        "Authlib>=1.3.1",
         "cloud-sql-python-connector",
         "flask>=2.2",
         "flask-cors>=3",
