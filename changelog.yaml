@@ -327,3 +327,8 @@
     changed:
     - Update PolicyEngine US to 1.13.0
   date: 2024-07-04 22:43:09
+- bump: patch
+  changes:
+    fixed:
+    - Allow GitHub Actions to use earlier version of glibc
+  date: 2024-07-14 22:46:55

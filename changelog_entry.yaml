@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    fixed:
-    - Allow GitHub Actions to use earlier version of glibc

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.34] - 2024-07-14 22:46:55
+
+### Fixed
+
+- Allow GitHub Actions to use earlier version of glibc
+
 ## [0.5.33] - 2024-07-04 22:43:09
 
 ### Changed
@@ -388,6 +394,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.5.34]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.33...0.5.34
 [0.5.33]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.32...0.5.33
 [0.5.32]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.31...0.5.32
 [0.5.31]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.30...0.5.31
