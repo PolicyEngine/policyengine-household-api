@@ -337,3 +337,8 @@
     changed:
     - Update PolicyEngine US to 1.21.0
   date: 2024-07-14 22:53:56
+- bump: patch
+  changes:
+    fixed:
+    - Updated policyengine-uk to 0.86.3
+  date: 2024-07-14 23:04:25
