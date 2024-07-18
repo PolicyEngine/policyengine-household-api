@@ -347,3 +347,8 @@
     changed:
     - Update PolicyEngine UK to 0.86.6
   date: 2024-07-17 19:04:36
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.22.1
+  date: 2024-07-18 20:22:20
