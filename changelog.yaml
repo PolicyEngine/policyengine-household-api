@@ -407,3 +407,8 @@
     changed:
     - Update PolicyEngine US to 1.38.0
   date: 2024-08-01 20:12:26
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.40.0
+  date: 2024-08-02 19:27:31

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.50] - 2024-08-02 19:27:31
+
+### Changed
+
+- Update PolicyEngine US to 1.40.0
+
 ## [0.5.49] - 2024-08-01 20:12:26
 
 ### Changed
@@ -484,6 +490,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.5.50]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.49...0.5.50
 [0.5.49]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.48...0.5.49
 [0.5.48]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.47...0.5.48
 [0.5.47]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.46...0.5.47
