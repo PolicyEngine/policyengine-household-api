@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.repository == 'PolicyEngine/policyengine-uk')
-      && (github.event.head_commit.message == 'Update PolicyEngine API')
+      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     steps:
       - uses: actions/checkout@v3
       - name: Check formatting
@@ -24,7 +24,7 @@ jobs:
     name: Update versioning
     if: |
       (github.repository == 'PolicyEngine/policyengine-household-api')
-      && !(github.event.head_commit.message == 'Update PolicyEngine API')
+      && !(github.event.head_commit.message == 'Update PolicyEngine Household API')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -47,13 +47,13 @@ jobs:
           add: "."
           committer_name: Github Actions[bot]
           author_name: Github Actions[bot]
-          message: Update PolicyEngine API
+          message: Update PolicyEngine Household API
   deploy:
     name: Deploy API
     runs-on: ubuntu-latest
     if: |
       (github.repository == 'PolicyEngine/policyengine-household-api')
-      && (github.event.head_commit.message == 'Update PolicyEngine API')
+      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
