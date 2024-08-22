@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Updated GCP Dockerfile to properly support launching off of start.sh
