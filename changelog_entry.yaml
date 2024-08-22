@@ -1,0 +1,6 @@
+- bump: patch
+  changes:
+    changed:
+    - Update to Python 3.10
+    - Updated policyengine-us version
+    - Updated policyengine-uk version

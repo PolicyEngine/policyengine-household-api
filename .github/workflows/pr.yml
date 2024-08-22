@@ -28,7 +28,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: "3.10"
       - name: Build changelog
         run: pip install yaml-changelog && make changelog
       - name: Preview changelog update
@@ -39,7 +39,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     container:
-      image: nikhilwoodruff/policyengine-api
+      image: policyengine/policyengine-household-api
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
