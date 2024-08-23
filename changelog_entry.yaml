@@ -1,3 +1,4 @@
 - bump: patch
   changes:
     changed:
+    - Removed empty ENV call in Dockerfile
