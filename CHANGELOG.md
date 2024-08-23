@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.57] - 2024-08-23 00:08:38
+
+### Changed
+
+- Removed empty ENV call in Dockerfile
+
 ## [0.5.56] - 2024-08-22 20:15:08
 
 ### Changed
@@ -528,6 +534,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.5.57]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.56...0.5.57
 [0.5.56]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.55...0.5.56
 [0.5.55]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.54...0.5.55
 [0.5.54]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.53...0.5.54
