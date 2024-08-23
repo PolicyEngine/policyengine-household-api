@@ -444,3 +444,13 @@
     changed:
     - Updated GCP Dockerfile to properly support launching off of start.sh
   date: 2024-08-22 20:15:08
+- bump: patch
+  changes:
+    changed:
+    - Removed empty ENV call in Dockerfile
+  date: 2024-08-23 00:08:38
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.60.0
+  date: 2024-08-23 01:25:42
