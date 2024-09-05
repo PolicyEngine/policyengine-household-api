@@ -506,3 +506,8 @@
     - Update PolicyEngine Canada to 0.96.1.
     - Update PolicyEngine UK to 1.7.3.
   date: 2024-09-04 15:10:35
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.72.1
+  date: 2024-09-05 12:59:00
