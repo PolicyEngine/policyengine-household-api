@@ -521,3 +521,8 @@
     changed:
     - Update PolicyEngine US to 1.75.1
   date: 2024-09-06 21:52:40
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.79.2
+  date: 2024-09-16 15:38:53
