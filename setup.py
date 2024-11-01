@@ -20,7 +20,7 @@ setup(
         "policyengine-ng==0.5.1",
         "policyengine-il==0.1.0",
         "policyengine_uk==2.14.1",
-        "policyengine_us==1.137.0",
+        "policyengine_us==1.137.2",
         "pyjwt",
         "Flask-Caching==2.0.2",
         "urllib3<1.27,>=1.21.1",
