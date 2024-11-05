@@ -19,7 +19,7 @@ setup(
         "policyengine_canada==0.96.1",
         "policyengine-ng==0.5.1",
         "policyengine-il==0.1.0",
-        "policyengine_uk==2.14.1",
+        "policyengine_uk==2.15.1",
         "policyengine_us==1.137.4",
         "pyjwt",
         "Flask-Caching==2.0.2",
