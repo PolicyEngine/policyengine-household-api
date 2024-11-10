@@ -721,3 +721,8 @@
     changed:
     - Update PolicyEngine US to 1.139.0
   date: 2024-11-07 17:24:35
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.139.2
+  date: 2024-11-10 18:36:37
