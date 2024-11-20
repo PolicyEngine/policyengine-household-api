@@ -1,5 +1,5 @@
 install:
-	pip install -U -e .[dev]
+	pip install -U -e ".[dev]" --config-settings editable_mode=compat
 
 debug:
 	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 flask run --without-threads
