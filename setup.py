@@ -16,7 +16,7 @@ setup(
         "flask-sqlalchemy>=3",
         "google-cloud-logging",
         "gunicorn",
-        "policyengine_canada==0.96.1",
+        "policyengine_canada==0.96.2",
         "policyengine-ng==0.5.1",
         "policyengine-il==0.1.0",
         "policyengine_uk==2.16.0",
