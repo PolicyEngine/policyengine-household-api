@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.124] - 2024-12-04 20:01:36
+
+### Changed
+
+- Updated version of policyengine-canada to 0.96.2
+
 ## [0.5.123] - 2024-11-28 17:22:06
 
 ### Changed
@@ -932,6 +938,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.5.124]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.123...0.5.124
 [0.5.123]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.122...0.5.123
 [0.5.122]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.121...0.5.122
 [0.5.121]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.120...0.5.121
