@@ -786,3 +786,8 @@
     changed:
     - Updated version of policyengine-canada to 0.96.2
   date: 2024-12-04 20:01:36
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine UK to 2.18.0
+  date: 2024-12-05 16:44:13
