@@ -2,6 +2,7 @@ import importlib
 from flask import Response
 import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
+from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from typing import Union
 from policyengine_household_api.utils import get_safe_json
 from policyengine_core.parameters import (
@@ -16,6 +17,7 @@ from policyengine_core.model_api import Reform, Enum
 from policyengine_core.periods import instant
 import dpath
 import math
+from uuid import uuid4
 import policyengine_uk
 import policyengine_us
 import policyengine_canada
@@ -319,6 +321,8 @@ class PolicyEngineCountry:
 
         household = json.loads(json.dumps(household))
 
+        # Run tracer on household
+        simulation.trace = True
         requested_computations = get_requested_computations(household)
 
         for (
@@ -380,6 +384,27 @@ class PolicyEngineCountry:
                     print(
                         f"Error computing {variable_name} for {entity_id}: {e}"
                     )
+
+        # Execute all household tracer operations
+        try:
+            # Get tracer output after calculations have completed
+            tracer_output = simulation.tracer.computation_log
+            log_lines = tracer_output.lines(aggregate=False, max_depth=10)
+            log_json = json.dumps(log_lines)
+
+            # Generate a UUID for the complete tracer run - this is where
+            # implementation slightly differs from standard API
+            tracer_uuid = uuid4()
+
+            # Also find the country package version to save
+            package_version = COUNTRY_PACKAGE_VERSIONS[self.country_id]
+
+            # Write tracer output to local database - not yet implemented
+            print("Not yet implemented")
+
+        except Exception as e:
+            # Do something here
+            print(f"Error computing tracer output: {e}")
 
         return household
 
