@@ -4,7 +4,7 @@ import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from typing import Union
-from policyengine_household_api.utils import get_safe_json
+from policyengine_household_api.utils import get_safe_json, generate_tracer_output, store_in_cloud_bucket
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
@@ -387,26 +387,18 @@ class PolicyEngineCountry:
 
         # Execute all household tracer operations
         try:
-            # Get tracer output after calculations have completed
-            tracer_output = simulation.tracer.computation_log
-            log_lines = tracer_output.lines(aggregate=False, max_depth=10)
-            log_json = json.dumps(log_lines)
+            
+            # Generate tracer output
+            log_lines: list = generate_tracer_output(simulation)
 
-            # Generate a UUID for the complete tracer run - this is where
-            # implementation slightly differs from standard API
-            tracer_uuid = uuid4()
-
-            # Also find the country package version to save
-            package_version = COUNTRY_PACKAGE_VERSIONS[self.country_id]
-
-            # Write tracer output to local database - not yet implemented
-            print("Not yet implemented")
+            # Take the log and store in Google Cloud bucket, returning the UUID
+            tracer_uuid: str = store_in_cloud_bucket(log_lines, self.country_id)
 
         except Exception as e:
             # Do something here
             print(f"Error computing tracer output: {e}")
 
-        return household
+        return household, tracer_uuid
 
 
 def create_policy_reform(policy_data: dict) -> dict:

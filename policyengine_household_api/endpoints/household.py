@@ -27,7 +27,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> dict:
     country = COUNTRIES.get(country_id)
 
     try:
-        result = country.calculate(household_json, policy_json)
+        result, tracer_uuid = country.calculate(household_json, policy_json)
     except Exception as e:
         logging.exception(e)
         response_body = dict(
@@ -44,4 +44,5 @@ def get_calculate(country_id: str, add_missing: bool = False) -> dict:
         status="ok",
         message=None,
         result=result,
+        ai_explainer_uuid=tracer_uuid,
     )
