@@ -65,11 +65,13 @@ def get_ai_explainer(country_id: str) -> Response:
             mimetype="application/json",
         )
 
-    # Generate the AI explainer prompt using the variable calculation tree
     try:
+        # Generate the AI explainer prompt using the variable calculation tree
         prompt = prompt_template.format(
             variable=variable, tracer_segment=tracer_segment
         )
+
+        # Pass all of this to Claude
         analysis: Generator = trigger_ai_analysis(prompt)
         return Response(
             stream_with_context(analysis),
@@ -88,7 +90,3 @@ def get_ai_explainer(country_id: str) -> Response:
             status=500,
             mimetype="application/json",
         )
-
-    # Pass all of this to Claude
-
-    # Return Claude's output
