@@ -6,6 +6,7 @@ from policyengine_household_api.utils.validate_country import validate_country
 import json
 import logging
 
+
 @validate_country
 def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     """Lightweight endpoint for passing in household JSON objects and calculating without storing data.
@@ -42,9 +43,12 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     return Response(
         json.dumps(
             dict(
-              status="ok",
-              message=None,
-              result=result,
-              ai_explainer_uuid=str(tracer_uuid),
+                status="ok",
+                message=None,
+                result=result,
+                ai_explainer_uuid=str(tracer_uuid),
             )
-        ), 200, mimetype="application/json")
+        ),
+        200,
+        mimetype="application/json",
+    )
