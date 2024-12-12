@@ -48,31 +48,3 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
               ai_explainer_uuid=str(tracer_uuid),
             )
         ), 200, mimetype="application/json")
-
-@validate_country
-def get_ai_explainer(country_id: str) -> Response:
-    """
-    Generate an AI explainer output for a given variable in 
-    a particular household.
-
-    Args:
-        country_id (str): The country ID.
-
-    Returns:
-        Response: The AI explainer output or an error.
-    """
-
-    # Pull the UUID and variable from the query parameters
-    uuid: str = request.args.get("uuid")
-    variable: str = request.args.get("variable")
-
-    # Fetch the tracer output from the Google Cloud bucket
-
-    # Parse the tracer for the calculation tree of the variable
-
-    # Generate the AI explainer prompt using the variable calculation tree
-
-    # Pass all of this to Claude
-
-    # Return Claude's output
-
