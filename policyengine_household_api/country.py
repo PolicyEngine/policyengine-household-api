@@ -4,7 +4,11 @@ import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from typing import Union
-from policyengine_household_api.utils import get_safe_json, generate_tracer_output, store_in_cloud_bucket
+from policyengine_household_api.utils import (
+    get_safe_json,
+    generate_tracer_output,
+    store_in_cloud_bucket,
+)
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
@@ -387,12 +391,14 @@ class PolicyEngineCountry:
 
         # Execute all household tracer operations
         try:
-            
+
             # Generate tracer output
             log_lines: list = generate_tracer_output(simulation)
 
             # Take the log and store in Google Cloud bucket, returning the UUID
-            tracer_uuid: str = store_in_cloud_bucket(log_lines, self.country_id)
+            tracer_uuid: str = store_in_cloud_bucket(
+                log_lines, self.country_id
+            )
 
         except Exception as e:
             # Do something here

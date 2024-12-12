@@ -1,15 +1,22 @@
 import json
 import logging
-from flask import request, Response
+from flask import request, Response, stream_with_context
+from typing import Generator
 from policyengine_household_api.utils.validate_country import validate_country
-from policyengine_household_api.utils.google_cloud import fetch_from_cloud_bucket
-from policyengine_household_api.utils.tracer import parse_tracer_output, prompt_template
+from policyengine_household_api.utils.google_cloud import (
+    fetch_from_cloud_bucket,
+)
+from policyengine_household_api.utils.tracer import (
+    parse_tracer_output,
+    trigger_ai_analysis,
+    prompt_template,
+)
 
 
 @validate_country
 def get_ai_explainer(country_id: str) -> Response:
     """
-    Generate an AI explainer output for a given variable in 
+    Generate an AI explainer output for a given variable in
     a particular household.
 
     Args:
@@ -63,6 +70,12 @@ def get_ai_explainer(country_id: str) -> Response:
         prompt = prompt_template.format(
             variable=variable, tracer_segment=tracer_segment
         )
+        analysis: Generator = trigger_ai_analysis(prompt)
+        return Response(
+            stream_with_context(analysis),
+            status=200,
+        )
+
     except Exception as e:
         logging.exception(e)
         return Response(
