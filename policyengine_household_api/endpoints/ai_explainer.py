@@ -1,8 +1,9 @@
 import json
+import logging
 from flask import request, Response
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.google_cloud import fetch_from_cloud_bucket
-from policyengine_household_api.utils.tracer import parse_tracer_output
+from policyengine_household_api.utils.tracer import parse_tracer_output, prompt_template
 
 
 @validate_country
@@ -26,6 +27,7 @@ def get_ai_explainer(country_id: str) -> Response:
     try:
         tracer_data: dict = fetch_from_cloud_bucket(uuid)
     except Exception as e:
+        logging.exception(e)
         return Response(
             json.dumps(
                 dict(
@@ -44,10 +46,35 @@ def get_ai_explainer(country_id: str) -> Response:
             complete_tracer, variable
         )
     except Exception as e:
-        print(f"Error parsing tracer output: {str(e)}")
-        raise e
+        logging.exception(e)
+        return Response(
+            json.dumps(
+                dict(
+                    status="error",
+                    message=f"Error parsing tracer output: {e}",
+                )
+            ),
+            status=500,
+            mimetype="application/json",
+        )
 
     # Generate the AI explainer prompt using the variable calculation tree
+    try:
+        prompt = prompt_template.format(
+            variable=variable, tracer_segment=tracer_segment
+        )
+    except Exception as e:
+        logging.exception(e)
+        return Response(
+            json.dumps(
+                dict(
+                    status="error",
+                    message=f"Error generating tracer analysis result using Claude: {e}",
+                )
+            ),
+            status=500,
+            mimetype="application/json",
+        )
 
     # Pass all of this to Claude
 

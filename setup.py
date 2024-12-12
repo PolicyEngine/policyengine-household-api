@@ -9,6 +9,7 @@ setup(
     description="PolicyEngine Household API",
     packages=find_packages(),
     install_requires=[
+        "anthropic",
         "Authlib>=1.3.1",
         "cloud-sql-python-connector",
         "flask>=2.2",
