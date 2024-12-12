@@ -62,9 +62,9 @@ def get_ai_explainer(country_id: str) -> Response:
         Response: The AI explainer output or an error.
     """
 
-    # Validate country
-
     # Pull the UUID and variable from the query parameters
+    uuid: str = request.args.get("uuid")
+    variable: str = request.args.get("variable")
 
     # Fetch the tracer output from the Google Cloud bucket
 
