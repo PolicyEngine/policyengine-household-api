@@ -1,11 +1,11 @@
 import json
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 
 TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
 
-def store_in_cloud_bucket(log_lines: list, country_id: str) -> str:
+def store_in_cloud_bucket(log_lines: list, country_id: str) -> UUID:
   """
   Store something in a Google Cloud bucket and return its item identifier. 
   This function remains under construction and is subject to significant change.
@@ -18,13 +18,13 @@ def store_in_cloud_bucket(log_lines: list, country_id: str) -> str:
   """
 
   # JSON-ify the log lines
-  log_json = json.dumps(log_lines)
+  log_json: str = json.dumps(log_lines)
 
   # Generate a UUID for the complete tracer run
-  tracer_uuid = uuid4()
+  tracer_uuid: UUID = uuid4()
 
   # Find country package version to save
-  package_version = COUNTRY_PACKAGE_VERSIONS[country_id]
+  package_version: str = COUNTRY_PACKAGE_VERSIONS[country_id]
 
   # Write tracer output to Google Cloud bucket - not yet implemented
   print("Writing tracer output to Google Cloud bucket not yet implemented")
@@ -51,6 +51,7 @@ def fetch_from_cloud_bucket(tracer_uuid: str) -> dict:
   return {
     "uuid": TEST_UUID,
     "variable": "income",
+    "package_version": "0.1.0",
     "tracer": [
         "only_government_benefit <1500>",
         "    market_income <1000>",
