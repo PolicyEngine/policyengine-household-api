@@ -15,6 +15,7 @@ TEST_TOKEN = os.environ["AUTH0_TEST_TOKEN_NO_DOMAIN"]
 DB_USER = os.environ["USER_ANALYTICS_DB_USERNAME"]
 DBPW = os.environ["USER_ANALYTICS_DB_PASSWORD"]
 DB_CONN = os.environ["USER_ANALYTICS_DB_CONNECTION_NAME"]
+ANTHROPIC = os.environ["ANTHROPIC_API_KEY"]
 
 # Export GAE to to .gac.json
 
@@ -33,6 +34,7 @@ for dockerfile_location in [
         dockerfile = dockerfile.replace(".dbuser", DB_USER)
         dockerfile = dockerfile.replace(".dbpw", DBPW)
         dockerfile = dockerfile.replace(".dbconn", DB_CONN)
+        dockerfile = dockerfile.replace(".anthropic", ANTHROPIC)
 
     with open(dockerfile_location, "w") as f:
         f.write(dockerfile)
