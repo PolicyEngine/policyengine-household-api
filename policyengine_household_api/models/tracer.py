@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.utils.google_cloud import (
     upload_json_to_cloud_storage,
+    download_json_from_cloud_storage,
 )
 
 TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
@@ -26,7 +27,7 @@ class Tracer:
 
     Args:
         country_id (str): The country ID for which the tracer output is generated.
-        tracer_uuid (UUID, optional): The UUID of a tracer already stored in
+        tracer_uuid (str, optional): The UUID of a tracer already stored in
             Cloud Storage. If provided, the tracer will be fetched from the bucket.
             Defaults to None.
         tracer (list[str], optional): The log lines to construct the tracer data.
@@ -39,7 +40,7 @@ class Tracer:
     def __init__(
         self,
         country_id: str,
-        tracer_uuid: UUID | None = None,
+        tracer_uuid: str | None = None,
         tracer: list[str] | None = None,
     ):
         # Mandate country ID - raise if not provided
@@ -49,22 +50,24 @@ class Tracer:
         self.country_id = country_id
         # If a UUID exists, assume we're fetching from bucket
         if tracer_uuid is not None:
-            self.tracer_uuid = tracer_uuid
-            self.storage_object = self.fetch_from_cloud_bucket(tracer_uuid)
+            self.tracer_uuid: str = tracer_uuid
+            self.storage_object: dict = self.download_from_cloud_storage(
+                tracer_uuid
+            )
 
         # Otherwise, assume we're passing log lines to Cloud Storage
         elif tracer is not None:
-            self.storage_object = self._construct_storage_object(
+            self.storage_object: dict = self._construct_storage_object(
                 tracer, country_id
             )
-            self.tracer_uuid = self.storage_object["uuid"]
+            self.tracer_uuid: str = self.storage_object["uuid"]
         else:
             raise ValueError(
                 "Either tracer_UUID or tracer value must be provided."
             )
 
-        self.package_version = self.storage_object["package_version"]
-        self.tracer = self.storage_object["tracer"]
+        self.package_version: str = self.storage_object["package_version"]
+        self.tracer: list[str] = self.storage_object["tracer"]
 
     def parse_tracer_output(self, target_variable: str) -> list[str]:
         """
@@ -129,10 +132,10 @@ class Tracer:
                 f"Error uploading tracer storage object to Google Cloud bucket: {e}"
             )
 
-    def fetch_from_cloud_bucket(tracer_uuid: str) -> dict:
+    def download_from_cloud_storage(self, tracer_uuid: str) -> dict:
         """
-        Fetch something from a Google Cloud bucket and return it as a dictionary.
-        This function remains under construction and is subject to significant change.
+        Given a UUID, fetch a storage object from a Google Cloud bucket and
+        return it as a dictionary.
 
         Args:
             tracer_uuid (str): The identifier of the item to fetch.
@@ -141,25 +144,11 @@ class Tracer:
             dict: The fetched item.
         """
 
-        # Fetch the tracer output from the Google Cloud bucket - not yet implemented
-        print(
-            "Fetching tracer output from Google Cloud bucket not yet implemented"
+        storage_object_json = download_json_from_cloud_storage(
+            bucket_name=self.cloud_bucket_name, source_blob_name=tracer_uuid
         )
 
-        # Return dummy data
-        return {
-            "uuid": TEST_UUID,
-            "variable": "income",
-            "package_version": "0.1.0",
-            "tracer": [
-                "only_government_benefit <1500>",
-                "    market_income <1000>",
-                "        employment_income <1000>",
-                "            main_employment_income <1000 >",
-                "    non_market_income <500>",
-                "        pension_income <500>",
-            ],
-        }
+        return json.loads(storage_object_json)
 
     def _construct_storage_object(
         self, tracer: list[str], country_id: str
