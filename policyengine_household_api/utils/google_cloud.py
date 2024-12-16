@@ -1,7 +1,9 @@
 from google.cloud import storage
 
 
-def upload_json_to_cloud_storage(bucket_name: str, input_json: str, destination_blob_name):
+def upload_json_to_cloud_storage(
+    bucket_name: str, input_json: str, destination_blob_name
+):
     """
     Uploads a JSON-formatted string to a Cloud Storage bucket. Modified from Google Cloud documentation:
     https://cloud.google.com/storage/docs/uploading-objects#uploading-an-object
@@ -22,7 +24,4 @@ def upload_json_to_cloud_storage(bucket_name: str, input_json: str, destination_
         content_type="application/json",
     )
 
-    print(
-        f"JSON uploaded to {destination_blob_name}."
-    )
-
+    print(f"JSON uploaded to {destination_blob_name}.")

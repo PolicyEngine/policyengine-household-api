@@ -16,6 +16,7 @@ setup(
         "flask-cors>=3",
         "flask-sqlalchemy>=3",
         "google-cloud-logging",
+        "google-cloud-storage",
         "gunicorn",
         "policyengine_canada==0.96.2",
         "policyengine-ng==0.5.1",

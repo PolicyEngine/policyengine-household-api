@@ -3,9 +3,20 @@ import re
 from uuid import UUID, uuid4
 
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
-from policyengine_household_api.utils.google_cloud import upload_json_to_cloud_storage
+from policyengine_household_api.utils.google_cloud import (
+    upload_json_to_cloud_storage,
+)
 
 TEST_UUID = "123e4567-e89b-12d3-a456-426614174000"
+TEST_TRACER = [
+    "only_government_benefit <1500>",
+    "    market_income <1000>",
+    "        employment_income <1000>",
+    "            main_employment_income <1000 >",
+    "    non_market_income <500>",
+    "        pension_income <500>",
+]
+
 
 class Tracer:
     """
@@ -15,16 +26,22 @@ class Tracer:
 
     Args:
         country_id (str): The country ID for which the tracer output is generated.
-        tracer_uuid (UUID, optional): The UUID of a tracer already stored in 
+        tracer_uuid (UUID, optional): The UUID of a tracer already stored in
             Cloud Storage. If provided, the tracer will be fetched from the bucket.
             Defaults to None.
         tracer (list[str], optional): The log lines to construct the tracer data.
-            If provided, the tracer will be constructed from these log lines, then 
+            If provided, the tracer will be constructed from these log lines, then
             uploaded to Cloud Storage. Defaults to None.
     """
+
     cloud_bucket_name = "policyengine-test-bucket"
 
-    def __init__(self, country_id: str, tracer_uuid: UUID | None = None, tracer: list[str] | None = None):
+    def __init__(
+        self,
+        country_id: str,
+        tracer_uuid: UUID | None = None,
+        tracer: list[str] | None = None,
+    ):
         # Mandate country ID - raise if not provided
         if country_id is None:
             raise ValueError("Country ID must be provided.")
@@ -33,22 +50,23 @@ class Tracer:
         # If a UUID exists, assume we're fetching from bucket
         if tracer_uuid is not None:
             self.tracer_uuid = tracer_uuid
-            # TODO: Modify to separate metadata from tracer data
-            self.tracer_object = self.fetch_from_cloud_bucket(tracer_uuid)
+            self.storage_object = self.fetch_from_cloud_bucket(tracer_uuid)
 
         # Otherwise, assume we're passing log lines to Cloud Storage
         elif tracer is not None:
-            self.tracer_object = self._construct_tracer_object(tracer, country_id)
+            self.storage_object = self._construct_storage_object(
+                tracer, country_id
+            )
+            self.tracer_uuid = self.storage_object["uuid"]
         else:
-            raise ValueError("Either tracer_UUID or tracer value must be provided.")
+            raise ValueError(
+                "Either tracer_UUID or tracer value must be provided."
+            )
 
-        self.package_version = self.tracer_object["package_version"]
-        self.tracer = self.tracer_object["tracer"]
-    
-    
-    def parse_tracer_output(
-        self, target_variable: str
-    ) -> list[str]:
+        self.package_version = self.storage_object["package_version"]
+        self.tracer = self.storage_object["tracer"]
+
+    def parse_tracer_output(self, target_variable: str) -> list[str]:
         """
         Given a household tracer output, parse its contents to find
         the calculation tree for a specific variable.
@@ -89,41 +107,45 @@ class Tracer:
 
         return result
 
-    def store_in_cloud_bucket(self):
+    def upload_to_cloud_storage(self):
         """
         Store the tracer output in a Google Cloud bucket.
         """
-    
+
         # JSON-ify the log lines
-        tracer_json: str = json.dumps(self.tracer)
-    
+
+        # JSON-ify the storage object
+        storage_object_json: str = json.dumps(self.storage_object)
+
         # Write tracer output to Google Cloud bucket
         try:
             upload_json_to_cloud_storage(
                 bucket_name=self.cloud_bucket_name,
-                input_json=tracer_json,
+                input_json=storage_object_json,
                 destination_blob_name=self.tracer_uuid,
             )
         except Exception as e:
-            print(f"Error uploading tracer output to Google Cloud bucket: {e}")
-    
+            print(
+                f"Error uploading tracer storage object to Google Cloud bucket: {e}"
+            )
+
     def fetch_from_cloud_bucket(tracer_uuid: str) -> dict:
         """
         Fetch something from a Google Cloud bucket and return it as a dictionary.
         This function remains under construction and is subject to significant change.
-    
+
         Args:
             tracer_uuid (str): The identifier of the item to fetch.
-    
+
         Returns:
             dict: The fetched item.
         """
-    
+
         # Fetch the tracer output from the Google Cloud bucket - not yet implemented
         print(
             "Fetching tracer output from Google Cloud bucket not yet implemented"
         )
-    
+
         # Return dummy data
         return {
             "uuid": TEST_UUID,
@@ -139,7 +161,9 @@ class Tracer:
             ],
         }
 
-    def _construct_tracer_object(self, tracer: list[str], country_id: str) -> dict:
+    def _construct_storage_object(
+        self, tracer: list[str], country_id: str
+    ) -> dict:
         """
         Construct object that will be stored within Cloud Storage.
 
@@ -147,13 +171,13 @@ class Tracer:
             tracer (list[str]): The log lines to construct tracer data from.
 
         Returns:
-            dict: The constructed tracer data.
+            dict: The constructed storage object.
         """
         uuid: UUID = uuid4()
         package_version = COUNTRY_PACKAGE_VERSIONS[country_id]
 
         return {
-            "uuid": uuid,
+            "uuid": str(uuid),
             "package_version": package_version,
             "tracer": tracer,
         }
