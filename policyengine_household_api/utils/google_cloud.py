@@ -1,4 +1,6 @@
 from google.cloud import storage
+import json
+from typing import Annotated
 
 
 def upload_json_to_cloud_storage(
@@ -25,3 +27,18 @@ def upload_json_to_cloud_storage(
     )
 
     print(f"JSON uploaded to {destination_blob_name}.")
+
+
+def download_json_from_cloud_storage(
+    bucket_name: str, source_blob_name: str
+) -> Annotated[str, "JSON-formatted string"]:
+    """
+    Downloads a JSON-formatted string from a Cloud Storage bucket. Modified from Google Cloud documentation:
+    https://cloud.google.com/storage/docs/downloading-objects-into-memory#downloading-an-object-into-memory
+    """
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+
+    blob_raw = blob.download_as_bytes()
+    return blob_raw.decode("utf-8")
