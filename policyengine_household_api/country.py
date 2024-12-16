@@ -7,8 +7,8 @@ from typing import Union
 from policyengine_household_api.utils import (
     get_safe_json,
     generate_tracer_output,
-    store_in_cloud_bucket,
 )
+from policyengine_household_api.models.tracer import Tracer
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
@@ -395,16 +395,18 @@ class PolicyEngineCountry:
             # Generate tracer output
             log_lines: list = generate_tracer_output(simulation)
 
-            # Take the log and store in Google Cloud bucket, returning the UUID
-            tracer_uuid: str = store_in_cloud_bucket(
-                log_lines, self.country_id
-            )
+            # Take the tracer output and create a new tracer object
+            tracer: Tracer = Tracer(self.country_id, tracer=log_lines)
+
+            # Take the log and store in Google Cloud bucket
+            tracer.store_in_cloud_bucket()
 
         except Exception as e:
             # Do something here
             print(f"Error computing tracer output: {e}")
 
-        return household, tracer_uuid
+        # Return the household and the tracer's UUID
+        return household, tracer.tracer_uuid
 
 
 def create_policy_reform(policy_data: dict) -> dict:
