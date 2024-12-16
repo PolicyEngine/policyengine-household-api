@@ -399,7 +399,7 @@ class PolicyEngineCountry:
             tracer: Tracer = Tracer(self.country_id, tracer=log_lines)
 
             # Take the log and store in Google Cloud bucket
-            tracer.store_in_cloud_bucket()
+            tracer.upload_to_cloud_storage()
 
         except Exception as e:
             # Do something here

@@ -61,6 +61,7 @@ def trigger_ai_analysis(prompt: str) -> Generator[str, None, None]:
 
     return generate()
 
+
 def generate_tracer_output(simulation: Simulation) -> list:
     # Verify that tracing is enabled
     if simulation.trace != True:
