@@ -2,6 +2,7 @@ import json
 import logging
 from flask import request, Response, stream_with_context
 from typing import Generator
+from policyengine_household_api.models.tracer import Tracer
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.google_cloud import (
     fetch_from_cloud_bucket,
@@ -32,7 +33,7 @@ def get_ai_explainer(country_id: str) -> Response:
 
     # Fetch the tracer output from the Google Cloud bucket
     try:
-        tracer_data: dict = fetch_from_cloud_bucket(uuid)
+        tracer_data: Tracer = Tracer(country_id, tracer_uuid=uuid)
     except Exception as e:
         logging.exception(e)
         return Response(
