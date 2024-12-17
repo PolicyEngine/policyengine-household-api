@@ -24,6 +24,7 @@ from .data.setup import getconn
 from .endpoints import (
     get_home,
     get_calculate,
+    get_ai_explainer,
 )
 
 # Configure authentication
@@ -79,6 +80,13 @@ app.route("/", methods=["GET"])(get_home)
 @log_analytics
 def calculate(country_id):
     return get_calculate(country_id)
+
+
+@app.route("/<country_id>/ai_analysis", methods=["GET"])
+@require_auth(None)
+@log_analytics
+def ai_analysis(country_id):
+    return get_ai_explainer(country_id)
 
 
 @app.route("/liveness_check", methods=["GET"])
