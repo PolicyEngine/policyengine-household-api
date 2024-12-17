@@ -51,9 +51,7 @@ class Tracer:
         # If a UUID exists, assume we're fetching from bucket
         if tracer_uuid is not None:
             self.tracer_uuid: str = tracer_uuid
-            self.storage_object: dict = self.download_from_cloud_storage(
-                tracer_uuid
-            )
+            self.storage_object: dict = self.download_from_cloud_storage()
 
         # Otherwise, assume we're passing log lines to Cloud Storage
         elif tracer is not None:
@@ -132,20 +130,18 @@ class Tracer:
                 f"Error uploading tracer storage object to Google Cloud bucket: {e}"
             )
 
-    def download_from_cloud_storage(self, tracer_uuid: str) -> dict:
+    def download_from_cloud_storage(self) -> dict:
         """
         Given a UUID, fetch a storage object from a Google Cloud bucket and
         return it as a dictionary.
-
-        Args:
-            tracer_uuid (str): The identifier of the item to fetch.
 
         Returns:
             dict: The fetched item.
         """
 
         storage_object_json = download_json_from_cloud_storage(
-            bucket_name=self.cloud_bucket_name, source_blob_name=tracer_uuid
+            bucket_name=self.cloud_bucket_name,
+            source_blob_name=self.tracer_uuid,
         )
 
         return json.loads(storage_object_json)
