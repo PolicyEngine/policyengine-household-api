@@ -4,11 +4,7 @@ from flask import request, Response, stream_with_context
 from typing import Generator
 from policyengine_household_api.models.tracer import Tracer
 from policyengine_household_api.utils.validate_country import validate_country
-from policyengine_household_api.utils.google_cloud import (
-    fetch_from_cloud_bucket,
-)
 from policyengine_household_api.utils.tracer import (
-    parse_tracer_output,
     trigger_ai_analysis,
     prompt_template,
 )
@@ -49,10 +45,7 @@ def get_ai_explainer(country_id: str) -> Response:
 
     # Parse the tracer for the calculation tree of the variable
     try:
-        complete_tracer = tracer_data["tracer"]
-        tracer_segment: list[str] = parse_tracer_output(
-            complete_tracer, variable
-        )
+        tracer_segment: list[str] = tracer_data.parse_tracer_output(variable)
     except Exception as e:
         logging.exception(e)
         return Response(
