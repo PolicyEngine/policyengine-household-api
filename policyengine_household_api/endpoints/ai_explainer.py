@@ -5,7 +5,8 @@ from typing import Generator
 from policyengine_household_api.models.tracer import Tracer
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.tracer import (
-    trigger_ai_analysis,
+    trigger_buffered_ai_analysis,
+    trigger_streaming_ai_analysis,
     prompt_template,
 )
 
@@ -26,6 +27,7 @@ def get_ai_explainer(country_id: str) -> Response:
     # Pull the UUID and variable from the query parameters
     uuid: str = request.args.get("uuid")
     variable: str = request.args.get("variable")
+    use_streaming: bool = request.args.get("use_streaming", False)
 
     # Fetch the tracer output from the Google Cloud bucket
     try:
@@ -66,9 +68,16 @@ def get_ai_explainer(country_id: str) -> Response:
         )
 
         # Pass all of this to Claude
-        analysis: Generator = trigger_ai_analysis(prompt)
+        if use_streaming:
+            analysis: Generator = trigger_streaming_ai_analysis(prompt)
+            return Response(
+                stream_with_context(analysis),
+                status=200,
+            )
+
+        analysis: str = trigger_buffered_ai_analysis(prompt)
         return Response(
-            stream_with_context(analysis),
+            json.dumps({"response": analysis}),
             status=200,
         )
 
