@@ -1,5 +1,6 @@
 from policyengine_core import Simulation
 import anthropic
+from anthropic.types import Message
 import os
 import json
 from typing import Generator
@@ -20,7 +21,7 @@ prompt_template = f"""{anthropic.HUMAN_PROMPT} You are an AI assistant explainin
   {anthropic.AI_PROMPT}"""
 
 
-def trigger_ai_analysis(prompt: str) -> Generator[str, None, None]:
+def trigger_streaming_ai_analysis(prompt: str) -> Generator[str, None, None]:
     """
     Pass a prompt to Claude for analysis and return the response in streaming-
     formatted chunks.
@@ -62,6 +63,34 @@ def trigger_ai_analysis(prompt: str) -> Generator[str, None, None]:
     return generate()
 
 
+def trigger_buffered_ai_analysis(prompt: str) -> str:
+    """
+    Pass a prompt to Claude for analysis and return a buffered response.
+
+    Args:
+        prompt (str): The prompt to pass to Claude for analysis.
+
+    Returns:
+        str: The response from Claude.
+    """
+
+    # Configure a Claude client
+    claude_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    # Pass the prompt to Claude for analysis
+    response: Message = claude_client.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=1500,
+        temperature=0.0,
+        system="Respond with a historical quote",
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    response_str: str = parse_string_from_claude_message(response)
+
+    return response_str
+
+
 def generate_tracer_output(simulation: Simulation) -> list:
     # Verify that tracing is enabled
     if simulation.trace != True:
@@ -73,3 +102,31 @@ def generate_tracer_output(simulation: Simulation) -> list:
     tracer_output = simulation.tracer.computation_log
     log_lines = tracer_output.lines(aggregate=False, max_depth=10)
     return log_lines
+
+
+def parse_string_from_claude_message(message: Message) -> str:
+    """
+    Parse a string from a Claude message.
+
+    Args:
+        message (Message): The message to parse.
+
+    Returns:
+        str: The parsed string.
+    """
+
+    # There appears to be no canonical method to do this natively
+    # within Claude API; e.g., see
+    # https://community.openai.com/t/message-id-for-assistant-replies/562558
+
+    # Parse the message
+    if getattr(message, "content", None) is None:
+        raise ValueError("The message does not contain any content.")
+
+    if len(message.content) == 0:
+        raise ValueError("The message content is empty.")
+
+    if getattr(message.content[0], "text", None) is None:
+        raise ValueError("The message content does not contain any text.")
+
+    return message.content[0].text
