@@ -821,3 +821,8 @@
     changed:
     - Update PolicyEngine US to 1.176.3
   date: 2025-01-20 12:58:50
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.179.0
+  date: 2025-01-21 11:01:14
