@@ -8,7 +8,7 @@ from typing import Generator
 prompt_template = f"""{anthropic.HUMAN_PROMPT} You are an AI assistant explaining US policy calculations. 
   The user has run a simulation for the variable '{{variable}}'.
   Here's the tracer output:
-  {{tracer_segment}}
+  {{computation_tree_segment}}
       
   Please explain this result in simple terms. Your explanation should:
   1. Briefly describe what {{variable}} is.
@@ -91,8 +91,8 @@ def trigger_buffered_ai_analysis(prompt: str) -> str:
     return response_str
 
 
-def generate_tracer_output(simulation: Simulation) -> list:
-    # Verify that tracing is enabled
+def generate_computation_tree(simulation: Simulation) -> list[str]:
+    # Verify that simulation tracing is enabled
     if simulation.trace != True:
         raise ValueError(
             "Tracing must be enabled in order to generate output."
