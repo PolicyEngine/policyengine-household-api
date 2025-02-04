@@ -1,4 +1,6 @@
-from policyengine_household_api.utils.tracer import parse_tracer_output
+from policyengine_household_api.utils.computation_tree import (
+    parse_tracer_output,
+)
 
 # Add tests for generate_tracer_output: would require mock Simulation
 

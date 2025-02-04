@@ -4,7 +4,7 @@ from flask import request, Response, stream_with_context
 from typing import Generator
 from policyengine_household_api.models.computation_tree import ComputationTree
 from policyengine_household_api.utils.validate_country import validate_country
-from policyengine_household_api.utils.tracer import (
+from policyengine_household_api.utils.computation_tree import (
     trigger_buffered_ai_analysis,
     trigger_streaming_ai_analysis,
     prompt_template,
