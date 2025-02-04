@@ -6,9 +6,9 @@ from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from typing import Union
 from policyengine_household_api.utils import (
     get_safe_json,
-    generate_tracer_output,
+    generate_computation_tree,
 )
-from policyengine_household_api.models.tracer import Tracer
+from policyengine_household_api.models.computation_tree import ComputationTree
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
@@ -393,20 +393,21 @@ class PolicyEngineCountry:
         try:
 
             # Generate tracer output
-            log_lines: list = generate_tracer_output(simulation)
+            log_lines: list = generate_computation_tree(simulation)
 
             # Take the tracer output and create a new tracer object
-            tracer: Tracer = Tracer(self.country_id, tracer=log_lines)
+            computation_tree: ComputationTree = ComputationTree(
+                self.country_id, computation_tree=log_lines
+            )
 
             # Take the log and store in Google Cloud bucket
-            tracer.upload_to_cloud_storage()
+            computation_tree.upload_to_cloud_storage()
+
+            # Return the household and the tracer's UUID
+            return household, computation_tree.computation_tree_uuid
 
         except Exception as e:
-            # Do something here
             print(f"Error computing tracer output: {e}")
-
-        # Return the household and the tracer's UUID
-        return household, tracer.tracer_uuid
 
 
 def create_policy_reform(policy_data: dict) -> dict:

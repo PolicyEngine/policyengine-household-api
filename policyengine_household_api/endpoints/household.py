@@ -26,8 +26,10 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     try:
         result: dict
-        tracer_uuid: UUID
-        result, tracer_uuid = country.calculate(household_json, policy_json)
+        computation_tree_uuid: UUID
+        result, computation_tree_uuid = country.calculate(
+            household_json, policy_json
+        )
     except Exception as e:
         logging.exception(e)
         response_body = dict(
@@ -46,7 +48,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
                 status="ok",
                 message=None,
                 result=result,
-                ai_explainer_uuid=str(tracer_uuid),
+                ai_explainer_uuid=str(computation_tree_uuid),
             )
         ),
         200,
