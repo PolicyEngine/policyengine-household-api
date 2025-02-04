@@ -25,13 +25,15 @@ def get_ai_explainer(country_id: str) -> Response:
     """
 
     # Pull the UUID and variable from the query parameters
-    uuid: str = request.args.get("uuid")
+    computation_tree_uuid: str = request.args.get("computation_tree_uuid")
     variable: str = request.args.get("variable")
     use_streaming: bool = request.args.get("use_streaming", False)
 
     # Fetch the tracer output from the Google Cloud bucket
     try:
-        tracer_data: Tracer = Tracer(country_id, tracer_uuid=uuid)
+        tracer_data: Tracer = Tracer(
+            country_id, tracer_uuid=computation_tree_uuid
+        )
     except Exception as e:
         logging.exception(e)
         return Response(
