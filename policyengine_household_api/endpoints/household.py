@@ -21,14 +21,15 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     payload = request.json
     household_json = payload.get("household", {})
     policy_json = payload.get("policy", {})
+    enable_ai_explainer = payload.get("enable_ai_explainer", False)
 
     country = COUNTRIES.get(country_id)
 
     try:
         result: dict
-        computation_tree_uuid: UUID
+        computation_tree_uuid: UUID | None
         result, computation_tree_uuid = country.calculate(
-            household_json, policy_json
+            household_json, policy_json, enable_ai_explainer
         )
     except Exception as e:
         logging.exception(e)

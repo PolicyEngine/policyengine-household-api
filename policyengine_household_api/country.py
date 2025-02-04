@@ -294,7 +294,12 @@ class PolicyEngineCountry:
             data[entity.key] = entity_data
         return data
 
-    def calculate(self, household: dict, reform: Union[dict, None] = None):
+    def calculate(
+        self,
+        household: dict,
+        reform: Union[dict, None] = None,
+        enable_ai_explainer: bool = False,
+    ):
         if reform is not None and len(reform.keys()) > 0:
             system = self.tax_benefit_system.clone()
             for parameter_name in reform:
@@ -391,20 +396,23 @@ class PolicyEngineCountry:
 
         # Execute all household tracer operations
         try:
+            if enable_ai_explainer:
 
-            # Generate tracer output
-            log_lines: list = generate_computation_tree(simulation)
+                # Generate tracer output
+                log_lines: list = generate_computation_tree(simulation)
 
-            # Take the tracer output and create a new tracer object
-            computation_tree: ComputationTree = ComputationTree(
-                self.country_id, computation_tree=log_lines
-            )
+                # Take the tracer output and create a new tracer object
+                computation_tree: ComputationTree = ComputationTree(
+                    self.country_id, computation_tree=log_lines
+                )
 
-            # Take the log and store in Google Cloud bucket
-            computation_tree.upload_to_cloud_storage()
+                # Take the log and store in Google Cloud bucket
+                computation_tree.upload_to_cloud_storage()
 
-            # Return the household and the tracer's UUID
-            return household, computation_tree.computation_tree_uuid
+                # Return the household and the tracer's UUID
+                return household, computation_tree.computation_tree_uuid
+
+            return household, None
 
         except Exception as e:
             print(f"Error computing tracer output: {e}")
