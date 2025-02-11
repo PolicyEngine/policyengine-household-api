@@ -42,15 +42,19 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
             status=500,
             mimetype="application/json",
         )
+    
+    response_body = dict(
+        status="ok",
+        message=None,
+        result=result,
+    )
+
+    if enable_ai_explainer:
+        response_body["ai_explainer_uuid"] = str(computation_tree_uuid)
 
     return Response(
         json.dumps(
-            dict(
-                status="ok",
-                message=None,
-                result=result,
-                ai_explainer_uuid=str(computation_tree_uuid),
-            )
+            response_body,
         ),
         200,
         mimetype="application/json",
