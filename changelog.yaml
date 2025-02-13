@@ -881,3 +881,8 @@
     changed:
     - Update PolicyEngine UK to 2.18.0
   date: 2025-02-11 23:33:18
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.195.1
+  date: 2025-02-13 22:02:29
