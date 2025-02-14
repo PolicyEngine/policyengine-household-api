@@ -42,7 +42,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
             status=500,
             mimetype="application/json",
         )
-    
+
     response_body = dict(
         status="ok",
         message=None,
