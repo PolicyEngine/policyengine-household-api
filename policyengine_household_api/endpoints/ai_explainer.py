@@ -1,14 +1,31 @@
 import json
 import logging
+from uuid import UUID
 from flask import request, Response, stream_with_context
 from typing import Generator
+from pydantic import BaseModel
 from policyengine_household_api.models.computation_tree import ComputationTree
+from policyengine_household_api.models.household import (
+    HouseholdModelUS,
+    HouseholdModelUK,
+    HouseholdModelGeneric,
+)
 from policyengine_household_api.utils.validate_country import validate_country
+from policyengine_household_api.utils.household import (
+    parse_variables_from_household,
+    ParsedEntityVariablePair,
+)
 from policyengine_household_api.utils.computation_tree import (
     trigger_buffered_ai_analysis,
     trigger_streaming_ai_analysis,
     prompt_template,
 )
+
+
+class AIExplainerPayload(BaseModel):
+    computation_tree_uuid: UUID
+    use_streaming: bool = False
+    household: HouseholdModelUS | HouseholdModelUK | HouseholdModelGeneric
 
 
 @validate_country
@@ -25,14 +42,26 @@ def get_ai_explainer(country_id: str) -> Response:
     """
 
     # Pull the UUID and variable from the query parameters
-    computation_tree_uuid: str = request.args.get("computation_tree_uuid")
-    variable: str = request.args.get("variable")
-    use_streaming: bool = request.args.get("use_streaming", False)
+    payload = AIExplainerPayload(request.args)
+    variable_entity_pair: list[ParsedEntityVariablePair] = (
+        parse_variables_from_household(payload.household, limit=1)
+    )
+    if len(variable_entity_pair) == 0:
+        return Response(
+            json.dumps(
+                dict(
+                    status="error",
+                    message="No variables found in the household.",
+                )
+            ),
+            status=400,
+            mimetype="application/json",
+        )
 
     # Fetch the tracer output from the Google Cloud bucket
     try:
         computation_tree_data: ComputationTree = ComputationTree(
-            country_id, computation_tree_uuid=computation_tree_uuid
+            country_id, computation_tree_uuid=payload.computation_tree_uuid
         )
     except Exception as e:
         logging.exception(e)
@@ -50,7 +79,9 @@ def get_ai_explainer(country_id: str) -> Response:
     # Parse the tracer for the calculation tree of the variable
     try:
         computation_tree_segment: list[str] = (
-            computation_tree_data.parse_computation_tree_output(variable)
+            computation_tree_data.parse_computation_tree_output(
+                payload.variable
+            )
         )
     except Exception as e:
         logging.exception(e)
@@ -68,12 +99,12 @@ def get_ai_explainer(country_id: str) -> Response:
     try:
         # Generate the AI explainer prompt using the variable calculation tree
         prompt = prompt_template.format(
-            variable=variable,
+            variable=payload.variable,
             computation_tree_segment=computation_tree_segment,
         )
 
         # Pass all of this to Claude
-        if use_streaming:
+        if payload.use_streaming:
             analysis: Generator = trigger_streaming_ai_analysis(prompt)
             return Response(
                 stream_with_context(analysis),

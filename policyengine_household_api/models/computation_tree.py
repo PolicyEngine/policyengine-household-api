@@ -1,6 +1,8 @@
 import json
 import re
 from uuid import UUID, uuid4
+from pydantic import BaseModel
+from policyengine_household_api.models.country_id import CountryId
 
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.utils.google_cloud import (
@@ -40,13 +42,13 @@ class ComputationTree:
 
     def __init__(
         self,
-        country_id: str,
-        computation_tree_uuid: str | None = None,
+        country_id: CountryId,
+        computation_tree_uuid: UUID | None = None,
         computation_tree: list[str] | None = None,
     ):
-        # Mandate country ID - raise if not provided
-        if country_id is None:
-            raise ValueError("Country ID must be provided.")
+        # # Mandate country ID - raise if not provided
+        # if country_id is None:
+        #     raise ValueError("Country ID must be provided.")
 
         self.country_id = country_id
         # If a UUID exists, assume we're fetching from bucket
