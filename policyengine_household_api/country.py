@@ -8,13 +8,17 @@ from policyengine_household_api.utils import (
     get_safe_json,
     generate_computation_tree,
 )
-from policyengine_household_api.models.computation_tree import ComputationTree
+from policyengine_household_api.models.computation_tree import (
+    ComputationTree,
+    EntityDescription,
+)
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
     ParameterScale,
     ParameterScaleBracket,
 )
+from typing import Annotated
 from policyengine_core.parameters import get_parameter
 import pkg_resources
 from policyengine_core.model_api import Reform, Enum
@@ -398,19 +402,26 @@ class PolicyEngineCountry:
         try:
             if enable_ai_explainer:
 
+                entity_description = EntityDescription.model_validate(
+                    simulation.describe_entities()
+                )
+
                 # Generate tracer output
                 log_lines: list = generate_computation_tree(simulation)
 
-                # Take the tracer output and create a new tracer object
-                computation_tree: ComputationTree = ComputationTree(
-                    self.country_id, computation_tree=log_lines
+                # Take the tracer output and create a new tracer object,
+                # storing in Google Cloud bucket
+                computation_tree = ComputationTree()
+                computation_tree_uuid = (
+                    computation_tree.store_computation_tree(
+                        country_id=self.country_id,
+                        computation_tree=log_lines,
+                        entity_description=entity_description,
+                    )
                 )
 
-                # Take the log and store in Google Cloud bucket
-                computation_tree.upload_to_cloud_storage()
-
                 # Return the household and the tracer's UUID
-                return household, computation_tree.computation_tree_uuid
+                return household, computation_tree_uuid
 
             return household, None
 

@@ -1,16 +1,7 @@
-from pydantic import BaseModel, create_model
-from typing import Any, Enum, Literal, Union, Optional
-from policyengine_us import entities as entities_us
-from policyengine_uk import entities as entities_uk
+from pydantic import BaseModel, RootModel
+from typing import Union, Optional, Any
+from enum import Enum
 
-
-# Dynamically generate entity schema
-household_entities_us: dict[str, type] = {
-    entity.plural: HouseholdEntity for entity in entities_us
-}
-household_entities_uk: dict[str, type] = {
-    entity.plural: HouseholdEntity for entity in entities_uk
-}
 
 example_household_us = {
     "people": {
@@ -44,33 +35,28 @@ example_household_us = {
 }
 
 
-class HouseholdVariable(BaseModel):
-    __root__: dict[str, int | float | str | bool | Enum]
+class HouseholdVariable(RootModel):
+    root: Union[dict[str, Any], list[str]]
 
 
-class HouseholdEntity(BaseModel):
-    members: Optional[list[str]]
-    __root__: Optional[HouseholdVariable]
-
-
-class HouseholdEntityGroup(BaseModel):
-    __root__: dict[str, HouseholdEntity]
+class HouseholdEntity(RootModel):
+    root: dict[str, HouseholdVariable]
 
 
 class HouseholdModelGeneric(BaseModel):
-    households: dict[str, HouseholdEntityGroup]
-    people: dict[str, HouseholdEntityGroup]
+    households: dict[str, HouseholdEntity]
+    people: dict[str, HouseholdEntity]
 
 
 class HouseholdModelUS(HouseholdModelGeneric):
-    families: dict[str, HouseholdEntityGroup]
-    spm_units: dict[str, HouseholdEntityGroup]
-    tax_units: dict[str, HouseholdEntityGroup]
-    marital_units: dict[str, HouseholdEntityGroup]
+    families: dict[str, HouseholdEntity]
+    spm_units: dict[str, HouseholdEntity]
+    tax_units: dict[str, HouseholdEntity]
+    marital_units: dict[str, HouseholdEntity]
 
 
 class HouseholdModelUK(HouseholdModelGeneric):
-    benunits: dict[str, HouseholdEntityGroup]
+    benunits: dict[str, HouseholdEntity]
 
 
 # Typing alias for all three possible household models

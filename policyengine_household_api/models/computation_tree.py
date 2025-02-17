@@ -1,7 +1,9 @@
 import json
 import re
+import sys
 from uuid import UUID, uuid4
-from pydantic import BaseModel
+from pydantic import RootModel
+from typing import Annotated
 from policyengine_household_api.models.country_id import CountryId
 
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
@@ -19,6 +21,13 @@ TEST_computation_tree = [
     "    non_market_income <500>",
     "        pension_income <500>",
 ]
+
+
+class EntityDescription(RootModel):
+    root: dict[
+        Annotated[str, "An entity group, e.g., people"],
+        list[Annotated[str, "An entity, e.g., 'your partner'"]],
+    ]
 
 
 class ComputationTree:
@@ -40,39 +49,45 @@ class ComputationTree:
 
     cloud_bucket_name = "policyengine-test-bucket"
 
-    def __init__(
+    def store_computation_tree(
         self,
         country_id: CountryId,
-        computation_tree_uuid: UUID | None = None,
         computation_tree: list[str] | None = None,
-    ):
-        # # Mandate country ID - raise if not provided
-        # if country_id is None:
-        #     raise ValueError("Country ID must be provided.")
-
-        self.country_id = country_id
-        # If a UUID exists, assume we're fetching from bucket
-        if computation_tree_uuid is not None:
-            self.computation_tree_uuid: str = computation_tree_uuid
-            self.storage_object: dict = self.download_from_cloud_storage()
-
-        # Otherwise, assume we're passing log lines to Cloud Storage
-        elif computation_tree is not None:
-            self.storage_object: dict = self._construct_storage_object(
-                computation_tree, country_id
+        entity_description: EntityDescription | None = None,
+    ) -> str:
+        try:
+            storage_object: dict = self._construct_storage_object(
+                country_id=country_id,
+                computation_tree=computation_tree,
+                entity_description=entity_description,
             )
-            self.computation_tree_uuid: str = self.storage_object["uuid"]
-        else:
-            raise ValueError(
-                "Either computation_tree_uuid or computation_tree value must be provided."
+            computation_tree_uuid: str = storage_object["uuid"]
+
+            package_version: str = storage_object["package_version"]
+            computation_tree: list[str] = storage_object["computation_tree"]
+            self.tree = computation_tree
+
+            self._upload_to_cloud_storage(
+                storage_object=storage_object,
+                computation_tree_uuid=computation_tree_uuid,
             )
 
-        self.package_version: str = self.storage_object["package_version"]
-        self.computation_tree: list[str] = self.storage_object[
-            "computation_tree"
-        ]
+            return computation_tree_uuid
+        except Exception as e:
+            print(f"Error storing computation tree: {e}")
 
-    def parse_computation_tree_output(self, target_variable: str) -> list[str]:
+    def fetch_computation_tree(self, computation_tree_uuid: str) -> list[str]:
+        try:
+            computation_tree_uuid: str = computation_tree_uuid
+            downloaded_object: dict = self.download_from_cloud_storage(
+                computation_tree_uuid
+            )
+            self.tree = downloaded_object["computation_tree"]
+            return self.tree
+        except Exception as e:
+            print(f"Error fetching computation tree: {e}")
+
+    def parse_computation_tree(self, target_variable: str) -> list[str]:
         """
         Given a household computation_tree output, parse its contents to find
         the calculation tree for a specific variable.
@@ -113,7 +128,9 @@ class ComputationTree:
 
         return result
 
-    def upload_to_cloud_storage(self):
+    def _upload_to_cloud_storage(
+        self, storage_object: dict, computation_tree_uuid: str
+    ):
         """
         Store the computation_tree output in a Google Cloud bucket.
         """
@@ -121,21 +138,26 @@ class ComputationTree:
         # JSON-ify the log lines
 
         # JSON-ify the storage object
-        storage_object_json: str = json.dumps(self.storage_object)
+        storage_object_json: str = json.dumps(storage_object)
+
+        print(
+            f"Uploading computation_tree storage object to Google Cloud bucket...",
+            file=sys.stderr,
+        )
 
         # Write computation_tree output to Google Cloud bucket
         try:
             upload_json_to_cloud_storage(
                 bucket_name=self.cloud_bucket_name,
                 input_json=storage_object_json,
-                destination_blob_name=self.computation_tree_uuid,
+                destination_blob_name=computation_tree_uuid,
             )
         except Exception as e:
             print(
                 f"Error uploading computation_tree storage object to Google Cloud bucket: {e}"
             )
 
-    def download_from_cloud_storage(self) -> dict:
+    def _download_from_cloud_storage(self, computation_tree_uuid: str) -> dict:
         """
         Given a UUID, fetch a storage object from a Google Cloud bucket and
         return it as a dictionary.
@@ -146,13 +168,16 @@ class ComputationTree:
 
         storage_object_json = download_json_from_cloud_storage(
             bucket_name=self.cloud_bucket_name,
-            source_blob_name=self.computation_tree_uuid,
+            source_blob_name=computation_tree_uuid,
         )
 
         return json.loads(storage_object_json)
 
     def _construct_storage_object(
-        self, computation_tree: list[str], country_id: str
+        self,
+        country_id: CountryId,
+        computation_tree: list[str],
+        entity_description: EntityDescription,
     ) -> dict:
         """
         Construct object that will be stored within Cloud Storage.
@@ -170,4 +195,5 @@ class ComputationTree:
             "uuid": str(uuid),
             "package_version": package_version,
             "computation_tree": computation_tree,
+            "entity_description": entity_description.dict(),
         }
