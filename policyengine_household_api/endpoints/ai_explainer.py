@@ -4,7 +4,10 @@ from uuid import UUID
 from flask import request, Response, stream_with_context
 from typing import Generator
 from pydantic import BaseModel
-from policyengine_household_api.models.computation_tree import ComputationTree
+from policyengine_household_api.models.computation_tree import (
+    ComputationTree,
+    EntityDescription,
+)
 from policyengine_household_api.models.household import (
     HouseholdModelUS,
     HouseholdModelUK,
@@ -61,11 +64,11 @@ def generate_ai_explainer(country_id: str) -> Response:
     temporary_single_explainer_filter = FlattenedVariableFilter(
         key="value", value=None
     )
-    var_ent_pair: FlattenedVariable = flatten_variables_from_household(
+    flattened_var: FlattenedVariable = flatten_variables_from_household(
         household, filter=temporary_single_explainer_filter, limit=1
     )[0]
 
-    if len(var_ent_pair) == 0:
+    if len(flattened_var) == 0:
         return Response(
             json.dumps(
                 dict(
@@ -80,7 +83,7 @@ def generate_ai_explainer(country_id: str) -> Response:
     # Fetch the tracer output from the Google Cloud bucket
     try:
         computation_tree = ComputationTree()
-        computation_tree.fetch_computation_tree(uuid=computation_tree_uuid)
+        computation_tree.get_computation_tree(uuid=computation_tree_uuid)
     except Exception as e:
         logging.exception(e)
         return Response(
@@ -95,14 +98,17 @@ def generate_ai_explainer(country_id: str) -> Response:
         )
 
     # Parse the tracer for the calculation tree of the variable
-    variable = var_ent_pair.variable
-    year = var_ent_pair.year
-    entity = var_ent_pair.entity
+    variable = flattened_var.variable
+    year = flattened_var.year
+    entity = flattened_var.entity
     try:
         computation_tree_segment: list[str] = (
-            computation_tree.parse_computation_tree(
-                variable=variable, year=year, entity=entity
+            computation_tree.parse_computation_tree_for_variable(
+                variable=variable
             )
+        )
+        entity_description = computation_tree.get_entity_description(
+            uuid=computation_tree_uuid
         )
     except Exception as e:
         logging.exception(e)
@@ -122,6 +128,8 @@ def generate_ai_explainer(country_id: str) -> Response:
         prompt = prompt_template.format(
             variable=variable,
             computation_tree_segment=computation_tree_segment,
+            entity_description=entity_description.to_dict(),
+            entity=entity,
         )
 
         # Pass all of this to Claude
