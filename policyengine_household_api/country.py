@@ -415,7 +415,7 @@ class PolicyEngineCountry:
                 computation_tree_uuid = (
                     computation_tree.store_computation_tree(
                         country_id=self.country_id,
-                        computation_tree=log_lines,
+                        tree=log_lines,
                         entity_description=entity_description,
                     )
                 )
