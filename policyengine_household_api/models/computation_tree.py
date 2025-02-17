@@ -52,69 +52,50 @@ class ComputationTree:
     def store_computation_tree(
         self,
         country_id: CountryId,
-        computation_tree: list[str] | None = None,
+        tree: list[str] | None = None,
         entity_description: EntityDescription | None = None,
     ) -> str:
         try:
             storage_object: dict = self._construct_storage_object(
                 country_id=country_id,
-                computation_tree=computation_tree,
+                tree=tree,
                 entity_description=entity_description,
             )
-            computation_tree_uuid: str = storage_object["uuid"]
+            uuid: str = storage_object["uuid"]
 
             package_version: str = storage_object["package_version"]
-            computation_tree: list[str] = storage_object["computation_tree"]
-            self.tree = computation_tree
+            tree: list[str] = storage_object["computation_tree"]
+            self.tree = tree
 
             self._upload_to_cloud_storage(
                 storage_object=storage_object,
-                computation_tree_uuid=computation_tree_uuid,
+                uuid=uuid,
             )
 
-            return computation_tree_uuid
+            return uuid
         except Exception as e:
             print(f"Error storing computation tree: {e}")
 
-    def get_computation_tree(self, computation_tree_uuid: str) -> list[str]:
+    def get_computation_tree(
+        self, uuid: str
+    ) -> tuple[list[str], EntityDescription]:
         try:
-            if not self.tree or not self.entity_description:
-                downloaded_object: dict = self.download_from_cloud_storage(
-                    computation_tree_uuid
-                )
-                self.tree = downloaded_object["computation_tree"]
-                self.entity_description = EntityDescription.model_validate(
-                    downloaded_object["entity_description"]
-                )
-            return self.tree
+            downloaded_object: dict = self._download_from_cloud_storage(uuid)
+            self.tree = downloaded_object["computation_tree"]
+            self.entity_description = EntityDescription.model_validate(
+                downloaded_object["entity_description"]
+            )
+            return self.tree, self.entity_description
         except Exception as e:
             print(f"Error getting computation tree: {e}")
 
-    def get_entity_description(
-        self, computation_tree_uuid: str
-    ) -> EntityDescription:
-        try:
-            if not self.tree or not self.entity_description:
-                downloaded_object: dict = self.download_from_cloud_storage(
-                    computation_tree_uuid
-                )
-                self.tree = downloaded_object["computation_tree"]
-                self.entity_description = EntityDescription.model_validate(
-                    downloaded_object["entity_description"]
-                )
-            return self.entity_description
-        except Exception as e:
-            print(f"Error getting computation tree: {e}")
-
-    def parse_computation_tree_for_variable(
-        self, target_variable: str
-    ) -> list[str]:
+    def parse_computation_tree_for_variable(self, variable: str) -> list[str]:
         """
         Given a household computation_tree output, parse its contents to find
         the calculation tree for a specific variable.
 
         Args:
-            target_variable (str): The variable to find in the computation_tree output.
+            variable (str): The variable to find in the computation_tree output.
 
         Returns:
             list[str]: The calculation tree excerpt for the target variable.
@@ -127,10 +108,10 @@ class ComputationTree:
         # This will match the variable name followed by optional whitespace,
         # then optional angle brackets with any content, then optional whitespace
         pattern: re.Pattern[str] = (
-            rf"^(\s*)({re.escape(target_variable)})\s*(?:<[^>]*>)?\s*"
+            rf"^(\s*)({re.escape(variable)})\s*(?:<[^>]*>)?\s*"
         )
 
-        for line in self.computation_tree:
+        for line in self.tree:
             # Count leading spaces to determine indentation level
             indent = len(line) - len(line.strip())
 
@@ -149,9 +130,7 @@ class ComputationTree:
 
         return result
 
-    def _upload_to_cloud_storage(
-        self, storage_object: dict, computation_tree_uuid: str
-    ):
+    def _upload_to_cloud_storage(self, storage_object: dict, uuid: str):
         """
         Store the computation_tree output in a Google Cloud bucket.
         """
@@ -171,14 +150,14 @@ class ComputationTree:
             upload_json_to_cloud_storage(
                 bucket_name=self.cloud_bucket_name,
                 input_json=storage_object_json,
-                destination_blob_name=computation_tree_uuid,
+                destination_blob_name=uuid,
             )
         except Exception as e:
             print(
                 f"Error uploading computation_tree storage object to Google Cloud bucket: {e}"
             )
 
-    def _download_from_cloud_storage(self, computation_tree_uuid: str) -> dict:
+    def _download_from_cloud_storage(self, uuid: str) -> dict:
         """
         Given a UUID, fetch a storage object from a Google Cloud bucket and
         return it as a dictionary.
@@ -189,7 +168,7 @@ class ComputationTree:
 
         storage_object_json = download_json_from_cloud_storage(
             bucket_name=self.cloud_bucket_name,
-            source_blob_name=computation_tree_uuid,
+            source_blob_name=uuid,
         )
 
         return json.loads(storage_object_json)

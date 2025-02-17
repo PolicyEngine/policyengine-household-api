@@ -43,7 +43,7 @@ def generate_ai_explainer(country_id: str) -> Response:
     payload = request.json
 
     # Pull the UUID and variable from the query parameters
-    computation_tree_uuid: str = payload.get("computation_tree_uuid")
+    uuid: str = payload.get("computation_tree_uuid")
     use_streaming: bool = payload.get("use_streaming", False)
 
     household_raw = payload.get("household")
@@ -64,11 +64,13 @@ def generate_ai_explainer(country_id: str) -> Response:
     temporary_single_explainer_filter = FlattenedVariableFilter(
         key="value", value=None
     )
-    flattened_var: FlattenedVariable = flatten_variables_from_household(
-        household, filter=temporary_single_explainer_filter, limit=1
-    )[0]
+    flattened_var_list: list[FlattenedVariable] = (
+        flatten_variables_from_household(
+            household, filter=temporary_single_explainer_filter, limit=1
+        )
+    )
 
-    if len(flattened_var) == 0:
+    if len(flattened_var_list) == 0:
         return Response(
             json.dumps(
                 dict(
@@ -81,9 +83,12 @@ def generate_ai_explainer(country_id: str) -> Response:
         )
 
     # Fetch the tracer output from the Google Cloud bucket
+    flattened_var = flattened_var_list[0]
     try:
         computation_tree = ComputationTree()
-        computation_tree.get_computation_tree(uuid=computation_tree_uuid)
+        full_tree, entity_description = computation_tree.get_computation_tree(
+            uuid=uuid
+        )
     except Exception as e:
         logging.exception(e)
         return Response(
@@ -107,9 +112,6 @@ def generate_ai_explainer(country_id: str) -> Response:
                 variable=variable
             )
         )
-        entity_description = computation_tree.get_entity_description(
-            uuid=computation_tree_uuid
-        )
     except Exception as e:
         logging.exception(e)
         return Response(
@@ -128,7 +130,7 @@ def generate_ai_explainer(country_id: str) -> Response:
         prompt = prompt_template.format(
             variable=variable,
             computation_tree_segment=computation_tree_segment,
-            entity_description=entity_description.to_dict(),
+            entity_description=entity_description.model_dump(),
             entity=entity,
         )
 
