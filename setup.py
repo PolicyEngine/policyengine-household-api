@@ -18,6 +18,7 @@ setup(
         "google-cloud-logging",
         "google-cloud-storage",
         "gunicorn",
+        "inflect",
         "policyengine_canada==0.96.2",
         "policyengine-ng==0.5.1",
         "policyengine-il==0.1.0",

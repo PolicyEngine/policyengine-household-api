@@ -9,6 +9,10 @@ prompt_template = f"""{anthropic.HUMAN_PROMPT} You are an AI assistant explainin
   The user has run a simulation for the variable '{{variable}}'.
   Here's the tracer output:
   {{computation_tree_segment}}
+  Here's an ordered list of the tax entities in the simulation:
+  {{entity_description}}
+  Note that the user is interested in the value associated with 
+  entity '{{entity}}'.
       
   Please explain this result in simple terms. Your explanation should:
   1. Briefly describe what {{variable}} is.

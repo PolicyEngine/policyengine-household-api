@@ -76,18 +76,39 @@ class ComputationTree:
         except Exception as e:
             print(f"Error storing computation tree: {e}")
 
-    def fetch_computation_tree(self, computation_tree_uuid: str) -> list[str]:
+    def get_computation_tree(self, computation_tree_uuid: str) -> list[str]:
         try:
-            computation_tree_uuid: str = computation_tree_uuid
-            downloaded_object: dict = self.download_from_cloud_storage(
-                computation_tree_uuid
-            )
-            self.tree = downloaded_object["computation_tree"]
+            if not self.tree or not self.entity_description:
+                downloaded_object: dict = self.download_from_cloud_storage(
+                    computation_tree_uuid
+                )
+                self.tree = downloaded_object["computation_tree"]
+                self.entity_description = EntityDescription.model_validate(
+                    downloaded_object["entity_description"]
+                )
             return self.tree
         except Exception as e:
-            print(f"Error fetching computation tree: {e}")
+            print(f"Error getting computation tree: {e}")
 
-    def parse_computation_tree(self, target_variable: str) -> list[str]:
+    def get_entity_description(
+        self, computation_tree_uuid: str
+    ) -> EntityDescription:
+        try:
+            if not self.tree or not self.entity_description:
+                downloaded_object: dict = self.download_from_cloud_storage(
+                    computation_tree_uuid
+                )
+                self.tree = downloaded_object["computation_tree"]
+                self.entity_description = EntityDescription.model_validate(
+                    downloaded_object["entity_description"]
+                )
+            return self.entity_description
+        except Exception as e:
+            print(f"Error getting computation tree: {e}")
+
+    def parse_computation_tree_for_variable(
+        self, target_variable: str
+    ) -> list[str]:
         """
         Given a household computation_tree output, parse its contents to find
         the calculation tree for a specific variable.
