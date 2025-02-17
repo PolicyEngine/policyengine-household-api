@@ -12,8 +12,10 @@ from policyengine_household_api.models.household import (
 )
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.household import (
-    parse_variables_from_household,
-    ParsedEntityVariablePair,
+    flatten_variables_from_household,
+    filter_flattened_variables,
+    FlattenedVariable,
+    FlattenedVariableFilter,
 )
 from policyengine_household_api.utils.computation_tree import (
     trigger_buffered_ai_analysis,
@@ -22,14 +24,8 @@ from policyengine_household_api.utils.computation_tree import (
 )
 
 
-class AIExplainerPayload(BaseModel):
-    computation_tree_uuid: UUID
-    use_streaming: bool = False
-    household: HouseholdModelUS | HouseholdModelUK | HouseholdModelGeneric
-
-
 @validate_country
-def get_ai_explainer(country_id: str) -> Response:
+def generate_ai_explainer(country_id: str) -> Response:
     """
     Generate an AI explainer output for a given variable in
     a particular household.
@@ -41,12 +37,35 @@ def get_ai_explainer(country_id: str) -> Response:
         Response: The AI explainer output or an error.
     """
 
+    payload = request.json
+
     # Pull the UUID and variable from the query parameters
-    payload = AIExplainerPayload(request.args)
-    variable_entity_pair: list[ParsedEntityVariablePair] = (
-        parse_variables_from_household(payload.household, limit=1)
+    computation_tree_uuid: str = payload.get("computation_tree_uuid")
+    use_streaming: bool = payload.get("use_streaming", False)
+
+    household_raw = payload.get("household")
+    if country_id == "us":
+        household: HouseholdModelUS = HouseholdModelUS.model_validate(
+            household_raw
+        )
+    elif country_id == "uk":
+        household: HouseholdModelUK = HouseholdModelUK.model_validate(
+            household_raw
+        )
+    else:
+        household: HouseholdModelGeneric = (
+            HouseholdModelGeneric.model_validate(household_raw)
+        )
+
+    # We currently only allow one variable at a time due to GCP metrics limitations
+    temporary_single_explainer_filter = FlattenedVariableFilter(
+        key="value", value=None
     )
-    if len(variable_entity_pair) == 0:
+    var_ent_pair: FlattenedVariable = flatten_variables_from_household(
+        household, filter=temporary_single_explainer_filter, limit=1
+    )[0]
+
+    if len(var_ent_pair) == 0:
         return Response(
             json.dumps(
                 dict(
@@ -60,9 +79,8 @@ def get_ai_explainer(country_id: str) -> Response:
 
     # Fetch the tracer output from the Google Cloud bucket
     try:
-        computation_tree_data: ComputationTree = ComputationTree(
-            country_id, computation_tree_uuid=payload.computation_tree_uuid
-        )
+        computation_tree = ComputationTree()
+        computation_tree.fetch_computation_tree(uuid=computation_tree_uuid)
     except Exception as e:
         logging.exception(e)
         return Response(
@@ -77,10 +95,13 @@ def get_ai_explainer(country_id: str) -> Response:
         )
 
     # Parse the tracer for the calculation tree of the variable
+    variable = var_ent_pair.variable
+    year = var_ent_pair.year
+    entity = var_ent_pair.entity
     try:
         computation_tree_segment: list[str] = (
-            computation_tree_data.parse_computation_tree_output(
-                payload.variable
+            computation_tree.parse_computation_tree(
+                variable=variable, year=year, entity=entity
             )
         )
     except Exception as e:
@@ -99,12 +120,12 @@ def get_ai_explainer(country_id: str) -> Response:
     try:
         # Generate the AI explainer prompt using the variable calculation tree
         prompt = prompt_template.format(
-            variable=payload.variable,
+            variable=variable,
             computation_tree_segment=computation_tree_segment,
         )
 
         # Pass all of this to Claude
-        if payload.use_streaming:
+        if use_streaming:
             analysis: Generator = trigger_streaming_ai_analysis(prompt)
             return Response(
                 stream_with_context(analysis),
