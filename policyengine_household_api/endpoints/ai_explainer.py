@@ -16,7 +16,6 @@ from policyengine_household_api.models.household import (
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.household import (
     flatten_variables_from_household,
-    filter_flattened_variables,
     FlattenedVariable,
     FlattenedVariableFilter,
 )
@@ -42,7 +41,7 @@ def generate_ai_explainer(country_id: str) -> Response:
 
     payload = request.json
 
-    # Pull the UUID and variable from the query parameters
+    # Pull the UUID from the query parameters
     uuid: str = payload.get("computation_tree_uuid")
     use_streaming: bool = payload.get("use_streaming", False)
 
@@ -104,7 +103,6 @@ def generate_ai_explainer(country_id: str) -> Response:
 
     # Parse the tracer for the calculation tree of the variable
     variable = flattened_var.variable
-    year = flattened_var.year
     entity = flattened_var.entity
     try:
         computation_tree_segment: list[str] = (

@@ -63,7 +63,6 @@ class ComputationTree:
             )
             uuid: str = storage_object["uuid"]
 
-            package_version: str = storage_object["package_version"]
             tree: list[str] = storage_object["computation_tree"]
             self.tree = tree
 
@@ -134,8 +133,6 @@ class ComputationTree:
         """
         Store the computation_tree output in a Google Cloud bucket.
         """
-
-        # JSON-ify the log lines
 
         # JSON-ify the storage object
         storage_object_json: str = json.dumps(storage_object)
