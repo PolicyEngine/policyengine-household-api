@@ -8,7 +8,6 @@ from policyengine_household_api.models import (
     HouseholdModelUS,
     HouseholdModelUK,
     HouseholdModelGeneric,
-    CountryId,
     ComputationTree,
     EntityDescription,
 )
@@ -25,7 +24,8 @@ from policyengine_household_api.utils.computation_tree import (
 )
 
 
-def generate_ai_explainer(country_id: CountryId) -> Response:
+@validate_country
+def generate_ai_explainer(country_id: str) -> Response:
     """
     Generate an AI explainer output for a given variable in
     a particular household.

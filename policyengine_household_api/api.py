@@ -19,7 +19,6 @@ from ratelimiter import RateLimiter
 from .auth.validation import Auth0JWTBearerTokenValidator
 from .constants import VERSION, REPO
 from .data.setup import getconn
-from policyengine_household_api.models import CountryId
 
 # Endpoints
 from .endpoints import (
@@ -85,7 +84,7 @@ def calculate(country_id):
 @app.route("/<country_id>/ai_analysis", methods=["POST"])
 @require_auth(None)
 @log_analytics
-def ai_analysis(country_id: CountryId):
+def ai_analysis(country_id: str):
     return generate_ai_explainer(country_id)
 
 

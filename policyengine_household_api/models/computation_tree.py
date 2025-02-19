@@ -4,7 +4,6 @@ import sys
 from uuid import UUID, uuid4
 from pydantic import RootModel
 from typing import Annotated
-from policyengine_household_api.models import CountryId
 
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.utils.google_cloud import (
@@ -52,7 +51,7 @@ class ComputationTree:
 
     def store_computation_tree(
         self,
-        country_id: CountryId,
+        country_id: str,
         tree: list[str] | None = None,
         entity_description: EntityDescription | None = None,
     ) -> str:
@@ -173,7 +172,7 @@ class ComputationTree:
 
     def _construct_storage_object(
         self,
-        country_id: CountryId,
+        country_id: str,
         tree: list[str],
         entity_description: EntityDescription,
     ) -> dict:
