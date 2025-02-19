@@ -2,12 +2,15 @@ import anthropic
 
 household_explainer_template = f"""{anthropic.HUMAN_PROMPT} You are an AI assistant explaining US policy calculations. 
   The user has run a simulation for the variable '{{variable}}'.
-  Here's the tracer output:
+  The below is a computation tree segment for the variable '{{variable}}' 
+  describing the variable and all its sub-variables, as well as each 
+  variable's entity group.
   {{computation_tree_segment}}
-  Here's an ordered list of the tax entities in the simulation:
+  Here's an ordered list of the entity groups in the simulation and their
+  individual entities:
   {{entity_description}}
-  Note that the user is interested in the value associated with 
-  entity '{{entity}}'.
+  Note that the user is interested in the value of '{{variable}}' associated 
+  with entity '{{entity}}'.
       
   Please explain this result in simple terms. Your explanation should:
   1. Briefly describe what {{variable}} is.
