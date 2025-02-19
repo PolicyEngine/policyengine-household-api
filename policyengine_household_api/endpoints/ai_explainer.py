@@ -54,7 +54,8 @@ def generate_ai_explainer(country_id: str) -> Response:
             HouseholdModelGeneric.model_validate(household_raw)
         )
 
-    # We currently only allow one variable at a time due to GCP metrics limitations
+    # We currently only allow one variable at a time due to
+    # challenges calculating billing for multiple
     temporary_single_explainer_filter = FlattenedVariableFilter(
         key="value", value=None
     )
