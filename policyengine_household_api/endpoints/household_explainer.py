@@ -21,7 +21,9 @@ from policyengine_household_api.utils.computation_tree import (
     trigger_buffered_ai_analysis,
     trigger_streaming_ai_analysis,
     parse_computation_tree_for_variable,
-    prompt_template,
+)
+from policyengine_household_api.ai_templates import (
+    household_explainer_template,
 )
 
 
@@ -130,7 +132,7 @@ def generate_ai_explainer(country_id: str) -> Response:
 
     try:
         # Generate the AI explainer prompt using the variable calculation tree
-        prompt = prompt_template.format(
+        prompt = household_explainer_template.format(
             variable=variable,
             computation_tree_segment=computation_tree_segment,
             entity_description=entity_description.model_dump(),
