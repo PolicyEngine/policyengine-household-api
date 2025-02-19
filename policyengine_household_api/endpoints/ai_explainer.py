@@ -1,15 +1,12 @@
 import json
 import logging
-from uuid import UUID
 from flask import request, Response, stream_with_context
 from typing import Generator, Any
-from pydantic import BaseModel
 from policyengine_household_api.models import (
     HouseholdModelUS,
     HouseholdModelUK,
     HouseholdModelGeneric,
     ComputationTree,
-    EntityDescription,
 )
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.household import (
