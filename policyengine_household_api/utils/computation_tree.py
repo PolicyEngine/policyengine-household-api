@@ -1,9 +1,12 @@
 from policyengine_core import Simulation
+from policyengine_household_api.models.computation_tree import (
+    EntityDescription,
+)
 import anthropic
 from anthropic.types import Message
 import os
 import json
-from typing import Generator
+from typing import Generator, Any
 import re
 
 
@@ -160,3 +163,55 @@ def parse_computation_tree_for_variable(
             result.append(line)
 
     return result
+
+
+def add_entity_groups_to_computation_tree(
+    country_id: str, tree: list[str], entity_description: EntityDescription
+) -> list[str]:
+    """
+    Given a computation tree and an entity description, add entity group
+    information to the tree.
+
+    Args:
+        tree (list[str]): The computation tree.
+        entity_description (EntityDescription): The entity description.
+
+    Returns:
+        list[str]: The computation tree with entity group information added.
+    """
+    from policyengine_household_api.country import COUNTRIES
+
+    metadata: dict[str, Any] = COUNTRIES.get(country_id).metadata["result"]
+
+    result_tree: list[str] = []
+    pattern: re.Pattern[str] = r"^\s*([a-zA-Z][a-zA-Z_0-9]*)(?=<)"
+
+    for line in tree:
+        # Parse line for variable name
+        var_match: str = re.search(pattern, line)
+        if var_match is None:
+            raise ValueError(
+                f"Could not parse variable name from line: {line}"
+            )
+        var_name: str = var_match.group(1).strip()
+
+        # Look up this variable's entity_group value
+        var_data = metadata["variables"].get(var_name, None)
+        if var_data is None:
+            raise ValueError(
+                f"Variable {var_name} from computation tree not found in metadata."
+            )
+
+        var_entity = var_data.get("entity")
+        if var_entity is None:
+            raise ValueError(
+                f"Variable {var_name} from computation tree has no entity information."
+            )
+
+        # Convert to plural because entity_description uses plural form
+        entity_group = metadata["entities"].get(var_entity)["plural"]
+
+        # Non-mutatively append entity_group to the line and save
+        result_tree.append(f"{line} entity_group: {entity_group}")
+
+    return result_tree
