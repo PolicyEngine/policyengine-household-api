@@ -8,6 +8,9 @@ from policyengine_household_api.models import (
     HouseholdModelGeneric,
     ComputationTree,
 )
+from policyengine_household_api.utils.google_cloud import (
+    GoogleCloudStorageManager,
+)
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.household import (
     flatten_variables_from_household,
@@ -17,6 +20,7 @@ from policyengine_household_api.utils.household import (
 from policyengine_household_api.utils.computation_tree import (
     trigger_buffered_ai_analysis,
     trigger_streaming_ai_analysis,
+    parse_computation_tree_for_variable,
     prompt_template,
 )
 
@@ -80,10 +84,15 @@ def generate_ai_explainer(country_id: str) -> Response:
     # Fetch the tracer output from the Google Cloud bucket
     flattened_var = flattened_var_list[0]
     try:
-        computation_tree = ComputationTree()
-        full_tree, entity_description = computation_tree.get_computation_tree(
-            uuid=uuid
+        storage_manager = GoogleCloudStorageManager()
+        computation_tree: ComputationTree = storage_manager.get(
+            uuid=uuid, deserializer=ComputationTree
         )
+
+        # Break ComputationTree into relevant elements
+        full_tree = computation_tree.tree
+        entity_description = computation_tree.entity_description
+
     except Exception as e:
         logging.exception(e)
         return Response(
@@ -102,8 +111,8 @@ def generate_ai_explainer(country_id: str) -> Response:
     entity = flattened_var.entity
     try:
         computation_tree_segment: list[str] = (
-            computation_tree.parse_computation_tree_for_variable(
-                variable=variable
+            parse_computation_tree_for_variable(
+                variable=variable, tree=full_tree
             )
         )
     except Exception as e:

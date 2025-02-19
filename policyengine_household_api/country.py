@@ -12,6 +12,9 @@ from policyengine_household_api.models.computation_tree import (
     ComputationTree,
     EntityDescription,
 )
+from policyengine_household_api.utils.google_cloud import (
+    GoogleCloudStorageManager,
+)
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
@@ -25,7 +28,7 @@ from policyengine_core.model_api import Reform, Enum
 from policyengine_core.periods import instant
 import dpath
 import math
-from uuid import uuid4
+from uuid import UUID, uuid4
 import policyengine_uk
 import policyengine_us
 import policyengine_canada
@@ -411,17 +414,31 @@ class PolicyEngineCountry:
 
                 # Take the tracer output and create a new tracer object,
                 # storing in Google Cloud bucket
-                computation_tree = ComputationTree()
-                computation_tree_uuid = (
-                    computation_tree.store_computation_tree(
-                        country_id=self.country_id,
-                        tree=log_lines,
-                        entity_description=entity_description,
-                    )
+                computation_tree_uuid: UUID = uuid4()
+                computation_tree_record: ComputationTree = ComputationTree(
+                    uuid=computation_tree_uuid,
+                    country_id=self.country_id,
+                    tree=log_lines,
+                    entity_description=entity_description,
                 )
 
+                storage_manager = GoogleCloudStorageManager()
+                storage_manager.store(
+                    uuid=computation_tree_uuid,
+                    data=computation_tree_record,
+                )
+
+                # computation_tree = ComputationTree()
+                # computation_tree_uuid = (
+                #     computation_tree.store_computation_tree(
+                #         country_id=self.country_id,
+                #         tree=log_lines,
+                #         entity_description=entity_description,
+                #     )
+                # )
+
                 # Return the household and the tracer's UUID
-                return household, computation_tree_uuid
+                return household, str(computation_tree_uuid)
 
             return household, None
 

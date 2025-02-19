@@ -4,6 +4,7 @@ from anthropic.types import Message
 import os
 import json
 from typing import Generator
+import re
 
 prompt_template = f"""{anthropic.HUMAN_PROMPT} You are an AI assistant explaining US policy calculations. 
   The user has run a simulation for the variable '{{variable}}'.
@@ -134,3 +135,47 @@ def parse_string_from_claude_message(message: Message) -> str:
         raise ValueError("The message content does not contain any text.")
 
     return message.content[0].text
+
+
+def parse_computation_tree_for_variable(
+    variable: str, tree: list[str]
+) -> list[str]:
+    """
+    Given a household computation_tree output, parse its contents to find
+    the calculation tree for a specific variable.
+
+    Args:
+        variable (str): The variable to find in the computation_tree output.
+
+    Returns:
+        list[str]: The calculation tree excerpt for the target variable.
+    """
+    result: list[str] = []
+    target_indent: int | None = None
+    capturing: bool = False
+
+    # Create a regex pattern to match the exact variable name
+    # This will match the variable name followed by optional whitespace,
+    # then optional angle brackets with any content, then optional whitespace
+    pattern: re.Pattern[str] = (
+        rf"^(\s*)({re.escape(variable)})\s*(?:<[^>]*>)?\s*"
+    )
+
+    for line in tree:
+        # Count leading spaces to determine indentation level
+        indent = len(line) - len(line.strip())
+
+        # Check if this line matches our target variable
+        match: bool = re.match(pattern, line)
+        if match and not capturing:
+            target_indent = indent
+            capturing = True
+            result.append(line)
+        elif capturing:
+            # Stop capturing if we encounter a line with less indentation than the target
+            if indent <= target_indent:
+                break
+            # Capture dependencies (lines with greater indentation)
+            result.append(line)
+
+    return result
