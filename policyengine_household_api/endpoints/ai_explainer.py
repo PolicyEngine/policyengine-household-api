@@ -2,16 +2,15 @@ import json
 import logging
 from uuid import UUID
 from flask import request, Response, stream_with_context
-from typing import Generator
+from typing import Generator, Any
 from pydantic import BaseModel
-from policyengine_household_api.models.computation_tree import (
-    ComputationTree,
-    EntityDescription,
-)
-from policyengine_household_api.models.household import (
+from policyengine_household_api.models import (
     HouseholdModelUS,
     HouseholdModelUK,
     HouseholdModelGeneric,
+    CountryId,
+    ComputationTree,
+    EntityDescription,
 )
 from policyengine_household_api.utils.validate_country import validate_country
 from policyengine_household_api.utils.household import (
@@ -26,8 +25,7 @@ from policyengine_household_api.utils.computation_tree import (
 )
 
 
-@validate_country
-def generate_ai_explainer(country_id: str) -> Response:
+def generate_ai_explainer(country_id: CountryId) -> Response:
     """
     Generate an AI explainer output for a given variable in
     a particular household.
@@ -39,7 +37,7 @@ def generate_ai_explainer(country_id: str) -> Response:
         Response: The AI explainer output or an error.
     """
 
-    payload = request.json
+    payload: dict[str, Any] = request.json
 
     # Pull the UUID from the query parameters
     uuid: str = payload.get("computation_tree_uuid")
