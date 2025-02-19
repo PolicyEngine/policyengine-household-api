@@ -21,6 +21,7 @@ from policyengine_household_api.utils.computation_tree import (
     trigger_buffered_ai_analysis,
     trigger_streaming_ai_analysis,
     parse_computation_tree_for_variable,
+    add_entity_groups_to_computation_tree,
 )
 from policyengine_household_api.ai_templates import (
     household_explainer_template,
@@ -124,6 +125,24 @@ def generate_ai_explainer(country_id: str) -> Response:
                 dict(
                     status="error",
                     message=f"Error parsing tracer output: {e}",
+                )
+            ),
+            status=500,
+            mimetype="application/json",
+        )
+
+    # Modify the computation tree to include data on entity groups
+    try:
+        computation_tree_segment = add_entity_groups_to_computation_tree(
+            country_id, computation_tree_segment, entity_description
+        )
+    except Exception as e:
+        logging.exception(e)
+        return Response(
+            json.dumps(
+                dict(
+                    status="error",
+                    message=f"Error injecting entity groups into computation tree: {e}",
                 )
             ),
             status=500,
