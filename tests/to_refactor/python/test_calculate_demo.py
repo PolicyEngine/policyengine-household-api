@@ -1,6 +1,6 @@
 import pytest
 import os
-from tests.python.utils import client
+from tests.to_refactor.fixtures import client
 from policyengine_household_api.api import app
 
 
@@ -18,7 +18,7 @@ def test_calc_demo(client):
             "Content-Type": "application/json",
         },
         data=open(
-            "./tests/python/data/calculate_us_1_data.json",
+            "./tests/to_refactor/python/data/calculate_us_1_data.json",
             "r",
             encoding="utf-8",
         ),
