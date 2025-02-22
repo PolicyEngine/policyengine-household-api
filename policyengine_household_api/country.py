@@ -428,15 +428,6 @@ class PolicyEngineCountry:
                     data=computation_tree_record,
                 )
 
-                # computation_tree = ComputationTree()
-                # computation_tree_uuid = (
-                #     computation_tree.store_computation_tree(
-                #         country_id=self.country_id,
-                #         tree=log_lines,
-                #         entity_description=entity_description,
-                #     )
-                # )
-
                 # Return the household and the tracer's UUID
                 return household, str(computation_tree_uuid)
 
