@@ -81,7 +81,7 @@ def calculate(country_id):
     return get_calculate(country_id)
 
 
-@app.route("/<country_id>/ai_analysis", methods=["POST"])
+@app.route("/<country_id>/ai-analysis", methods=["POST"])
 @require_auth(None)
 @log_analytics
 def ai_analysis(country_id: str):
