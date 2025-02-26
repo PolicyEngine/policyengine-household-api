@@ -10,7 +10,7 @@ class GoogleCloudStorageManager:
     A class to manage uploading and downloading data to/from Google Cloud Buckets
     """
 
-    DEFAULT_BUCKET_NAME: str = "policyengine-test-bucket"
+    DEFAULT_BUCKET_NAME: str = "policyengine-household-computation-trees"
 
     def store(
         self,
