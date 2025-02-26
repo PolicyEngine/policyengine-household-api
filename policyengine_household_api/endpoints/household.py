@@ -50,7 +50,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     )
 
     if enable_ai_explainer:
-        response_body["ai_explainer_uuid"] = str(computation_tree_uuid)
+        response_body["computation_tree_uuid"] = str(computation_tree_uuid)
 
     return Response(
         json.dumps(

@@ -64,14 +64,18 @@ def generate_ai_explainer(country_id: str) -> Response:
                 HouseholdModelGeneric.model_validate(household_raw)
             )
 
+        # Filter the flattened household and look for one (and only one)
+        # variable whose "value" equals "None"
         # We currently only allow one variable at a time due to
         # challenges calculating billing for multiple
         temporary_single_explainer_filter = FlattenedVariableFilter(
-            key="value", value=None
+            filter_on="value", desired_value=None
         )
         flattened_var_list: list[FlattenedVariable] = (
             flatten_variables_from_household(
-                household, filter=temporary_single_explainer_filter, limit=1
+                household,
+                filter=temporary_single_explainer_filter,
+                max_allowed=1,
             )
         )
 
