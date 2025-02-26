@@ -154,7 +154,7 @@ def mock_buffered_output():
 
 
 @pytest.fixture
-def mock_cloud_storage():
+def mock_cloud_download():
     def download_side_effect(*args, **kwargs):
         source_blob_name = kwargs.get("source_blob_name")
         if source_blob_name in mock_cloud_bucket:

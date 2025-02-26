@@ -6,7 +6,7 @@ from tests.fixtures.endpoints.household_explainer import (
     valid_household_requesting_calculation,
     mock_buffered_output,
     mock_streaming_output,
-    mock_cloud_storage,
+    mock_cloud_download,
     mock_claude_result_buffered,
     mock_claude_result_streaming,
     uuid_not_found,
@@ -27,7 +27,10 @@ class TestGenerateAIExplainer:
 
     # Test valid UUID
     def test_valid_uuid(
-        self, client, mock_buffered_output, mock_cloud_storage
+        self,
+        client,
+        mock_buffered_output,
+        mock_cloud_download,
     ):
         request_with_valid_uuid = {
             "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
@@ -47,7 +50,10 @@ class TestGenerateAIExplainer:
         assert response_json["response"] == mock_claude_result_buffered
 
     def test_uuid_not_found(
-        self, client, mock_buffered_output, mock_cloud_storage
+        self,
+        client,
+        mock_buffered_output,
+        mock_cloud_download,
     ):
 
         request_with_invalid_uuid = {
@@ -72,7 +78,10 @@ class TestGenerateAIExplainer:
 
     # Test UUID invalid - wrong type
     def test_invalid_uuid_incorrect_type(
-        self, client, mock_buffered_output, mock_cloud_storage
+        self,
+        client,
+        mock_buffered_output,
+        mock_cloud_download,
     ):
         request_with_invalid_uuid = {
             "computation_tree_uuid": "invalid_uuid",
@@ -96,7 +105,10 @@ class TestGenerateAIExplainer:
 
     # Test valid household, streaming
     def test_valid_household_with_streaming(
-        self, client, mock_streaming_output, mock_cloud_storage
+        self,
+        client,
+        mock_streaming_output,
+        mock_cloud_download,
     ):
         request_with_streaming_output = {
             "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
@@ -125,7 +137,10 @@ class TestGenerateAIExplainer:
 
     # Test invalid household, missing entity
     def test_invalid_household_missing_entity(
-        self, client, mock_buffered_output, mock_cloud_storage
+        self,
+        client,
+        mock_buffered_output,
+        mock_cloud_download,
     ):
         invalid_household = deepcopy(valid_household_requesting_calculation)
         invalid_household.pop("families")
@@ -150,7 +165,10 @@ class TestGenerateAIExplainer:
 
     # Test invalid household, too many variables are requesting computation
     def test_invalid_household_too_many_variables(
-        self, client, mock_buffered_output, mock_cloud_storage
+        self,
+        client,
+        mock_buffered_output,
+        mock_cloud_download,
     ):
         extra_variable = {"ctc_individual_maximum": {"2025": None}}
 
@@ -181,7 +199,10 @@ class TestGenerateAIExplainer:
 
     # Test invalid household, no variables requesting computation
     def test_invalid_household_no_nones(
-        self, client, mock_buffered_output, mock_cloud_storage
+        self,
+        client,
+        mock_buffered_output,
+        mock_cloud_download,
     ):
         invalid_household = deepcopy(valid_household_requesting_calculation)
 
@@ -204,5 +225,6 @@ class TestGenerateAIExplainer:
 
         response_json = json.loads(response.data)
         assert (
-            "No variables found in the household." in response_json["message"]
+            "Household must include at least one variable set to null"
+            in response_json["message"]
         )
