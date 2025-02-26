@@ -63,18 +63,6 @@ def generate_ai_explainer(country_id: str) -> Response:
             household: HouseholdModelGeneric = (
                 HouseholdModelGeneric.model_validate(household_raw)
             )
-        # except Exception as e:
-        #     logging.exception(e)
-        #     return Response(
-        #         json.dumps(
-        #             dict(
-        #                 status="error",
-        #                 message=f"Error validating household data: {e}",
-        #             )
-        #         ),
-        #         status=400,
-        #         mimetype="application/json",
-        #     )
 
         # We currently only allow one variable at a time due to
         # challenges calculating billing for multiple
@@ -110,19 +98,6 @@ def generate_ai_explainer(country_id: str) -> Response:
         full_tree = computation_tree.tree
         entity_description = computation_tree.entity_description
 
-        # except Exception as e:
-        #     logging.exception(e)
-        #     return Response(
-        #         json.dumps(
-        #             dict(
-        #                 status="error",
-        #                 message=f"Error fetching tracer data: {e}",
-        #             )
-        #         ),
-        #         status=500,
-        #         mimetype="application/json",
-        #     )
-
         # Parse the tracer for the calculation tree of the variable
         variable = flattened_var.variable
         entity = flattened_var.entity
@@ -131,35 +106,15 @@ def generate_ai_explainer(country_id: str) -> Response:
                 variable=variable, tree=full_tree
             )
         )
-        # except Exception as e:
-        #     logging.exception(e)
-        #     return Response(
-        #         json.dumps(
-        #             dict(
-        #                 status="error",
-        #                 message=f"Error parsing tracer output: {e}",
-        #             )
-        #         ),
-        #         status=500,
-        #         mimetype="application/json",
-        #     )
 
-        # Modify the computation tree to include data on entity groups
+        # Computation trees do not include entity names, only
+        # vectorized outputs, so e.g., for person-level vars in a household
+        # of 4, the tree has 4 values. We want the LLM to equate each
+        # var with its entity, then apply the entity_description we pass it
+        # to know who's who. Add the entity groups to the tree.
         computation_tree_segment = add_entity_groups_to_computation_tree(
             country_id, computation_tree_segment, entity_description
         )
-        # except Exception as e:
-        #     logging.exception(e)
-        #     return Response(
-        #         json.dumps(
-        #             dict(
-        #                 status="error",
-        #                 message=f"Error injecting entity groups into computation tree: {e}",
-        #             )
-        #         ),
-        #         status=500,
-        #         mimetype="application/json",
-        #     )
 
         # Generate the AI explainer prompt using the variable calculation tree
         prompt = household_explainer_template.format(
