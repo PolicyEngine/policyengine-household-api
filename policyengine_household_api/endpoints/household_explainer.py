@@ -84,7 +84,7 @@ def generate_ai_explainer(country_id: str) -> Response:
                 json.dumps(
                     dict(
                         status="error",
-                        message="No variables found in the household.",
+                        message="Household must include at least one variable set to null",
                     )
                 ),
                 status=400,
