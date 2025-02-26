@@ -1,8 +1,7 @@
 from google.cloud import storage
-from werkzeug.exceptions import HTTPException
 from pydantic import BaseModel
 import json
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 from uuid import UUID
 
 
@@ -60,7 +59,7 @@ class GoogleCloudStorageManager:
         try:
             return data.model_dump_json()
         except Exception as e:
-            raise HTTPException(
+            raise Exception(
                 description=f"Error deserializing Pydantic model to JSON: {e}",
             )
 
@@ -78,7 +77,7 @@ class GoogleCloudStorageManager:
 
             return deserializer.model_validate(data_dict)
         except Exception as e:
-            raise HTTPException(
+            raise Exception(
                 description=f"Error serializing JSON to Pydantic model: {e}",
             )
 
@@ -102,7 +101,7 @@ class GoogleCloudStorageManager:
 
             print(f"JSON uploaded to {destination_blob_name}.")
         except Exception as e:
-            raise HTTPException(
+            raise ConnectionError(
                 description=f"Error uploading JSON to {destination_blob_name}: {e}",
             )
 
@@ -120,6 +119,6 @@ class GoogleCloudStorageManager:
 
             return blob.download_as_text()
         except Exception as e:
-            raise HTTPException(
+            raise ConnectionError(
                 description=f"Error downloading JSON from {source_blob_name}: {e}",
             )
