@@ -1,3 +1,4 @@
+from policyengine_household_api.models.household import HouseholdModel
 from typing import Literal, Any, Optional
 from pydantic import BaseModel
 from dataclasses import dataclass
@@ -22,7 +23,7 @@ class FlattenedVariableFilter:
 
 
 def flatten_variables_from_household(
-    household: dict[str, Any],
+    household: HouseholdModel,
     filter: Optional[FlattenedVariableFilter] = None,
     max_allowed: Optional[int] = None,
 ) -> list[FlattenedVariable]:
@@ -49,9 +50,9 @@ def flatten_variables_from_household(
                             "entity": entity,
                             "variable": variable,
                             "year": int(year),
-                            "value": household[entity_group][entity][variable][
-                                year
-                            ],
+                            "value": household_dict[entity_group][entity][
+                                variable
+                            ][year],
                         }
                     )
 
