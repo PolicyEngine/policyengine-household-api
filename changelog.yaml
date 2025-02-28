@@ -936,3 +936,8 @@
     changed:
     - Update PolicyEngine UK to 2.21.0
   date: 2025-02-28 17:18:25
+- bump: patch
+  changes:
+    added:
+    - Tests for sample household objects from clients
+  date: 2025-02-28 20:50:46

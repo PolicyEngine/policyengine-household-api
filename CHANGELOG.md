@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.155] - 2025-02-28 20:50:46
+
+### Added
+
+- Tests for sample household objects from clients
+
 ## [0.5.154] - 2025-02-28 17:18:25
 
 ### Changed
@@ -1118,6 +1124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.5.155]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.154...0.5.155
 [0.5.154]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.153...0.5.154
 [0.5.153]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.152...0.5.153
 [0.5.152]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.151...0.5.152
