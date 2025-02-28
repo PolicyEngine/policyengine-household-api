@@ -76,14 +76,12 @@ app.route("/", methods=["GET"])(get_home)
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth(None)
-@log_analytics
 def calculate(country_id):
     return get_calculate(country_id)
 
 
 @app.route("/<country_id>/ai-analysis", methods=["POST"])
 @require_auth(None)
-@log_analytics
 def ai_analysis(country_id: str):
     return generate_ai_explainer(country_id)
 

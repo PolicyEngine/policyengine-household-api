@@ -111,6 +111,13 @@ my_friend_ben_household = {
             "members": ["7449", "7450", "7451", "7452"],
         }
     },
+    "marital_units": {
+        "marital_unit_1": {
+            "members": ["7449", "7450"],
+        },
+        "marital_unit_2": {"members": ["7451"]},
+        "marital_unit_3": {"members": ["7452"]},
+    },
     "spm_units": {
         "spm_unit": {
             "members": ["7449", "7450", "7451", "7452"],

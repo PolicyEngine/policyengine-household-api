@@ -31,19 +31,22 @@ def flatten_variables_from_household(
     Parse variable from a household and raise error if
     more than one is provided.
     Args:
-        household (dict): The household.
+        household (HouseholdModel): The household.
     Returns:
         list[FlattenedVariable]: List of all variables flattened from household.
     """
 
+    household_dict = household.model_dump()
     flattened_variables = []
 
-    for entity_group in household.keys():
-        for entity in household[entity_group].keys():
-            for variable in household[entity_group][entity].keys():
+    for entity_group in household_dict.keys():
+        for entity in household_dict[entity_group].keys():
+            for variable in household_dict[entity_group][entity].keys():
                 if variable in VARIABLE_BLACKLIST:
                     continue
-                for year in household[entity_group][entity][variable].keys():
+                for year in household_dict[entity_group][entity][
+                    variable
+                ].keys():
                     new_pair = FlattenedVariable.model_validate(
                         {
                             "entity_group": entity_group,
