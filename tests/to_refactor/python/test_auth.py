@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from tests.python.utils import client
+from tests.to_refactor.fixtures import client
 
 load_dotenv()
 
@@ -17,7 +17,7 @@ def test_malformed_token(client):
             "Authorization": "Bearer garbage_token",
         },
         data=open(
-            "./tests/python/data/calculate_us_1_data.json",
+            "./tests/to_refactor/python/data/calculate_us_1_data.json",
             "r",
             encoding="utf-8",
         ),

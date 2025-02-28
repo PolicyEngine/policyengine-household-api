@@ -24,6 +24,7 @@ from .data.setup import getconn
 from .endpoints import (
     get_home,
     get_calculate,
+    generate_ai_explainer,
 )
 
 # Configure authentication
@@ -44,7 +45,6 @@ CORS(app)
 # Configure database connection
 if os.getenv("FLASK_DEBUG") == "1":
     db_url = REPO / "policyengine_household_api" / "data" / "policyengine.db"
-    print(db_url)
     if Path(db_url).exists():
         Path(db_url).unlink()
     if not Path(db_url).exists():
@@ -76,9 +76,14 @@ app.route("/", methods=["GET"])(get_home)
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth(None)
-@log_analytics
 def calculate(country_id):
     return get_calculate(country_id)
+
+
+@app.route("/<country_id>/ai-analysis", methods=["POST"])
+@require_auth(None)
+def ai_analysis(country_id: str):
+    return generate_ai_explainer(country_id)
 
 
 @app.route("/liveness_check", methods=["GET"])

@@ -1,3 +1,4 @@
+from policyengine_household_api.models.household import HouseholdModel
 from typing import Literal, Any, Optional
 from pydantic import BaseModel
 from dataclasses import dataclass
@@ -22,7 +23,7 @@ class FlattenedVariableFilter:
 
 
 def flatten_variables_from_household(
-    household: dict[str, Any],
+    household: HouseholdModel,
     filter: Optional[FlattenedVariableFilter] = None,
     max_allowed: Optional[int] = None,
 ) -> list[FlattenedVariable]:
@@ -30,28 +31,31 @@ def flatten_variables_from_household(
     Parse variable from a household and raise error if
     more than one is provided.
     Args:
-        household (dict): The household.
+        household (HouseholdModel): The household.
     Returns:
         list[FlattenedVariable]: List of all variables flattened from household.
     """
 
+    household_dict = household.model_dump()
     flattened_variables = []
 
-    for entity_group in household.keys():
-        for entity in household[entity_group].keys():
-            for variable in household[entity_group][entity].keys():
+    for entity_group in household_dict.keys():
+        for entity in household_dict[entity_group].keys():
+            for variable in household_dict[entity_group][entity].keys():
                 if variable in VARIABLE_BLACKLIST:
                     continue
-                for year in household[entity_group][entity][variable].keys():
+                for year in household_dict[entity_group][entity][
+                    variable
+                ].keys():
                     new_pair = FlattenedVariable.model_validate(
                         {
                             "entity_group": entity_group,
                             "entity": entity,
                             "variable": variable,
                             "year": int(year),
-                            "value": household[entity_group][entity][variable][
-                                year
-                            ],
+                            "value": household_dict[entity_group][entity][
+                                variable
+                            ][year],
                         }
                     )
 

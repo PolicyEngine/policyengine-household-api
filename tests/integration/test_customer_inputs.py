@@ -4,6 +4,7 @@ import os
 from flask import Response
 from typing import Any, List, Tuple
 from tests.data.customer_households import my_friend_ben_household
+from policyengine_household_api.models.household import HouseholdModelUS
 from policyengine_household_api.utils.household import (
     FlattenedVariableFilter,
     FlattenedVariable,
@@ -28,11 +29,16 @@ class TestCustomerInputs:
         Then all input values should remain unchanged and all calculated values should be populated
         """
         # Given
+        household_model = HouseholdModelUS(**household)
         country_id = "us"
         variables_to_calc: list[FlattenedVariable]
         input_variables: list[FlattenedVariable]
-        variables_to_calc, input_variables = self._prepare_variables(household)
-        request: dict[str, Any] = self._create_calculation_request(household)
+        variables_to_calc, input_variables = self._prepare_variables(
+            household_model
+        )
+        request: dict[str, Any] = self._create_calculation_request(
+            household_model
+        )
 
         # When
         response: Response = self._execute_calculation_request(
@@ -45,7 +51,7 @@ class TestCustomerInputs:
         )
 
     def _prepare_variables(
-        self, household: dict[str, Any]
+        self, household: HouseholdModelUS
     ) -> Tuple[list[FlattenedVariable], list[FlattenedVariable]]:
         """Extract variables to calculate and input variables from a household."""
         calc_filter = FlattenedVariableFilter(
@@ -71,7 +77,8 @@ class TestCustomerInputs:
 
         return variables_to_calc, input_variables
 
-    def _create_calculation_request(self, household) -> dict:
+    def _create_calculation_request(self, household: HouseholdModelUS) -> dict:
+        household_dict = household.model_dump()
         """Create the request for a calculation."""
         return {
             "headers": {
@@ -79,7 +86,7 @@ class TestCustomerInputs:
                 "Authorization": f"Bearer {os.getenv('AUTH0_TEST_TOKEN_NO_DOMAIN')}",
             },
             "body": {
-                "household": household,
+                "household": household_dict,
             },
         }
 
@@ -116,7 +123,7 @@ class TestCustomerInputs:
     def _extract_response_variables(self, result) -> List[FlattenedVariable]:
         """Extract the variables from the response."""
         return flatten_variables_from_household(
-            household=result["result"],
+            household=HouseholdModelUS(**result["result"]),
         )
 
     def _verify_input_variables_unchanged(

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from tests.python.utils import client, extract_json_from_file
+from tests.to_refactor.fixtures import client, extract_json_from_file
 
 API_URL = "https://api.policyengine.org/"
 
@@ -18,7 +18,7 @@ def test_calculate_sync(client):
 
     # Load the sample data
     input_data = extract_json_from_file(
-        "./tests/python/data/calculate_us_1_data.json"
+        "./tests/to_refactor/python/data/calculate_us_1_data.json"
     )
 
     # Make a POST request to the API and store its output
