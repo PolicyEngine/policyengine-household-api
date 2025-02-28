@@ -28,6 +28,7 @@ setup(
         "pymysql",
         "black==24.3.0",
         "ratelimiter",
+        "pydantic",
     ],
     extras_require={
         "dev": [
