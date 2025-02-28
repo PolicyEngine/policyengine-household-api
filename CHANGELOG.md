@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-02-28 22:24:43
+
+### Added
+
+- AI explainer feature; users can now take a computation tree and generate a human-readable explanation of the computation of a particular variable
+- Tools to flatten a nested household structure into an array of dictionaries mapping to each variable for a given year
+
+### Changed
+
+- Household computation now returns an (optional) computation tree alongside outputs
+
 ## [0.5.155] - 2025-02-28 20:50:46
 
 ### Added
@@ -1124,6 +1135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.6.0]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.155...0.6.0
 [0.5.155]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.154...0.5.155
 [0.5.154]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.153...0.5.154
 [0.5.153]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.152...0.5.153

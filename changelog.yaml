@@ -941,3 +941,13 @@
     added:
     - Tests for sample household objects from clients
   date: 2025-02-28 20:50:46
+- bump: minor
+  changes:
+    added:
+    - AI explainer feature; users can now take a computation tree and generate a human-readable
+      explanation of the computation of a particular variable
+    - Tools to flatten a nested household structure into an array of dictionaries
+      mapping to each variable for a given year
+    changed:
+    - Household computation now returns an (optional) computation tree alongside outputs
+  date: 2025-02-28 22:24:43
