@@ -49,14 +49,14 @@ class HouseholdModelGeneric(BaseModel):
 
 
 class HouseholdModelUS(HouseholdModelGeneric):
-    families: dict[str, HouseholdEntity]
-    spm_units: dict[str, HouseholdEntity]
-    tax_units: dict[str, HouseholdEntity]
-    marital_units: dict[str, HouseholdEntity]
+    families: Optional[dict[str, HouseholdEntity]] = {}
+    spm_units: Optional[dict[str, HouseholdEntity]] = {}
+    tax_units: Optional[dict[str, HouseholdEntity]] = {}
+    marital_units: Optional[dict[str, HouseholdEntity]] = {}
 
 
 class HouseholdModelUK(HouseholdModelGeneric):
-    benunits: dict[str, HouseholdEntity]
+    benunits: Optional[dict[str, HouseholdEntity]] = {}
 
 
 # Typing alias for all three possible household models

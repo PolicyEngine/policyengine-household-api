@@ -3,7 +3,10 @@ import json
 import os
 from flask import Response
 from typing import Any, List, Tuple
-from tests.data.customer_households import my_friend_ben_household
+from tests.data.customer_households import (
+    my_friend_ben_household,
+    benefits_navigator_household,
+)
 from policyengine_household_api.models.household import HouseholdModelUS
 from policyengine_household_api.utils.household import (
     FlattenedVariableFilter,
@@ -21,8 +24,20 @@ class TestCustomerInputs:
         ],
     )
     def test_my_friend_ben(self, client, household):
+        self.us_household_runner(client, household)
+
+    @pytest.mark.parametrize(
+        "household",
+        [
+            benefits_navigator_household,
+        ],
+    )
+    def test_benefits_navigator(self, client, household):
+        self.us_household_runner(client, household)
+
+    def us_household_runner(self, client, household):
         """
-        Test that household calculations work correctly for 'my_friend_ben' test case.
+        Test that household calculations work correctly for US test cases.
 
         Given a household with some input values and some values to be calculated
         When the calculation API is called with this household
