@@ -135,34 +135,6 @@ class TestGenerateAIExplainer:
         results = [obj["response"] for obj in json_objects]
         assert results == mock_claude_result_streaming
 
-    # Test invalid household, missing entity
-    def test_invalid_household_missing_entity(
-        self,
-        client,
-        mock_buffered_output,
-        mock_cloud_download,
-    ):
-        invalid_household = deepcopy(valid_household_requesting_calculation)
-        invalid_household.pop("families")
-
-        request_with_invalid_household = {
-            "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
-            "household": invalid_household,
-            "use_streaming": False,
-        }
-
-        response = client.post(
-            "/us/ai-analysis",
-            json=request_with_invalid_household,
-            headers=self.auth_headers,
-        )
-
-        response_json = json.loads(response.data)
-        assert response.status_code == 400
-
-        response_json = json.loads(response.data)
-        assert "Error validating household data" in response_json["message"]
-
     # Test invalid household, too many variables are requesting computation
     def test_invalid_household_too_many_variables(
         self,

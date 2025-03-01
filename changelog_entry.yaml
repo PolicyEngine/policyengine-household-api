@@ -1,0 +1,7 @@
+- bump: patch
+  changes:
+    added:
+    - Customer test for Benefits Navigator
+    changed:
+    - Loosened schema requirements for US- and UK-specific entities
+    - Changed "year" to string-based "period" for filtering variables from household

@@ -12,13 +12,13 @@ class FlattenedVariable(BaseModel):
     entity_group: str
     entity: str
     variable: str
-    year: int
+    period: int | str
     value: Any
 
 
 @dataclass
 class FlattenedVariableFilter:
-    filter_on: Literal["entity_group", "entity", "variable", "year", "value"]
+    filter_on: Literal["entity_group", "entity", "variable", "period", "value"]
     desired_value: Any
 
 
@@ -44,7 +44,7 @@ def flatten_variables_from_household(
             for variable in household_dict[entity_group][entity].keys():
                 if variable in VARIABLE_BLACKLIST:
                     continue
-                for year in household_dict[entity_group][entity][
+                for period in household_dict[entity_group][entity][
                     variable
                 ].keys():
                     new_pair = FlattenedVariable.model_validate(
@@ -52,10 +52,10 @@ def flatten_variables_from_household(
                             "entity_group": entity_group,
                             "entity": entity,
                             "variable": variable,
-                            "year": int(year),
+                            "period": period,
                             "value": household_dict[entity_group][entity][
                                 variable
-                            ][year],
+                            ][period],
                         }
                     )
 
@@ -78,14 +78,16 @@ def flatten_variables_from_household(
 
 def filter_flattened_variables(
     flattened_variables: list[FlattenedVariable],
-    filter_on: Literal["entity_group", "entity", "variable", "year", "value"],
+    filter_on: Literal[
+        "entity_group", "entity", "variable", "period", "value"
+    ],
     desired_value: Any,
 ) -> list[FlattenedVariable]:
     """
     Filter parsed variables by a key-value pair.
     Args:
         flattened_variables (list[FlattenedVariable]): The parsed variables.
-        key (Literal["entity_group", "entity", "variable", "year"]): The key to filter by.
+        key (Literal["entity_group", "entity", "variable", "period"]): The key to filter by.
         value (Any): The value to filter by.
     Returns:
         list[FlattenedVariable]: The filtered parsed variables.
