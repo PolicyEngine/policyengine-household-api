@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2025-03-01 15:33:35
+
+### Added
+
+- Customer test for Benefits Navigator
+
+### Changed
+
+- Loosened schema requirements for US- and UK-specific entities
+- Changed "year" to string-based "period" for filtering variables from household
+
 ## [0.6.0] - 2025-02-28 22:24:43
 
 ### Added
@@ -1135,6 +1146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.6.1]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.155...0.6.0
 [0.5.155]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.154...0.5.155
 [0.5.154]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.5.153...0.5.154
