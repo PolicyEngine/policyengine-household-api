@@ -34,7 +34,7 @@ benefits_navigator_household = {
             "medicaid": {"2025": None},
             "is_medicaid_eligible": {"2025": None},
             "wic": {"2025": None},
-            "is_aca_ptc_eligible": {"2025": None},
+            # "is_aca_ptc_eligible": {"2025": None},
             "is_ssi_aged": {"2025": None},
         }
     },
@@ -53,7 +53,7 @@ benefits_navigator_household = {
             "ctc": {"2025": None},
             "refundable_ctc": {"2025": None},
             "ca_yctc": {"2025": None},
-            "aca_ptc_ca": {"2025": None},
+            # "aca_ptc_ca": {"2025": None},
             "ca_renter_credit": {"2025": None},
             "cdcc": {"2025": None},
             "ca_cdcc": {"2025": None},
