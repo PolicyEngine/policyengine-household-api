@@ -959,3 +959,8 @@
     - Loosened schema requirements for US- and UK-specific entities
     - Changed "year" to string-based "period" for filtering variables from household
   date: 2025-03-01 15:33:35
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine UK to 2.22.0
+  date: 2025-03-03 20:50:08
