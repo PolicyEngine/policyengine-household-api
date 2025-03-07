@@ -6,6 +6,7 @@ from typing import Any, List, Tuple
 from tests.data.customer_households import (
     my_friend_ben_household,
     benefits_navigator_household,
+    impactica_household,
 )
 from policyengine_household_api.models.household import HouseholdModelUS
 from policyengine_household_api.utils.household import (
@@ -33,6 +34,15 @@ class TestCustomerInputs:
         ],
     )
     def test_benefits_navigator(self, client, household):
+        self.us_household_runner(client, household)
+
+    @pytest.mark.parametrize(
+        "household",
+        [
+            impactica_household,
+        ],
+    )
+    def test_impactica(self, client, household):
         self.us_household_runner(client, household)
 
     def us_household_runner(self, client, household):
