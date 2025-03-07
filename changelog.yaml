@@ -979,3 +979,8 @@
     changed:
     - Update PolicyEngine US to 1.207.3
   date: 2025-03-07 12:05:04
+- bump: patch
+  changes:
+    added:
+    - Impactica customer integration test
+  date: 2025-03-07 19:22:43
