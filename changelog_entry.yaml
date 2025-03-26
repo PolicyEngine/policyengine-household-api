@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    added:
+    - Re-enabled automated analytics logging of calculate endpoint
