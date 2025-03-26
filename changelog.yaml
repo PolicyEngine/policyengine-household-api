@@ -1004,3 +1004,8 @@
     changed:
     - Update PolicyEngine US to 1.221.0
   date: 2025-03-20 18:10:01
+- bump: patch
+  changes:
+    added:
+    - Re-enabled automated analytics logging of calculate endpoint
+  date: 2025-03-26 01:09:47
