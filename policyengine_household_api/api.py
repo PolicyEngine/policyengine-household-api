@@ -76,6 +76,7 @@ app.route("/", methods=["GET"])(get_home)
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth(None)
+@log_analytics
 def calculate(country_id):
     return get_calculate(country_id)
 
