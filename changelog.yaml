@@ -1009,3 +1009,8 @@
     added:
     - Re-enabled automated analytics logging of calculate endpoint
   date: 2025-03-26 01:09:47
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine UK to 2.22.4
+  date: 2025-03-26 01:10:31
