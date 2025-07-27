@@ -1,0 +1,9 @@
+FROM python:3.13
+ENV VIRTUAL_ENV /env
+ENV PATH /env/bin:$PATH
+RUN apt-get update && apt-get install -y build-essential checkinstall redis-server
+RUN python3.13 -m pip install --upgrade pip
+
+WORKDIR /app
+
+CMD ["bash"]
