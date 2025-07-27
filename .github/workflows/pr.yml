@@ -27,7 +27,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./gcp/Dockerfile
+          file: ./Dockerfile.build
           push: true
           tags: |
             ghcr.io/policyengine/policyengine-household-api:pr-${{ github.event.pull_request.number }}
