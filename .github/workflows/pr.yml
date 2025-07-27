@@ -41,25 +41,23 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.13"
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0
-        with:
-          project_id: policyengine-household-api
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          export_default_credentials: true
-      - name: Install system dependencies
+      - name: Build Docker image
+        run: docker build -t policyengine-household-api-test -f gcp/Dockerfile .
+      - name: Run tests in Docker container
         run: |
-          sudo apt-get update
-          sudo apt-get install -y redis-server build-essential
-          sudo systemctl start redis-server
-      - name: Install dependencies
-        run: make install
-      - name: Test the API
-        run: make test
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            -e ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+            -e AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }} \
+            -e AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }} \
+            -e AUTH0_TEST_TOKEN_NO_DOMAIN=${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }} \
+            -e USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }} \
+            -e USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }} \
+            -e USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }} \
+            -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json \
+            policyengine-household-api-test \
+            bash -c "echo '${{ secrets.GCP_SA_KEY }}' > /tmp/gcp-key.json && make install && make test"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
