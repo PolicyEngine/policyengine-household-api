@@ -31,7 +31,7 @@ setup(
         "python-dotenv",
         "pymysql",
         "black==24.3.0",
-        "ratelimiter",
+        "Flask-Limiter",
         "pydantic",
     ],
     extras_require={
