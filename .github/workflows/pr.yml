@@ -6,6 +6,35 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./gcp/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/policyengine/policyengine-household-api:pr-${{ github.event.pull_request.number }}
+            ghcr.io/policyengine/policyengine-household-api:python313
+          cache-from: type=registry,ref=ghcr.io/policyengine/policyengine-household-api:buildcache
+          cache-to: type=registry,ref=ghcr.io/policyengine/policyengine-household-api:buildcache,mode=max
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -38,8 +67,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: build-docker
     container:
-      image: policyengine/policyengine-household-api:python313
+      image: ghcr.io/policyengine/policyengine-household-api:pr-${{ github.event.pull_request.number }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
