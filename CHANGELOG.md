@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-07-30 22:49:16
+
+### Changed
+
+- Upgrade Python version requirement from 3.10 to 3.13
+
 ## [0.6.33] - 2025-06-30 19:41:23
 
 ### Changed
@@ -1338,6 +1344,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.7.0]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.33...0.7.0
 [0.6.33]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.32...0.6.33
 [0.6.32]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.31...0.6.32
 [0.6.31]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.30...0.6.31

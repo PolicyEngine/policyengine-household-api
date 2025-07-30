@@ -1119,3 +1119,8 @@
     changed:
     - Update PolicyEngine US to 1.328.0
   date: 2025-06-30 19:41:23
+- bump: minor
+  changes:
+    changed:
+    - Upgrade Python version requirement from 3.10 to 3.13
+  date: 2025-07-30 22:49:16
