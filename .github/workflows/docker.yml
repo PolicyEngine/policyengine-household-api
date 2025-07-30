@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - upgrade-python-3.13
   workflow_dispatch:
 
 jobs:
