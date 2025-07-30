@@ -44,9 +44,7 @@ app = application = flask.Flask(__name__)
 CORS(app)
 
 # Initialize rate limiter
-limiter = Limiter(
-    app=app, key_func=get_remote_address, default_limits=[]
-)
+limiter = Limiter(app=app, key_func=get_remote_address, default_limits=[])
 
 # Configure database connection
 if os.getenv("FLASK_DEBUG") == "1":
