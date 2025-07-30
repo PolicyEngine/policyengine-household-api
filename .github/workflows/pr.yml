@@ -40,7 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4  
+        with:
+          python-version: "3.13"
       - uses: psf/black@24.3.0
         with:
           options: ". -l 79 --check"
@@ -55,7 +57,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.13"
       - name: Build changelog
@@ -73,6 +75,10 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4  # Also consider upgrading this
+        with:
+          python-version: "3.13"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
         with:
