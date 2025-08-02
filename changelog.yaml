@@ -1124,3 +1124,8 @@
     changed:
     - Upgrade Python version requirement from 3.10 to 3.13
   date: 2025-07-30 22:49:16
+- bump: patch
+  changes:
+    changed:
+    - Update Docker build address to use GitHub Container Registry
+  date: 2025-08-02 18:39:28

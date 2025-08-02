@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Update Docker build address to use GitHub Container Registry
