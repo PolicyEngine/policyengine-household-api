@@ -1,4 +1,4 @@
-FROM policyengine/policyengine-household-api:latest
+FROM ghcr.io/policyengine/policyengine-household-api:latest
 
 ENV GOOGLE_APPLICATION_CREDENTIALS .gac.json
 ENV AUTH0_ADDRESS_NO_DOMAIN .address
