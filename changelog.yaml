@@ -1129,3 +1129,8 @@
     changed:
     - Update Docker build address to use GitHub Container Registry
   date: 2025-08-02 18:39:28
+- bump: patch
+  changes:
+    changed:
+    - Increased readiness check timeout to 600 seconds.
+  date: 2025-08-06 19:58:12

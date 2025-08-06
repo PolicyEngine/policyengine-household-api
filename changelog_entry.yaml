@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Increased readiness check timeout to 600 seconds.
