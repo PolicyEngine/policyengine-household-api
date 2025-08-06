@@ -15,3 +15,6 @@ liveness_check:
   timeout_sec: 30
   failure_threshold: 5
   success_threshold: 2
+readiness_check:
+  path: "/readiness-check"
+  app_start_timeout_sec: 600
