@@ -8,7 +8,7 @@ setup(
     author_email="hello@policyengine.org",
     description="PolicyEngine Household API",
     packages=find_packages(),
-    python_requires=">=3.13",
+    python_requires=">=3.12",
     install_requires=[
         "anthropic",
         "Authlib>=1.3.1",
