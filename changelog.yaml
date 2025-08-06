@@ -1134,3 +1134,9 @@
     changed:
     - Increased readiness check timeout to 600 seconds.
   date: 2025-08-06 19:58:12
+- bump: patch
+  changes:
+    changed:
+    - Allowed use of Python 3.12.
+    - Increased memory from 8GB to 16GB.
+  date: 2025-08-06 23:44:51

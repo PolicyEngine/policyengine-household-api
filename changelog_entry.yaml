@@ -1,5 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Allowed use of Python 3.12.
-    - Increased memory from 8GB to 16GB.
