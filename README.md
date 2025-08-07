@@ -5,3 +5,5 @@ A version of the PolicyEngine API that runs the `calculate` endpoint over househ
 ## Development rules
 
 1. Every endpoint should return a JSON object with at least a "status" and "message" field.
+
+Please note that we do not support branched operations at this time.

@@ -1119,3 +1119,35 @@
     changed:
     - Update PolicyEngine US to 1.328.0
   date: 2025-06-30 19:41:23
+- bump: minor
+  changes:
+    changed:
+    - Upgrade Python version requirement from 3.10 to 3.13
+  date: 2025-07-30 22:49:16
+- bump: patch
+  changes:
+    changed:
+    - Update Docker build address to use GitHub Container Registry
+  date: 2025-08-02 18:39:28
+- bump: patch
+  changes:
+    changed:
+    - Increased readiness check timeout to 600 seconds.
+  date: 2025-08-06 19:58:12
+- bump: patch
+  changes:
+    changed:
+    - Allowed use of Python 3.12.
+    - Increased memory from 8GB to 16GB.
+  date: 2025-08-06 23:44:51
+- bump: patch
+  changes:
+    changed:
+    - Decreased memory from 16GB to 12GB.
+  date: 2025-08-07 00:13:08
+- bump: patch
+  changes:
+    fixed:
+    - No branching for itemization.
+    - Lower memory back to pre-change 8GB.
+  date: 2025-08-07 16:24:30

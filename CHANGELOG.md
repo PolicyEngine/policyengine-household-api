@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2025-08-07 16:24:30
+
+### Fixed
+
+- No branching for itemization.
+- Lower memory back to pre-change 8GB.
+
+## [0.7.4] - 2025-08-07 00:13:08
+
+### Changed
+
+- Decreased memory from 16GB to 12GB.
+
+## [0.7.3] - 2025-08-06 23:44:51
+
+### Changed
+
+- Allowed use of Python 3.12.
+- Increased memory from 8GB to 16GB.
+
+## [0.7.2] - 2025-08-06 19:58:12
+
+### Changed
+
+- Increased readiness check timeout to 600 seconds.
+
+## [0.7.1] - 2025-08-02 18:39:28
+
+### Changed
+
+- Update Docker build address to use GitHub Container Registry
+
+## [0.7.0] - 2025-07-30 22:49:16
+
+### Changed
+
+- Upgrade Python version requirement from 3.10 to 3.13
+
 ## [0.6.33] - 2025-06-30 19:41:23
 
 ### Changed
@@ -1338,6 +1376,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.7.5]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.7.4...0.7.5
+[0.7.4]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.7.3...0.7.4
+[0.7.3]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.7.2...0.7.3
+[0.7.2]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.7.1...0.7.2
+[0.7.1]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.7.0...0.7.1
+[0.7.0]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.33...0.7.0
 [0.6.33]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.32...0.6.33
 [0.6.32]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.31...0.6.32
 [0.6.31]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.6.30...0.6.31
