@@ -1151,3 +1151,8 @@
     - No branching for itemization.
     - Lower memory back to pre-change 8GB.
   date: 2025-08-07 16:24:30
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.330.0
+  date: 2025-08-07 17:25:33
