@@ -335,7 +335,7 @@ class PolicyEngineCountry:
             situation=household,
         )
 
-        simulation.tax_benefit_system.gov.simulation.branch_to_determine_itemization.update(
+        simulation.tax_benefit_system.parameters.gov.simulation.branch_to_determine_itemization.update(
             start=2020, value=False
         )
 
