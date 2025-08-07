@@ -335,6 +335,10 @@ class PolicyEngineCountry:
             situation=household,
         )
 
+        simulation.tax_benefit_system.parameters.gov.simulation.branch_to_determine_itemization.update(
+            start=2020, value=False
+        )
+
         household = json.loads(json.dumps(household))
 
         # Run tracer on household
