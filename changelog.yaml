@@ -1145,3 +1145,9 @@
     changed:
     - Decreased memory from 16GB to 12GB.
   date: 2025-08-07 00:13:08
+- bump: patch
+  changes:
+    fixed:
+    - No branching for itemization.
+    - Lower memory back to pre-change 8GB.
+  date: 2025-08-07 16:24:30
