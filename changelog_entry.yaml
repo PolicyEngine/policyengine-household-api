@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Decreased memory from 16GB to 12GB.
