@@ -2,3 +2,4 @@
   changes:
     fixed:
     - No branching for itemization.
+    - Lower memory back to pre-change 8GB.
