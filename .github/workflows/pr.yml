@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4  
         with:
-          python-version: "3.13"
+          python-version: "3.12"
       - uses: psf/black@24.3.0
         with:
           options: ". -l 79 --check"
@@ -30,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.13"
+          python-version: "3.12"
       - name: Build changelog
         run: pip install yaml-changelog && make changelog
       - name: Preview changelog update
@@ -46,7 +46,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.13"
+          python-version: "3.12"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
         with:
