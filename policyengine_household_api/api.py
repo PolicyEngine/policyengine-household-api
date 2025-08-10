@@ -13,8 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
 from authlib.integrations.flask_oauth2 import ResourceProtector
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from ratelimiter import RateLimiter
 
 # Internal imports
 from .auth.validation import Auth0JWTBearerTokenValidator
@@ -42,16 +41,6 @@ print("Initialising API...")
 app = application = flask.Flask(__name__)
 
 CORS(app)
-
-# Use in-memory storage for rate limiting
-# Note that this provides limits per-instance;
-# rate limits not shared if scaling more than 1 instance.
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=[],
-    storage_uri="memory://",
-)
 
 # Configure database connection
 if os.getenv("FLASK_DEBUG") == "1":
@@ -113,7 +102,7 @@ def readiness_check():
 
 
 @app.route("/<country_id>/calculate_demo", methods=["POST"])
-@limiter.limit("1 per second")
+@RateLimiter(max_calls=1, period=1)
 def calculate_demo(country_id):
     return get_calculate(country_id)
 
