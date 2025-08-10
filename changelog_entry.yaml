@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Switched to use of in-memory storage for rate limiting instead of Redis.

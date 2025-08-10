@@ -43,8 +43,15 @@ app = application = flask.Flask(__name__)
 
 CORS(app)
 
-# Initialize rate limiter
-limiter = Limiter(app=app, key_func=get_remote_address, default_limits=[])
+# Use in-memory storage for rate limiting
+# Note that this provides limits per-instance;
+# rate limits not shared if scaling more than 1 instance.
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=[],
+    storage_uri="memory://",
+)
 
 # Configure database connection
 if os.getenv("FLASK_DEBUG") == "1":
