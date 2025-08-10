@@ -31,7 +31,7 @@ jobs:
           file: ./Dockerfile.build
           push: true
           tags: |
-            ghcr.io/policyengine/policyengine-household-api:python313
+            ghcr.io/policyengine/policyengine-household-api:python312
             ghcr.io/policyengine/policyengine-household-api:latest
             ghcr.io/policyengine/policyengine-household-api:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/policyengine/policyengine-household-api:buildcache
