@@ -1181,3 +1181,8 @@
     changed:
     - Change the default image tag to `latest` in the production deployment workflow.
   date: 2025-08-12 14:20:01
+- bump: patch
+  changes:
+    changed:
+    - Modified tag to launch from
+  date: 2025-08-12 14:54:59
