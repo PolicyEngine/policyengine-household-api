@@ -96,6 +96,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Make script executable
+        run: chmod +x .github/scripts/verify-image-push.sh
+
       - name: Verify image was pushed
         env:
           GENERATED_TAGS: ${{ steps.meta.outputs.tags }}
