@@ -19,9 +19,9 @@ jobs:
   lint-and-test:
     name: Lint and test
     runs-on: ubuntu-latest
-    if: |
-      (github.repository == 'PolicyEngine/policyengine-household-api')
-      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    # if: |
+    #  (github.repository == 'PolicyEngine/policyengine-household-api')
+    #  && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -58,9 +58,9 @@ jobs:
   build-docker:
     name: Build Docker image
     runs-on: ubuntu-latest
-    if: |
-      (github.repository == 'PolicyEngine/policyengine-household-api')
-      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    # if: |
+    #   (github.repository == 'PolicyEngine/policyengine-household-api')
+    #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     needs: [lint-and-test]
     steps:
       - name: Checkout code
@@ -106,9 +106,9 @@ jobs:
   # Deploy to App Engine using pre-built Docker image from GitHub Container Registry
   deploy:
     runs-on: ubuntu-latest
-    if: |
-      (github.repository == 'PolicyEngine/policyengine-household-api')
-      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    # if: |
+    #   (github.repository == 'PolicyEngine/policyengine-household-api')
+    #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     needs: [lint-and-test, build-docker]
     steps:
       - name: Checkout code
