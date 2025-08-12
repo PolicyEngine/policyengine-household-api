@@ -34,7 +34,7 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
 
 # Copy the startup script from the existing GCP configuration
-COPY gcp/policyengine_household_api/start.sh /app/start.sh
+COPY ./gcp/policyengine_household_api/start.sh /app/start.sh
 
 # Make startup script executable and set ownership
 RUN chmod +x /app/start.sh
