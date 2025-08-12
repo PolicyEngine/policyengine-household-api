@@ -1,9 +1,9 @@
 name: 'Deployment step 2: Deploy to Production'
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   pull_request:
     branches:
       - fix/provide-default-credentials
