@@ -1196,3 +1196,8 @@
     changed:
     - Fixed launch tag syntax
   date: 2025-08-12 15:26:20
+- bump: patch
+  changes:
+    changed:
+    - Correct env var setup in deploy-production.yml
+  date: 2025-08-12 15:44:48
