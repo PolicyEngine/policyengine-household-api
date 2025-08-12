@@ -1171,3 +1171,8 @@
     changed:
     - Added missing credentials to push workflow.
   date: 2025-08-12 02:59:07
+- bump: patch
+  changes:
+    changed:
+    - Various fixes to the deployment workflow.
+  date: 2025-08-12 06:38:03
