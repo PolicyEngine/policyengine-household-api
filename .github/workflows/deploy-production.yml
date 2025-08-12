@@ -94,7 +94,7 @@ jobs:
           tags: |
             type=sha,prefix=,suffix=
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=python${{ env.PYTHON_VERSION }},enable={{is_default_branch}}
+            type=raw,value=python${{ env.PYTHON_VERSION }}-latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -142,7 +142,7 @@ jobs:
       - name: Deploy to App Engine
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: latest
+          IMAGE_TAG: python${{ env.PYTHON_VERSION }}-latest
           SERVICE_ACCOUNT: github-deployment@policyengine-household-api.iam.gserviceaccount.com
           APP_YAML_PATH: ./gcp/policyengine_household_api/app.yaml
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
@@ -156,7 +156,7 @@ jobs:
       - name: Set traffic to new version
         env:
           SERVICE_NAME: ${{ env.SERVICE_NAME }}
-          VERSION: latest
+          VERSION: python${{ env.PYTHON_VERSION }}-latest
         run: .github/scripts/set-traffic.sh
 
       - name: Verify deployment
