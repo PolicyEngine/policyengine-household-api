@@ -23,21 +23,25 @@ echo "Image: $IMAGE_NAME:$IMAGE_TAG"
 echo "Version: $IMAGE_TAG"
 echo "Service Account: $SERVICE_ACCOUNT"
 echo "App YAML: $APP_YAML_PATH"
-# Define environment variables to set
-declare -A ENV_VARS=(
-    ["AUTH0_ADDRESS_NO_DOMAIN"]="$AUTH0_ADDRESS_NO_DOMAIN"
-    ["AUTH0_AUDIENCE_NO_DOMAIN"]="$AUTH0_AUDIENCE_NO_DOMAIN"
-    ["USER_ANALYTICS_DB_USERNAME"]="$USER_ANALYTICS_DB_USERNAME"
-    ["USER_ANALYTICS_DB_PASSWORD"]="$USER_ANALYTICS_DB_PASSWORD"
-    ["USER_ANALYTICS_DB_CONNECTION_NAME"]="$USER_ANALYTICS_DB_CONNECTION_NAME"
-    ["ANTHROPIC_API_KEY"]="$ANTHROPIC_API_KEY"
-)
 
-# Deploy to App Engine using the pre-built image
-gcloud app deploy "$APP_YAML_PATH" \
+# Check that Auth0 environment variables are set
+if [ -z "$AUTH0_ADDRESS_NO_DOMAIN" ] || [ -z "$AUTH0_AUDIENCE_NO_DOMAIN" ]; then
+    echo "Error: Auth0 environment variables not set"
+    exit 1
+fi
+
+echo "Substituting environment variables in app.yaml..."
+TEMP_APP_YAML=$(mktemp)
+envsubst < "$APP_YAML_PATH" > "$TEMP_APP_YAML"
+
+# Deploy to App Engine using the substituted app.yaml
+gcloud app deploy "$TEMP_APP_YAML" \
     --image-url="$IMAGE_NAME:$IMAGE_TAG" \
     --version="$IMAGE_TAG" \
     --service-account="$SERVICE_ACCOUNT" \
     --quiet
+
+# Clean up
+rm "$TEMP_APP_YAML"
 
 echo "App Engine deployment completed successfully"
