@@ -11,7 +11,7 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   REGION: us-central1
   SERVICE_NAME: policyengine-household-api
-  IMAGE_NAME: ghcr.io/policyengine-household-api/policyengine-household-api
+  IMAGE_NAME: ghcr.io/policyengine/policyengine-household-api
   PYTHON_VERSION: '3.12'
 
 jobs:
