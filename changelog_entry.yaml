@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Added missing credentials to push workflow.
