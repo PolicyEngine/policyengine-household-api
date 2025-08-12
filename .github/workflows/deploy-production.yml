@@ -97,10 +97,9 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Verify image was pushed
-        run: |
-          echo "Verifying image was pushed to GitHub Container Registry..."
-          docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          echo "Image successfully pushed and can be pulled"
+        env:
+          GENERATED_TAGS: ${{ steps.meta.outputs.tags }}
+        run: .github/scripts/verify-image-push.sh
 
   # Deploy to App Engine using pre-built Docker image from GitHub Container Registry
   deploy:
@@ -124,12 +123,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify image exists before deployment
-        env:
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: .github/scripts/verify-image.sh
 
       - name: Deploy to App Engine
         env:
