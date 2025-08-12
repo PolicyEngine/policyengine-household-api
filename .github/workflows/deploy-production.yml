@@ -142,7 +142,7 @@ jobs:
       - name: Deploy to App Engine
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: latest
           SERVICE_ACCOUNT: github-deployment@policyengine-household-api.iam.gserviceaccount.com
           APP_YAML_PATH: ./gcp/policyengine_household_api/app.yaml
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
@@ -156,7 +156,7 @@ jobs:
       - name: Set traffic to new version
         env:
           SERVICE_NAME: ${{ env.SERVICE_NAME }}
-          VERSION: ${{ github.sha }}
+          VERSION: latest
         run: .github/scripts/set-traffic.sh
 
       - name: Verify deployment
