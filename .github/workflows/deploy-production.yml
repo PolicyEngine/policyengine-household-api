@@ -106,6 +106,7 @@ jobs:
 
   # Deploy to App Engine using pre-built Docker image from GitHub Container Registry
   deploy:
+    name: Deploy to App Engine
     runs-on: ubuntu-latest
     # if: |
     #   (github.repository == 'PolicyEngine/policyengine-household-api')
