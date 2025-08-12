@@ -1,48 +1,38 @@
 #----------------- Build stage -----------------
-# Stage used to compile code and install dependencies
-FROM python:3.12-slim AS builder
+FROM --platform=linux/amd64 python:3.12-slim AS builder
 WORKDIR /build
 COPY . .
-
+  
 # Install build dependencies
 RUN apt-get update && apt-get install -y build-essential
 RUN rm -rf /var/lib/apt/lists/*
-
+  
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-
+  
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install -e .
-
+  
 #----------------- Production stage -----------------
-# Stage used to run the application
-FROM python:3.12-slim AS production
+FROM --platform=linux/amd64 python:3.12-slim AS production
 WORKDIR /app
-
+  
 # Install runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends curl
 RUN rm -rf /var/lib/apt/lists/*
-
-# Create user and set permissions; don't run as root for security reasons
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Copy only the necessary artifacts from the build stage
+  
+# Copy artifacts from build stage
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
-
-# Copy the startup script from the existing GCP configuration
+  
+# Copy startup script
 COPY ./gcp/policyengine_household_api/start.sh /app/start.sh
-
-# Make startup script executable and set ownership
 RUN chmod +x /app/start.sh
-RUN chown -R appuser:appuser /app
-USER appuser
-
-# Configure environment
+  
+# Configure environment (runs as root by default)
 ENV PATH="/opt/venv/bin:$PATH"
 EXPOSE 8080
-
-# Use the startup script from the existing GCP configuration
+  
 CMD ["/app/start.sh"]

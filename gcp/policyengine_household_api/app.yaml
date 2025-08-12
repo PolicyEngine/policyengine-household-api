@@ -10,14 +10,18 @@ automatic_scaling:
   cool_down_period_sec: 180
   cpu_utilization:
     target_utilization: 0.8
-liveness_check:
-  check_interval_sec: 30
-  timeout_sec: 30
-  failure_threshold: 5
-  success_threshold: 2
 readiness_check:
-  path: "/readiness-check"
-  app_start_timeout_sec: 600
+  app_start_timeout_sec: 1800  # Maximum allowed (30 minutes)
+  check_interval_sec: 30
+  timeout_sec: 10
+  failure_threshold: 5
+  success_threshold: 1
+liveness_check:
+  initial_delay_sec: 300  # Give app time to fully start
+  check_interval_sec: 30
+  timeout_sec: 10
+  failure_threshold: 5
+  success_threshold: 1
 env_variables:
   AUTH0_ADDRESS_NO_DOMAIN: ${AUTH0_ADDRESS_NO_DOMAIN}
   AUTH0_AUDIENCE_NO_DOMAIN: ${AUTH0_AUDIENCE_NO_DOMAIN}
