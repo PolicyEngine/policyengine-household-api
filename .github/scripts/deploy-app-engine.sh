@@ -23,13 +23,34 @@ echo "Image: $IMAGE_NAME:$IMAGE_TAG"
 echo "Version: $IMAGE_TAG"
 echo "Service Account: $SERVICE_ACCOUNT"
 echo "App YAML: $APP_YAML_PATH"
-echo "Environment Variables: Will be loaded from Secret Manager via app.yaml"
+# Define environment variables to set
+declare -A ENV_VARS=(
+    ["AUTH0_ADDRESS_NO_DOMAIN"]="$AUTH0_ADDRESS_NO_DOMAIN"
+    ["AUTH0_AUDIENCE_NO_DOMAIN"]="$AUTH0_AUDIENCE_NO_DOMAIN"
+    ["USER_ANALYTICS_DB_USERNAME"]="$USER_ANALYTICS_DB_USERNAME"
+    ["USER_ANALYTICS_DB_PASSWORD"]="$USER_ANALYTICS_DB_PASSWORD"
+    ["USER_ANALYTICS_DB_CONNECTION_NAME"]="$USER_ANALYTICS_DB_CONNECTION_NAME"
+    ["ANTHROPIC_API_KEY"]="$ANTHROPIC_API_KEY"
+)
+
+# Build the --set-env-vars string
+ENV_VARS_STRING=""
+for key in "${!ENV_VARS[@]}"; do
+    if [ -n "${ENV_VARS[$key]}" ]; then
+        ENV_VARS_STRING="$ENV_VARS_STRING --set-env-vars $key=${ENV_VARS[$key]}"
+    else
+        echo "Warning: $key is not set"
+    fi
+done
+
+echo "Environment Variables: ${#ENV_VARS[@]} variables will be set"
 
 # Deploy to App Engine using the pre-built image
 gcloud app deploy "$APP_YAML_PATH" \
     --image-url="$IMAGE_NAME:$IMAGE_TAG" \
     --version="$IMAGE_TAG" \
     --service-account="$SERVICE_ACCOUNT" \
-    --quiet
+    --quiet \
+    $ENV_VARS_STRING
 
 echo "App Engine deployment completed successfully"

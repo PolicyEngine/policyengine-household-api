@@ -119,6 +119,12 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           SERVICE_ACCOUNT: github-deployment@policyengine-household-api.iam.gserviceaccount.com
           APP_YAML_PATH: ./gcp/policyengine_household_api/app.yaml
+          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+          USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+          USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: .github/scripts/deploy-app-engine.sh
 
       - name: Set traffic to new version

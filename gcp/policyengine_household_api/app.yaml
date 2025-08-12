@@ -18,12 +18,3 @@ liveness_check:
 readiness_check:
   path: "/readiness-check"
   app_start_timeout_sec: 600
-
-# Environment variables loaded from Google Cloud Secret Manager
-env_variables:
-  AUTH0_ADDRESS_NO_DOMAIN: "projects/policyengine-household-api/secrets/AUTH0_ADDRESS_NO_DOMAIN/versions/latest"
-  AUTH0_AUDIENCE_NO_DOMAIN: "projects/policyengine-household-api/secrets/AUTH0_AUDIENCE_NO_DOMAIN/versions/latest"
-  USER_ANALYTICS_DB_USERNAME: "projects/policyengine-household-api/secrets/USER_ANALYTICS_DB_USERNAME/versions/latest"
-  USER_ANALYTICS_DB_PASSWORD: "projects/policyengine-household-api/secrets/USER_ANALYTICS_DB_PASSWORD/versions/latest"
-  USER_ANALYTICS_DB_CONNECTION_NAME: "projects/policyengine-household-api/secrets/USER_ANALYTICS_DB_CONNECTION_NAME/versions/latest"
-  ANTHROPIC_API_KEY: "projects/policyengine-household-api/secrets/ANTHROPIC_API_KEY/versions/latest"
