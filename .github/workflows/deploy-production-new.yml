@@ -1,0 +1,165 @@
+name: 'Deployment step 2: Deploy to Production'
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  PROJECT_ID: policyengine-household-api
+  REGION: us-central1
+  SERVICE_NAME: policyengine-household-api
+  IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
+  PYTHON_VERSION: '3.12'
+  IMAGE_VERSION: python312-latest # Cannot use . in Artifact Registry versions
+
+jobs:
+  lint-and-test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    # if: |
+    #  (github.repository == 'PolicyEngine/policyengine-household-api')
+    #  && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          project_id: policyengine-household-api
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Run linter
+        run: make format
+
+      - name: Run tests
+        run: make test
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          AUTH0_TEST_TOKEN_NO_DOMAIN: ${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }}
+          USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+          USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+          USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+
+  build-docker:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    # if: |
+    #   (github.repository == 'PolicyEngine/policyengine-household-api')
+    #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    # needs: [lint-and-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Log in to Google Artifact Registry
+        uses: docker/login-action@v2
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,suffix=
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ env.IMAGE_VERSION }},enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./gcp/policyengine_household_api/Dockerfile.production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Make script executable
+        run: chmod +x .github/scripts/verify-image-push.sh
+
+      - name: Verify image was pushed
+        env:
+          GENERATED_TAGS: ${{ steps.meta.outputs.tags }}
+        run: .github/scripts/verify-image-push.sh
+
+# Deploy to App Engine using pre-built Docker image from Google Artifact Registry
+deploy:
+  name: Deploy to App Engine
+  runs-on: ubuntu-latest
+  # if: |
+  #   (github.repository == 'PolicyEngine/policyengine-household-api')
+  #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+  # needs: [lint-and-test, build-docker]
+  needs: [build-docker]
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Deploy to App Engine
+      uses: google-github-actions/deploy-appengine@v2
+      with:
+        deliverables: "./gcp/policyengine_household_api/app.yaml"
+        image_url: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+        version: ${{ env.IMAGE_VERSION }}
+        promote: false  # Equivalent to --no-promote
+        flags: "--quiet"
+        env_vars: |
+          AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+          USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+          USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+
+    # - name: Set traffic to new version
+    #   env:
+    #     SERVICE_NAME: ${{ env.SERVICE_NAME }}
+    #     VERSION: ${{ env.IMAGE_VERSION }}
+    #   run: .github/scripts/set-traffic.sh
+
+    - name: Verify deployment
+      env:
+        SERVICE_NAME: ${{ env.SERVICE_NAME }}
+      run: .github/scripts/verify-deployment.sh
