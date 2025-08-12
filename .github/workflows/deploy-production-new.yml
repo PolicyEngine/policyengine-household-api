@@ -127,16 +127,16 @@ jobs:
     #   (github.repository == 'PolicyEngine/policyengine-household-api')
     #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     # needs: [lint-and-test, build-docker]
-    needs: [build-docker]
+    # needs: [build-docker]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-  
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-  
+
       - name: Deploy to App Engine
         uses: google-github-actions/deploy-appengine@v2
         with:
@@ -145,20 +145,20 @@ jobs:
           version: ${{ env.IMAGE_VERSION }}
           promote: false  # Equivalent to --no-promote
           flags: "--quiet"
-          env_vars: |
+          env_vars: |-
             AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
             AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
             USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
             USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
             USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
             ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
-  
+
       # - name: Set traffic to new version
       #   env:
       #     SERVICE_NAME: ${{ env.SERVICE_NAME }}
       #     VERSION: ${{ env.IMAGE_VERSION }}
       #   run: .github/scripts/set-traffic.sh
-  
+
       - name: Verify deployment
         env:
           SERVICE_NAME: ${{ env.SERVICE_NAME }}
