@@ -11,8 +11,8 @@ env:
   REGION: us-central1
   SERVICE_NAME: policyengine-household-api
   IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
-  PYTHON_VERSION: '312' # Cannot use . in Artifact Registry versions
-  IMAGE_VERSION: python${{ env.PYTHON_VERSION }}-latest
+  PYTHON_VERSION: '3.12'
+  IMAGE_VERSION: python312-latest # Cannot use . in Artifact Registry versions
 
 jobs:
   lint-and-test:
