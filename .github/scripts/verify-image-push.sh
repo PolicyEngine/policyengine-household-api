@@ -11,7 +11,7 @@ if [ -z "$GENERATED_TAGS" ]; then
     exit 1
 fi
 
-echo "Verifying image was pushed to Google Container Registry..."
+echo "Verifying image was pushed to Google Artifact Registry..."
 echo "Generated tags: $GENERATED_TAGS"
 
 # Try to pull using the first generated tag
