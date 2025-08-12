@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Correct env var setup in deploy-production.yml
