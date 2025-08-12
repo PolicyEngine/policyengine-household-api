@@ -1166,3 +1166,8 @@
     changed:
     - Modified Docker deployment workflow to use pre-built image via multi-stage build.
   date: 2025-08-12 02:51:19
+- bump: patch
+  changes:
+    changed:
+    - Added missing credentials to push workflow.
+  date: 2025-08-12 02:59:07
