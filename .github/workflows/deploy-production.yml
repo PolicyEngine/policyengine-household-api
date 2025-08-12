@@ -11,7 +11,8 @@ env:
   REGION: us-central1
   SERVICE_NAME: policyengine-household-api
   IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
-  PYTHON_VERSION: '3.12'
+  PYTHON_VERSION: '312' # Cannot use . in Artifact Registry versions
+  IMAGE_VERSION: python${{ env.PYTHON_VERSION }}-latest
 
 jobs:
   lint-and-test:
@@ -94,7 +95,7 @@ jobs:
           tags: |
             type=sha,prefix=,suffix=
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=python${{ env.PYTHON_VERSION }}-latest,enable={{is_default_branch}}
+            type=raw,value=${{ env.IMAGE_VERSION }},enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -142,7 +143,7 @@ jobs:
       - name: Deploy to App Engine
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: python${{ env.PYTHON_VERSION }}-latest
+          IMAGE_TAG: ${{ env.IMAGE_VERSION }}
           SERVICE_ACCOUNT: github-deployment@policyengine-household-api.iam.gserviceaccount.com
           APP_YAML_PATH: ./gcp/policyengine_household_api/app.yaml
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
@@ -156,7 +157,7 @@ jobs:
       - name: Set traffic to new version
         env:
           SERVICE_NAME: ${{ env.SERVICE_NAME }}
-          VERSION: python${{ env.PYTHON_VERSION }}-latest
+          VERSION: ${{ env.IMAGE_VERSION }}
         run: .github/scripts/set-traffic.sh
 
       - name: Verify deployment
