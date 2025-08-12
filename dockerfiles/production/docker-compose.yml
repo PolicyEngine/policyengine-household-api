@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: dockerfiles/production/Dockerfile.production
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - PORT=8080
+    volumes:
+      # Mount source code for development (optional)
+      - ../policyengine_household_api:/app/policyengine_household_api:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/liveness_check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+

@@ -1,4 +1,7 @@
 name: Build and Push Docker Image
+# Note: this workflow is deprecated and will 
+# be removed post-successful testing of 
+# deploy-production.yml
 
 on:
   push:

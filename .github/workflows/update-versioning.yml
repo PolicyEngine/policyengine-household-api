@@ -1,0 +1,41 @@
+name: 'Deployment step 1: Update versioning'
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  REGION: us-central1
+  SERVICE_NAME: policyengine-household-api
+  IMAGE_NAME: gcr.io/policyengine-household-api/policyengine-household-api
+
+jobs:
+  versioning:
+    name: Update versioning
+    runs-on: ubuntu-latest
+    if: |
+      (github.repository == 'PolicyEngine/policyengine-household-api')
+      && !(github.event.head_commit.message == 'Update PolicyEngine Household API')
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.POLICYENGINE_GITHUB }}
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.12"
+      - name: Build changelog
+        run: pip install yaml-changelog && make changelog
+      - name: Preview changelog update
+        run: ".github/get-changelog-diff.sh"
+      - name: Update changelog
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: "."
+          committer_name: Github Actions[bot]
+          author_name: Github Actions[bot]
+          message: Update PolicyEngine Household API

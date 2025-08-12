@@ -1,0 +1,20 @@
+# Core dependencies
+gunicorn>=21.0.0
+flask>=2.3.0
+werkzeug>=2.3.0
+
+# PolicyEngine dependencies
+policyengine-core>=2.0.0
+
+# Additional dependencies (add as needed)
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Development dependencies (will be installed in build stage)
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+mypy>=1.0.0
+pylint>=2.17.0
