@@ -61,7 +61,7 @@ jobs:
     # if: |
     #   (github.repository == 'PolicyEngine/policyengine-household-api')
     #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
-    needs: [lint-and-test]
+    # needs: [lint-and-test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
