@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Change the default image tag to `latest` in the production deployment workflow.

@@ -1176,3 +1176,8 @@
     changed:
     - Various fixes to the deployment workflow.
   date: 2025-08-12 06:38:03
+- bump: patch
+  changes:
+    changed:
+    - Change the default image tag to `latest` in the production deployment workflow.
+  date: 2025-08-12 14:20:01
