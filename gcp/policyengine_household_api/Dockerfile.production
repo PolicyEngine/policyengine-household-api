@@ -14,12 +14,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install -e .
 
 #----------------- Production stage -----------------
 # Stage used to run the application
-FROM python:3.12-slim
+FROM python:3.12-slim AS production
 WORKDIR /app
 
 # Install runtime system dependencies
@@ -34,7 +33,7 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
 
 # Copy the startup script from the existing GCP configuration
-COPY gcp/policyengine_household_api/start.sh /app/start.sh
+COPY ./gcp/policyengine_household_api/start.sh /app/start.sh
 
 # Make startup script executable and set ownership
 RUN chmod +x /app/start.sh

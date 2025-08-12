@@ -61,7 +61,6 @@ test_*
 
 # Development
 under_development/
-gcp/
 Dockerfile*
 .dockerignore
 

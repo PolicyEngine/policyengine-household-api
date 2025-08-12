@@ -18,7 +18,7 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ] || [ -z "$SERVICE_ACCOUNT" ] || [
     exit 1
 fi
 
-echo "Deploying pre-built Docker image to App Engine..."
+echo "Deploying pre-built Docker image from Google Artifact Registry to App Engine..."
 echo "Image: $IMAGE_NAME:$IMAGE_TAG"
 echo "Version: $IMAGE_TAG"
 echo "Service Account: $SERVICE_ACCOUNT"
@@ -33,24 +33,11 @@ declare -A ENV_VARS=(
     ["ANTHROPIC_API_KEY"]="$ANTHROPIC_API_KEY"
 )
 
-# Build the --set-env-vars string
-ENV_VARS_STRING=""
-for key in "${!ENV_VARS[@]}"; do
-    if [ -n "${ENV_VARS[$key]}" ]; then
-        ENV_VARS_STRING="$ENV_VARS_STRING --set-env-vars $key=${ENV_VARS[$key]}"
-    else
-        echo "Warning: $key is not set"
-    fi
-done
-
-echo "Environment Variables: ${#ENV_VARS[@]} variables will be set"
-
 # Deploy to App Engine using the pre-built image
 gcloud app deploy "$APP_YAML_PATH" \
     --image-url="$IMAGE_NAME:$IMAGE_TAG" \
     --version="$IMAGE_TAG" \
     --service-account="$SERVICE_ACCOUNT" \
-    --quiet \
-    $ENV_VARS_STRING
+    --quiet
 
 echo "App Engine deployment completed successfully"

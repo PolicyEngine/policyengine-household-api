@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Various fixes to the deployment workflow.
