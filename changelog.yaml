@@ -1191,3 +1191,8 @@
     changed:
     - Fixed GCP deploy tag on Artifact Registry image
   date: 2025-08-12 15:10:39
+- bump: patch
+  changes:
+    changed:
+    - Fixed launch tag syntax
+  date: 2025-08-12 15:26:20
