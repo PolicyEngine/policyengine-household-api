@@ -18,7 +18,7 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$IMAGE_TAG" ] || [ -z "$SERVICE_ACCOUNT" ] || [
     exit 1
 fi
 
-echo "Deploying pre-built Docker image to App Engine..."
+echo "Deploying pre-built Docker image from Google Container Registry to App Engine..."
 echo "Image: $IMAGE_NAME:$IMAGE_TAG"
 echo "Version: $IMAGE_TAG"
 echo "Service Account: $SERVICE_ACCOUNT"
