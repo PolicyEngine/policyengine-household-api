@@ -1,12 +1,12 @@
 name: 'Deployment step 2: Deploy to Production'
 
 on:
-  # push:
-  #   branches:
-  #     - main
   pull_request:
     branches:
       - main
+  # push:
+  #   branches:
+  #     - main
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
