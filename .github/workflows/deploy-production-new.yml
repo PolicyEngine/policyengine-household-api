@@ -1,4 +1,4 @@
-name: 'Deployment step 2: Deploy to Production'
+name: 'Deployment step 2: Deploy to Production test'
 
 on:
   pull_request:
