@@ -145,7 +145,7 @@ jobs:
           version: ${{ env.IMAGE_VERSION }}
           promote: false  # Equivalent to --no-promote
           flags: "--quiet"
-          env_vars: |-
+          build_env_vars: |-
             AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
             AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
             USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
