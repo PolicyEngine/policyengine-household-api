@@ -82,7 +82,7 @@ jobs:
         run: |
           echo "Verifying image was pushed to GitHub Container Registry..."
           docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          echo "✅ Image successfully pushed and can be pulled"
+          echo "Image successfully pushed and can be pulled"
 
   # Deploy to App Engine using pre-built Docker image from GitHub Container Registry
   deploy:

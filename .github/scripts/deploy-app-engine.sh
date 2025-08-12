@@ -23,6 +23,7 @@ echo "Image: $IMAGE_NAME:$IMAGE_TAG"
 echo "Version: $IMAGE_TAG"
 echo "Service Account: $SERVICE_ACCOUNT"
 echo "App YAML: $APP_YAML_PATH"
+echo "Environment Variables: Will be loaded from Secret Manager via app.yaml"
 
 # Deploy to App Engine using the pre-built image
 gcloud app deploy "$APP_YAML_PATH" \
