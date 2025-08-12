@@ -33,15 +33,24 @@ declare -A ENV_VARS=(
     ["ANTHROPIC_API_KEY"]="$ANTHROPIC_API_KEY"
 )
 
-# Build the --set-env-vars string
+# Build the --set-env-vars string with comma-separated values
 ENV_VARS_STRING=""
+ENV_VARS_LIST=""
 for key in "${!ENV_VARS[@]}"; do
     if [ -n "${ENV_VARS[$key]}" ]; then
-        ENV_VARS_STRING="$ENV_VARS_STRING --set-env-vars $key=${ENV_VARS[$key]}"
+        if [ -n "$ENV_VARS_LIST" ]; then
+            ENV_VARS_LIST="$ENV_VARS_LIST,$key=${ENV_VARS[$key]}"
+        else
+            ENV_VARS_LIST="$key=${ENV_VARS[$key]}"
+        fi
     else
         echo "Warning: $key is not set"
     fi
 done
+
+if [ -n "$ENV_VARS_LIST" ]; then
+    ENV_VARS_STRING="--set-env-vars $ENV_VARS_LIST"
+fi
 
 echo "Environment Variables: ${#ENV_VARS[@]} variables will be set"
 
