@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed: 
-    - Modified Docker deployment workflow to use pre-built image via multi-stage build.

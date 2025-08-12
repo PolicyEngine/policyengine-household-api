@@ -1161,3 +1161,8 @@
     changed:
     - Switched to use of in-memory storage for rate limiting instead of Redis.
   date: 2025-08-10 13:01:44
+- bump: patch
+  changes:
+    changed:
+    - Modified Docker deployment workflow to use pre-built image via multi-stage build.
+  date: 2025-08-12 02:51:19
