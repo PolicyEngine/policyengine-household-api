@@ -145,7 +145,7 @@ jobs:
           version: ${{ env.IMAGE_VERSION }}-${{ format('YYYYMMDD-HHmmss', github.event.head_commit.timestamp) }}
           promote: false  # Don't move traffic over until full successful deploy
           flags: "--quiet"
-          build_env_vars: |-
+          env_vars: |-
             AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
             AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
             USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
