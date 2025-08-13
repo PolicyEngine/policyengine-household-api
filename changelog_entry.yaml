@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    removed:
+    - Manual promotion of GCP image post-deploy; instead, promote at time of deploy.

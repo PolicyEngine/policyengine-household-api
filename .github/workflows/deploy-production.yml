@@ -9,7 +9,6 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   PROJECT_ID: policyengine-household-api
   REGION: us-central1
-  SERVICE_NAME: default
   IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
   PYTHON_VERSION: '3.12'
   IMAGE_VERSION: python312-latest # Cannot use . in Artifact Registry versions
@@ -139,7 +138,6 @@ jobs:
         with:
           deliverables: "./gcp/policyengine_household_api/app.yaml"
           image_url: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
-          promote: false  # Don't move traffic over until full successful deploy
           flags: "--quiet"
           env_vars: |-
             AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
@@ -148,9 +146,3 @@ jobs:
             USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
             USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
             ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Set traffic to new version
-        env:
-          SERVICE_NAME: ${{ env.SERVICE_NAME }}
-          VERSION: ${{ steps.deploy.outputs.version }}
-        run: .github/scripts/set-traffic.sh
