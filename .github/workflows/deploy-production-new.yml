@@ -142,7 +142,6 @@ jobs:
         with:
           deliverables: "./gcp/policyengine_household_api/app.yaml"
           image_url: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
-          version: ${{ env.IMAGE_VERSION }}-${{ format('YYYYMMDD-HHmmss', github.event.head_commit.timestamp) }}
           promote: false  # Don't move traffic over until full successful deploy
           flags: "--quiet"
           env_vars: |-
