@@ -1212,3 +1212,8 @@
     - Replaced custom GCP deploy script with official Google action.
     - Re-enabled itemized deductions to prevent UK service outage.
   date: 2025-08-13 00:37:02
+- bump: patch
+  changes:
+    removed:
+    - Manual promotion of GCP image post-deploy; instead, promote at time of deploy.
+  date: 2025-08-13 00:59:30
