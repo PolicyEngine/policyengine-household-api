@@ -1,18 +1,15 @@
 name: 'Deployment step 2: Deploy to Production test'
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-  # push:
-  #   branches:
-  #     - main
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   PROJECT_ID: policyengine-household-api
   REGION: us-central1
-  SERVICE_NAME: policyengine-household-api
+  SERVICE_NAME: default
   IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
   PYTHON_VERSION: '3.12'
   IMAGE_VERSION: python312-latest # Cannot use . in Artifact Registry versions
@@ -21,9 +18,9 @@ jobs:
   lint-and-test:
     name: Lint and test
     runs-on: ubuntu-latest
-    # if: |
-    #  (github.repository == 'PolicyEngine/policyengine-household-api')
-    #  && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    if: |
+     (github.repository == 'PolicyEngine/policyengine-household-api')
+     && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,10 +57,10 @@ jobs:
   build-docker:
     name: Build Docker image
     runs-on: ubuntu-latest
-    # if: |
-    #   (github.repository == 'PolicyEngine/policyengine-household-api')
-    #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
-    # needs: [lint-and-test]
+    if: |
+      (github.repository == 'PolicyEngine/policyengine-household-api')
+      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    needs: [lint-and-test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -123,11 +120,10 @@ jobs:
   deploy:
     name: Deploy to App Engine
     runs-on: ubuntu-latest
-    # if: |
-    #   (github.repository == 'PolicyEngine/policyengine-household-api')
-    #   && (github.event.head_commit.message == 'Update PolicyEngine Household API')
-    # needs: [lint-and-test, build-docker]
-    # needs: [build-docker]
+    if: |
+      (github.repository == 'PolicyEngine/policyengine-household-api')
+      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    needs: [lint-and-test, build-docker]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -137,7 +133,8 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Deploy to App Engine
+      - id: deploy
+        name: Deploy to App Engine
         uses: google-github-actions/deploy-appengine@v2
         with:
           deliverables: "./gcp/policyengine_household_api/app.yaml"
@@ -152,8 +149,8 @@ jobs:
             USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
             ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
 
-      # - name: Set traffic to new version
-      #   env:
-      #     SERVICE_NAME: ${{ env.SERVICE_NAME }}
-      #     VERSION: ${{ env.IMAGE_VERSION }}
-      #   run: .github/scripts/set-traffic.sh
+      - name: Set traffic to new version
+        env:
+          SERVICE_NAME: ${{ env.SERVICE_NAME }}
+          VERSION: ${{ steps.deploy.outputs.version }}
+        run: .github/scripts/set-traffic.sh
