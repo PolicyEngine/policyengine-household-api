@@ -1206,3 +1206,9 @@
     changed:
     - Made various fixes to Dockerfile and GCP deployment scripts.
   date: 2025-08-12 20:20:34
+- bump: patch
+  changes:
+    changed:
+    - Replaced custom GCP deploy script with official Google action.
+    - Re-enabled itemized deductions to prevent UK service outage.
+  date: 2025-08-13 00:37:02
