@@ -1,0 +1,5 @@
+- bump: patch
+  changes:
+    changed:
+    - Replaced custom GCP deploy script with official Google action.
+    - Re-enabled itemized deductions to prevent UK service outage.

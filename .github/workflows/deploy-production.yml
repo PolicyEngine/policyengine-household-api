@@ -1,4 +1,4 @@
-name: 'Deployment step 2: Deploy to Production'
+name: 'Deployment step 2: Deploy to Production test'
 
 on:
   push:
@@ -9,7 +9,7 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   PROJECT_ID: policyengine-household-api
   REGION: us-central1
-  SERVICE_NAME: policyengine-household-api
+  SERVICE_NAME: default
   IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
   PYTHON_VERSION: '3.12'
   IMAGE_VERSION: python312-latest # Cannot use . in Artifact Registry versions
@@ -133,34 +133,24 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Log in to Google Artifact Registry for image verification
-        uses: docker/login-action@v2
+      - id: deploy
+        name: Deploy to App Engine
+        uses: google-github-actions/deploy-appengine@v2
         with:
-          registry: us-central1-docker.pkg.dev
-          username: _json_key
-          password: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Deploy to App Engine
-        env:
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ env.IMAGE_VERSION }}
-          SERVICE_ACCOUNT: github-deployment@policyengine-household-api.iam.gserviceaccount.com
-          APP_YAML_PATH: ./gcp/policyengine_household_api/app.yaml
-          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
-          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
-          USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
-          USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: .github/scripts/deploy-app-engine.sh
+          deliverables: "./gcp/policyengine_household_api/app.yaml"
+          image_url: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
+          promote: false  # Don't move traffic over until full successful deploy
+          flags: "--quiet"
+          env_vars: |-
+            AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+            AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+            USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+            USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+            USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+            ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Set traffic to new version
         env:
           SERVICE_NAME: ${{ env.SERVICE_NAME }}
-          VERSION: ${{ env.IMAGE_VERSION }}
+          VERSION: ${{ steps.deploy.outputs.version }}
         run: .github/scripts/set-traffic.sh
-
-      - name: Verify deployment
-        env:
-          SERVICE_NAME: ${{ env.SERVICE_NAME }}
-        run: .github/scripts/verify-deployment.sh

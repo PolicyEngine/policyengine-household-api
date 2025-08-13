@@ -11,7 +11,7 @@ automatic_scaling:
   cpu_utilization:
     target_utilization: 0.8
 readiness_check:
-  app_start_timeout_sec: 1800  # Maximum allowed (30 minutes)
+  app_start_timeout_sec: 1800
   check_interval_sec: 30
   timeout_sec: 10
   failure_threshold: 5
@@ -22,10 +22,3 @@ liveness_check:
   timeout_sec: 10
   failure_threshold: 5
   success_threshold: 1
-env_variables:
-  AUTH0_ADDRESS_NO_DOMAIN: ${AUTH0_ADDRESS_NO_DOMAIN}
-  AUTH0_AUDIENCE_NO_DOMAIN: ${AUTH0_AUDIENCE_NO_DOMAIN}
-  USER_ANALYTICS_DB_USERNAME: ${USER_ANALYTICS_DB_USERNAME}
-  USER_ANALYTICS_DB_PASSWORD: ${USER_ANALYTICS_DB_PASSWORD}
-  USER_ANALYTICS_DB_CONNECTION_NAME: ${USER_ANALYTICS_DB_CONNECTION_NAME}
-  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
