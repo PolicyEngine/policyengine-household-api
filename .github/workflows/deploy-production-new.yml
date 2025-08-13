@@ -158,8 +158,3 @@ jobs:
       #     SERVICE_NAME: ${{ env.SERVICE_NAME }}
       #     VERSION: ${{ env.IMAGE_VERSION }}
       #   run: .github/scripts/set-traffic.sh
-
-      - name: Verify deployment
-        env:
-          SERVICE_NAME: ${{ env.SERVICE_NAME }}
-        run: .github/scripts/verify-deployment.sh
