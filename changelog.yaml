@@ -1227,3 +1227,9 @@
     changed:
     - Update PolicyEngine US to 1.375.0
   date: 2025-08-21 14:43:24
+- bump: patch
+  changes:
+    added:
+    - Production Docker image now deploys to both GitHub Container Registry and Google
+      Artifact Registry
+  date: 2025-08-22 18:04:20
