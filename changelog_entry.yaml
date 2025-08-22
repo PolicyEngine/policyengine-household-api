@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    added:
+    - Production Docker image now deploys to both GitHub Container Registry and Google Artifact Registry
