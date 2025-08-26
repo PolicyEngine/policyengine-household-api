@@ -1238,3 +1238,8 @@
     added:
     - First, unimplemented version of deploy config files
   date: 2025-08-26 16:41:06
+- bump: minor
+  changes:
+    added:
+    - Created config loader to load custom configuration files; this remains unused
+  date: 2025-08-26 23:33:33

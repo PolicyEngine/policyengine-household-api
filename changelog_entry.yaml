@@ -1,4 +1,0 @@
-- bump: minor
-  changes:
-    added:
-    - Created config loader to load custom configuration files; this remains unused
