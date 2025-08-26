@@ -1233,3 +1233,8 @@
     - Production Docker image now deploys to both GitHub Container Registry and Google
       Artifact Registry
   date: 2025-08-22 18:04:20
+- bump: patch
+  changes:
+    added:
+    - First, unimplemented version of deploy config files
+  date: 2025-08-26 16:41:06
