@@ -1,0 +1,49 @@
+# Default configuration for PolicyEngine Household API
+# This configuration provides defaults suitable for local development
+# Currently empty as the application still uses environment variables
+# This file establishes the structure for future configuration migration
+
+---
+# Application settings
+app:
+  name: policyengine-household-api
+  environment: local
+  # debug: true  # Will be enabled when migrated from FLASK_DEBUG env var
+
+# Database configuration
+database:
+  # provider: sqlite  # Future: sqlite for local, mysql for production
+  # Future migration from:
+  # - USER_ANALYTICS_DB_CONNECTION_NAME
+  # - USER_ANALYTICS_DB_USERNAME  
+  # - USER_ANALYTICS_DB_PASSWORD
+
+# Storage configuration  
+storage:
+  # provider: local  # Future: local filesystem for dev, gcs for production
+  # Future migration from:
+  # - Google Cloud Storage implicit configuration
+
+# Authentication configuration
+auth:
+  # enabled: false  # Future: disabled for local development
+  # Future migration from:
+  # - AUTH0_ADDRESS_NO_DOMAIN
+  # - AUTH0_AUDIENCE_NO_DOMAIN
+
+# AI services configuration
+ai:
+  # enabled: false  # Future: disabled for local development
+  # Future migration from:
+  # - ANTHROPIC_API_KEY
+
+# Server configuration
+server:
+  # port: 8080
+  # workers: 2
+  # timeout: 300
+
+# Logging configuration
+logging:
+  # level: INFO
+  # format: json

@@ -1,0 +1,48 @@
+# Example production configuration for PolicyEngine Household API
+# This file shows what a production config will look like after migration
+# DO NOT commit actual production values to the repository
+
+---
+app:
+  name: policyengine-household-api
+  environment: production
+  debug: false
+
+database:
+  provider: mysql
+  connection_name: ${USER_ANALYTICS_DB_CONNECTION_NAME}  # From env var
+  username: ${USER_ANALYTICS_DB_USERNAME}  # From env var
+  password: ${USER_ANALYTICS_DB_PASSWORD}  # From env var
+  pool_size: 10
+  max_overflow: 20
+
+storage:
+  provider: gcs
+  bucket: policyengine-household-computation-trees
+  # GCS auth via service account
+
+auth:
+  enabled: true
+  provider: auth0
+  auth0:
+    address: ${AUTH0_ADDRESS_NO_DOMAIN}  # From env var
+    audience: ${AUTH0_AUDIENCE_NO_DOMAIN}  # From env var
+
+ai:
+  enabled: true
+  provider: anthropic
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY}  # From env var
+    model: claude-3-5-sonnet-20240620
+    max_tokens: 1500
+    temperature: 0.0
+
+server:
+  port: 8080
+  workers: 2
+  timeout: 300
+  
+logging:
+  level: INFO
+  format: json
+  # Google Cloud Logging auto-configured via environment

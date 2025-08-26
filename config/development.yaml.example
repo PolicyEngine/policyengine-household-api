@@ -1,0 +1,40 @@
+# Example development configuration for PolicyEngine Household API
+# This file shows a configuration for development environments
+
+---
+app:
+  name: policyengine-household-api
+  environment: development
+  debug: true
+
+database:
+  provider: sqlite
+  path: ./policyengine_household_api/data/policyengine.db
+  # SQLite doesn't need connection credentials
+
+storage:
+  provider: local
+  path: ./data/storage
+  # Local filesystem for development
+
+auth:
+  enabled: false  # No auth in development
+  # provider: none
+
+ai:
+  enabled: false  # Disabled to avoid API costs in dev
+  # Or enable with API key:
+  # enabled: true
+  # provider: anthropic
+  # anthropic:
+  #   api_key: ${ANTHROPIC_API_KEY}  # From env var if needed
+
+server:
+  port: 8080
+  workers: 1  # Single worker for debugging
+  timeout: 300
+  reload: true  # Auto-reload on code changes
+
+logging:
+  level: DEBUG
+  format: text  # Human-readable for development
