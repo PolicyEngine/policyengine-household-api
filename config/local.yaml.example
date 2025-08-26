@@ -1,0 +1,44 @@
+# Example configuration for fully local runs (no external dependencies)
+# This configuration can run without any cloud services or API keys
+
+---
+app:
+  name: policyengine-household-api
+  environment: local
+  debug: true
+
+database:
+  provider: sqlite
+  path: :memory:  # In-memory database for testing
+  # Or use a file: ./local.db
+
+storage:
+  provider: local
+  path: /tmp/policyengine-storage
+  create_if_missing: true
+
+auth:
+  enabled: false
+  provider: none
+  # All endpoints accessible without authentication
+
+ai:
+  enabled: false
+  provider: none
+  # Returns mock responses for AI endpoints
+
+server:
+  port: 8080
+  workers: 1
+  timeout: 300
+  reload: true
+
+logging:
+  level: DEBUG
+  format: text
+  
+# Feature flags for local testing
+features:
+  rate_limiting: false
+  analytics: false
+  cache: false
