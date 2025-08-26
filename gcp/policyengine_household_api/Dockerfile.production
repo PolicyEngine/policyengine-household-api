@@ -27,6 +27,10 @@ RUN rm -rf /var/lib/apt/lists/*
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
   
+# Copy default configuration
+RUN mkdir -p /app/config
+COPY ./config/default.yaml /app/config/default.yaml
+  
 # Copy startup script
 COPY ./gcp/policyengine_household_api/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
