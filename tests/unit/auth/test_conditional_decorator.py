@@ -66,7 +66,7 @@ class TestNoOpDecorator:
 class TestConditionalAuthDecoratorWithAuthEnabled:
     """Test ConditionalAuthDecorator with authentication enabled."""
 
-    @patch('policyengine_household_api.auth.conditional_decorator.print')
+    @patch("policyengine_household_api.auth.conditional_decorator.print")
     def test__given_auth_enabled_with_valid_config__auth0_is_configured(
         self,
         mock_print,
@@ -95,9 +95,11 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         assert decorator.is_enabled is True
 
         # Check console output
-        mock_print.assert_any_call(f"Auth0 authentication enabled with domain: {AUTH0_CONFIG_DATA['address']}")
+        mock_print.assert_any_call(
+            f"Auth0 authentication enabled with domain: {AUTH0_CONFIG_DATA['address']}"
+        )
 
-    @patch('policyengine_household_api.auth.conditional_decorator.print')
+    @patch("policyengine_household_api.auth.conditional_decorator.print")
     def test__given_auth_enabled_missing_config__falls_back_to_noop(
         self,
         mock_print,
@@ -120,13 +122,15 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         assert decorator.is_enabled is False
 
         # Check warning message
-        mock_print.assert_any_call("Warning: Auth enabled but Auth0 configuration missing")
+        mock_print.assert_any_call(
+            "Warning: Auth enabled but Auth0 configuration missing"
+        )
 
 
 class TestConditionalAuthDecoratorWithAuthDisabled:
     """Test ConditionalAuthDecorator with authentication disabled."""
 
-    @patch('policyengine_household_api.auth.conditional_decorator.print')
+    @patch("policyengine_household_api.auth.conditional_decorator.print")
     def test__given_auth_disabled__returns_noop_decorator(
         self,
         mock_print,
@@ -155,7 +159,7 @@ class TestConditionalAuthDecoratorWithAuthDisabled:
 class TestConditionalAuthDecoratorBackwardCompatibility:
     """Test backward compatibility scenarios."""
 
-    @patch('policyengine_household_api.auth.conditional_decorator.print')
+    @patch("policyengine_household_api.auth.conditional_decorator.print")
     def test__given_auth0_config_present__auto_enables_auth(
         self,
         mock_print,
@@ -179,9 +183,11 @@ class TestConditionalAuthDecoratorBackwardCompatibility:
         assert decorator.is_enabled is True
 
         # Check auto-enable message
-        mock_print.assert_any_call("Auth0 auto-enabled due to presence of AUTH0 configuration")
+        mock_print.assert_any_call(
+            "Auth0 auto-enabled due to presence of AUTH0 configuration"
+        )
 
-    @patch('policyengine_household_api.auth.conditional_decorator.print')
+    @patch("policyengine_household_api.auth.conditional_decorator.print")
     def test__given_partial_auth0_config__remains_disabled(
         self,
         mock_print,
@@ -272,7 +278,9 @@ class TestIntegrationWithFlaskEndpoints:
                     result["authenticated"] = True
                     result["auth_method"] = "Auth0"
                     return result
+
                 return wrapper
+
             return decorator
 
         mock_protector_instance.side_effect = mock_decorator_behavior
@@ -289,12 +297,12 @@ class TestIntegrationWithFlaskEndpoints:
         expected_result = {
             "status": "success",
             "authenticated": True,
-            "auth_method": "Auth0"
+            "auth_method": "Auth0",
         }
-        
+
         # Verify the decorator modified the response
         assert result == expected_result
-        
+
     def test__given_auth_disabled__decorator_passes_through_routes(
         self, auth_disabled_environment, sample_view_function
     ):
@@ -306,10 +314,10 @@ class TestIntegrationWithFlaskEndpoints:
 
         # Function should be unchanged (no wrapper)
         assert decorated_func is sample_view_function
-        
+
         # Call the function
         result = decorated_func()
-        
+
         # Verify response is unmodified (no auth context added)
         assert result == {"status": "success"}
         assert "authenticated" not in result
@@ -320,7 +328,10 @@ class TestEdgeCases:
     """Test edge cases and error scenarios."""
 
     def test__given_get_decorator_called_multiple_times__returns_same_instance(
-        self, auth_enabled_environment, mock_resource_protector, mock_auth0_validator
+        self,
+        auth_enabled_environment,
+        mock_resource_protector,
+        mock_auth0_validator,
     ):
         """Test that get_decorator always returns the same instance."""
         decorator = ConditionalAuthDecorator()

@@ -87,6 +87,7 @@ def auth_enabled_environment():
     with patch(
         "policyengine_household_api.auth.conditional_decorator.get_config_value"
     ) as mock_config:
+
         def config_side_effect(path: str, default: Any = None) -> Any:
             config_map = {
                 "auth.enabled": True,
@@ -105,6 +106,7 @@ def auth_disabled_environment():
     with patch(
         "policyengine_household_api.auth.conditional_decorator.get_config_value"
     ) as mock_config:
+
         def config_side_effect(path: str, default: Any = None) -> Any:
             config_map = {
                 "auth.enabled": False,
@@ -123,6 +125,7 @@ def auth_enabled_missing_config_environment():
     with patch(
         "policyengine_household_api.auth.conditional_decorator.get_config_value"
     ) as mock_config:
+
         def config_side_effect(path: str, default: Any = None) -> Any:
             config_map = {
                 "auth.enabled": True,
@@ -141,6 +144,7 @@ def auth_backward_compat_environment():
     with patch(
         "policyengine_household_api.auth.conditional_decorator.get_config_value"
     ) as mock_config:
+
         def config_side_effect(path: str, default: Any = None) -> Any:
             config_map = {
                 "auth.enabled": False,  # Not explicitly enabled
@@ -159,6 +163,7 @@ def auth_partial_config_environment():
     with patch(
         "policyengine_household_api.auth.conditional_decorator.get_config_value"
     ) as mock_config:
+
         def config_side_effect(path: str, default: Any = None) -> Any:
             config_map = {
                 "auth.enabled": False,
