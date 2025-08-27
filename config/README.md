@@ -166,10 +166,9 @@ storage:
 
 auth:
   enabled: Whether authentication is required (true/false)
-  provider: Auth provider (none/auth0/cognito)
   auth0:
-    address: Auth0 domain
-    audience: Auth0 audience
+    address: Auth0 domain (without https:// or trailing slash)
+    audience: Auth0 audience/API identifier
 
 ai:
   enabled: Whether AI features are enabled (true/false)
@@ -241,6 +240,55 @@ When analytics is enabled, the following data is collected per API request:
 - Only metadata about API usage is collected
 - Data is stored in a separate analytics database
 
+## Auth0 Authentication Configuration
+
+Auth0 authentication is an **opt-in** feature that secures API endpoints with JWT token validation. By default, authentication is **disabled** to simplify local development and testing.
+
+### Enabling Auth0
+
+Auth0 can be enabled in three ways:
+
+1. **Via Configuration File** (Recommended for permanent enablement):
+```yaml
+# In your config file
+auth:
+  enabled: true
+  auth0:
+    address: your-tenant.auth0.com
+    audience: https://your-api-identifier
+```
+
+2. **Via Environment Variable**:
+```bash
+# Enable authentication
+AUTH__ENABLED=true
+
+# Provide Auth0 configuration
+AUTH0_ADDRESS_NO_DOMAIN=your-tenant.auth0.com
+AUTH0_AUDIENCE_NO_DOMAIN=https://your-api-identifier
+```
+
+3. **Automatic Detection** (Backward Compatibility):
+If both `AUTH0_ADDRESS_NO_DOMAIN` and `AUTH0_AUDIENCE_NO_DOMAIN` environment variables are set, authentication is automatically enabled for backward compatibility with existing deployments.
+
+### Protected Endpoints
+
+When Auth0 is enabled, the following endpoints require valid JWT tokens:
+- `/<country_id>/calculate` - Main calculation endpoint
+- `/<country_id>/ai-analysis` - AI analysis endpoint (remains in alpha)
+
+The following endpoints remain unprotected:
+- `/` - Home endpoint
+- `/liveness_check` - Health check endpoint
+- `/readiness_check` - Readiness check endpoint
+- `/<country_id>/calculate_demo` - Rate-limited demo endpoint (protected by rate limiting instead)
+
+### Security Considerations
+
+- Authentication is **disabled by default** for local development
+- When enabled, all protected endpoints validate JWT tokens against Auth0's JWKS
+- The Auth0 domain and audience must match the configured values
+
 ## Usage Examples
 
 ### Production Deployment (Current)
@@ -249,11 +297,19 @@ Currently in production, all configuration comes from environment variables:
 
 ```bash
 # Via GitHub Actions secrets
+
+# Auth0 configuration (opt-in)
+AUTH__ENABLED=true  # Enable Auth0 authentication
 AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
 AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+
+# Analytics configuration (opt-in)
+ANALYTICS__ENABLED=true  # Enable user analytics
 USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
 USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
 USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+
+# AI services
 ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
@@ -263,7 +319,8 @@ Use environment variables to override specific settings:
 
 ```bash
 docker run -e FLASK_DEBUG=1 \
-           -e AUTH__ENABLED=false \
+           -e AUTH__ENABLED=false \    # Disable Auth0 for local dev
+           -e ANALYTICS__ENABLED=false \ # Disable analytics for local dev
            -e AI__ENABLED=false \
            -e DATABASE__PROVIDER=sqlite \
            policyengine/household-api

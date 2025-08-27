@@ -1,0 +1,3 @@
+"""
+Auth unit tests module.
+"""
