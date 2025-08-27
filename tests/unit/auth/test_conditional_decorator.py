@@ -2,8 +2,7 @@
 Unit tests for the conditional authentication decorator.
 """
 
-import pytest
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
 from policyengine_household_api.auth.conditional_decorator import (
     NoOpDecorator,
     ConditionalAuthDecorator,
@@ -20,7 +19,6 @@ from tests.fixtures.auth.conditional_decorator import (
     mock_auth0_validator,
     mock_flask_app,
     sample_view_function,
-    capture_stdout,
 )
 
 
@@ -68,12 +66,13 @@ class TestNoOpDecorator:
 class TestConditionalAuthDecoratorWithAuthEnabled:
     """Test ConditionalAuthDecorator with authentication enabled."""
 
+    @patch('policyengine_household_api.auth.conditional_decorator.print')
     def test__given_auth_enabled_with_valid_config__auth0_is_configured(
         self,
+        mock_print,
         auth_enabled_environment,
         mock_resource_protector,
         mock_auth0_validator,
-        capture_stdout,
     ):
         """Test that Auth0 is properly configured when auth is enabled."""
         mock_protector_class, mock_protector_instance = mock_resource_protector
@@ -96,15 +95,15 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         assert decorator.is_enabled is True
 
         # Check console output
-        output = capture_stdout.getvalue()
-        assert f"Auth0 authentication enabled with domain: {AUTH0_CONFIG_DATA['address']}" in output
+        mock_print.assert_any_call(f"Auth0 authentication enabled with domain: {AUTH0_CONFIG_DATA['address']}")
 
+    @patch('policyengine_household_api.auth.conditional_decorator.print')
     def test__given_auth_enabled_missing_config__falls_back_to_noop(
         self,
+        mock_print,
         auth_enabled_missing_config_environment,
         mock_resource_protector,
         mock_auth0_validator,
-        capture_stdout,
     ):
         """Test fallback to NoOp when auth is enabled but config is missing."""
         mock_protector_class, _ = mock_resource_protector
@@ -121,19 +120,19 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         assert decorator.is_enabled is False
 
         # Check warning message
-        output = capture_stdout.getvalue()
-        assert "Warning: Auth enabled but Auth0 configuration missing" in output
+        mock_print.assert_any_call("Warning: Auth enabled but Auth0 configuration missing")
 
 
 class TestConditionalAuthDecoratorWithAuthDisabled:
     """Test ConditionalAuthDecorator with authentication disabled."""
 
+    @patch('policyengine_household_api.auth.conditional_decorator.print')
     def test__given_auth_disabled__returns_noop_decorator(
         self,
+        mock_print,
         auth_disabled_environment,
         mock_resource_protector,
         mock_auth0_validator,
-        capture_stdout,
     ):
         """Test that NoOpDecorator is used when auth is disabled."""
         mock_protector_class, _ = mock_resource_protector
@@ -150,19 +149,19 @@ class TestConditionalAuthDecoratorWithAuthDisabled:
         assert decorator.is_enabled is False
 
         # Check console output
-        output = capture_stdout.getvalue()
-        assert "Auth0 authentication disabled" in output
+        mock_print.assert_any_call("Auth0 authentication disabled")
 
 
 class TestConditionalAuthDecoratorBackwardCompatibility:
     """Test backward compatibility scenarios."""
 
+    @patch('policyengine_household_api.auth.conditional_decorator.print')
     def test__given_auth0_config_present__auto_enables_auth(
         self,
+        mock_print,
         auth_backward_compat_environment,
         mock_resource_protector,
         mock_auth0_validator,
-        capture_stdout,
     ):
         """Test auto-enabling auth when Auth0 config is present."""
         mock_protector_class, mock_protector_instance = mock_resource_protector
@@ -180,15 +179,15 @@ class TestConditionalAuthDecoratorBackwardCompatibility:
         assert decorator.is_enabled is True
 
         # Check auto-enable message
-        output = capture_stdout.getvalue()
-        assert "Auth0 auto-enabled due to presence of AUTH0 configuration" in output
+        mock_print.assert_any_call("Auth0 auto-enabled due to presence of AUTH0 configuration")
 
+    @patch('policyengine_household_api.auth.conditional_decorator.print')
     def test__given_partial_auth0_config__remains_disabled(
         self,
+        mock_print,
         auth_partial_config_environment,
         mock_resource_protector,
         mock_auth0_validator,
-        capture_stdout,
     ):
         """Test that partial Auth0 config doesn't auto-enable auth."""
         mock_protector_class, _ = mock_resource_protector
@@ -204,10 +203,10 @@ class TestConditionalAuthDecoratorBackwardCompatibility:
         assert isinstance(decorator.get_decorator(), NoOpDecorator)
         assert decorator.is_enabled is False
 
-        # Should not show auto-enable message
-        output = capture_stdout.getvalue()
-        assert "auto-enabled" not in output
-        assert "Auth0 authentication disabled" in output
+        # Should not show auto-enable message - check all print calls
+        print_calls = [str(call) for call in mock_print.call_args_list]
+        assert not any("auto-enabled" in call for call in print_calls)
+        mock_print.assert_any_call("Auth0 authentication disabled")
 
 
 class TestCreateAuthDecorator:

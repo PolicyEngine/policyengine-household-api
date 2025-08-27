@@ -60,15 +60,6 @@ AUTH_PARTIAL_CONFIG = {
 
 
 @pytest.fixture
-def mock_config_loader():
-    """Mock the config loader get_config_value function."""
-    with patch(
-        "policyengine_household_api.auth.conditional_decorator.get_config_value"
-    ) as mock_get_config:
-        yield mock_get_config
-
-
-@pytest.fixture
 def mock_resource_protector():
     """Mock the ResourceProtector class."""
     with patch(
@@ -91,83 +82,93 @@ def mock_auth0_validator():
 
 
 @pytest.fixture
-def auth_enabled_environment(mock_config_loader):
+def auth_enabled_environment():
     """Set up environment with authentication enabled."""
+    with patch(
+        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+    ) as mock_config:
+        def config_side_effect(path: str, default: Any = None) -> Any:
+            config_map = {
+                "auth.enabled": True,
+                "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
+                "auth.auth0.audience": AUTH0_CONFIG_DATA["audience"],
+            }
+            return config_map.get(path, default)
 
-    def config_side_effect(path: str, default: Any = None) -> Any:
-        config_map = {
-            "auth.enabled": True,
-            "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
-            "auth.auth0.audience": AUTH0_CONFIG_DATA["audience"],
-        }
-        return config_map.get(path, default)
-
-    mock_config_loader.side_effect = config_side_effect
-    return mock_config_loader
+        mock_config.side_effect = config_side_effect
+        yield mock_config
 
 
 @pytest.fixture
-def auth_disabled_environment(mock_config_loader):
+def auth_disabled_environment():
     """Set up environment with authentication disabled."""
+    with patch(
+        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+    ) as mock_config:
+        def config_side_effect(path: str, default: Any = None) -> Any:
+            config_map = {
+                "auth.enabled": False,
+                "auth.auth0.address": "",
+                "auth.auth0.audience": "",
+            }
+            return config_map.get(path, default)
 
-    def config_side_effect(path: str, default: Any = None) -> Any:
-        config_map = {
-            "auth.enabled": False,
-            "auth.auth0.address": "",
-            "auth.auth0.audience": "",
-        }
-        return config_map.get(path, default)
-
-    mock_config_loader.side_effect = config_side_effect
-    return mock_config_loader
+        mock_config.side_effect = config_side_effect
+        yield mock_config
 
 
 @pytest.fixture
-def auth_enabled_missing_config_environment(mock_config_loader):
+def auth_enabled_missing_config_environment():
     """Set up environment with auth enabled but missing Auth0 config."""
+    with patch(
+        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+    ) as mock_config:
+        def config_side_effect(path: str, default: Any = None) -> Any:
+            config_map = {
+                "auth.enabled": True,
+                "auth.auth0.address": "",
+                "auth.auth0.audience": "",
+            }
+            return config_map.get(path, default)
 
-    def config_side_effect(path: str, default: Any = None) -> Any:
-        config_map = {
-            "auth.enabled": True,
-            "auth.auth0.address": "",
-            "auth.auth0.audience": "",
-        }
-        return config_map.get(path, default)
-
-    mock_config_loader.side_effect = config_side_effect
-    return mock_config_loader
+        mock_config.side_effect = config_side_effect
+        yield mock_config
 
 
 @pytest.fixture
-def auth_backward_compat_environment(mock_config_loader):
+def auth_backward_compat_environment():
     """Set up environment for backward compatibility testing."""
+    with patch(
+        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+    ) as mock_config:
+        def config_side_effect(path: str, default: Any = None) -> Any:
+            config_map = {
+                "auth.enabled": False,  # Not explicitly enabled
+                "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
+                "auth.auth0.audience": AUTH0_CONFIG_DATA["audience"],
+            }
+            return config_map.get(path, default)
 
-    def config_side_effect(path: str, default: Any = None) -> Any:
-        config_map = {
-            "auth.enabled": False,  # Not explicitly enabled
-            "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
-            "auth.auth0.audience": AUTH0_CONFIG_DATA["audience"],
-        }
-        return config_map.get(path, default)
-
-    mock_config_loader.side_effect = config_side_effect
-    return mock_config_loader
+        mock_config.side_effect = config_side_effect
+        yield mock_config
 
 
 @pytest.fixture
-def auth_partial_config_environment(mock_config_loader):
+def auth_partial_config_environment():
     """Set up environment with partial Auth0 configuration."""
+    with patch(
+        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+    ) as mock_config:
+        def config_side_effect(path: str, default: Any = None) -> Any:
+            config_map = {
+                "auth.enabled": False,
+                "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
+                "auth.auth0.audience": "",  # Missing audience
+            }
+            return config_map.get(path, default)
 
-    def config_side_effect(path: str, default: Any = None) -> Any:
-        config_map = {
-            "auth.enabled": False,
-            "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
-            "auth.auth0.audience": "",  # Missing audience
-        }
-        return config_map.get(path, default)
-
-    mock_config_loader.side_effect = config_side_effect
-    return mock_config_loader
+        mock_config.side_effect = config_side_effect
+        yield mock_config
 
 
 @pytest.fixture
@@ -186,17 +187,3 @@ def sample_view_function():
         return {"status": "success"}
 
     return view_func
-
-
-@pytest.fixture
-def capture_stdout():
-    """Fixture to capture stdout for testing print statements."""
-    import sys
-    from io import StringIO
-
-    old_stdout = sys.stdout
-    sys.stdout = captured_output = StringIO()
-
-    yield captured_output
-
-    sys.stdout = old_stdout
