@@ -35,14 +35,14 @@ from tests.fixtures.utils.config_loader import (
 class TestConfigLoaderInitialization:
     """Test ConfigLoader initialization and basic setup."""
 
-    def test_default_initialization(self):
+    def test__given_no_arguments__loader_initializes_with_defaults(self):
         """Test that ConfigLoader initializes with default values."""
         loader = ConfigLoader()
 
         assert loader.default_config_path == ConfigLoader.DEFAULT_CONFIG_PATH
         assert loader._config is None
 
-    def test_custom_default_path(self):
+    def test__given_custom_default_path__loader_uses_custom_path(self):
         """Test initialization with custom default config path."""
         CUSTOM_PATH = "/custom/path/config.yaml"
         loader = ConfigLoader(default_config_path=CUSTOM_PATH)
@@ -54,7 +54,9 @@ class TestConfigLoaderInitialization:
 class TestDefaultConfigLoading:
     """Test loading of default configuration files."""
 
-    def test_load_valid_default_config(self, temp_default_config):
+    def test__given_valid_default_config__loader_loads_config_correctly(
+        self, temp_default_config
+    ):
         """Test loading a valid default configuration file."""
         loader = ConfigLoader(default_config_path=temp_default_config)
         config = loader.load()
@@ -69,7 +71,9 @@ class TestDefaultConfigLoading:
             == DEFAULT_CONFIG_DATA["database"]["provider"]
         )
 
-    def test_load_missing_default_config(self, clean_env):
+    def test__given_missing_default_config__loader_returns_empty_dict(
+        self, clean_env
+    ):
         """Test behavior when default config file doesn't exist."""
         NON_EXISTENT_PATH = "/non/existent/config.yaml"
         loader = ConfigLoader(default_config_path=NON_EXISTENT_PATH)
@@ -77,14 +81,18 @@ class TestDefaultConfigLoading:
         config = loader.load()
         assert config == {}
 
-    def test_load_empty_default_config(self, temp_empty_config, clean_env):
+    def test__given_empty_default_config__loader_returns_empty_dict(
+        self, temp_empty_config, clean_env
+    ):
         """Test loading an empty default configuration file."""
         loader = ConfigLoader(default_config_path=temp_empty_config)
         config = loader.load()
 
         assert config == {}
 
-    def test_config_caching(self, temp_default_config):
+    def test__given_config_already_loaded__subsequent_loads_return_cached_value(
+        self, temp_default_config
+    ):
         """Test that config is cached after first load."""
         loader = ConfigLoader(default_config_path=temp_default_config)
 
@@ -99,7 +107,9 @@ class TestDefaultConfigLoading:
 class TestExternalConfigLoading:
     """Test loading of external configuration files."""
 
-    def test_load_external_config(self, temp_external_config, clean_env):
+    def test__given_external_config_via_env_var__loader_loads_external_config(
+        self, temp_external_config, clean_env
+    ):
         """Test loading an external config file via CONFIG_FILE env var."""
         clean_env.setenv("CONFIG_FILE", temp_external_config)
 
@@ -119,7 +129,9 @@ class TestExternalConfigLoading:
             == EXTERNAL_CONFIG_DATA["storage"]["bucket"]
         )
 
-    def test_external_config_not_set(self, temp_default_config, clean_env):
+    def test__given_no_config_file_env_var__loader_skips_external_config(
+        self, temp_default_config, clean_env
+    ):
         """Test that external config is not loaded when CONFIG_FILE is not set."""
         loader = ConfigLoader(default_config_path=temp_default_config)
         config = loader.load()
@@ -131,7 +143,7 @@ class TestExternalConfigLoading:
         )
         assert "storage" not in config  # Storage is only in external config
 
-    def test_external_config_file_not_found(
+    def test__given_nonexistent_external_config__loader_falls_back_to_default(
         self, temp_default_config, clean_env
     ):
         """Test behavior when external config file doesn't exist."""
@@ -150,22 +162,24 @@ class TestExternalConfigLoading:
 class TestEnvironmentVariableOverrides:
     """Test environment variable override functionality."""
 
-    def test_traditional_env_var_mapping(self, config_with_env_vars):
+    def test__given_traditional_env_vars__config_maps_them_correctly(
+        self, config_with_env_vars
+    ):
         """Test that traditional PolicyEngine env vars are mapped correctly."""
         loader = ConfigLoader(default_config_path="/non/existent/path")
         config = loader.load()
 
         assert config["app"]["debug"] is True  # FLASK_DEBUG=1
         assert (
-            config["database"]["connection_name"]
+            config["analytics"]["database"]["connection_name"]
             == ENV_VAR_TEST_DATA["USER_ANALYTICS_DB_CONNECTION_NAME"]
         )
         assert (
-            config["database"]["username"]
+            config["analytics"]["database"]["username"]
             == ENV_VAR_TEST_DATA["USER_ANALYTICS_DB_USERNAME"]
         )
         assert (
-            config["database"]["password"]
+            config["analytics"]["database"]["password"]
             == ENV_VAR_TEST_DATA["USER_ANALYTICS_DB_PASSWORD"]
         )
         assert (
@@ -182,7 +196,9 @@ class TestEnvironmentVariableOverrides:
         )
         assert config["server"]["port"] == int(ENV_VAR_TEST_DATA["PORT"])
 
-    def test_double_underscore_notation(self, config_with_double_underscore):
+    def test__given_double_underscore_env_vars__config_parses_them_correctly(
+        self, config_with_double_underscore
+    ):
         """Test that double underscore notation works correctly."""
         loader = ConfigLoader(default_config_path="/non/existent/path")
         config = loader.load()
@@ -210,7 +226,9 @@ class TestEnvironmentVariableOverrides:
             == DOUBLE_UNDERSCORE_ENV_VARS["LOGGING__LEVEL"]
         )
 
-    def test_mixed_env_vars(self, config_with_mixed_env_vars):
+    def test__given_mixed_env_var_types__both_work_together(
+        self, config_with_mixed_env_vars
+    ):
         """Test that both traditional and double underscore env vars work together."""
         loader = ConfigLoader(default_config_path="/non/existent/path")
         config = loader.load()
@@ -218,7 +236,7 @@ class TestEnvironmentVariableOverrides:
         # Traditional mappings
         assert config["app"]["debug"] is True
         assert (
-            config["database"]["username"]
+            config["analytics"]["database"]["username"]
             == ENV_VAR_TEST_DATA["USER_ANALYTICS_DB_USERNAME"]
         )
 
@@ -235,7 +253,7 @@ class TestEnvironmentVariableOverrides:
 class TestConfigPriority:
     """Test configuration priority and merging."""
 
-    def test_priority_order(
+    def test__given_all_config_source_types__priority_order_is_correct(
         self, temp_default_config, temp_external_config, clean_env
     ):
         """Test that priority order is: env vars > external config > default config."""
@@ -263,7 +281,7 @@ class TestConfigPriority:
         assert config["app"]["environment"] == "env-override"  # Env var wins
         assert config["database"]["host"] == "env-db-host"  # Env var wins
 
-    def test_deep_merge_behavior(
+    def test__given_two_config_source_types__deep_merge_behavior_is_correct(
         self, temp_default_config, temp_external_config, clean_env
     ):
         """Test that configs are deep merged, not replaced entirely."""
@@ -292,13 +310,15 @@ class TestValueConversion:
     @pytest.mark.parametrize(
         "input_value,expected_output", TYPE_CONVERSION_TEST_CASES
     )
-    def test_value_conversion(self, input_value, expected_output):
+    def test__given_string_values__appropriate_type_conversion_occurs(
+        self, input_value, expected_output
+    ):
         """Test that string values are converted to appropriate types."""
         loader = ConfigLoader()
         converted = loader._convert_value(input_value)
         assert converted == expected_output
 
-    def test_nested_value_setting(self):
+    def test__given_nested_dict_values__values_are_set_properly(self):
         """Test setting nested values in dictionaries."""
         loader = ConfigLoader()
         config = {}
@@ -317,7 +337,9 @@ class TestValueConversion:
 class TestGetMethod:
     """Test the get method for retrieving config values."""
 
-    def test_get_existing_value(self, temp_default_config):
+    def test__given_valid_existing_value__get_method_fetches_value(
+        self, temp_default_config
+    ):
         """Test getting an existing configuration value."""
         loader = ConfigLoader(default_config_path=temp_default_config)
 
@@ -327,14 +349,18 @@ class TestGetMethod:
         DB_PROVIDER = loader.get("database.provider")
         assert DB_PROVIDER == DEFAULT_CONFIG_DATA["database"]["provider"]
 
-    def test_get_nested_value(self, temp_default_config):
+    def test__given_deeply_nested_value__get_method_fetches_value(
+        self, temp_default_config
+    ):
         """Test getting a deeply nested configuration value."""
         loader = ConfigLoader(default_config_path=temp_default_config)
 
         SERVER_PORT = loader.get("server.port")
         assert SERVER_PORT == DEFAULT_CONFIG_DATA["server"]["port"]
 
-    def test_get_nonexistent_value_with_default(self, temp_default_config):
+    def test__given_nonexistent_value_with_default__get_method_returns_default(
+        self, temp_default_config
+    ):
         """Test getting a non-existent value returns the default."""
         loader = ConfigLoader(default_config_path=temp_default_config)
 
@@ -342,14 +368,16 @@ class TestGetMethod:
         result = loader.get("non.existent.path", DEFAULT_VALUE)
         assert result == DEFAULT_VALUE
 
-    def test_get_nonexistent_value_without_default(self, temp_default_config):
+    def test__given_nonexistent_value_without_default__get_method_returns_none(
+        self, temp_default_config
+    ):
         """Test getting a non-existent value returns None when no default."""
         loader = ConfigLoader(default_config_path=temp_default_config)
 
         result = loader.get("non.existent.path")
         assert result is None
 
-    def test_get_triggers_load(self):
+    def test__given_config_not_loaded__get_method_triggers_load(self):
         """Test that get() triggers load() if config not yet loaded."""
         loader = ConfigLoader(default_config_path="/non/existent/path")
         assert loader._config is None
@@ -364,7 +392,7 @@ class TestGetMethod:
 class TestDeepMerge:
     """Test the deep merge functionality."""
 
-    def test_deep_merge_non_overlapping(self):
+    def test__given_non_overlapping_keys__deep_merge_correctly_merges(self):
         """Test merging dictionaries with non-overlapping keys."""
         loader = ConfigLoader()
 
@@ -375,7 +403,9 @@ class TestDeepMerge:
 
         assert result == {"a": 1, "b": 2, "c": 3, "d": 4}
 
-    def test_deep_merge_overlapping_simple(self):
+    def test__given_overlapping_simple_keys__deep_merge_overwrites_values(
+        self,
+    ):
         """Test merging dictionaries with overlapping simple values."""
         loader = ConfigLoader()
 
@@ -386,7 +416,7 @@ class TestDeepMerge:
 
         assert result == {"a": 1, "b": 20, "c": 30, "d": 4}
 
-    def test_deep_merge_nested_dicts(self):
+    def test__given_nested_dicts__deep_merge_correctly_merges(self):
         """Test merging nested dictionaries."""
         loader = ConfigLoader()
 
@@ -406,7 +436,7 @@ class TestDeepMerge:
             "db": {"host": "remotehost", "port": 5432},
         }
 
-    def test_deep_merge_dict_replaces_non_dict(self):
+    def test__given_dict_values__deep_merge_dict_replaces_non_dict(self):
         """Test that dict values replace non-dict values entirely."""
         loader = ConfigLoader()
 
@@ -421,7 +451,9 @@ class TestDeepMerge:
 class TestGlobalFunctions:
     """Test the global convenience functions."""
 
-    def test_get_config_function(self, temp_default_config, clean_env):
+    def test__given_valid_config__get_config_function_returns_expected_values(
+        self, temp_default_config, clean_env
+    ):
         """Test the global get_config() function."""
         clean_env.setenv("CONFIG_FILE", temp_default_config)
 
@@ -435,7 +467,9 @@ class TestGlobalFunctions:
         config = get_config()
         assert config["app"]["name"] == DEFAULT_CONFIG_DATA["app"]["name"]
 
-    def test_get_config_value_function(self, temp_default_config, clean_env):
+    def test__given_valid_config__get_config_value_function_returns_expected_value(
+        self, temp_default_config, clean_env
+    ):
         """Test the global get_config_value() function."""
         clean_env.setenv("CONFIG_FILE", temp_default_config)
 
@@ -456,7 +490,7 @@ class TestGlobalFunctions:
 class TestErrorHandling:
     """Test error handling in various scenarios."""
 
-    def test_invalid_yaml_config(
+    def test__given_invalid_yaml_config__error_throws(
         self, temp_invalid_yaml_config, clean_env, caplog
     ):
         """Test handling of invalid YAML in config file."""
@@ -467,7 +501,7 @@ class TestErrorHandling:
             assert config == {}  # Should return empty dict on error
             assert "Error parsing YAML in default config" in caplog.text
 
-    def test_permission_error_reading_config(
+    def test__given_permission_error_reading_config__error_throws(
         self, tmp_path, clean_env, caplog
     ):
         """Test handling of permission errors when reading config."""
@@ -489,7 +523,7 @@ class TestErrorHandling:
             # Clean up - restore permissions for deletion
             config_file.chmod(0o644)
 
-    def test_unexpected_error_loading_config(
+    def test__given_unexpected_loading_error__error_throws(
         self, tmp_path, clean_env, caplog
     ):
         """Test handling of unexpected errors during config loading."""
