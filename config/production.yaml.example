@@ -8,13 +8,16 @@ app:
   environment: production
   debug: false
 
-database:
-  provider: mysql
-  connection_name: ${USER_ANALYTICS_DB_CONNECTION_NAME}  # From env var
-  username: ${USER_ANALYTICS_DB_USERNAME}  # From env var
-  password: ${USER_ANALYTICS_DB_PASSWORD}  # From env var
-  pool_size: 10
-  max_overflow: 20
+# Analytics is explicitly enabled for production
+analytics:
+  enabled: true  # Opt-in to collect usage metrics
+  database:
+    connection_name: ${USER_ANALYTICS_DB_CONNECTION_NAME}  # From env var
+    username: ${USER_ANALYTICS_DB_USERNAME}  # From env var
+    password: ${USER_ANALYTICS_DB_PASSWORD}  # From env var
+
+# Note: Application database configuration would go here when added
+# Currently only the analytics database (above) is used
 
 storage:
   provider: gcs

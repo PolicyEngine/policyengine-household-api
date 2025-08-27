@@ -148,15 +148,16 @@ app:
   environment: Environment (local/development/staging/production)
   debug: Debug mode (true/false)
 
-database:
-  provider: Database type (sqlite/mysql/postgres)
-  connection_name: Cloud SQL connection name (for GCP)
-  username: Database username
-  password: Database password
-  host: Database host
-  port: Database port
-  path: SQLite file path (for sqlite provider)
-  pool_size: Connection pool size
+# User analytics (opt-in feature)
+analytics:
+  enabled: Whether to collect user analytics (default: false)
+  database:
+    connection_name: Google Cloud SQL connection name
+    username: Database username
+    password: Database password
+
+# Note: Application database configuration would go here when added
+# Currently the application only uses the analytics database (see above)
 
 storage:
   provider: Storage backend (local/gcs/s3)
@@ -189,6 +190,56 @@ logging:
   level: Log level (DEBUG/INFO/WARNING/ERROR)
   format: Log format (json/text)
 ```
+
+## User Analytics Configuration
+
+User analytics is an **opt-in** feature that collects API usage metrics for monitoring and analysis. By default, analytics is **disabled** to respect privacy and minimize dependencies.
+
+### Enabling Analytics
+
+Analytics can be enabled in three ways:
+
+1. **Via Configuration File** (Recommended for permanent enablement):
+```yaml
+# In your config file
+analytics:
+  enabled: true
+  database:
+    connection_name: your-project:region:instance
+    username: analytics_user
+    password: ${ANALYTICS_PASSWORD}  # Use env var for password
+```
+
+2. **Via Environment Variable**:
+```bash
+# Enable analytics
+ANALYTICS__ENABLED=true
+
+# Provide database credentials
+USER_ANALYTICS_DB_CONNECTION_NAME=your-connection
+USER_ANALYTICS_DB_USERNAME=your-username
+USER_ANALYTICS_DB_PASSWORD=your-password
+```
+
+3. **Automatic Detection** (Backward Compatibility):
+If all three `USER_ANALYTICS_DB_*` environment variables are set, analytics is automatically enabled for backward compatibility with existing deployments.
+
+### What Data is Collected
+
+When analytics is enabled, the following data is collected per API request:
+- Client ID (from JWT token)
+- API version
+- Endpoint accessed
+- HTTP method
+- Request content length
+- Timestamp
+
+### Privacy Considerations
+
+- Analytics is **disabled by default**
+- No request/response bodies are logged
+- Only metadata about API usage is collected
+- Data is stored in a separate analytics database
 
 ## Usage Examples
 

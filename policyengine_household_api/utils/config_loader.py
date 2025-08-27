@@ -37,10 +37,10 @@ class ConfigLoader:
     ENV_VAR_MAPPING = {
         # Flask settings
         "FLASK_DEBUG": "app.debug",
-        # Database settings
-        "USER_ANALYTICS_DB_CONNECTION_NAME": "database.connection_name",
-        "USER_ANALYTICS_DB_USERNAME": "database.username",
-        "USER_ANALYTICS_DB_PASSWORD": "database.password",
+        # Analytics database settings (for user analytics)
+        "USER_ANALYTICS_DB_CONNECTION_NAME": "analytics.database.connection_name",
+        "USER_ANALYTICS_DB_USERNAME": "analytics.database.username",
+        "USER_ANALYTICS_DB_PASSWORD": "analytics.database.password",
         # Auth0 settings
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.auth0.address",
         "AUTH0_AUDIENCE_NO_DOMAIN": "auth.auth0.audience",

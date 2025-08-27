@@ -7,10 +7,12 @@ app:
   environment: development
   debug: true
 
-database:
-  provider: sqlite
-  path: ./policyengine_household_api/data/policyengine.db
-  # SQLite doesn't need connection credentials
+# Analytics disabled for development (opt-in feature)
+analytics:
+  enabled: false  # No analytics collection in dev
+
+# Note: Application database configuration would go here when added
+# Development might use SQLite or a local database in the future
 
 storage:
   provider: local
