@@ -1,0 +1,3 @@
+"""
+Auth fixture module.
+"""

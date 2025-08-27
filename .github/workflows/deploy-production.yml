@@ -149,6 +149,7 @@ jobs:
           image_url: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
           flags: "--quiet"
           env_vars: |-
+            AUTH__ENABLED=true
             AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
             AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
             ANALYTICS__ENABLED=true

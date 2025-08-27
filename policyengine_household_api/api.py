@@ -12,12 +12,11 @@ import flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
-from authlib.integrations.flask_oauth2 import ResourceProtector
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 # Internal imports
-from .auth.validation import Auth0JWTBearerTokenValidator
+from .auth.conditional_decorator import create_auth_decorator
 from .constants import VERSION, REPO
 from .data.setup import getconn
 
@@ -30,11 +29,9 @@ from .endpoints import (
 
 # Configure authentication
 load_dotenv()
-require_auth = ResourceProtector()
-validator = Auth0JWTBearerTokenValidator(
-    os.getenv("AUTH0_ADDRESS_NO_DOMAIN"), os.getenv("AUTH0_AUDIENCE_NO_DOMAIN")
-)
-require_auth.register_token_validator(validator)
+
+# Create the authentication decorator (will be either Auth0 or no-op based on config)
+require_auth = create_auth_decorator()
 
 
 print("Initialising API...")
