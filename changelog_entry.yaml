@@ -1,5 +1,0 @@
-- bump: minor
-  changes:
-    added:
-    - Capability to optionally opt into user analytics structure
-    - Reverse-compatible structure to allow us to deploy with user analytics enabled

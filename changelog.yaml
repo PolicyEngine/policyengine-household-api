@@ -1243,3 +1243,9 @@
     added:
     - Created config loader to load custom configuration files; this remains unused
   date: 2025-08-26 23:33:33
+- bump: minor
+  changes:
+    added:
+    - Capability to optionally opt into user analytics structure
+    - Reverse-compatible structure to allow us to deploy with user analytics enabled
+  date: 2025-08-27 02:21:05
