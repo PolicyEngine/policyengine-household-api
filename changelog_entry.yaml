@@ -1,5 +1,0 @@
-- bump: minor
-  changes:
-    changed:
-    - Decoupled auth0 setup logic from main app logic.
-    - Updated configuration structure to support new decoupled auth0 setup.
