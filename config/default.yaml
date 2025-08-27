@@ -1,7 +1,5 @@
 # Default configuration for PolicyEngine Household API
 # This configuration provides defaults suitable for local development
-# Currently empty as the application still uses environment variables
-# This file establishes the structure for future configuration migration
 
 ---
 # Application settings
@@ -10,13 +8,25 @@ app:
   environment: local
   # debug: true  # Will be enabled when migrated from FLASK_DEBUG env var
 
+# User analytics configuration
+# Controls whether user analytics are collected and stored
+analytics:
+  # Whether analytics collection is enabled (opt-in)
+  enabled: false  # Set to true to enable analytics collection
+  
+  # Database connection for analytics (only used if enabled=true)
+  # These will be overridden by environment variables in production
+  database:
+    # Connection name for Google Cloud SQL
+    connection_name: ""  # Override with USER_ANALYTICS_DB_CONNECTION_NAME
+    # Database username
+    username: ""  # Override with USER_ANALYTICS_DB_USERNAME  
+    # Database password
+    password: ""  # Override with USER_ANALYTICS_DB_PASSWORD
+
 # Database configuration
-database:
-  # provider: sqlite  # Future: sqlite for local, mysql for production
-  # Future migration from:
-  # - USER_ANALYTICS_DB_CONNECTION_NAME
-  # - USER_ANALYTICS_DB_USERNAME  
-  # - USER_ANALYTICS_DB_PASSWORD
+# Note: Currently only analytics database is used
+# Future application databases would be configured here
 
 # Storage configuration  
 storage:

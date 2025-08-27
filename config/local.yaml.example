@@ -7,10 +7,12 @@ app:
   environment: local
   debug: true
 
-database:
-  provider: sqlite
-  path: :memory:  # In-memory database for testing
-  # Or use a file: ./local.db
+# Analytics disabled for local runs
+analytics:
+  enabled: false
+
+# Note: Application database configuration would go here when added
+# Local runs might use an in-memory SQLite database in the future
 
 storage:
   provider: local
