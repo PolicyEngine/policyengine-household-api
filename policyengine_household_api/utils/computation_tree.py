@@ -4,26 +4,31 @@ from policyengine_household_api.models.computation_tree import (
 )
 import anthropic
 from anthropic.types import Message
-import os
 import json
-from typing import Generator, Any
+from typing import Generator, Any, Optional
 import re
 
 
-def trigger_streaming_ai_analysis(prompt: str) -> Generator[str, None, None]:
+def trigger_streaming_ai_analysis(prompt: str, api_key: str) -> Generator[str, None, None]:
     """
     Pass a prompt to Claude for analysis and return the response in streaming-
     formatted chunks.
 
     Args:
         prompt (str): The prompt to pass to Claude for analysis.
+        api_key (str): The Anthropic API key to use.
 
     Returns:
         Generator[str, None, None]: A generator that yields response chunks.
+    
+    Raises:
+        ValueError: If api_key is not provided.
     """
-
-    # Configure a Claude client
-    claude_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    if not api_key:
+        raise ValueError("Anthropic API key is required")
+    
+    # Configure a Claude client with the provided API key
+    claude_client = anthropic.Anthropic(api_key=api_key)
 
     def generate():
         """
@@ -52,19 +57,25 @@ def trigger_streaming_ai_analysis(prompt: str) -> Generator[str, None, None]:
     return generate()
 
 
-def trigger_buffered_ai_analysis(prompt: str) -> str:
+def trigger_buffered_ai_analysis(prompt: str, api_key: str) -> str:
     """
     Pass a prompt to Claude for analysis and return a buffered response.
 
     Args:
         prompt (str): The prompt to pass to Claude for analysis.
+        api_key (str): The Anthropic API key to use.
 
     Returns:
         str: The response from Claude.
+    
+    Raises:
+        ValueError: If api_key is not provided.
     """
-
-    # Configure a Claude client
-    claude_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    if not api_key:
+        raise ValueError("Anthropic API key is required")
+    
+    # Configure a Claude client with the provided API key
+    claude_client = anthropic.Anthropic(api_key=api_key)
 
     # Pass the prompt to Claude for analysis
     response: Message = claude_client.messages.create(

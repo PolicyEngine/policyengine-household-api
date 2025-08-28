@@ -49,10 +49,16 @@ auth:
     audience: ""  # Override with AUTH0_AUDIENCE_NO_DOMAIN
 
 # AI services configuration
+# Controls whether AI features are available in the API
 ai:
-  # enabled: false  # Future: disabled for local development
-  # Future migration from:
-  # - ANTHROPIC_API_KEY
+  # Whether AI services are enabled (opt-in)
+  enabled: false  # Set to true to enable AI services
+  
+  # Anthropic configuration (only used if enabled=true)
+  # These will be overridden by environment variables in production
+  anthropic:
+    # API key for Anthropic Claude API
+    api_key: ""  # Override with ANTHROPIC_API_KEY
 
 # Server configuration
 server:

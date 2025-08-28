@@ -1,7 +1,8 @@
 import json
 import logging
+import os
 from flask import request, Response, stream_with_context
-from typing import Generator, Any
+from typing import Any, Optional, Tuple
 from policyengine_household_api.models import (
     HouseholdModelUS,
     HouseholdModelUK,
@@ -26,8 +27,54 @@ from policyengine_household_api.utils.computation_tree import (
 from policyengine_household_api.ai_templates import (
     household_explainer_template,
 )
+from policyengine_household_api.utils.config_loader import get_config_value
 from pydantic import ValidationError
-from werkzeug.exceptions import BadRequest
+
+
+def _check_anthropic_configuration() -> Tuple[bool, Optional[str]]:
+    """
+    Check if Anthropic API is properly configured.
+    
+    Returns:
+        Tuple[bool, Optional[str]]: (is_configured, api_key)
+            - is_configured: True if AI services are enabled and API key is present
+            - api_key: The API key if configured, None otherwise
+    """
+    # Check configuration
+    ai_enabled = bool(get_config_value("ai.enabled", False))
+    api_key = get_config_value("ai.anthropic.api_key", "")
+    
+    # Backward compatibility: auto-enable if ANTHROPIC_API_KEY env var is set
+    if not ai_enabled and not api_key:
+        env_api_key = os.getenv("ANTHROPIC_API_KEY")
+        if env_api_key:
+            api_key = env_api_key
+            ai_enabled = True
+    
+    # Convert empty string to None for clarity
+    if not api_key:
+        api_key = None
+    
+    return (ai_enabled and api_key is not None), api_key
+
+
+def _create_unauthorized_response() -> Response:
+    """
+    Create a 401 response for missing Anthropic configuration.
+    
+    Returns:
+        Response: A 401 Unauthorized response with error details.
+    """
+    return Response(
+        json.dumps(
+            dict(
+                status="error",
+                message="Anthropic API key is not configured. Please contact your administrator to enable AI features.",
+            )
+        ),
+        status=401,
+        mimetype="application/json",
+    )
 
 
 @validate_country
@@ -44,25 +91,42 @@ def generate_ai_explainer(country_id: str) -> Response:
     """
 
     try:
+        # Check if AI services are properly configured
+        is_configured, api_key = _check_anthropic_configuration()
+        
+        if not is_configured or api_key is None:
+            return _create_unauthorized_response()
+        
+        # api_key is guaranteed to be non-None here due to is_configured check
+        
         payload: dict[str, Any] = request.json
 
         # Pull the UUID from the query parameters
-        uuid: str = payload.get("computation_tree_uuid")
+        uuid: Optional[str] = payload.get("computation_tree_uuid")
+        if not uuid:
+            return Response(
+                json.dumps(
+                    dict(
+                        status="error",
+                        message="computation_tree_uuid is required",
+                    )
+                ),
+                status=400,
+                mimetype="application/json",
+            )
+        
         use_streaming: bool = payload.get("use_streaming", False)
 
         household_raw = payload.get("household")
+        
+        # Parse household based on country
+        household = None
         if country_id == "us":
-            household: HouseholdModelUS = HouseholdModelUS.model_validate(
-                household_raw
-            )
+            household = HouseholdModelUS.model_validate(household_raw)
         elif country_id == "uk":
-            household: HouseholdModelUK = HouseholdModelUK.model_validate(
-                household_raw
-            )
+            household = HouseholdModelUK.model_validate(household_raw)
         else:
-            household: HouseholdModelGeneric = (
-                HouseholdModelGeneric.model_validate(household_raw)
-            )
+            household = HouseholdModelGeneric.model_validate(household_raw)
 
         # Filter the flattened household and look for one (and only one)
         # variable whose "value" equals "None"
@@ -94,8 +158,11 @@ def generate_ai_explainer(country_id: str) -> Response:
         # Fetch the tracer output from the Google Cloud bucket
         flattened_var = flattened_var_list[0]
         storage_manager = GoogleCloudStorageManager()
+        
+        # Convert string UUID to proper type for storage manager
+        from uuid import UUID
         computation_tree: ComputationTree = storage_manager.get(
-            uuid=uuid, deserializer=ComputationTree
+            uuid=UUID(uuid), deserializer=ComputationTree
         )
 
         # Break ComputationTree into relevant elements
@@ -128,17 +195,17 @@ def generate_ai_explainer(country_id: str) -> Response:
             entity=entity,
         )
 
-        # Pass all of this to Claude
+        # Pass all of this to Claude with the API key
         if use_streaming:
-            analysis: Generator = trigger_streaming_ai_analysis(prompt)
+            streaming_analysis = trigger_streaming_ai_analysis(prompt, api_key)
             return Response(
-                stream_with_context(analysis),
+                stream_with_context(streaming_analysis),
                 status=200,
             )
 
-        analysis: str = trigger_buffered_ai_analysis(prompt)
+        buffered_analysis = trigger_buffered_ai_analysis(prompt, api_key)
         return Response(
-            json.dumps({"response": analysis}),
+            json.dumps({"response": buffered_analysis}),
             status=200,
         )
 
@@ -148,7 +215,7 @@ def generate_ai_explainer(country_id: str) -> Response:
             json.dumps(
                 dict(
                     status="error",
-                    message=f"Unable to find record with UUID {uuid}",
+                    message="Unable to find record with specified UUID",
                 )
             ),
             status=400,

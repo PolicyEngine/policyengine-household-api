@@ -275,7 +275,7 @@ If both `AUTH0_ADDRESS_NO_DOMAIN` and `AUTH0_AUDIENCE_NO_DOMAIN` environment var
 
 When Auth0 is enabled, the following endpoints require valid JWT tokens:
 - `/<country_id>/calculate` - Main calculation endpoint
-- `/<country_id>/ai-analysis` - AI analysis endpoint (remains in alpha)
+- `/<country_id>/ai-analysis` - AI analysis endpoint (requires both Auth0 and Anthropic configuration)
 
 The following endpoints remain unprotected:
 - `/` - Home endpoint
@@ -288,6 +288,49 @@ The following endpoints remain unprotected:
 - Authentication is **disabled by default** for local development
 - When enabled, all protected endpoints validate JWT tokens against Auth0's JWKS
 - The Auth0 domain and audience must match the configured values
+
+## AI Services Configuration (Anthropic)
+
+AI services powered by Anthropic Claude are an **opt-in** feature that enables AI-powered analysis of policy calculations. By default, AI services are **disabled** to simplify deployment and testing.
+
+### Enabling AI Services
+
+AI services can be enabled in three ways:
+
+1. **Via Configuration File** (Recommended for permanent enablement):
+```yaml
+# In your config file
+ai:
+  enabled: true
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY}  # Use env var for the API key
+```
+
+2. **Via Environment Variable**:
+```bash
+# Enable AI services
+AI__ENABLED=true
+
+# Provide Anthropic API key
+ANTHROPIC_API_KEY=sk-ant-api03-...
+```
+
+3. **Automatic Detection** (Backward Compatibility):
+If the `ANTHROPIC_API_KEY` environment variable is set, AI services are automatically enabled for backward compatibility with existing deployments.
+
+### AI-Enabled Endpoints
+
+When AI services are enabled with a valid API key:
+- `/<country_id>/ai-analysis` - Returns AI-powered explanations of policy calculations (this is an alpha feature and not yet recommended for production use)
+
+When AI services are disabled or no API key is provided:
+- `/<country_id>/ai-analysis` - Returns a 401 error with a message indicating that the Anthropic API key is not configured
+
+### Security Considerations
+
+- AI services are **disabled by default**
+- API keys should always be provided via environment variables, never hardcoded
+- The AI analysis endpoint also respects Auth0 authentication if enabled
 
 ## Usage Examples
 
