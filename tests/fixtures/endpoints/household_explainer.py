@@ -140,7 +140,8 @@ def mock_streaming_output():
             for item in mock_claude_result_streaming:
                 yield json.dumps({"response": item}) + "\n"
 
-        mock_streaming.return_value = generate()
+        # Accept any arguments (including the new api_key parameter)
+        mock_streaming.side_effect = lambda prompt, api_key: generate()
         yield mock_streaming
 
 
@@ -149,7 +150,8 @@ def mock_buffered_output():
     with patch(
         "policyengine_household_api.endpoints.household_explainer.trigger_buffered_ai_analysis"
     ) as mock_buffered:
-        mock_buffered.return_value = mock_claude_result_buffered
+        # Accept any arguments (including the new api_key parameter)
+        mock_buffered.side_effect = lambda prompt, api_key: mock_claude_result_buffered
         yield mock_buffered
 
 
@@ -169,3 +171,15 @@ def mock_cloud_download():
     ) as mock_download:
         mock_download.side_effect = download_side_effect
         yield mock_download
+
+
+@pytest.fixture(autouse=True)
+def mock_anthropic_config_for_tests():
+    """
+    Automatically mock the Anthropic configuration check for all tests.
+    This allows tests to run without requiring an actual Anthropic API key.
+    """
+    with patch("policyengine_household_api.endpoints.household_explainer._check_anthropic_configuration") as mock_check:
+        # Make it return that Anthropic is configured with a test API key
+        mock_check.return_value = (True, "sk-ant-test-key")
+        yield mock_check

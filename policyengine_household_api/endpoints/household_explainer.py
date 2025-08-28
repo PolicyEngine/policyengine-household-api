@@ -159,11 +159,9 @@ def generate_ai_explainer(country_id: str) -> Response:
         flattened_var = flattened_var_list[0]
         storage_manager = GoogleCloudStorageManager()
 
-        # Convert string UUID to proper type for storage manager
-        from uuid import UUID
-
+        # Storage manager expects string UUID
         computation_tree: ComputationTree = storage_manager.get(
-            uuid=UUID(uuid), deserializer=ComputationTree
+            uuid=uuid, deserializer=ComputationTree
         )
 
         # Break ComputationTree into relevant elements
@@ -216,7 +214,7 @@ def generate_ai_explainer(country_id: str) -> Response:
             json.dumps(
                 dict(
                     status="error",
-                    message="Unable to find record with specified UUID",
+                    message=f"Unable to find record with UUID {uuid}",
                 )
             ),
             status=400,
