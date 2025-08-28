@@ -9,7 +9,9 @@ from typing import Generator, Any, Optional
 import re
 
 
-def trigger_streaming_ai_analysis(prompt: str, api_key: str) -> Generator[str, None, None]:
+def trigger_streaming_ai_analysis(
+    prompt: str, api_key: str
+) -> Generator[str, None, None]:
     """
     Pass a prompt to Claude for analysis and return the response in streaming-
     formatted chunks.
@@ -20,13 +22,13 @@ def trigger_streaming_ai_analysis(prompt: str, api_key: str) -> Generator[str, N
 
     Returns:
         Generator[str, None, None]: A generator that yields response chunks.
-    
+
     Raises:
         ValueError: If api_key is not provided.
     """
     if not api_key:
         raise ValueError("Anthropic API key is required")
-    
+
     # Configure a Claude client with the provided API key
     claude_client = anthropic.Anthropic(api_key=api_key)
 
@@ -67,13 +69,13 @@ def trigger_buffered_ai_analysis(prompt: str, api_key: str) -> str:
 
     Returns:
         str: The response from Claude.
-    
+
     Raises:
         ValueError: If api_key is not provided.
     """
     if not api_key:
         raise ValueError("Anthropic API key is required")
-    
+
     # Configure a Claude client with the provided API key
     claude_client = anthropic.Anthropic(api_key=api_key)
 

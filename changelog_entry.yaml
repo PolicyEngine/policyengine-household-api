@@ -1,0 +1,5 @@
+- bump: minor
+  changes:
+    changed:
+    - Make Anthropic API key optional for local running.
+    - Update config files to handle optional API key.

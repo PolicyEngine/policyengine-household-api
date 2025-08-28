@@ -34,7 +34,7 @@ from pydantic import ValidationError
 def _check_anthropic_configuration() -> Tuple[bool, Optional[str]]:
     """
     Check if Anthropic API is properly configured.
-    
+
     Returns:
         Tuple[bool, Optional[str]]: (is_configured, api_key)
             - is_configured: True if AI services are enabled and API key is present
@@ -43,25 +43,25 @@ def _check_anthropic_configuration() -> Tuple[bool, Optional[str]]:
     # Check configuration
     ai_enabled = bool(get_config_value("ai.enabled", False))
     api_key = get_config_value("ai.anthropic.api_key", "")
-    
+
     # Backward compatibility: auto-enable if ANTHROPIC_API_KEY env var is set
     if not ai_enabled and not api_key:
         env_api_key = os.getenv("ANTHROPIC_API_KEY")
         if env_api_key:
             api_key = env_api_key
             ai_enabled = True
-    
+
     # Convert empty string to None for clarity
     if not api_key:
         api_key = None
-    
+
     return (ai_enabled and api_key is not None), api_key
 
 
 def _create_unauthorized_response() -> Response:
     """
     Create a 401 response for missing Anthropic configuration.
-    
+
     Returns:
         Response: A 401 Unauthorized response with error details.
     """
@@ -93,12 +93,12 @@ def generate_ai_explainer(country_id: str) -> Response:
     try:
         # Check if AI services are properly configured
         is_configured, api_key = _check_anthropic_configuration()
-        
+
         if not is_configured or api_key is None:
             return _create_unauthorized_response()
-        
+
         # api_key is guaranteed to be non-None here due to is_configured check
-        
+
         payload: dict[str, Any] = request.json
 
         # Pull the UUID from the query parameters
@@ -114,11 +114,11 @@ def generate_ai_explainer(country_id: str) -> Response:
                 status=400,
                 mimetype="application/json",
             )
-        
+
         use_streaming: bool = payload.get("use_streaming", False)
 
         household_raw = payload.get("household")
-        
+
         # Parse household based on country
         household = None
         if country_id == "us":
@@ -158,9 +158,10 @@ def generate_ai_explainer(country_id: str) -> Response:
         # Fetch the tracer output from the Google Cloud bucket
         flattened_var = flattened_var_list[0]
         storage_manager = GoogleCloudStorageManager()
-        
+
         # Convert string UUID to proper type for storage manager
         from uuid import UUID
+
         computation_tree: ComputationTree = storage_manager.get(
             uuid=UUID(uuid), deserializer=ComputationTree
         )
