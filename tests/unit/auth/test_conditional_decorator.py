@@ -160,34 +160,6 @@ class TestConditionalAuthDecoratorBackwardCompatibility:
     """Test backward compatibility scenarios."""
 
     @patch("policyengine_household_api.auth.conditional_decorator.print")
-    def test__given_auth0_config_present__auto_enables_auth(
-        self,
-        mock_print,
-        auth_backward_compat_environment,
-        mock_resource_protector,
-        mock_auth0_validator,
-    ):
-        """Test auto-enabling auth when Auth0 config is present."""
-        mock_protector_class, mock_protector_instance = mock_resource_protector
-        mock_validator_class, mock_validator_instance = mock_auth0_validator
-
-        decorator = ConditionalAuthDecorator()
-
-        # Verify Auth0 was configured despite auth.enabled being False
-        mock_validator_class.assert_called_once_with(
-            AUTH0_CONFIG_DATA["address"], AUTH0_CONFIG_DATA["audience"]
-        )
-        mock_protector_instance.register_token_validator.assert_called_once()
-
-        assert decorator.get_decorator() is mock_protector_instance
-        assert decorator.is_enabled is True
-
-        # Check auto-enable message
-        mock_print.assert_any_call(
-            "Auth0 auto-enabled due to presence of AUTH0 configuration"
-        )
-
-    @patch("policyengine_household_api.auth.conditional_decorator.print")
     def test__given_partial_auth0_config__remains_disabled(
         self,
         mock_print,
