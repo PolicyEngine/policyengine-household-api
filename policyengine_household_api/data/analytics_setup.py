@@ -5,6 +5,8 @@ This module provides conditional analytics database connectivity based on config
 
 import os
 import logging
+from policyengine_household_api.utils import get_config_value
+from google.cloud.sql.connector import Connector, IPTypes
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +27,7 @@ def is_analytics_enabled() -> bool:
     if _analytics_enabled is not None:
         return _analytics_enabled
 
-    # Try to get from config first (future use when app migrates to ConfigLoader)
-    try:
-        from policyengine_household_api.utils import get_config_value
-
-        _analytics_enabled = get_config_value("analytics.enabled", False)
-    except Exception:
-        # Fallback: Check if environment variables are set (backward compatibility)
-        # If all three required env vars are set, assume analytics is enabled
-        required_vars = [
-            "USER_ANALYTICS_DB_CONNECTION_NAME",
-            "USER_ANALYTICS_DB_USERNAME",
-            "USER_ANALYTICS_DB_PASSWORD",
-        ]
-        _analytics_enabled = all(os.getenv(var) for var in required_vars)
+    _analytics_enabled = get_config_value("analytics.enabled", False)
 
     if _analytics_enabled:
         logger.info("User analytics is ENABLED")
@@ -63,8 +52,6 @@ def get_analytics_connector():
 
     if _connector is None:
         try:
-            from google.cloud.sql.connector import Connector
-
             _connector = Connector()
         except Exception as e:
             logger.error(f"Failed to initialize analytics connector: {e}")
@@ -90,40 +77,21 @@ def getconn():
 
     try:
         # Get connection parameters from config or environment
-        try:
-            from policyengine_household_api.utils import get_config_value
+        connection_name = get_config_value(
+            "analytics.database.connection_name",
+        )
+        username = get_config_value(
+            "analytics.database.username",
+        )
+        password = get_config_value(
+            "analytics.database.password",
+        )
 
-            connection_name = get_config_value(
-                "analytics.database.connection_name",
-                os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME"),
-            )
-            username = get_config_value(
-                "analytics.database.username",
-                os.getenv("USER_ANALYTICS_DB_USERNAME"),
-            )
-            password = get_config_value(
-                "analytics.database.password",
-                os.getenv("USER_ANALYTICS_DB_PASSWORD"),
-            )
-        except Exception:
-            # Fallback to environment variables only
-            connection_name = os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME")
-            username = os.getenv("USER_ANALYTICS_DB_USERNAME")
-            password = os.getenv("USER_ANALYTICS_DB_PASSWORD")
-
-        if not connection_name:
+        if not connection_name or not username or not password:
             logger.error(
-                "Analytics enabled but connection_name not configured"
+                "Missing analytics database configuration value"
             )
             return None
-        if not username:
-            logger.error("Analytics enabled but username not configured")
-            return None
-        if not password:
-            logger.error("Analytics enabled but password not configured")
-            return None
-
-        from google.cloud.sql.connector import IPTypes
 
         conn = connector.connect(
             connection_name,
