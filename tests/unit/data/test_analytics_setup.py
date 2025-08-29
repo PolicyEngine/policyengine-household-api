@@ -212,23 +212,6 @@ class TestGetConnection:
         assert conn == mock_connection
         mock_google_connector.connect.assert_called_once()
 
-    def test__given_config_loader_fails__connection_falls_back_to_env_vars(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        mock_google_connector,
-        patch_get_config_value_first_call_succeeds_then_fails,
-    ):
-        """Connection should fall back to env vars if config loader fails."""
-        from policyengine_household_api.data.analytics_setup import getconn
-        from unittest.mock import MagicMock
-
-        mock_connection = MagicMock()
-        mock_google_connector.connect.return_value = mock_connection
-
-        conn = getconn()
-        assert conn == mock_connection
-
     def test__given_missing_connection_name__connection_returns_none(
         self,
         reset_analytics_state,

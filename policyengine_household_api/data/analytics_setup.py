@@ -7,6 +7,7 @@ import os
 import logging
 from policyengine_household_api.utils import get_config_value
 from google.cloud.sql.connector import Connector
+from google.cloud.sql.connector import IPTypes
 
 logger = logging.getLogger(__name__)
 
@@ -69,41 +70,21 @@ def getconn():
         return None
 
     try:
-        # Get connection parameters from config or environment
-        try:
-            from policyengine_household_api.utils import get_config_value
+        connection_name = get_config_value(
+            "analytics.database.connection_name",
+        )
+        username = get_config_value(
+            "analytics.database.username",
+        )
+        password = get_config_value(
+            "analytics.database.password",
+        )
 
-            connection_name = get_config_value(
-                "analytics.database.connection_name",
-                os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME"),
-            )
-            username = get_config_value(
-                "analytics.database.username",
-                os.getenv("USER_ANALYTICS_DB_USERNAME"),
-            )
-            password = get_config_value(
-                "analytics.database.password",
-                os.getenv("USER_ANALYTICS_DB_PASSWORD"),
-            )
-        except Exception:
-            # Fallback to environment variables only
-            connection_name = os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME")
-            username = os.getenv("USER_ANALYTICS_DB_USERNAME")
-            password = os.getenv("USER_ANALYTICS_DB_PASSWORD")
-
-        if not connection_name:
+        if not connection_name or not username or not password:
             logger.error(
-                "Analytics enabled but connection_name not configured"
+                "Analytics enabled but problem with one or more of the following configuration values: connection_name, username, password"
             )
             return None
-        if not username:
-            logger.error("Analytics enabled but username not configured")
-            return None
-        if not password:
-            logger.error("Analytics enabled but password not configured")
-            return None
-
-        from google.cloud.sql.connector import IPTypes
 
         conn = connector.connect(
             connection_name,
