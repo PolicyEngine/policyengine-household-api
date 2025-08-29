@@ -5,9 +5,9 @@ Tests conditional analytics logging based on opt-in/opt-out configuration.
 
 import pytest
 from datetime import datetime
-from tests.fixtures.decorators.analytics_optional import sample_function
+from tests.fixtures.decorators.analytics import sample_function
 from tests.fixtures.data.analytics_setup import reset_analytics_state
-from tests.fixtures.decorators.analytics_optional_patches import (
+from tests.fixtures.decorators.analytics_patches import (
     mock_analytics_enabled,
     mock_analytics_disabled,
     mock_analytics_error,
@@ -33,7 +33,7 @@ class TestAnalyticsDecorator:
         self, sample_function, mock_analytics_disabled
     ):
         """Decorator should skip analytics when disabled."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -45,7 +45,7 @@ class TestAnalyticsDecorator:
         self, sample_function, setup_analytics_decorator_test
     ):
         """Decorator should log analytics when enabled with valid auth."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -79,7 +79,7 @@ class TestAnalyticsDecorator:
         mock_db_session,
     ):
         """Decorator should handle missing authorization by using 'unknown' client_id."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -105,7 +105,7 @@ class TestAnalyticsDecorator:
         mock_db_session,
     ):
         """Decorator should handle JWT decode errors by using 'unknown' client_id."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -129,7 +129,7 @@ class TestAnalyticsDecorator:
         mock_db_session,
     ):
         """Decorator should strip @clients suffix from client ID."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -153,7 +153,7 @@ class TestAnalyticsDecorator:
         mock_db_session,
     ):
         """Decorator should preserve client ID without @clients suffix."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -177,7 +177,7 @@ class TestAnalyticsDecorator:
         mock_db_session_with_error,
     ):
         """Decorator should handle database errors gracefully."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -191,7 +191,7 @@ class TestAnalyticsDecorator:
         self, sample_function, mock_analytics_error
     ):
         """Decorator should handle analytics check errors gracefully."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
@@ -205,7 +205,7 @@ class TestAnalyticsDecorator:
         self, sample_function
     ):
         """Decorator should preserve the original function's metadata."""
-        from policyengine_household_api.decorators.analytics_optional import (
+        from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 

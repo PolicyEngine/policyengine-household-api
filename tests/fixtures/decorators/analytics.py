@@ -150,7 +150,7 @@ def sample_function():
 @pytest.fixture
 def decorated_sample_function(sample_function):
     """Sample function with analytics decorator applied."""
-    from policyengine_household_api.decorators.analytics_optional import (
+    from policyengine_household_api.decorators.analytics import (
         log_analytics_if_enabled,
     )
 
