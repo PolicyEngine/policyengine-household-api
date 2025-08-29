@@ -9,6 +9,9 @@ from datetime import datetime
 import jwt
 import logging
 from policyengine_household_api.constants import VERSION
+from policyengine_household_api.data.analytics_setup import (
+    is_analytics_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +30,6 @@ def log_analytics_if_enabled(func):
     def decorated_function(*args, **kwargs):
         # Check if analytics is enabled
         try:
-            from policyengine_household_api.data.analytics_setup import (
-                is_analytics_enabled,
-            )
-
             if not is_analytics_enabled():
                 # Analytics disabled, just execute the function
                 return func(*args, **kwargs)
@@ -41,6 +40,7 @@ def log_analytics_if_enabled(func):
 
         # Analytics is enabled, proceed with logging
         try:
+            # Import here to avoid circular dependency
             from policyengine_household_api.api import db
             from policyengine_household_api.data.models import Visit
 

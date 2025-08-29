@@ -19,6 +19,7 @@ from flask_limiter.util import get_remote_address
 from .auth.conditional_decorator import create_auth_decorator
 from .constants import VERSION, REPO
 from .data.setup import getconn
+from policyengine_household_api.decorators.analytics import log_analytics_if_enabled
 
 # Endpoints
 from .endpoints import (
@@ -77,14 +78,13 @@ from policyengine_household_api.data.models import Visit
 with app.app_context():
     db.create_all()
 
-from policyengine_household_api.decorators.analytics import log_analytics
 
 app.route("/", methods=["GET"])(get_home)
 
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth(None)
-@log_analytics
+@log_analytics_if_enabled
 def calculate(country_id):
     return get_calculate(country_id)
 
