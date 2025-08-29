@@ -1,356 +1,572 @@
 """
-Unit tests for analytics_setup module.
-Tests opt-in/opt-out scenarios and various configuration states.
+Unit tests for the analytics setup module.
 """
 
+import logging
+from unittest.mock import patch, MagicMock, Mock
 import pytest
-import os
-from tests.fixtures.data.analytics_setup import (
-    analytics_disabled_env,
-    analytics_enabled_env,
-    analytics_auto_enabled_env,
-    analytics_partial_env,
-    reset_analytics_state,
-    mock_google_connector,
-)
-from tests.fixtures.data.analytics_setup_patches import (
-    patch_get_config_value_returns_false,
-    patch_get_config_value_returns_true,
-    patch_get_config_value_raises_exception,
-    patch_get_config_value_with_full_config,
-    patch_get_config_value_missing_connection_name,
-    patch_get_config_value_missing_username,
-    patch_get_config_value_missing_password,
-    patch_get_config_value_first_call_succeeds_then_fails,
-    patch_google_connector_raises_import_error,
-    patch_google_connector_with_connection_error,
+from policyengine_household_api.data.analytics_setup import (
+    is_analytics_enabled,
+    get_analytics_connector,
+    getconn,
+    cleanup,
 )
 
 
-class TestAnalyticsEnabled:
+class TestIsAnalyticsEnabled:
     """Test the is_analytics_enabled function."""
 
-    def test__given_no_config_set__analytics_disabled_by_default(
-        self,
-        reset_analytics_state,
-        analytics_disabled_env,
-        patch_get_config_value_returns_false,
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_analytics_enabled__returns_true_and_logs(
+        self, mock_create_guard, caplog
     ):
-        """Analytics should be disabled by default when no config is set."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
+        """Test that analytics enabled returns True and logs appropriately."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_connection_name": "project:region:instance",
+                "user_analytics_db_username": "user",
+                "user_analytics_db_password": "pass",
+            },
         )
+        mock_create_guard.return_value = mock_guard
 
-        assert is_analytics_enabled() is False
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
 
-    def test__given_config_explicitly_enables_analytics__analytics_is_enabled(
-        self,
-        reset_analytics_state,
-        analytics_disabled_env,
-        patch_get_config_value_returns_true,
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+
+        with caplog.at_level(logging.INFO):
+            result = is_analytics_enabled()
+
+        assert result is True
+        assert "User analytics is ENABLED" in caplog.text
+
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_analytics_disabled__returns_false_and_logs(
+        self, mock_create_guard, caplog
     ):
-        """Analytics should be enabled when config explicitly enables it."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
-        )
+        """Test that analytics disabled returns False and logs appropriately."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (False, {"missing_vars": ["USER_ANALYTICS_DB_CONNECTION_NAME"]})
+        mock_create_guard.return_value = mock_guard
 
-        assert is_analytics_enabled() is True
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
 
-    def test__given_analytics_enabled_env_var__analytics_is_enabled(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        patch_get_config_value_returns_true,
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+
+        with caplog.at_level(logging.INFO):
+            result = is_analytics_enabled()
+
+        assert result is False
+        assert "User analytics is DISABLED (opt-in required)" in caplog.text
+
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_analytics_already_checked__returns_cached_value(
+        self, mock_create_guard
     ):
-        """Analytics should be enabled when ANALYTICS__ENABLED env var is set."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
-        )
+        """Test that is_analytics_enabled caches its result."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (True, {})
+        mock_create_guard.return_value = mock_guard
 
-        assert is_analytics_enabled() is True
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
 
-    def test__given_all_credential_env_vars_present__analytics_auto_enables(
-        self,
-        reset_analytics_state,
-        analytics_auto_enabled_env,
-        patch_get_config_value_raises_exception,
-    ):
-        """Analytics should auto-enable when all three credential env vars are present."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
-        )
-
-        assert is_analytics_enabled() is True
-
-    def test__given_partial_credentials__analytics_remains_disabled(
-        self,
-        reset_analytics_state,
-        analytics_partial_env,
-        patch_get_config_value_raises_exception,
-    ):
-        """Analytics should remain disabled with only partial credentials."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
-        )
-
-        assert is_analytics_enabled() is False
-
-    def test__given_analytics_state_checked_once__subsequent_checks_use_cached_value(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        patch_get_config_value_returns_true,
-    ):
-        """Analytics state should be cached after first check."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
-        )
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
 
         # First call
         result1 = is_analytics_enabled()
-        assert result1 is True
-        assert patch_get_config_value_returns_true.call_count == 1
-
-        # Second call should use cached value
+        # Second call
         result2 = is_analytics_enabled()
+
+        assert result1 is True
         assert result2 is True
-        assert (
-            patch_get_config_value_returns_true.call_count == 1
-        )  # Not called again
+        # Guard should only be created and checked once
+        mock_create_guard.assert_called_once()
+        mock_guard.check.assert_called_once()
 
 
-class TestAnalyticsConnector:
+class TestGetAnalyticsConnector:
     """Test the get_analytics_connector function."""
 
-    def test__given_analytics_disabled__connector_returns_none(
-        self,
-        reset_analytics_state,
-        analytics_disabled_env,
-        patch_get_config_value_returns_false,
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_analytics_disabled__returns_none(self, mock_create_guard):
+        """Test that connector returns None when analytics is disabled."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (False, {})
+        mock_create_guard.return_value = mock_guard
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        result = get_analytics_connector()
+
+        assert result is None
+
+    @patch("policyengine_household_api.data.analytics_setup.Connector")
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_analytics_enabled__creates_and_returns_connector(
+        self, mock_create_guard, mock_connector_class
     ):
-        """Connector should return None when analytics is disabled."""
-        from policyengine_household_api.data.analytics_setup import (
-            get_analytics_connector,
-        )
+        """Test that connector is created when analytics is enabled."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (True, {})
+        mock_create_guard.return_value = mock_guard
 
-        assert get_analytics_connector() is None
+        # Set up mock connector
+        mock_connector_instance = MagicMock()
+        mock_connector_class.return_value = mock_connector_instance
 
-    def test__given_analytics_enabled__connector_is_initialized(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        mock_google_connector,
-        patch_get_config_value_returns_true,
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        result = get_analytics_connector()
+
+        assert result is mock_connector_instance
+        mock_connector_class.assert_called_once()
+
+    @patch("policyengine_household_api.data.analytics_setup.Connector")
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_connector_already_exists__returns_cached_connector(
+        self, mock_create_guard, mock_connector_class
     ):
-        """Connector should be initialized when analytics is enabled."""
-        from policyengine_household_api.data.analytics_setup import (
-            get_analytics_connector,
-        )
+        """Test that existing connector is reused."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (True, {})
+        mock_create_guard.return_value = mock_guard
 
-        connector = get_analytics_connector()
-        assert connector is not None
-        assert connector == mock_google_connector
+        # Set up mock connector
+        mock_connector_instance = MagicMock()
+        mock_connector_class.return_value = mock_connector_instance
 
-    def test__given_connector_initialized__subsequent_calls_return_cached_instance(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        patch_get_config_value_returns_true,
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        # First call creates connector
+        result1 = get_analytics_connector()
+        # Second call reuses connector
+        result2 = get_analytics_connector()
+
+        assert result1 is mock_connector_instance
+        assert result2 is mock_connector_instance
+        # Connector should only be created once
+        mock_connector_class.assert_called_once()
+
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_connector_import_fails__returns_none_and_logs_error(
+        self, mock_create_guard, caplog
     ):
-        """Connector should be cached after first initialization."""
-        from policyengine_household_api.data.analytics_setup import (
-            get_analytics_connector,
-        )
-        from unittest.mock import patch, MagicMock
+        """Test that import errors are handled gracefully."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (True, {})
+        mock_create_guard.return_value = mock_guard
 
-        with patch("google.cloud.sql.connector.Connector") as MockConnector:
-            mock_instance = MagicMock()
-            MockConnector.return_value = mock_instance
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
 
-            # First call
-            connector1 = get_analytics_connector()
-            assert MockConnector.call_count == 1
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
 
-            # Second call should return cached instance
-            connector2 = get_analytics_connector()
-            assert connector1 is connector2
-            assert MockConnector.call_count == 1
+        with patch(
+            "policyengine_household_api.data.analytics_setup.Connector",
+            side_effect=ImportError("Module not found"),
+        ):
+            with caplog.at_level(logging.ERROR):
+                result = get_analytics_connector()
 
-    def test__given_google_cloud_sql_library_not_available__connector_returns_none(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        patch_get_config_value_returns_true,
-        patch_google_connector_raises_import_error,
-    ):
-        """Connector should return None if Google Cloud SQL library not available."""
-        from policyengine_household_api.data.analytics_setup import (
-            get_analytics_connector,
-        )
-
-        connector = get_analytics_connector()
-        assert connector is None
+        assert result is None
+        assert "Failed to initialize analytics connector" in caplog.text
 
 
-class TestGetConnection:
+class TestGetConn:
     """Test the getconn function."""
 
-    def test__given_analytics_disabled__connection_returns_none(
-        self,
-        reset_analytics_state,
-        analytics_disabled_env,
-        patch_get_config_value_returns_false,
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_analytics_disabled__returns_none(self, mock_create_guard):
+        """Test that getconn returns None when analytics is disabled."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (False, {})
+        mock_create_guard.return_value = mock_guard
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+
+        result = getconn()
+
+        assert result is None
+
+    @patch("policyengine_household_api.data.analytics_setup.IPTypes")
+    @patch("policyengine_household_api.data.analytics_setup.Connector")
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_valid_configuration__creates_connection_successfully(
+        self, mock_create_guard, mock_connector_class, mock_ip_types
     ):
-        """Connection should return None when analytics is disabled."""
-        from policyengine_household_api.data.analytics_setup import getconn
-
-        assert getconn() is None
-
-    def test__given_valid_config__connection_succeeds(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        mock_google_connector,
-        patch_get_config_value_with_full_config,
-    ):
-        """Connection should succeed with valid configuration."""
-        from policyengine_household_api.data.analytics_setup import getconn
-        from unittest.mock import MagicMock
-
-        mock_connection = MagicMock()
-        mock_google_connector.connect.return_value = mock_connection
-
-        conn = getconn()
-        assert conn == mock_connection
-        mock_google_connector.connect.assert_called_once()
-
-    def test__given_config_loader_fails__connection_falls_back_to_env_vars(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        mock_google_connector,
-        patch_get_config_value_first_call_succeeds_then_fails,
-    ):
-        """Connection should fall back to env vars if config loader fails."""
-        from policyengine_household_api.data.analytics_setup import getconn
-        from unittest.mock import MagicMock
-
-        mock_connection = MagicMock()
-        mock_google_connector.connect.return_value = mock_connection
-
-        conn = getconn()
-        assert conn == mock_connection
-
-    def test__given_missing_connection_name__connection_returns_none(
-        self,
-        reset_analytics_state,
-        analytics_disabled_env,
-        mock_google_connector,
-        patch_get_config_value_missing_connection_name,
-    ):
-        """Connection should return None if connection_name is missing."""
-        from policyengine_household_api.data.analytics_setup import getconn
-
-        # Set up env with missing connection name
-        os.environ["ANALYTICS__ENABLED"] = "true"
-        os.environ["USER_ANALYTICS_DB_USERNAME"] = "test_user"
-        os.environ["USER_ANALYTICS_DB_PASSWORD"] = "test_password"
-
-        conn = getconn()
-        assert conn is None
-
-    def test__given_missing_username__connection_returns_none(
-        self,
-        reset_analytics_state,
-        analytics_disabled_env,
-        mock_google_connector,
-        patch_get_config_value_missing_username,
-    ):
-        """Connection should return None if username is missing."""
-        from policyengine_household_api.data.analytics_setup import getconn
-
-        os.environ["ANALYTICS__ENABLED"] = "true"
-        os.environ["USER_ANALYTICS_DB_CONNECTION_NAME"] = (
-            "test-project:us-central1:test-instance"
+        """Test successful connection creation with valid configuration."""
+        # Set up mock guard with full context
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_connection_name": "project:region:instance",
+                "user_analytics_db_username": "testuser",
+                "user_analytics_db_password": "testpass",
+            },
         )
-        os.environ["USER_ANALYTICS_DB_PASSWORD"] = "test_password"
+        mock_create_guard.return_value = mock_guard
 
-        conn = getconn()
-        assert conn is None
+        # Set up mock connector
+        mock_connector_instance = MagicMock()
+        mock_connection = MagicMock()
+        mock_connector_instance.connect.return_value = mock_connection
+        mock_connector_class.return_value = mock_connector_instance
 
-    def test__given_missing_password__connection_returns_none(
-        self,
-        reset_analytics_state,
-        analytics_disabled_env,
-        mock_google_connector,
-        patch_get_config_value_missing_password,
-    ):
-        """Connection should return None if password is missing."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        # Set up IP types
+        mock_ip_types.PUBLIC = "PUBLIC"
 
-        os.environ["ANALYTICS__ENABLED"] = "true"
-        os.environ["USER_ANALYTICS_DB_CONNECTION_NAME"] = (
-            "test-project:us-central1:test-instance"
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        result = getconn()
+
+        assert result is mock_connection
+        mock_connector_instance.connect.assert_called_once_with(
+            "project:region:instance",
+            "pymysql",
+            user="testuser",
+            password="testpass",
+            db="user_analytics",
+            ip_type="PUBLIC",
         )
-        os.environ["USER_ANALYTICS_DB_USERNAME"] = "test_user"
 
-        conn = getconn()
-        assert conn is None
-
-    def test__given_connection_fails__connection_returns_none(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        patch_get_config_value_with_full_config,
-        patch_google_connector_with_connection_error,
+    @patch("policyengine_household_api.data.analytics_setup.Connector")
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_missing_connection_name__returns_none_and_logs_error(
+        self, mock_create_guard, mock_connector_class, caplog
     ):
-        """Connection should return None if connection fails."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        """Test that missing connection_name is handled properly."""
+        # Set up mock guard with missing connection_name
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_username": "testuser",
+                "user_analytics_db_password": "testpass",
+            },
+        )
+        mock_create_guard.return_value = mock_guard
 
-        conn = getconn()
-        assert conn is None
+        # Set up mock connector
+        mock_connector_instance = MagicMock()
+        mock_connector_class.return_value = mock_connector_instance
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        with caplog.at_level(logging.ERROR):
+            result = getconn()
+
+        assert result is None
+        assert "Analytics enabled but connection_name not configured" in caplog.text
+
+    @patch("policyengine_household_api.data.analytics_setup.Connector")
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_missing_username__returns_none_and_logs_error(
+        self, mock_create_guard, mock_connector_class, caplog
+    ):
+        """Test that missing username is handled properly."""
+        # Set up mock guard with missing username
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_connection_name": "project:region:instance",
+                "user_analytics_db_password": "testpass",
+            },
+        )
+        mock_create_guard.return_value = mock_guard
+
+        # Set up mock connector
+        mock_connector_instance = MagicMock()
+        mock_connector_class.return_value = mock_connector_instance
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        with caplog.at_level(logging.ERROR):
+            result = getconn()
+
+        assert result is None
+        assert "Analytics enabled but username not configured" in caplog.text
+
+    @patch("policyengine_household_api.data.analytics_setup.Connector")
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_missing_password__returns_none_and_logs_error(
+        self, mock_create_guard, mock_connector_class, caplog
+    ):
+        """Test that missing password is handled properly."""
+        # Set up mock guard with missing password
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_connection_name": "project:region:instance",
+                "user_analytics_db_username": "testuser",
+            },
+        )
+        mock_create_guard.return_value = mock_guard
+
+        # Set up mock connector
+        mock_connector_instance = MagicMock()
+        mock_connector_class.return_value = mock_connector_instance
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        with caplog.at_level(logging.ERROR):
+            result = getconn()
+
+        assert result is None
+        assert "Analytics enabled but password not configured" in caplog.text
+
+    @patch("policyengine_household_api.data.analytics_setup.IPTypes")
+    @patch("policyengine_household_api.data.analytics_setup.Connector")
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_connection_error__returns_none_and_logs_error(
+        self, mock_create_guard, mock_connector_class, mock_ip_types, caplog
+    ):
+        """Test that connection errors are handled gracefully."""
+        # Set up mock guard with full context
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_connection_name": "project:region:instance",
+                "user_analytics_db_username": "testuser",
+                "user_analytics_db_password": "testpass",
+            },
+        )
+        mock_create_guard.return_value = mock_guard
+
+        # Set up mock connector to raise error
+        mock_connector_instance = MagicMock()
+        mock_connector_instance.connect.side_effect = Exception("Connection failed")
+        mock_connector_class.return_value = mock_connector_instance
+
+        # Set up IP types
+        mock_ip_types.PUBLIC = "PUBLIC"
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        with caplog.at_level(logging.ERROR):
+            result = getconn()
+
+        assert result is None
+        assert "Failed to connect to analytics database" in caplog.text
 
 
 class TestCleanup:
     """Test the cleanup function."""
 
-    def test__given_connector_exists__cleanup_closes_connector(
-        self, reset_analytics_state
-    ):
-        """Cleanup should close the connector if it exists."""
-        from policyengine_household_api.data.analytics_setup import cleanup
-        import policyengine_household_api.data.analytics_setup as analytics
-        from unittest.mock import MagicMock
+    def test__given_no_connector__cleanup_does_nothing(self):
+        """Test that cleanup works when no connector exists."""
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
 
+        analytics_module._connector = None
+
+        # Should not raise any errors
+        cleanup()
+
+        assert analytics_module._connector is None
+
+    def test__given_existing_connector__cleanup_closes_and_clears_it(self):
+        """Test that cleanup closes the connector properly."""
+        # Set up mock connector
         mock_connector = MagicMock()
-        analytics._connector = mock_connector
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._connector = mock_connector
 
         cleanup()
 
         mock_connector.close.assert_called_once()
-        assert analytics._connector is None
+        assert analytics_module._connector is None
 
-    def test__given_no_connector__cleanup_handles_gracefully(
-        self, reset_analytics_state
-    ):
-        """Cleanup should handle case where no connector exists."""
-        from policyengine_household_api.data.analytics_setup import cleanup
-
-        # Should not raise error
-        cleanup()
-
-    def test__given_close_raises_error__cleanup_still_clears_connector(
-        self, reset_analytics_state
-    ):
-        """Cleanup should handle errors when closing connector."""
-        from policyengine_household_api.data.analytics_setup import cleanup
-        import policyengine_household_api.data.analytics_setup as analytics
-        from unittest.mock import MagicMock
-
+    def test__given_connector_close_fails__cleanup_still_clears_it(self):
+        """Test that cleanup handles close errors gracefully."""
+        # Set up mock connector that raises on close
         mock_connector = MagicMock()
         mock_connector.close.side_effect = Exception("Close failed")
-        analytics._connector = mock_connector
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._connector = mock_connector
 
         # Should not raise error
         cleanup()
-        assert analytics._connector is None
+
+        mock_connector.close.assert_called_once()
+        assert analytics_module._connector is None
+
+
+class TestModuleLevelState:
+    """Test module-level state management."""
+
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_multiple_function_calls__state_is_consistent(
+        self, mock_create_guard
+    ):
+        """Test that module state remains consistent across function calls."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_connection_name": "project:region:instance",
+                "user_analytics_db_username": "testuser",
+                "user_analytics_db_password": "testpass",
+            },
+        )
+        mock_create_guard.return_value = mock_guard
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+        analytics_module._connector = None
+
+        # First check enables analytics
+        is_enabled1 = is_analytics_enabled()
+        assert is_enabled1 is True
+
+        # Context should be available for other functions
+        with patch(
+            "policyengine_household_api.data.analytics_setup.Connector"
+        ) as mock_connector_class:
+            mock_connector = MagicMock()
+            mock_connector_class.return_value = mock_connector
+
+            connector = get_analytics_connector()
+            assert connector is mock_connector
+
+        # Second check should use cached value
+        is_enabled2 = is_analytics_enabled()
+        assert is_enabled2 is True
+
+        # Guard should only be created once
+        mock_create_guard.assert_called_once()
+
+
+class TestAnalyticsExplicitlyDisabled:
+    """Test analytics behavior when explicitly disabled via ANALYTICS_ENABLED=false."""
+
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_explicitly_disabled__returns_false_even_with_credentials(
+        self, mock_create_guard, caplog
+    ):
+        """Test that ANALYTICS_ENABLED=false overrides presence of credentials."""
+        # Set up mock guard that returns disabled (explicitly disabled via env var)
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (False, {})
+        mock_create_guard.return_value = mock_guard
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+
+        with caplog.at_level(logging.INFO):
+            result = is_analytics_enabled()
+
+        assert result is False
+        assert "User analytics is DISABLED (opt-in required)" in caplog.text
+
+
+class TestAnalyticsExplicitlyEnabled:
+    """Test analytics behavior when explicitly enabled via ANALYTICS_ENABLED=true."""
+
+    @patch("policyengine_household_api.data.analytics_setup.create_analytics_guard")
+    def test__given_explicitly_enabled_with_creds__analytics_is_enabled(
+        self, mock_create_guard, caplog
+    ):
+        """Test that ANALYTICS_ENABLED=true with credentials enables analytics."""
+        # Set up mock guard
+        mock_guard = MagicMock()
+        mock_guard.check.return_value = (
+            True,
+            {
+                "user_analytics_db_connection_name": "project:region:instance",
+                "user_analytics_db_username": "user",
+                "user_analytics_db_password": "pass",
+                "explicitly_enabled": True,
+            },
+        )
+        mock_create_guard.return_value = mock_guard
+
+        # Reset module state
+        import policyengine_household_api.data.analytics_setup as analytics_module
+
+        analytics_module._analytics_enabled = None
+        analytics_module._analytics_context = None
+
+        with caplog.at_level(logging.INFO):
+            result = is_analytics_enabled()
+
+        assert result is True
+        assert "User analytics is ENABLED" in caplog.text

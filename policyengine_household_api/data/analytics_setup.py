@@ -3,13 +3,14 @@ Analytics database setup with opt-in configuration support.
 This module provides conditional analytics database connectivity based on configuration.
 """
 
-import os
 import logging
+from policyengine_household_api.utils.env_var_guard import create_analytics_guard
 
 logger = logging.getLogger(__name__)
 
-# Global variable to store whether analytics is enabled
+# Global variable to store whether analytics is enabled and context
 _analytics_enabled = None
+_analytics_context = None
 _connector = None
 
 
@@ -20,25 +21,14 @@ def is_analytics_enabled() -> bool:
     Returns:
         bool: True if analytics is enabled, False otherwise
     """
-    global _analytics_enabled
+    global _analytics_enabled, _analytics_context
 
     if _analytics_enabled is not None:
         return _analytics_enabled
 
-    # Try to get from config first (future use when app migrates to ConfigLoader)
-    try:
-        from policyengine_household_api.utils import get_config_value
-
-        _analytics_enabled = get_config_value("analytics.enabled", False)
-    except Exception:
-        # Fallback: Check if environment variables are set (backward compatibility)
-        # If all three required env vars are set, assume analytics is enabled
-        required_vars = [
-            "USER_ANALYTICS_DB_CONNECTION_NAME",
-            "USER_ANALYTICS_DB_USERNAME",
-            "USER_ANALYTICS_DB_PASSWORD",
-        ]
-        _analytics_enabled = all(os.getenv(var) for var in required_vars)
+    # Use analytics guard to check if analytics is enabled
+    guard = create_analytics_guard()
+    _analytics_enabled, _analytics_context = guard.check()
 
     if _analytics_enabled:
         logger.info("User analytics is ENABLED")
@@ -89,27 +79,12 @@ def getconn():
         return None
 
     try:
-        # Get connection parameters from config or environment
-        try:
-            from policyengine_household_api.utils import get_config_value
-
-            connection_name = get_config_value(
-                "analytics.database.connection_name",
-                os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME"),
-            )
-            username = get_config_value(
-                "analytics.database.username",
-                os.getenv("USER_ANALYTICS_DB_USERNAME"),
-            )
-            password = get_config_value(
-                "analytics.database.password",
-                os.getenv("USER_ANALYTICS_DB_PASSWORD"),
-            )
-        except Exception:
-            # Fallback to environment variables only
-            connection_name = os.getenv("USER_ANALYTICS_DB_CONNECTION_NAME")
-            username = os.getenv("USER_ANALYTICS_DB_USERNAME")
-            password = os.getenv("USER_ANALYTICS_DB_PASSWORD")
+        # Get connection parameters from the context set by analytics guard
+        global _analytics_context
+        
+        connection_name = _analytics_context.get('user_analytics_db_connection_name')
+        username = _analytics_context.get('user_analytics_db_username')
+        password = _analytics_context.get('user_analytics_db_password')
 
         if not connection_name:
             logger.error(

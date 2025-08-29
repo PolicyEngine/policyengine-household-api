@@ -1,8 +1,7 @@
 import json
 import logging
-import os
 from flask import request, Response, stream_with_context
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 from policyengine_household_api.models import (
     HouseholdModelUS,
     HouseholdModelUK,
@@ -27,54 +26,10 @@ from policyengine_household_api.utils.computation_tree import (
 from policyengine_household_api.ai_templates import (
     household_explainer_template,
 )
-from policyengine_household_api.utils.config_loader import get_config_value
+from policyengine_household_api.utils.env_var_guard import create_anthropic_guard
 from pydantic import ValidationError
 
 
-def _check_anthropic_configuration() -> Tuple[bool, Optional[str]]:
-    """
-    Check if Anthropic API is properly configured.
-
-    Returns:
-        Tuple[bool, Optional[str]]: (is_configured, api_key)
-            - is_configured: True if AI services are enabled and API key is present
-            - api_key: The API key if configured, None otherwise
-    """
-    # Check configuration
-    ai_enabled = bool(get_config_value("ai.enabled", False))
-    api_key = get_config_value("ai.anthropic.api_key", "")
-
-    # Backward compatibility: auto-enable if ANTHROPIC_API_KEY env var is set
-    if not ai_enabled and not api_key:
-        env_api_key = os.getenv("ANTHROPIC_API_KEY")
-        if env_api_key:
-            api_key = env_api_key
-            ai_enabled = True
-
-    # Convert empty string to None for clarity
-    if not api_key:
-        api_key = None
-
-    return (ai_enabled and api_key is not None), api_key
-
-
-def _create_unauthorized_response() -> Response:
-    """
-    Create a 401 response for missing Anthropic configuration.
-
-    Returns:
-        Response: A 401 Unauthorized response with error details.
-    """
-    return Response(
-        json.dumps(
-            dict(
-                status="error",
-                message="Anthropic API key is not configured. Please contact your administrator to enable AI features.",
-            )
-        ),
-        status=401,
-        mimetype="application/json",
-    )
 
 
 @validate_country
@@ -91,13 +46,17 @@ def generate_ai_explainer(country_id: str) -> Response:
     """
 
     try:
-        # Check if AI services are properly configured
-        is_configured, api_key = _check_anthropic_configuration()
+        # Check if AI services are properly configured using EnvVarGuard
+        guard = create_anthropic_guard()
+        is_enabled, context, side_effect_result = guard.require()
 
-        if not is_configured or api_key is None:
-            return _create_unauthorized_response()
+        if not is_enabled:
+            return side_effect_result
 
-        # api_key is guaranteed to be non-None here due to is_configured check
+        # Extract API key from context
+        api_key = context.get('anthropic_api_key')
+        if not api_key:
+            return guard.execute_side_effect()
 
         payload: dict[str, Any] = request.json
 

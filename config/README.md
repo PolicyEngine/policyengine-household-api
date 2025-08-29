@@ -4,7 +4,7 @@ This directory contains configuration files for the PolicyEngine Household API.
 
 ## Current Implementation Status
 
-The application now has a `ConfigLoader` class (`policyengine_household_api/utils/config_loader.py`) that supports hierarchical configuration loading. While the system is ready, the application code still uses environment variables directly. Configuration files in this directory establish the structure for gradual migration.
+The application now has a unified feature management system through the `EnvVarGuard` pattern (`policyengine_household_api/utils/env_var_guard.py`) that provides consistent handling of optional features based on configuration and environment variables. This system is used for Auth0 authentication, Anthropic AI services, and user analytics database connectivity.
 
 ## Configuration Priority
 
@@ -342,18 +342,86 @@ Currently in production, all configuration comes from environment variables:
 # Via GitHub Actions secrets
 
 # Auth0 configuration (opt-in)
-AUTH__ENABLED=true  # Enable Auth0 authentication
-AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
-AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+AUTH_ENABLED=true  # Enable Auth0 authentication
+AUTH0_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+AUTH0_API_AUDIENCE=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
 
 # Analytics configuration (opt-in)
-ANALYTICS__ENABLED=true  # Enable user analytics
+ANALYTICS_ENABLED=true  # Enable user analytics
 USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
 USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
 USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
 
-# AI services
+# AI services (opt-in)
+AI_ENABLED=true  # Enable AI features
 ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+## EnvVarGuard Pattern
+
+The application uses a unified `EnvVarGuard` pattern for managing optional features. This provides a consistent way to:
+- Check if features are enabled based on environment variables
+- Handle features that can be explicitly enabled/disabled
+- Execute side effects when features are disabled or missing configuration
+- Extract and validate required configuration values
+
+### Using EnvVarGuard
+
+The pattern is implemented through a single `EnvVarGuard` class with factory functions:
+
+```python
+from policyengine_household_api.utils.env_var_guard import create_anthropic_guard
+
+# Check if a feature is enabled
+guard = create_anthropic_guard()
+is_enabled, context, side_effect_result = guard.require()
+
+if not is_enabled:
+    # Return the side effect result (e.g., error response)
+    return side_effect_result
+
+# Use extracted values from context
+api_key = context.get('anthropic_api_key')
+```
+
+### Pre-configured Guards
+
+Three feature guards are provided via factory functions:
+
+1. **`create_anthropic_guard()`** - For AI/LLM features
+   - Required vars: `ANTHROPIC_API_KEY`
+   - Enabling var: `AI_ENABLED` (set to "false" to explicitly disable)
+   - Side effect: Returns 401 error response if not configured
+
+2. **`create_auth0_guard()`** - For authentication features
+   - Required vars: `AUTH0_DOMAIN`, `AUTH0_API_AUDIENCE`
+   - Enabling var: `AUTH_ENABLED` (set to "false" to explicitly disable)
+   - Side effect: None (uses NoOpDecorator pattern)
+
+3. **`create_analytics_guard()`** - For user analytics database
+   - Required vars: `USER_ANALYTICS_DB_CONNECTION_NAME`, `USER_ANALYTICS_DB_USERNAME`, `USER_ANALYTICS_DB_PASSWORD`
+   - Enabling var: `ANALYTICS_ENABLED` (set to "false" to explicitly disable)
+   - Side effect: Silent skip (returns None)
+
+### Creating Custom Guards
+
+You can create custom guards for new optional features:
+
+```python
+from policyengine_household_api.utils.env_var_guard import EnvVarGuard, create_error_response
+
+# Define a guard with a custom side effect
+guard = EnvVarGuard(
+    feature_name="My Feature",
+    env_vars=["MY_FEATURE_API_KEY", "MY_FEATURE_URL"],
+    enabling_env_var="MY_FEATURE_ENABLED",
+    side_effect=create_error_response(403, "My Feature is not configured")
+)
+
+# Use it in your code
+is_enabled, context, side_effect_result = guard.require()
+if not is_enabled:
+    return side_effect_result
 ```
 
 ### Local Development

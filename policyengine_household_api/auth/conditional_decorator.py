@@ -6,10 +6,10 @@ based on configuration, allowing for easy local development without authenticati
 while maintaining security in production environments.
 """
 
-from typing import Optional, Any, Callable
+from typing import Any, Callable
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from .validation import Auth0JWTBearerTokenValidator
-from ..utils.config_loader import get_config_value
+from ..utils.env_var_guard import create_auth0_guard
 
 
 class NoOpDecorator:
@@ -57,38 +57,34 @@ class ConditionalAuthDecorator:
         """
         Set up authentication based on configuration.
 
-        Authentication is enabled if:
-        1. The auth.enabled config value is True, OR
-        2. Both Auth0 configuration values are present (backward compatibility)
+        Uses EnvVarGuard to determine if authentication should be enabled
+        based on environment variables.
         """
-        # Check if Auth0 is explicitly enabled via configuration
-        self._auth_enabled = get_config_value("auth.enabled", False)
-
-        # Get Auth0 configuration values
-        auth0_address = get_config_value("auth.auth0.address", "")
-        auth0_audience = get_config_value("auth.auth0.audience", "")
-
-        # Backward compatibility: auto-enable if Auth0 env vars are set
-        if not self._auth_enabled and auth0_address and auth0_audience:
-            self._auth_enabled = True
-            print("Auth0 auto-enabled due to presence of AUTH0 configuration")
+        # Use Auth0 guard to check if authentication is enabled
+        guard = create_auth0_guard()
+        self._auth_enabled, context = guard.check()
 
         # Initialize the appropriate decorator
         if self._auth_enabled:
-            if auth0_address and auth0_audience:
+            # Extract domain and audience from context
+            auth0_domain = context.get('auth0_domain')
+            auth0_audience = context.get('auth0_api_audience')
+            
+            if auth0_domain and auth0_audience:
                 # Set up real Auth0 authentication
                 resource_protector = ResourceProtector()
                 validator = Auth0JWTBearerTokenValidator(
-                    auth0_address, auth0_audience
+                    auth0_domain, auth0_audience
                 )
                 resource_protector.register_token_validator(validator)
                 self._decorator = resource_protector
-                print(
-                    f"Auth0 authentication enabled with domain: {auth0_address}"
-                )
+                
+                if context.get('explicitly_enabled'):
+                    print("Auth0 explicitly enabled via AUTH_ENABLED")
+                print(f"Auth0 authentication enabled with domain: {auth0_domain}")
             else:
-                # Auth was requested but configuration is missing
-                print("Warning: Auth enabled but Auth0 configuration missing")
+                # This shouldn't happen given guard logic, but handle it
+                print("Warning: Auth enabled but Auth0 configuration incomplete")
                 self._auth_enabled = False
                 self._decorator = NoOpDecorator()
         else:
