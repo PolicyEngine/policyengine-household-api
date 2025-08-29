@@ -46,7 +46,7 @@ class TestAnalyticsEnabled:
     def test__given_config_explicitly_enables_analytics__analytics_is_enabled(
         self,
         reset_analytics_state,
-        analytics_disabled_env,
+        analytics_enabled_env,
         patch_get_config_value_returns_true,
     ):
         """Analytics should be enabled when config explicitly enables it."""
@@ -69,19 +69,6 @@ class TestAnalyticsEnabled:
 
         assert is_analytics_enabled() is True
 
-    def test__given_all_credential_env_vars_present__analytics_auto_enables(
-        self,
-        reset_analytics_state,
-        analytics_auto_enabled_env,
-        patch_get_config_value_raises_exception,
-    ):
-        """Analytics should auto-enable when all three credential env vars are present."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
-        )
-
-        assert is_analytics_enabled() is True
-
     def test__given_partial_credentials__analytics_remains_disabled(
         self,
         reset_analytics_state,
@@ -93,7 +80,8 @@ class TestAnalyticsEnabled:
             is_analytics_enabled,
         )
 
-        assert is_analytics_enabled() is False
+        with pytest.raises(Exception, match="No config"):
+            is_analytics_enabled()
 
     def test__given_analytics_state_checked_once__subsequent_checks_use_cached_value(
         self,

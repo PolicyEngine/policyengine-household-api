@@ -5,13 +5,13 @@ This module provides conditional analytics database connectivity based on config
 
 import os
 import logging
+from policyengine_household_api.utils import get_config_value
 
 logger = logging.getLogger(__name__)
 
 # Global variable to store whether analytics is enabled
 _analytics_enabled = None
 _connector = None
-
 
 def is_analytics_enabled() -> bool:
     """
@@ -26,27 +26,8 @@ def is_analytics_enabled() -> bool:
         return _analytics_enabled
 
     # Try to get from config first (future use when app migrates to ConfigLoader)
-    try:
-        from policyengine_household_api.utils import get_config_value
-
-        _analytics_enabled = get_config_value("analytics.enabled", False)
-    except Exception:
-        # Fallback: Check if environment variables are set (backward compatibility)
-        # If all three required env vars are set, assume analytics is enabled
-        required_vars = [
-            "USER_ANALYTICS_DB_CONNECTION_NAME",
-            "USER_ANALYTICS_DB_USERNAME",
-            "USER_ANALYTICS_DB_PASSWORD",
-        ]
-        _analytics_enabled = all(os.getenv(var) for var in required_vars)
-
-    if _analytics_enabled:
-        logger.info("User analytics is ENABLED")
-    else:
-        logger.info("User analytics is DISABLED (opt-in required)")
-
+    _analytics_enabled = get_config_value("analytics.enabled", False)
     return _analytics_enabled
-
 
 def get_analytics_connector():
     """
