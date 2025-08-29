@@ -54,7 +54,7 @@ def mock_connector():
 @pytest.fixture
 def mock_google_connector():
     """Mock the actual Google Cloud SQL Connector class."""
-    with patch("google.cloud.sql.connector.Connector") as MockConnector:
+    with patch("policyengine_household_api.data.analytics_setup.Connector") as MockConnector:
         instance = MagicMock()
         instance.connect = MagicMock()
         instance.close = MagicMock()

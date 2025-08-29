@@ -6,6 +6,7 @@ This module provides conditional analytics database connectivity based on config
 import os
 import logging
 from policyengine_household_api.utils import get_config_value
+from google.cloud.sql.connector import Connector
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,6 @@ def get_analytics_connector():
 
     if _connector is None:
         try:
-            from google.cloud.sql.connector import Connector
-
             _connector = Connector()
         except Exception as e:
             logger.error(f"Failed to initialize analytics connector: {e}")

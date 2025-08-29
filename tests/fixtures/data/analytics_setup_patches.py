@@ -130,7 +130,7 @@ def patch_get_config_value_first_call_succeeds_then_fails():
 def patch_google_connector_raises_import_error():
     """Patch Google Cloud SQL Connector to raise ImportError."""
     with patch(
-        "google.cloud.sql.connector.Connector",
+        "policyengine_household_api.data.analytics_setup.Connector",
         side_effect=ImportError("No module"),
     ) as mock:
         yield mock
