@@ -1,5 +1,5 @@
 """
-Unit tests for analytics_optional decorator.
+Unit tests for analytics decorator.
 Tests conditional analytics logging based on opt-in/opt-out configuration.
 """
 

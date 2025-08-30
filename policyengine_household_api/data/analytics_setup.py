@@ -8,6 +8,10 @@ import logging
 from policyengine_household_api.utils import get_config_value
 from google.cloud.sql.connector import Connector
 from google.cloud.sql.connector import IPTypes
+from pathlib import Path
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase
+from flask_sqlalchemy import SQLAlchemy
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +19,43 @@ logger = logging.getLogger(__name__)
 _analytics_enabled = None
 _connector = None
 
+# Configure db schema, but don't initialize db itself
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+
+def initialize_analytics_db_if_enabled(app):
+    """
+    Initialize database configuration for the Flask app, if enabled.
+    Return a bool corresponding with whether or not it's enabled,
+    as well as the SQLAlchemy instance if it is enabled or None if not.
+
+    Args:
+        app: Flask application instance
+    """
+    if not is_analytics_enabled():
+        return
+    
+    # Check if we're in debug mode
+    if get_config_value("app.debug", False):
+        from policyengine_household_api.constants import REPO
+        db_url = REPO / "policyengine_household_api" / "data" / "policyengine.db"
+        if Path(db_url).exists():
+            Path(db_url).unlink()
+        if not Path(db_url).exists():
+            Path(db_url).touch()
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////" + str(db_url)
+    else:
+        app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
+    
+    
+    db.init_app(app)
+    
+    with app.app_context():
+        db.create_all()
+    
 def is_analytics_enabled() -> bool:
     """
     Check if analytics is enabled based on configuration.

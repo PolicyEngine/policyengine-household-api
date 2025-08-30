@@ -35,7 +35,7 @@ class ConfigLoader:
     # Mapping of environment variables to config paths
     # Format: "ENV_VAR_NAME": "config.path.to.value"
     ENV_VAR_MAPPING = {
-        # Flask settings
+        # Flask/App settings
         "FLASK_DEBUG": "app.debug",
         # Analytics database settings (for user analytics)
         "USER_ANALYTICS_DB_CONNECTION_NAME": "analytics.database.connection_name",

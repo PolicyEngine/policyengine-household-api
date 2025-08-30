@@ -6,7 +6,7 @@
 app:
   name: policyengine-household-api
   environment: local
-  # debug: true  # Will be enabled when migrated from FLASK_DEBUG env var
+  debug: false  # Set to true for development mode (uses local SQLite database)
 
 # User analytics configuration
 # Controls whether user analytics are collected and stored

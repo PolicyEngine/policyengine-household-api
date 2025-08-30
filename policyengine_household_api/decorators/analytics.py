@@ -12,6 +12,8 @@ from policyengine_household_api.constants import VERSION
 from policyengine_household_api.data.analytics_setup import (
     is_analytics_enabled,
 )
+from policyengine_household_api.data.analytics_setup import db
+from policyengine_household_api.data.models import Visit
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,7 @@ def log_analytics_if_enabled(func):
         try:
             if not is_analytics_enabled():
                 # Analytics disabled, just execute the function
+                print("Analytics is disabled")
                 return func(*args, **kwargs)
         except Exception as e:
             logger.debug(f"Could not determine analytics status: {e}")
@@ -40,9 +43,8 @@ def log_analytics_if_enabled(func):
 
         # Analytics is enabled, proceed with logging
         try:
-            # Import here to avoid circular dependency
-            from policyengine_household_api.api import db
-            from policyengine_household_api.data.models import Visit
+            
+            print("Analytics enabled")
 
             # Create a record that will be emitted to the db
             new_visit = Visit()
@@ -55,12 +57,17 @@ def log_analytics_if_enabled(func):
                     token, options={"verify_signature": False}
                 )
                 client_id = decoded_token["sub"]
+
+                print(f"Decoded token: {decoded_token}")
+                print(f"Client ID before suffix check: {client_id}")
+
                 suffix_to_slice = "@clients"
                 if (
                     len(client_id) >= len(suffix_to_slice)
                     and client_id[-len(suffix_to_slice) :] == suffix_to_slice
                 ):
                     client_id = client_id[: -len(suffix_to_slice)]
+                print(f"Client ID after suffix check: {client_id}")
                 new_visit.client_id = client_id
             except Exception as e:
                 logger.debug(f"Could not extract client_id from JWT: {e}")

@@ -146,7 +146,7 @@ The default configuration is baked into the Docker image at `/app/config/default
 app:
   name: Application name (default: policyengine-household-api)
   environment: Environment (local/development/staging/production)
-  debug: Debug mode (true/false)
+  debug: Debug mode (true/false) - When true, uses local SQLite database instead of Cloud SQL
 
 # User analytics (opt-in feature)
 analytics:
