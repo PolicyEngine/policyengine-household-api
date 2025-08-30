@@ -69,9 +69,9 @@ class ConditionalAuthDecorator:
         auth0_audience = get_config_value("auth.auth0.audience", "")
 
         # Backward compatibility: auto-enable if Auth0 env vars are set
-        if not self._auth_enabled and auth0_address and auth0_audience:
-            self._auth_enabled = True
-            print("Auth0 auto-enabled due to presence of AUTH0 configuration")
+        # if not self._auth_enabled and auth0_address and auth0_audience:
+        #     self._auth_enabled = True
+        #     print("Auth0 auto-enabled due to presence of AUTH0 configuration")
 
         # Initialize the appropriate decorator
         if self._auth_enabled:
