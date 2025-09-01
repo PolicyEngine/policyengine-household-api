@@ -11,7 +11,6 @@ from authlib.integrations.flask_oauth2 import ResourceProtector
 from ..auth.validation import Auth0JWTBearerTokenValidator
 from ..utils.config_loader import get_config_value
 
-
 class NoOpDecorator:
     """
     No-operation decorator used when authentication is disabled.
