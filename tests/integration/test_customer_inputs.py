@@ -9,6 +9,7 @@ from tests.data.customer_households import (
     impactica_household,
 )
 from policyengine_household_api.models.household import HouseholdModelUS
+from policyengine_household_api.utils import get_config_value
 from policyengine_household_api.utils.household import (
     FlattenedVariableFilter,
     FlattenedVariable,
@@ -108,7 +109,7 @@ class TestCustomerInputs:
         return {
             "headers": {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {os.getenv('AUTH0_TEST_TOKEN_NO_DOMAIN')}",
+                "Authorization": f"Bearer {get_config_value('auth.auth0.test_token')}",
             },
             "body": {
                 "household": household_dict,

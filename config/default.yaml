@@ -41,6 +41,7 @@ auth:
     address: ""  # Override with AUTH0_ADDRESS_NO_DOMAIN
     # Auth0 API audience
     audience: ""  # Override with AUTH0_AUDIENCE_NO_DOMAIN
+    test_token: "" # Override with AUTH0_TEST_TOKEN_NO_DOMAIN
 
 # AI services configuration
 ai:

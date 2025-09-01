@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from tests.to_refactor.fixtures import client
 
-load_dotenv()
+# load_dotenv()
 
 # Note that this does not test the passage of a functioning token;
 # that is already handled by test_liveness in another file

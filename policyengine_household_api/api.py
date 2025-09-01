@@ -29,9 +29,6 @@ from .endpoints import (
     generate_ai_explainer,
 )
 
-# Configure authentication
-load_dotenv()
-
 # Create the authentication decorator (will be either Auth0 or no-op based on config)
 require_auth_if_enabled = create_auth_decorator()
 

@@ -1,8 +1,5 @@
 import os
-from dotenv import load_dotenv
 from google.cloud.sql.connector import Connector, IPTypes
-
-load_dotenv()
 
 # Much of this configuration is taken from https://pypi.org/project/cloud-sql-python-connector/
 # Initialize connector object

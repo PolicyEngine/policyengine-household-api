@@ -1,3 +1,4 @@
+from policyengine_household_api.utils.config_loader import get_config_value
 from tests.fixtures.endpoints.household_explainer import (
     valid_entity_description,
     valid_computation_tree_with_indiv_vars,
@@ -12,7 +13,6 @@ from tests.fixtures.endpoints.household_explainer import (
     uuid_not_found,
 )
 import json
-import os
 from typing import Generator
 from copy import deepcopy
 
@@ -22,7 +22,7 @@ class TestGenerateAIExplainer:
     # Mock Claude
 
     auth_headers = {
-        "Authorization": "Bearer " + os.getenv("AUTH0_TEST_TOKEN_NO_DOMAIN")
+        "Authorization": f"Bearer {get_config_value('auth.auth0.test_token')}",
     }
 
     # Test valid UUID

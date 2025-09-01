@@ -44,6 +44,7 @@ class ConfigLoader:
         # Auth0 settings
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.auth0.address",
         "AUTH0_AUDIENCE_NO_DOMAIN": "auth.auth0.audience",
+        "AUTH0_TEST_TOKEN_NO_DOMAIN": "auth.auth0.test_token",
         # AI settings
         "ANTHROPIC_API_KEY": "ai.anthropic.api_key",
         # Server settings
@@ -83,6 +84,9 @@ class ConfigLoader:
                 f"Loaded default config from {self.default_config_path}"
             )
 
+        print(f"Loaded default config from {self.default_config_path}")
+        print("Config: ", config)
+
         # 2. Load external config file if specified
         external_config = self._load_external_config()
         if external_config:
@@ -91,11 +95,17 @@ class ConfigLoader:
                 f"Loaded external config from {os.getenv(self.CONFIG_FILE_ENV_VAR)}"
             )
 
+        print(f"Loaded external config from {os.getenv(self.CONFIG_FILE_ENV_VAR)}")
+        print("Config: ", config)
+
         # 3. Override with environment variables (highest priority)
         env_overrides = self._load_env_overrides()
         if env_overrides:
             config = self._deep_merge(config, env_overrides)
             logger.info("Applied environment variable overrides")
+
+        print("Applied environment variable overrides")
+        print("Config: ", config)
 
         self._config = config
         return config

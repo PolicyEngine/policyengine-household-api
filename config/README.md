@@ -294,6 +294,7 @@ Currently in production, all configuration comes from environment variables:
 AUTH__ENABLED=true  # Enable Auth0 authentication
 AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
 AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+AUTH0_TEST_TOKEN_NO_DOMAIN=${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }} # Used for local testing purposes
 
 # Analytics configuration (opt-in)
 ANALYTICS__ENABLED=true  # Enable user analytics

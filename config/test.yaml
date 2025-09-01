@@ -1,5 +1,3 @@
-# Example production configuration for PolicyEngine Household API
-# This file shows what a production config will look like after migration
 # DO NOT commit actual production values to the repository
 
 ---
@@ -10,14 +8,11 @@ app:
 
 # Analytics is explicitly enabled for production
 analytics:
-  enabled: true  # Opt-in to collect usage metrics
+  enabled: false  # Opt-in to collect usage metrics
   database:
     connection_name: ${USER_ANALYTICS_DB_CONNECTION_NAME}  # From env var
     username: ${USER_ANALYTICS_DB_USERNAME}  # From env var
     password: ${USER_ANALYTICS_DB_PASSWORD}  # From env var
-
-# Note: Application database configuration would go here when added
-# Currently only the analytics database (above) is used
 
 auth:
   enabled: true
@@ -25,7 +20,7 @@ auth:
   auth0:
     address: ${AUTH0_ADDRESS_NO_DOMAIN}  # From env var
     audience: ${AUTH0_AUDIENCE_NO_DOMAIN}  # From env var
-    test_token: "" # Used only for executing pre-deploy integration tests
+    test_token: ${AUTH0_TEST_TOKEN_NO_DOMAIN}  # From env var
 
 ai:
   enabled: true
