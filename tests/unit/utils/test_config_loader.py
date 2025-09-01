@@ -124,10 +124,6 @@ class TestExternalConfigLoading:
             config["database"]["provider"]
             == EXTERNAL_CONFIG_DATA["database"]["provider"]
         )
-        assert (
-            config["storage"]["bucket"]
-            == EXTERNAL_CONFIG_DATA["storage"]["bucket"]
-        )
 
     def test__given_no_config_file_env_var__loader_skips_external_config(
         self, temp_default_config, clean_env
@@ -141,7 +137,6 @@ class TestExternalConfigLoading:
             config["app"]["environment"]
             == DEFAULT_CONFIG_DATA["app"]["environment"]
         )
-        assert "storage" not in config  # Storage is only in external config
 
     def test__given_nonexistent_external_config__loader_falls_back_to_default(
         self, temp_default_config, clean_env
@@ -272,10 +267,6 @@ class TestConfigPriority:
         assert (
             config["app"]["debug"] is True
         )  # External overrides default's False
-        assert (
-            config["storage"]["bucket"]
-            == EXTERNAL_CONFIG_DATA["storage"]["bucket"]
-        )
 
         # From env vars (highest priority)
         assert config["app"]["environment"] == "env-override"  # Env var wins

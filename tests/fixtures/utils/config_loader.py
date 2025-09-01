@@ -23,7 +23,6 @@ DEFAULT_CONFIG_DATA = {
 EXTERNAL_CONFIG_DATA = {
     "app": {"environment": "external", "debug": True},
     "database": {"provider": "mysql", "host": "external-host", "port": 3306},
-    "storage": {"provider": "gcs", "bucket": "test-bucket"},
 }
 
 CUSTOM_CONFIG_DATA = {

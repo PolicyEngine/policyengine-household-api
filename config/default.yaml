@@ -28,12 +28,6 @@ analytics:
 # Note: Currently only analytics database is used
 # Future application databases would be configured here
 
-# Storage configuration  
-storage:
-  # provider: local  # Future: local filesystem for dev, gcs for production
-  # Future migration from:
-  # - Google Cloud Storage implicit configuration
-
 # Authentication configuration
 # Controls whether Auth0 authentication is enforced on API endpoints
 auth:

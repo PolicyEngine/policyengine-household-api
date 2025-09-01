@@ -14,11 +14,6 @@ analytics:
 # Note: Application database configuration would go here when added
 # Development might use SQLite or a local database in the future
 
-storage:
-  provider: local
-  path: ./data/storage
-  # Local filesystem for development
-
 auth:
   enabled: false  # No auth in development
   # provider: none

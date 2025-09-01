@@ -34,17 +34,6 @@
 #   # For SQLite:
 #   # path: /data/household.db
 
-# Storage configuration
-# storage:
-#   provider: local  # Options: local, gcs, s3
-#   # For local:
-#   # path: /data/storage
-#   # For GCS:
-#   # bucket: my-bucket
-#   # For S3:
-#   # bucket: my-bucket
-#   # region: us-east-1
-
 # Authentication configuration
 # auth:
 #   enabled: true

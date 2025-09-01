@@ -19,11 +19,6 @@ analytics:
 # Note: Application database configuration would go here when added
 # Currently only the analytics database (above) is used
 
-storage:
-  provider: gcs
-  bucket: policyengine-household-computation-trees
-  # GCS auth via service account
-
 auth:
   enabled: true
   provider: auth0

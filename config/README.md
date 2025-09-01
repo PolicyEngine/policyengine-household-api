@@ -156,14 +156,6 @@ analytics:
     username: Database username
     password: Database password
 
-# Note: Application database configuration would go here when added
-# Currently the application only uses the analytics database (see above)
-
-storage:
-  provider: Storage backend (local/gcs/s3)
-  bucket: Storage bucket name (for cloud providers)
-  path: Local storage path (for local provider)
-
 auth:
   enabled: Whether authentication is required (true/false)
   auth0:
@@ -336,9 +328,6 @@ cat > aws-config.yaml <<EOF
 database:
   provider: postgres
   host: my-rds-instance.amazonaws.com
-storage:
-  provider: s3
-  bucket: my-household-data
 auth:
   provider: cognito
   pool_id: us-east-1_xxxxx
