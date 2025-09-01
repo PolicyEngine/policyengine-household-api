@@ -3,12 +3,12 @@ Unit tests for the conditional authentication decorator.
 """
 
 from unittest.mock import Mock, patch
-from policyengine_household_api.auth.conditional_decorator import (
+from policyengine_household_api.decorators.auth import (
     NoOpDecorator,
     ConditionalAuthDecorator,
     create_auth_decorator,
 )
-from tests.fixtures.auth.conditional_decorator import (
+from tests.fixtures.decorators.auth import (
     AUTH0_CONFIG_DATA,
     auth_enabled_environment,
     auth_disabled_environment,
@@ -66,7 +66,7 @@ class TestNoOpDecorator:
 class TestConditionalAuthDecoratorWithAuthEnabled:
     """Test ConditionalAuthDecorator with authentication enabled."""
 
-    @patch("policyengine_household_api.auth.conditional_decorator.print")
+    @patch("policyengine_household_api.decorators.auth.print")
     def test__given_auth_enabled_with_valid_config__auth0_is_configured(
         self,
         mock_print,
@@ -99,7 +99,7 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
             f"Auth0 authentication enabled with domain: {AUTH0_CONFIG_DATA['address']}"
         )
 
-    @patch("policyengine_household_api.auth.conditional_decorator.print")
+    @patch("policyengine_household_api.decorators.auth.print")
     def test__given_auth_enabled_missing_config__falls_back_to_noop(
         self,
         mock_print,
@@ -130,7 +130,7 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
 class TestConditionalAuthDecoratorWithAuthDisabled:
     """Test ConditionalAuthDecorator with authentication disabled."""
 
-    @patch("policyengine_household_api.auth.conditional_decorator.print")
+    @patch("policyengine_household_api.decorators.auth.print")
     def test__given_auth_disabled__returns_noop_decorator(
         self,
         mock_print,

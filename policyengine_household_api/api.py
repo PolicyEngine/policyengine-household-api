@@ -17,7 +17,7 @@ from flask_limiter.util import get_remote_address
 from policyengine_household_api.data.analytics_setup import initialize_analytics_db_if_enabled
 
 # Internal imports
-from .auth.conditional_decorator import create_auth_decorator
+from .decorators.auth import create_auth_decorator
 from .constants import VERSION, REPO
 from .data.setup import getconn
 from policyengine_household_api.decorators.analytics import log_analytics_if_enabled

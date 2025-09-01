@@ -8,7 +8,7 @@ while maintaining security in production environments.
 
 from typing import Optional, Any, Callable
 from authlib.integrations.flask_oauth2 import ResourceProtector
-from .validation import Auth0JWTBearerTokenValidator
+from ..auth.validation import Auth0JWTBearerTokenValidator
 from ..utils.config_loader import get_config_value
 
 

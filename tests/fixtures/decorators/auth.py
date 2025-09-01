@@ -63,7 +63,7 @@ AUTH_PARTIAL_CONFIG = {
 def mock_resource_protector():
     """Mock the ResourceProtector class."""
     with patch(
-        "policyengine_household_api.auth.conditional_decorator.ResourceProtector"
+        "policyengine_household_api.decorators.auth.ResourceProtector"
     ) as mock_class:
         mock_instance = Mock()
         mock_class.return_value = mock_instance
@@ -74,7 +74,7 @@ def mock_resource_protector():
 def mock_auth0_validator():
     """Mock the Auth0JWTBearerTokenValidator class."""
     with patch(
-        "policyengine_household_api.auth.conditional_decorator.Auth0JWTBearerTokenValidator"
+        "policyengine_household_api.decorators.auth.Auth0JWTBearerTokenValidator"
     ) as mock_class:
         mock_instance = Mock()
         mock_class.return_value = mock_instance
@@ -85,7 +85,7 @@ def mock_auth0_validator():
 def auth_enabled_environment():
     """Set up environment with authentication enabled."""
     with patch(
-        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+        "policyengine_household_api.decorators.auth.get_config_value"
     ) as mock_config:
 
         def config_side_effect(path: str, default: Any = None) -> Any:
@@ -104,7 +104,7 @@ def auth_enabled_environment():
 def auth_disabled_environment():
     """Set up environment with authentication disabled."""
     with patch(
-        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+        "policyengine_household_api.decorators.auth.get_config_value"
     ) as mock_config:
 
         def config_side_effect(path: str, default: Any = None) -> Any:
@@ -123,7 +123,7 @@ def auth_disabled_environment():
 def auth_enabled_missing_config_environment():
     """Set up environment with auth enabled but missing Auth0 config."""
     with patch(
-        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+        "policyengine_household_api.decorators.auth.get_config_value"
     ) as mock_config:
 
         def config_side_effect(path: str, default: Any = None) -> Any:
@@ -142,7 +142,7 @@ def auth_enabled_missing_config_environment():
 def auth_backward_compat_environment():
     """Set up environment for backward compatibility testing."""
     with patch(
-        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+        "policyengine_household_api.decorators.auth.get_config_value"
     ) as mock_config:
 
         def config_side_effect(path: str, default: Any = None) -> Any:
@@ -161,7 +161,7 @@ def auth_backward_compat_environment():
 def auth_partial_config_environment():
     """Set up environment with partial Auth0 configuration."""
     with patch(
-        "policyengine_household_api.auth.conditional_decorator.get_config_value"
+        "policyengine_household_api.decorators.auth.get_config_value"
     ) as mock_config:
 
         def config_side_effect(path: str, default: Any = None) -> Any:
