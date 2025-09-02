@@ -13,6 +13,7 @@ from tests.fixtures.endpoints.household_explainer import (
     uuid_not_found,
     mock_config_ai_disabled,
     mock_config_ai_enabled_no_key,
+    mock_anthropic_api_key,
 )
 import json
 from typing import Generator
@@ -34,6 +35,7 @@ class TestGenerateAIExplainer:
         client,
         mock_buffered_output,
         mock_cloud_download,
+        mock_anthropic_api_key,
     ):
         request_with_valid_uuid = {
             "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
@@ -57,6 +59,7 @@ class TestGenerateAIExplainer:
         client,
         mock_buffered_output,
         mock_cloud_download,
+        mock_anthropic_api_key,
     ):
 
         request_with_invalid_uuid = {
@@ -85,6 +88,7 @@ class TestGenerateAIExplainer:
         client,
         mock_buffered_output,
         mock_cloud_download,
+        mock_anthropic_api_key,
     ):
         request_with_invalid_uuid = {
             "computation_tree_uuid": "invalid_uuid",
@@ -112,6 +116,7 @@ class TestGenerateAIExplainer:
         client,
         mock_streaming_output,
         mock_cloud_download,
+        mock_anthropic_api_key,
     ):
         request_with_streaming_output = {
             "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
@@ -144,6 +149,7 @@ class TestGenerateAIExplainer:
         client,
         mock_buffered_output,
         mock_cloud_download,
+        mock_anthropic_api_key,
     ):
         extra_variable = {"ctc_individual_maximum": {"2025": None}}
 
@@ -178,6 +184,7 @@ class TestGenerateAIExplainer:
         client,
         mock_buffered_output,
         mock_cloud_download,
+        mock_anthropic_api_key,
     ):
         invalid_household = deepcopy(valid_household_requesting_calculation)
 

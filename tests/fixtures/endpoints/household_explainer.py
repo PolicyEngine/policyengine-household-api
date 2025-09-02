@@ -211,3 +211,29 @@ def mock_config_ai_enabled_no_key():
 
         mock_config.side_effect = config_side_effect
         yield mock_config
+
+
+@pytest.fixture
+def mock_anthropic_api_key():
+    """Mock configuration to provide a fake Anthropic API key for testing."""
+    
+    def config_side_effect(key, default=None):
+        if key == "ai.enabled":
+            return True
+        elif key == "ai.anthropic.api_key":
+            return "test-anthropic-api-key"
+        elif key == "auth.enabled":
+            return True
+        elif key == "auth.auth0.test_token":
+            return "test-token"
+        return default
+    
+    # Patch both locations where get_config_value is used
+    with patch(
+        "policyengine_household_api.utils.computation_tree.get_config_value",
+        side_effect=config_side_effect
+    ), patch(
+        "policyengine_household_api.endpoints.household_explainer.get_config_value",
+        side_effect=config_side_effect
+    ):
+        yield
