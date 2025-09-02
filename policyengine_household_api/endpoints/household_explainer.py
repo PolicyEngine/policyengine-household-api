@@ -8,6 +8,7 @@ from policyengine_household_api.models import (
     HouseholdModelGeneric,
     ComputationTree,
 )
+from policyengine_household_api.utils.config_loader import get_config_value
 from policyengine_household_api.utils.google_cloud import (
     GoogleCloudStorageManager,
 )
@@ -42,6 +43,18 @@ def generate_ai_explainer(country_id: str) -> Response:
     Returns:
         Response: The AI explainer output or an error.
     """
+
+    if not get_config_value("ai.enabled"):
+        return Response(
+            json.dumps(
+                dict(
+                    status="error",
+                    message="AI is not enabled",
+                )
+            ),
+            status=400,
+            mimetype="application/json",
+        )
 
     try:
         payload: dict[str, Any] = request.json
