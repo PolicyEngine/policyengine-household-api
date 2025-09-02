@@ -169,3 +169,43 @@ def mock_cloud_download():
     ) as mock_download:
         mock_download.side_effect = download_side_effect
         yield mock_download
+
+
+@pytest.fixture
+def mock_config_ai_disabled():
+    with patch(
+        "policyengine_household_api.endpoints.household_explainer.get_config_value"
+    ) as mock_config:
+        def config_side_effect(key, default=None):
+            if key == "ai.enabled":
+                return False
+            elif key == "ai.anthropic.api_key":
+                return None
+            elif key == "auth.enabled":
+                return True
+            elif key == "auth.auth0.test_token":
+                return "test-token"
+            return default
+        
+        mock_config.side_effect = config_side_effect
+        yield mock_config
+
+
+@pytest.fixture
+def mock_config_ai_enabled_no_key():
+    with patch(
+        "policyengine_household_api.endpoints.household_explainer.get_config_value"
+    ) as mock_config:
+        def config_side_effect(key, default=None):
+            if key == "ai.enabled":
+                return True
+            elif key == "ai.anthropic.api_key":
+                return None
+            elif key == "auth.enabled":
+                return True
+            elif key == "auth.auth0.test_token":
+                return "test-token"
+            return default
+        
+        mock_config.side_effect = config_side_effect
+        yield mock_config

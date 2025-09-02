@@ -11,10 +11,13 @@ from tests.fixtures.endpoints.household_explainer import (
     mock_claude_result_buffered,
     mock_claude_result_streaming,
     uuid_not_found,
+    mock_config_ai_disabled,
+    mock_config_ai_enabled_no_key,
 )
 import json
 from typing import Generator
 from copy import deepcopy
+from unittest.mock import patch
 
 
 class TestGenerateAIExplainer:
@@ -200,3 +203,61 @@ class TestGenerateAIExplainer:
             "Household must include at least one variable set to null"
             in response_json["message"]
         )
+    
+    def test__given_ai_disabled__then_returns_error_response(
+        self,
+        client,
+        mock_config_ai_disabled,
+        mock_cloud_download,
+    ):
+        request_data = {
+            "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
+            "household": valid_household_requesting_calculation,
+            "use_streaming": False,
+        }
+
+        response = client.post(
+            "/us/ai-analysis",
+            json=request_data,
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+        assert response.status_code == 400
+        response_json = json.loads(response.data)
+        assert response_json["status"] == "error"
+        assert response_json["message"] == "AI is not enabled"
+        
+        mock_config_ai_disabled.assert_any_call("ai.enabled")
+    
+    def test__given_ai_enabled_but_no_api_key__then_returns_error_response(
+        self,
+        client,
+        mock_config_ai_enabled_no_key,
+        mock_cloud_download,
+    ):
+        # Mock trigger_buffered_ai_analysis to raise an error when called
+        with patch(
+            "policyengine_household_api.endpoints.household_explainer.trigger_buffered_ai_analysis"
+        ) as mock_buffered:
+            mock_buffered.side_effect = Exception(
+                "Could not resolve authentication method. Expected either api_key or auth_token to be set."
+            )
+            
+            request_data = {
+                "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
+                "household": valid_household_requesting_calculation,
+                "use_streaming": False,
+            }
+
+            response = client.post(
+                "/us/ai-analysis",
+                json=request_data,
+                headers={"Authorization": "Bearer test-token"},
+            )
+
+            assert response.status_code == 500
+            response_json = json.loads(response.data)
+            assert response_json["status"] == "error"
+            assert "Error generating tracer analysis result using Claude" in response_json["message"]
+            
+            mock_config_ai_enabled_no_key.assert_any_call("ai.enabled")
