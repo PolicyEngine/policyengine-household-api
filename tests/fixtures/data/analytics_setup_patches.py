@@ -10,7 +10,8 @@ from unittest.mock import patch, MagicMock
 def patch_get_config_value_returns_false():
     """Patch get_config_value to return False."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value", return_value=False
+        "policyengine_household_api.data.analytics_setup.get_config_value",
+        return_value=False,
     ) as mock:
         yield mock
 
@@ -19,7 +20,8 @@ def patch_get_config_value_returns_false():
 def patch_get_config_value_returns_true():
     """Patch get_config_value to return True."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value", return_value=True
+        "policyengine_household_api.data.analytics_setup.get_config_value",
+        return_value=True,
     ) as mock:
         yield mock
 

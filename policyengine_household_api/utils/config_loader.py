@@ -179,10 +179,10 @@ class ConfigLoader:
     def _substitute_env_vars(self, config: Any) -> Any:
         """
         Recursively substitute ${VAR} and $VAR with environment variable values.
-        
+
         Args:
             config: Configuration data (dict, list, string, or other)
-            
+
         Returns:
             Configuration with environment variables substituted
         """

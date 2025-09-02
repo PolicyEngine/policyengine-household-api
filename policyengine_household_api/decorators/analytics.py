@@ -43,7 +43,7 @@ def log_analytics_if_enabled(func):
 
         # Analytics is enabled, proceed with logging
         try:
-            
+
             print("Analytics enabled")
 
             # Create a record that will be emitted to the db

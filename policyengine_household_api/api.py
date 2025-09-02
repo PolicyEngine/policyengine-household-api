@@ -14,12 +14,16 @@ from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from policyengine_household_api.data.analytics_setup import initialize_analytics_db_if_enabled
+from policyengine_household_api.data.analytics_setup import (
+    initialize_analytics_db_if_enabled,
+)
 
 # Internal imports
 from .decorators.auth import create_auth_decorator
 from .constants import VERSION, REPO
-from policyengine_household_api.decorators.analytics import log_analytics_if_enabled
+from policyengine_household_api.decorators.analytics import (
+    log_analytics_if_enabled,
+)
 
 # Endpoints
 from .endpoints import (

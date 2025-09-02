@@ -176,6 +176,7 @@ def mock_config_ai_disabled():
     with patch(
         "policyengine_household_api.endpoints.household_explainer.get_config_value"
     ) as mock_config:
+
         def config_side_effect(key, default=None):
             if key == "ai.enabled":
                 return False
@@ -186,7 +187,7 @@ def mock_config_ai_disabled():
             elif key == "auth.auth0.test_token":
                 return "test-token"
             return default
-        
+
         mock_config.side_effect = config_side_effect
         yield mock_config
 
@@ -196,6 +197,7 @@ def mock_config_ai_enabled_no_key():
     with patch(
         "policyengine_household_api.endpoints.household_explainer.get_config_value"
     ) as mock_config:
+
         def config_side_effect(key, default=None):
             if key == "ai.enabled":
                 return True
@@ -206,6 +208,6 @@ def mock_config_ai_enabled_no_key():
             elif key == "auth.auth0.test_token":
                 return "test-token"
             return default
-        
+
         mock_config.side_effect = config_side_effect
         yield mock_config

@@ -19,11 +19,14 @@ logger = logging.getLogger(__name__)
 _analytics_enabled = None
 _connector = None
 
+
 # Configure db schema, but don't initialize db itself
 class Base(DeclarativeBase):
     pass
 
+
 db = SQLAlchemy(model_class=Base)
+
 
 def initialize_analytics_db_if_enabled(app):
     """
@@ -36,11 +39,14 @@ def initialize_analytics_db_if_enabled(app):
     """
     if not is_analytics_enabled():
         return
-    
+
     # Check if we're in debug mode
     if get_config_value("app.debug", False):
         from policyengine_household_api.constants import REPO
-        db_url = REPO / "policyengine_household_api" / "data" / "policyengine.db"
+
+        db_url = (
+            REPO / "policyengine_household_api" / "data" / "policyengine.db"
+        )
         if Path(db_url).exists():
             Path(db_url).unlink()
         if not Path(db_url).exists():
@@ -49,13 +55,13 @@ def initialize_analytics_db_if_enabled(app):
     else:
         app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
-    
-    
+
     db.init_app(app)
-    
+
     with app.app_context():
         db.create_all()
-    
+
+
 def is_analytics_enabled() -> bool:
     """
     Check if analytics is enabled based on configuration.
@@ -71,6 +77,7 @@ def is_analytics_enabled() -> bool:
     # Try to get from config first (future use when app migrates to ConfigLoader)
     _analytics_enabled = get_config_value("analytics.enabled", False)
     return _analytics_enabled
+
 
 def get_analytics_connector():
     """

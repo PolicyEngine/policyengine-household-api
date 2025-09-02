@@ -203,7 +203,7 @@ class TestGenerateAIExplainer:
             "Household must include at least one variable set to null"
             in response_json["message"]
         )
-    
+
     def test__given_ai_disabled__then_returns_error_response(
         self,
         client,
@@ -226,9 +226,9 @@ class TestGenerateAIExplainer:
         response_json = json.loads(response.data)
         assert response_json["status"] == "error"
         assert response_json["message"] == "AI is not enabled"
-        
+
         mock_config_ai_disabled.assert_any_call("ai.enabled")
-    
+
     def test__given_ai_enabled_but_no_api_key__then_returns_error_response(
         self,
         client,
@@ -242,7 +242,7 @@ class TestGenerateAIExplainer:
             mock_buffered.side_effect = Exception(
                 "Could not resolve authentication method. Expected either api_key or auth_token to be set."
             )
-            
+
             request_data = {
                 "computation_tree_uuid": valid_computation_tree_with_indiv_vars_uuid,
                 "household": valid_household_requesting_calculation,
@@ -258,6 +258,9 @@ class TestGenerateAIExplainer:
             assert response.status_code == 500
             response_json = json.loads(response.data)
             assert response_json["status"] == "error"
-            assert "Error generating tracer analysis result using Claude" in response_json["message"]
-            
+            assert (
+                "Error generating tracer analysis result using Claude"
+                in response_json["message"]
+            )
+
             mock_config_ai_enabled_no_key.assert_any_call("ai.enabled")

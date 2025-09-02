@@ -490,98 +490,88 @@ class TestEnvironmentVariableSubstitution:
         clean_env.setenv("TEST_APP_NAME", "substituted-app-name")
         clean_env.setenv("TEST_DB_HOST", "substituted-db-host")
         clean_env.setenv("TEST_DB_PORT", "5432")
-        
+
         # Create config with ${VAR} syntax
         config_data = {
-            "app": {
-                "name": "${TEST_APP_NAME}",
-                "environment": "test"
-            },
-            "database": {
-                "host": "${TEST_DB_HOST}",
-                "port": "${TEST_DB_PORT}"
-            }
+            "app": {"name": "${TEST_APP_NAME}", "environment": "test"},
+            "database": {"host": "${TEST_DB_HOST}", "port": "${TEST_DB_PORT}"},
         }
-        
+
         config_file = tmp_path / "config_with_vars.yaml"
         config_file.write_text(yaml.dump(config_data))
-        
+
         loader = ConfigLoader(default_config_path=str(config_file))
         config = loader.load()
-        
+
         assert config["app"]["name"] == "substituted-app-name"
         assert config["database"]["host"] == "substituted-db-host"
         assert config["database"]["port"] == "5432"
-    
+
     def test__given_config_with_dollar_var_syntax__substitution_occurs(
         self, tmp_path, clean_env
     ):
         """Test that $VAR syntax (without braces) is also replaced."""
         clean_env.setenv("TEST_VALUE", "replaced-value")
-        
+
         config_data = {
             "setting": "$TEST_VALUE",
-            "path": "/path/to/$TEST_VALUE/dir"
+            "path": "/path/to/$TEST_VALUE/dir",
         }
-        
+
         config_file = tmp_path / "config.yaml"
         config_file.write_text(yaml.dump(config_data))
-        
+
         loader = ConfigLoader(default_config_path=str(config_file))
         config = loader.load()
-        
+
         assert config["setting"] == "replaced-value"
         assert config["path"] == "/path/to/replaced-value/dir"
-    
+
     def test__given_undefined_env_var__original_syntax_preserved(
         self, tmp_path, clean_env
     ):
         """Test that undefined environment variables keep the original ${VAR} syntax."""
         config_data = {
             "undefined": "${UNDEFINED_VAR}",
-            "mixed": "${UNDEFINED_VAR}/some/path"
+            "mixed": "${UNDEFINED_VAR}/some/path",
         }
-        
+
         config_file = tmp_path / "config.yaml"
         config_file.write_text(yaml.dump(config_data))
-        
+
         loader = ConfigLoader(default_config_path=str(config_file))
         config = loader.load()
-        
+
         assert config["undefined"] == "${UNDEFINED_VAR}"
         assert config["mixed"] == "${UNDEFINED_VAR}/some/path"
-    
+
     def test__given_nested_config_with_env_vars__substitution_occurs_at_all_levels(
         self, tmp_path, clean_env
     ):
         """Test that substitution works in nested dictionaries and lists."""
         clean_env.setenv("TEST_NESTED_VALUE", "nested-replaced")
         clean_env.setenv("TEST_LIST_ITEM", "list-replaced")
-        
+
         config_data = {
-            "level1": {
-                "level2": {
-                    "level3": "${TEST_NESTED_VALUE}"
-                }
-            },
+            "level1": {"level2": {"level3": "${TEST_NESTED_VALUE}"}},
             "list_items": [
                 "${TEST_LIST_ITEM}",
                 "static-value",
-                {"nested_in_list": "${TEST_NESTED_VALUE}"}
-            ]
+                {"nested_in_list": "${TEST_NESTED_VALUE}"},
+            ],
         }
-        
+
         config_file = tmp_path / "config.yaml"
         config_file.write_text(yaml.dump(config_data))
-        
+
         loader = ConfigLoader(default_config_path=str(config_file))
         config = loader.load()
-        
+
         assert config["level1"]["level2"]["level3"] == "nested-replaced"
         assert config["list_items"][0] == "list-replaced"
         assert config["list_items"][1] == "static-value"
         assert config["list_items"][2]["nested_in_list"] == "nested-replaced"
-    
+
     def test__given_auth0_config_with_env_vars__substitution_enables_auth(
         self, tmp_path, clean_env
     ):
@@ -590,48 +580,46 @@ class TestEnvironmentVariableSubstitution:
         clean_env.setenv("AUTH0_ADDRESS_NO_DOMAIN", "test.auth0.com")
         clean_env.setenv("AUTH0_AUDIENCE_NO_DOMAIN", "https://test-api")
         clean_env.setenv("AUTH0_TEST_TOKEN_NO_DOMAIN", "test-jwt-token")
-        
+
         config_data = {
             "auth": {
                 "enabled": True,
                 "auth0": {
                     "address": "${AUTH0_ADDRESS_NO_DOMAIN}",
                     "audience": "${AUTH0_AUDIENCE_NO_DOMAIN}",
-                    "test_token": "${AUTH0_TEST_TOKEN_NO_DOMAIN}"
-                }
+                    "test_token": "${AUTH0_TEST_TOKEN_NO_DOMAIN}",
+                },
             }
         }
-        
+
         config_file = tmp_path / "config.yaml"
         config_file.write_text(yaml.dump(config_data))
-        
+
         loader = ConfigLoader(default_config_path=str(config_file))
         config = loader.load()
-        
+
         assert config["auth"]["enabled"] is True
         assert config["auth"]["auth0"]["address"] == "test.auth0.com"
         assert config["auth"]["auth0"]["audience"] == "https://test-api"
         assert config["auth"]["auth0"]["test_token"] == "test-jwt-token"
-    
+
     def test__given_external_config_with_env_vars__substitution_occurs(
         self, tmp_path, clean_env
     ):
         """Test that substitution works in external config files too."""
         clean_env.setenv("EXTERNAL_VALUE", "external-replaced")
-        
+
         # Create external config
-        external_data = {
-            "external_setting": "${EXTERNAL_VALUE}"
-        }
+        external_data = {"external_setting": "${EXTERNAL_VALUE}"}
         external_file = tmp_path / "external.yaml"
         external_file.write_text(yaml.dump(external_data))
-        
+
         # Set CONFIG_FILE to point to external config
         clean_env.setenv("CONFIG_FILE", str(external_file))
-        
+
         loader = ConfigLoader(default_config_path="/non/existent")
         config = loader.load()
-        
+
         assert config["external_setting"] == "external-replaced"
 
 

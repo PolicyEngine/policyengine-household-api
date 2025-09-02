@@ -24,8 +24,8 @@ from tests.to_refactor.fixtures import client
 #         ),
 #     )
 #     assert response.status_code == 401
-# 
-# 
+#
+#
 # def test_no_token(client):
 #     """Test that API returns 401 when no token is passed"""
 #     response = client.post(

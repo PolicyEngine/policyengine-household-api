@@ -12,7 +12,9 @@ import re
 from policyengine_household_api.utils.config_loader import get_config_value
 
 
-def trigger_streaming_ai_analysis(prompt: str) -> Generator[str, None, None] | None:
+def trigger_streaming_ai_analysis(
+    prompt: str,
+) -> Generator[str, None, None] | None:
     """
     Pass a prompt to Claude for analysis and return the response in streaming-
     formatted chunks.
@@ -28,7 +30,9 @@ def trigger_streaming_ai_analysis(prompt: str) -> Generator[str, None, None] | N
         return None
 
     # Configure a Claude client
-    claude_client = anthropic.Anthropic(api_key=get_config_value("ai.anthropic.api_key"))
+    claude_client = anthropic.Anthropic(
+        api_key=get_config_value("ai.anthropic.api_key")
+    )
 
     def generate():
         """
@@ -72,7 +76,9 @@ def trigger_buffered_ai_analysis(prompt: str) -> str | None:
         return None
 
     # Configure a Claude client
-    claude_client = anthropic.Anthropic(api_key=get_config_value("ai.anthropic.api_key"))
+    claude_client = anthropic.Anthropic(
+        api_key=get_config_value("ai.anthropic.api_key")
+    )
 
     # Pass the prompt to Claude for analysis
     response: Message = claude_client.messages.create(

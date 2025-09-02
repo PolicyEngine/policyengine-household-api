@@ -76,7 +76,9 @@ def mock_visit_model():
 @pytest.fixture
 def mock_db_session():
     """Mock database session."""
-    with patch("policyengine_household_api.data.analytics_setup.db") as mock_db:
+    with patch(
+        "policyengine_household_api.data.analytics_setup.db"
+    ) as mock_db:
         session = MagicMock()
         session.add = MagicMock()
         session.commit = MagicMock()

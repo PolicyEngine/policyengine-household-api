@@ -151,7 +151,9 @@ class TestAnalyticsConnector:
         )
         from unittest.mock import patch, MagicMock
 
-        with patch("policyengine_household_api.data.analytics_setup.Connector") as MockConnector:
+        with patch(
+            "policyengine_household_api.data.analytics_setup.Connector"
+        ) as MockConnector:
             mock_instance = MagicMock()
             MockConnector.return_value = mock_instance
 
