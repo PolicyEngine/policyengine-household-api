@@ -59,19 +59,15 @@ jobs:
         run: make test
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
-          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AUTH0_TEST_TOKEN_NO_DOMAIN: ${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }}
-          USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
-          USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
-          USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
       - name: Run tests with auth
         run: make test-with-auth
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTH__ENABLED: true
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
           AUTH0_TEST_TOKEN_NO_DOMAIN: ${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }}
+          ANALYTICS__ENABLED: true
           USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
           USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
           USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}

@@ -3,16 +3,8 @@
 ---
 app:
   name: policyengine-household-api
-  environment: production
-  debug: false
-
-# Analytics is explicitly enabled for production
-analytics:
-  enabled: false  # Opt-in to collect usage metrics
-  database:
-    connection_name: ${USER_ANALYTICS_DB_CONNECTION_NAME}  # From env var
-    username: ${USER_ANALYTICS_DB_USERNAME}  # From env var
-    password: ${USER_ANALYTICS_DB_PASSWORD}  # From env var
+  environment: test_with_auth
+  debug: true
 
 auth:
   enabled: true
