@@ -4,9 +4,10 @@
 ---
 # Application settings
 app:
-  name: policyengine-household-api
-  environment: local
-  debug: false  # Set to true for development mode (uses local SQLite database)
+  name: policyengine-household-api # Can be any value
+  environment: local # Can be any value; not used for any purpose at the moment
+  debug: false  # Set to true for development mode (if analytics are enabled, 
+  # stores analytics output in local SQLite database)
 
 # User analytics configuration
 # Controls whether user analytics are collected and stored
@@ -24,10 +25,6 @@ analytics:
     # Database password
     password: ""  # Override with USER_ANALYTICS_DB_PASSWORD
 
-# Database configuration
-# Note: Currently only analytics database is used
-# Future application databases would be configured here
-
 # Authentication configuration
 # Controls whether Auth0 authentication is enforced on API endpoints
 auth:
@@ -41,21 +38,11 @@ auth:
     address: ""  # Override with AUTH0_ADDRESS_NO_DOMAIN
     # Auth0 API audience
     audience: ""  # Override with AUTH0_AUDIENCE_NO_DOMAIN
+    # Test JWT token used only for GitHub Actions tests pre-deployment
     test_token: "" # Override with AUTH0_TEST_TOKEN_NO_DOMAIN
 
 # AI services configuration
 ai:
-  # enabled: false  # Future: disabled for local development
-  # Future migration from:
-  # - ANTHROPIC_API_KEY
-
-# Server configuration
-server:
-  # port: 8080
-  # workers: 2
-  # timeout: 300
-
-# Logging configuration
-logging:
-  # level: INFO
-  # format: json
+  enabled: false
+  anthropic:
+    api_key: ""  # Override with ANTHROPIC_API_KEY

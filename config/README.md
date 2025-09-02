@@ -19,7 +19,6 @@ Environment variables always win, allowing you to override specific settings wit
 ## Files in this Directory
 
 - `default.yaml` - Default configuration for local development (currently mostly empty/commented)
-- `custom.yaml.example` - Example template for mounting custom configuration
 - `production.yaml.example` - Example production configuration
 - `development.yaml.example` - Example development configuration  
 - `local.yaml.example` - Example for fully local runs without external dependencies
@@ -57,15 +56,8 @@ PORT=8080
 Any environment variable with double underscores (`__`) is automatically mapped to nested config:
 
 ```bash
-# DATABASE__HOST becomes database.host
-DATABASE__HOST=localhost
-DATABASE__PORT=3306
-
 # AUTH__ENABLED becomes auth.enabled
 AUTH__ENABLED=true
-
-# SERVER__WORKERS becomes server.workers
-SERVER__WORKERS=4
 ```
 
 Note: System environment variables starting with underscores are ignored.
@@ -145,8 +137,8 @@ The default configuration is baked into the Docker image at `/app/config/default
 ```yaml
 app:
   name: Application name (default: policyengine-household-api)
-  environment: Environment (local/development/staging/production)
-  debug: Debug mode (true/false) - When true, uses local SQLite database instead of Cloud SQL
+  environment: Environment (can be any string)
+  debug: Debug mode (true/false) - When true, if analytics enabled, uses local SQLite database instead of Cloud SQL
 
 # User analytics (opt-in feature)
 analytics:
@@ -161,25 +153,13 @@ auth:
   auth0:
     address: Auth0 domain (without https:// or trailing slash)
     audience: Auth0 audience/API identifier
+    test_token: JWT token used only for pre-deployment GitHub Actions tests
 
 ai:
   enabled: Whether AI features are enabled (true/false)
-  provider: AI service provider (none/anthropic/openai)
   anthropic:
     api_key: Anthropic API key
-    model: Model name
-    max_tokens: Maximum tokens
-    temperature: Temperature setting
 
-server:
-  port: Server port (default: 8080)
-  workers: Number of worker processes
-  threads: Number of threads per worker
-  timeout: Request timeout in seconds
-
-logging:
-  level: Log level (DEBUG/INFO/WARNING/ERROR)
-  format: Log format (json/text)
 ```
 
 ## User Analytics Configuration
@@ -211,9 +191,6 @@ USER_ANALYTICS_DB_CONNECTION_NAME=your-connection
 USER_ANALYTICS_DB_USERNAME=your-username
 USER_ANALYTICS_DB_PASSWORD=your-password
 ```
-
-3. **Automatic Detection** (Backward Compatibility):
-If all three `USER_ANALYTICS_DB_*` environment variables are set, analytics is automatically enabled for backward compatibility with existing deployments.
 
 ### What Data is Collected
 
@@ -259,9 +236,6 @@ AUTH__ENABLED=true
 AUTH0_ADDRESS_NO_DOMAIN=your-tenant.auth0.com
 AUTH0_AUDIENCE_NO_DOMAIN=https://your-api-identifier
 ```
-
-3. **Automatic Detection** (Backward Compatibility):
-If both `AUTH0_ADDRESS_NO_DOMAIN` and `AUTH0_AUDIENCE_NO_DOMAIN` environment variables are set, authentication is automatically enabled for backward compatibility with existing deployments.
 
 ### Protected Endpoints
 
@@ -319,47 +293,6 @@ docker run -e FLASK_DEBUG=1 \
            policyengine/household-api
 ```
 
-### Custom Cloud Provider
-
-Mount a complete custom configuration:
-
-```bash
-# Create custom config
-cat > aws-config.yaml <<EOF
-database:
-  provider: postgres
-  host: my-rds-instance.amazonaws.com
-auth:
-  provider: cognito
-  pool_id: us-east-1_xxxxx
-EOF
-
-# Run with custom config
-docker run -v $(pwd)/aws-config.yaml:/app/config/aws.yaml \
-           -e CONFIG_FILE=/app/config/aws.yaml \
-           -e DATABASE__PASSWORD="${RDS_PASSWORD}" \
-           policyengine/household-api
-```
-
-## Migration Status
-
-### Phase 1 (Current)
-- ✅ `ConfigLoader` class implemented
-- ✅ Hierarchical configuration loading working
-- ✅ Environment variable mapping functional
-- ✅ Docker image includes default config
-- ⏳ Application code still uses `os.getenv()` directly
-
-### Phase 2 (Next Steps)
-- Gradually update application code to use `get_config_value()` instead of `os.getenv()`
-- Move non-sensitive defaults to config files
-- Keep sensitive values in environment variables
-
-### Phase 3 (Future)
-- Configuration files become primary source
-- Environment variables used only for secrets and overrides
-- Full configuration validation with Pydantic models
-
 ## Using ConfigLoader in Code
 
 To use the configuration system in new code:
@@ -381,16 +314,3 @@ auth_enabled = get_config_value("auth.enabled", False)
 3. **Use env vars for secrets** - Override sensitive values at runtime
 4. **Version control your configs** - Keep config files in source control (without secrets)
 5. **Environment-specific configs** - Have separate config files for dev/staging/prod
-
-## Debugging Configuration
-
-To see what configuration is being loaded, set the log level to DEBUG:
-
-```bash
-docker run -e LOGGING__LEVEL=DEBUG policyengine/household-api
-```
-
-The application will log:
-- Which config files were loaded
-- Which environment variables were applied
-- Any errors in loading configuration files

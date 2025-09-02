@@ -16,22 +16,10 @@ analytics:
 
 auth:
   enabled: false  # No auth in development
-  # provider: none
 
 ai:
   enabled: false  # Disabled to avoid API costs in dev
   # Or enable with API key:
   # enabled: true
-  # provider: anthropic
   # anthropic:
   #   api_key: ${ANTHROPIC_API_KEY}  # From env var if needed
-
-server:
-  port: 8080
-  workers: 1  # Single worker for debugging
-  timeout: 300
-  reload: true  # Auto-reload on code changes
-
-logging:
-  level: DEBUG
-  format: text  # Human-readable for development

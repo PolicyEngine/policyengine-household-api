@@ -11,31 +11,10 @@ app:
 analytics:
   enabled: false
 
-# Note: Application database configuration would go here when added
-# Local runs might use an in-memory SQLite database in the future
-
 auth:
   enabled: false
-  provider: none
   # All endpoints accessible without authentication
 
 ai:
   enabled: false
-  provider: none
   # Returns mock responses for AI endpoints
-
-server:
-  port: 8080
-  workers: 1
-  timeout: 300
-  reload: true
-
-logging:
-  level: DEBUG
-  format: text
-  
-# Feature flags for local testing
-features:
-  rate_limiting: false
-  analytics: false
-  cache: false
