@@ -305,32 +305,36 @@ CONFIG_FILE=config/development.yaml make debug
 CONFIG_FILE=/path/to/your/config.yaml make debug
 ```
 
-#### Using Environment Variables from .env Files
+#### Template Variable Substitution
 
-The configuration loader supports template variable substitution using `${VAR}` syntax in YAML files. This allows you to keep sensitive values in a `.env` file and reference them in your config:
+The configuration loader supports template variable substitution using `${VAR}` or `$VAR` syntax in YAML files. This allows you to keep sensitive values in a separate file and reference them in your config without setting them as environment variables.
 
-1. Create a `.env` file with your environment variables:
+##### How It Works
+
+1. Create a config values file (e.g., `config_values.env`) with your sensitive values:
 ```bash
-# .env
-AUTH0_ADDRESS_NO_DOMAIN=your-tenant.auth0.com
-AUTH0_AUDIENCE_NO_DOMAIN=https://your-api-identifier
-ANTHROPIC_API_KEY=sk-ant-...
+# config_values.env
+AUTH0_DOMAIN=your-domain.auth0.com
+AUTH0_AUDIENCE=https://your-api.example.com
+AUTH0_TOKEN=your-test-token
+ANTHROPIC_API_KEY=your-api-key
 ANALYTICS_PASSWORD=secure-password
 ```
 
-2. Reference these in your config file using `${VAR}` syntax:
+2. Reference these in your config file using `${VAR}` or `$VAR` syntax:
 ```yaml
 # config/local.yaml
 auth:
   enabled: true
   auth0:
-    address: ${AUTH0_ADDRESS_NO_DOMAIN}
-    audience: ${AUTH0_AUDIENCE_NO_DOMAIN}
+    address: ${AUTH0_DOMAIN}
+    audience: ${AUTH0_AUDIENCE}
+    test_bearer_token: ${AUTH0_TOKEN}
 
 ai:
   enabled: true
   anthropic:
-    api_key: ${ANTHROPIC_API_KEY}
+    api_key: $ANTHROPIC_API_KEY  # With or without brackets works
 
 analytics:
   enabled: true
@@ -338,13 +342,103 @@ analytics:
     password: ${ANALYTICS_PASSWORD}
 ```
 
-3. Source the `.env` file and run with the config in the same command:
+3. Use the `CONFIG_VALUE_SETTINGS` environment variable to point to your values file:
 ```bash
-# Load environment variables and run the debug server
-source .env && CONFIG_FILE=config/local.yaml make debug
+CONFIG_VALUE_SETTINGS=config_values.env CONFIG_FILE=config/local.yaml make debug
 ```
 
-This approach keeps sensitive data out of config files while maintaining a clean configuration structure.
+##### Docker Usage
+
+In Docker, you can mount both the config file and the values file:
+
+```bash
+docker run -v /path/to/config.yaml:/app/config/custom.yaml \
+           -v /path/to/values.env:/app/config/values.env \
+           -e CONFIG_FILE=/app/config/custom.yaml \
+           -e CONFIG_VALUE_SETTINGS=/app/config/values.env \
+           policyengine/household-api
+```
+
+Or with Docker Compose:
+```yaml
+version: '3.8'
+services:
+  household-api:
+    image: policyengine/household-api
+    volumes:
+      - ./my-config.yaml:/app/config/custom.yaml
+      - ./my-values.env:/app/config/values.env
+    environment:
+      - CONFIG_FILE=/app/config/custom.yaml
+      - CONFIG_VALUE_SETTINGS=/app/config/values.env
+```
+
+##### Kubernetes Usage
+
+With Kubernetes, you can use ConfigMaps or Secrets:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: household-api-values
+stringData:
+  values.env: |
+    AUTH0_DOMAIN=your-domain.auth0.com
+    AUTH0_AUDIENCE=https://your-api.example.com
+    ANTHROPIC_API_KEY=your-api-key
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: household-api-config
+data:
+  config.yaml: |
+    auth:
+      enabled: true
+      auth0:
+        address: ${AUTH0_DOMAIN}
+        audience: ${AUTH0_AUDIENCE}
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: api
+        env:
+        - name: CONFIG_FILE
+          value: /config/config.yaml
+        - name: CONFIG_VALUE_SETTINGS
+          value: /secrets/values.env
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: values
+          mountPath: /secrets
+      volumes:
+      - name: config
+        configMap:
+          name: household-api-config
+      - name: values
+        secret:
+          secretName: household-api-values
+```
+
+##### Important Notes
+
+- **Flask Auto-loading**: Flask automatically loads `.env` files when `python-dotenv` is installed and the `FLASK_DEBUG` environment variable is set to true. This will cause these values to override any external config files you specify, which may be undesirable for a given use case. To prevent this, either:
+  - Name your values file something other than `.env` (e.g., `config_values.env`)
+  - Set `FLASK_SKIP_DOTENV=1` when running Flask
+  
+- **Validation**: The loader validates that all referenced variables in the config file exist in the values file, providing clear error messages if any are missing
+
+- **Format**: The values file uses standard `.env` format:
+  - `KEY=value` pairs, one per line
+  - Comments start with `#`
+  - Empty lines are ignored
+  - No quotes needed around values (they'll be included literally if present)
 
 ## Using ConfigLoader in Code
 
