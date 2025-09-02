@@ -68,10 +68,6 @@ class ConditionalAuthDecorator:
         auth0_address = get_config_value("auth.auth0.address", "")
         auth0_audience = get_config_value("auth.auth0.audience", "")
 
-        print(f"Auth enabled config: {self._auth_enabled}")
-        print(f"Auth0 address: {auth0_address}")
-        print(f"Auth0 audience: {auth0_audience}")
-
         # Initialize the appropriate decorator
         if self._auth_enabled:
             if auth0_address and auth0_audience:
@@ -82,9 +78,6 @@ class ConditionalAuthDecorator:
                 )
                 resource_protector.register_token_validator(validator)
                 self._decorator = resource_protector
-                print(
-                    f"Auth0 authentication enabled with domain: {auth0_address}"
-                )
             else:
                 # Auth was requested but configuration is missing
                 print("Warning: Auth enabled but Auth0 configuration missing")

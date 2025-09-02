@@ -90,7 +90,6 @@ class ConfigLoader:
             logger.info(
                 f"Loaded default config from {self.default_config_path}"
             )
-        print(f"Config following default setup: {config}")
 
         # 2. Load external config file if specified
         external_config = self._load_external_config()
@@ -101,14 +100,12 @@ class ConfigLoader:
             logger.info(
                 f"Loaded external config from {os.getenv(self.CONFIG_FILE_ENV_VAR)}"
             )
-        print(f"Config following external setup: {config}")
 
         # 3. Override with environment variables (highest priority)
         env_overrides = self._load_env_overrides()
         if env_overrides:
             config = self._deep_merge(config, env_overrides)
             logger.info("Applied environment variable overrides")
-        print(f"Config following environment variable overrides: {config}")
 
         self._config = config
         return config
@@ -149,7 +146,6 @@ class ConfigLoader:
     def _load_external_config(self) -> Optional[Dict[str, Any]]:
         """Load external config file if CONFIG_FILE env var is set."""
         config_file = os.getenv(self.CONFIG_FILE_ENV_VAR)
-        print(f"Config file from env var: {config_file}")
         if not config_file:
             return None
 
@@ -168,7 +164,6 @@ class ConfigLoader:
                         f"External config file {config_file} is empty"
                     )
                     return {}
-                print(f"Config following load: {content}")
                 return content
         except yaml.YAMLError as e:
             logger.error(
@@ -331,17 +326,13 @@ class ConfigLoader:
         1. Explicit mapping (ENV_VAR_MAPPING)
         2. Double underscore notation (DATABASE__HOST -> database.host)
         """
-        print(f"\n\nBegin loading environment variable overrides\n\n")
         overrides = {}
 
         # Process explicitly mapped environment variables
         for env_var, config_path in self.ENV_VAR_MAPPING.items():
             value = os.getenv(env_var)
-            print(f"Env var '{env_var}' mapped to config path '{config_path}' with value: {value}")
             if value is not None:
                 self._set_nested_value(overrides, config_path, value)
-
-        print(f"Begin processing double-underscore notation env vars\n")
 
         # Process double-underscore notation env vars
         # Format: SECTION__KEY__SUBKEY -> section.key.subkey
@@ -359,7 +350,6 @@ class ConfigLoader:
                     continue
 
                 config_path = ".".join(path_parts)
-                print(f"Env var '{key}' mapped to config path '{config_path}' with value: {value}")
                 self._set_nested_value(overrides, config_path, value)
 
         return overrides

@@ -34,7 +34,6 @@ def log_analytics_if_enabled(func):
         try:
             if not is_analytics_enabled():
                 # Analytics disabled, just execute the function
-                print("Analytics is disabled")
                 return func(*args, **kwargs)
         except Exception as e:
             logger.debug(f"Could not determine analytics status: {e}")
@@ -43,8 +42,6 @@ def log_analytics_if_enabled(func):
 
         # Analytics is enabled, proceed with logging
         try:
-
-            print("Analytics enabled")
 
             # Create a record that will be emitted to the db
             new_visit = Visit()
@@ -58,16 +55,12 @@ def log_analytics_if_enabled(func):
                 )
                 client_id = decoded_token["sub"]
 
-                print(f"Decoded token: {decoded_token}")
-                print(f"Client ID before suffix check: {client_id}")
-
                 suffix_to_slice = "@clients"
                 if (
                     len(client_id) >= len(suffix_to_slice)
                     and client_id[-len(suffix_to_slice) :] == suffix_to_slice
                 ):
                     client_id = client_id[: -len(suffix_to_slice)]
-                print(f"Client ID after suffix check: {client_id}")
                 new_visit.client_id = client_id
             except Exception as e:
                 logger.debug(f"Could not extract client_id from JWT: {e}")
