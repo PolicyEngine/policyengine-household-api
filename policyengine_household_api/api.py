@@ -19,7 +19,6 @@ from policyengine_household_api.data.analytics_setup import initialize_analytics
 # Internal imports
 from .decorators.auth import create_auth_decorator
 from .constants import VERSION, REPO
-from .data.setup import getconn
 from policyengine_household_api.decorators.analytics import log_analytics_if_enabled
 
 # Endpoints
@@ -49,36 +48,7 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
-# Configure database connection
-# if os.getenv("FLASK_DEBUG") == "1":
-#     db_url = REPO / "policyengine_household_api" / "data" / "policyengine.db"
-#     if Path(db_url).exists():
-#         Path(db_url).unlink()
-#     if not Path(db_url).exists():
-#         Path(db_url).touch()
-#     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////" + str(db_url)
-# else:
-#     app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"
-#     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
-
-# is_analytics_enabled, analytics_db = initialize_analytics_db_if_enabled(app)
 initialize_analytics_db_if_enabled(app)
-
-
-# # Configure database schema
-# class Base(DeclarativeBase):
-#     pass
-# 
-# 
-# db = SQLAlchemy(model_class=Base)
-# db.init_app(app)
-# 
-# # Note that this only updates if table already exists
-# from policyengine_household_api.data.models import Visit
-# 
-# with app.app_context():
-#     db.create_all()
-
 
 app.route("/", methods=["GET"])(get_home)
 
