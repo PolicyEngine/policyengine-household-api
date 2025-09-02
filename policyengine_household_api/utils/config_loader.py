@@ -79,33 +79,28 @@ class ConfigLoader:
         # 1. Load default config (lowest priority)
         default_config = self._load_default_config()
         if default_config:
+            # Substitute environment variables in default config
+            default_config = self._substitute_env_vars(default_config)
             config = self._deep_merge(config, default_config)
             logger.info(
                 f"Loaded default config from {self.default_config_path}"
             )
 
-        print(f"Loaded default config from {self.default_config_path}")
-        print("Config: ", config)
-
         # 2. Load external config file if specified
         external_config = self._load_external_config()
         if external_config:
+            # Substitute environment variables in external config
+            external_config = self._substitute_env_vars(external_config)
             config = self._deep_merge(config, external_config)
             logger.info(
                 f"Loaded external config from {os.getenv(self.CONFIG_FILE_ENV_VAR)}"
             )
-
-        print(f"Loaded external config from {os.getenv(self.CONFIG_FILE_ENV_VAR)}")
-        print("Config: ", config)
 
         # 3. Override with environment variables (highest priority)
         env_overrides = self._load_env_overrides()
         if env_overrides:
             config = self._deep_merge(config, env_overrides)
             logger.info("Applied environment variable overrides")
-
-        print("Applied environment variable overrides")
-        print("Config: ", config)
 
         self._config = config
         return config
@@ -180,6 +175,26 @@ class ConfigLoader:
                 f"Unexpected error loading external config from {config_file}: {e}"
             )
             return None
+
+    def _substitute_env_vars(self, config: Any) -> Any:
+        """
+        Recursively substitute ${VAR} and $VAR with environment variable values.
+        
+        Args:
+            config: Configuration data (dict, list, string, or other)
+            
+        Returns:
+            Configuration with environment variables substituted
+        """
+        if isinstance(config, dict):
+            return {k: self._substitute_env_vars(v) for k, v in config.items()}
+        elif isinstance(config, list):
+            return [self._substitute_env_vars(item) for item in config]
+        elif isinstance(config, str):
+            # Use os.path.expandvars to handle both $VAR and ${VAR} syntax
+            return os.path.expandvars(config)
+        else:
+            return config
 
     def _load_env_overrides(self) -> Dict[str, Any]:
         """
