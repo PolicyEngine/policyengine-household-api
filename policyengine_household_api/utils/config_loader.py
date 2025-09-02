@@ -32,7 +32,7 @@ class ConfigLoader:
 
     # Environment variable to specify external config
     CONFIG_FILE_ENV_VAR = "CONFIG_FILE"
-    
+
     # Environment variable to specify config values file
     CONFIG_VALUE_SETTINGS_ENV_VAR = "CONFIG_VALUE_SETTINGS"
 
@@ -184,25 +184,25 @@ class ConfigLoader:
     def _load_config_values_file(self) -> Dict[str, str]:
         """
         Load configuration values from a file specified by CONFIG_VALUE_SETTINGS.
-        
+
         The file should be in .env format:
         KEY=value
         # Comments are allowed
-        
+
         Returns:
             Dictionary of key-value pairs for substitution
         """
         if self._config_values is not None:
             return self._config_values
-            
+
         config_values = {}
         config_values_file = os.getenv(self.CONFIG_VALUE_SETTINGS_ENV_VAR)
-        
+
         if not config_values_file:
             logger.debug("No CONFIG_VALUE_SETTINGS file specified")
             self._config_values = config_values
             return config_values
-        
+
         path = Path(config_values_file)
         if not path.exists():
             logger.error(
@@ -212,7 +212,7 @@ class ConfigLoader:
                 f"Configuration values file not found: {config_values_file}. "
                 f"Please ensure the file exists or unset CONFIG_VALUE_SETTINGS."
             )
-        
+
         try:
             with open(path, "r") as f:
                 line_number = 0
@@ -220,40 +220,40 @@ class ConfigLoader:
                     line_number += 1
                     # Strip whitespace
                     line = line.strip()
-                    
+
                     # Skip empty lines and comments
-                    if not line or line.startswith('#'):
+                    if not line or line.startswith("#"):
                         continue
-                    
+
                     # Parse KEY=value format
                     # Use regex to properly handle values with '=' in them
-                    match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)=(.*)$', line)
+                    match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", line)
                     if not match:
                         raise ValueError(
                             f"Invalid format in {config_values_file} at line {line_number}: '{line}'. "
                             f"Expected format: KEY=value (KEY must start with letter or underscore, "
                             f"followed by letters, numbers, or underscores)"
                         )
-                    
+
                     key = match.group(1)
                     value = match.group(2)
-                    
+
                     # Check for duplicate keys
                     if key in config_values:
                         logger.warning(
                             f"Duplicate key '{key}' in {config_values_file} at line {line_number}. "
                             f"Using the latest value."
                         )
-                    
+
                     config_values[key] = value
                     logger.debug(f"Loaded config value: {key}")
-            
+
             logger.info(
                 f"Loaded {len(config_values)} config values from {config_values_file}"
             )
             self._config_values = config_values
             return config_values
-            
+
         except PermissionError as e:
             logger.error(
                 f"Permission denied reading config values file at {config_values_file}: {e}"
@@ -281,7 +281,7 @@ class ConfigLoader:
         """
         # Load config values from file if specified
         config_values = self._load_config_values_file()
-        
+
         if isinstance(config, dict):
             return {k: self._substitute_env_vars(v) for k, v in config.items()}
         elif isinstance(config, list):
@@ -292,20 +292,28 @@ class ConfigLoader:
                 # Custom substitution using config values
                 result = config
                 # Handle ${VAR} syntax
-                for match in re.finditer(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}', config):
+                for match in re.finditer(
+                    r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", config
+                ):
                     var_name = match.group(1)
                     if var_name in config_values:
-                        result = result.replace(match.group(0), config_values[var_name])
+                        result = result.replace(
+                            match.group(0), config_values[var_name]
+                        )
                     else:
                         logger.warning(
                             f"Variable ${{{var_name}}} not found in config values file. "
                             f"Leaving as-is."
                         )
                 # Handle $VAR syntax (but only if followed by non-alphanumeric or at end)
-                for match in re.finditer(r'\$([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])', config):
+                for match in re.finditer(
+                    r"\$([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])", config
+                ):
                     var_name = match.group(1)
                     if var_name in config_values:
-                        result = result.replace(match.group(0), config_values[var_name])
+                        result = result.replace(
+                            match.group(0), config_values[var_name]
+                        )
                     else:
                         logger.warning(
                             f"Variable ${var_name} not found in config values file. "

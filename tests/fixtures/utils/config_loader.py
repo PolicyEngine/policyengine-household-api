@@ -247,7 +247,9 @@ def config_with_mixed_env_vars(clean_env):
 @pytest.fixture
 def temp_valid_config_values_file():
     """Create a temporary valid config values file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("# This is a comment\n")
         f.write("AUTH0_ADDRESS=example.auth0.com\n")
         f.write("AUTH0_AUDIENCE=https://api.example.com\n")
@@ -255,9 +257,9 @@ def temp_valid_config_values_file():
         f.write("\n")  # Empty line
         f.write("ANOTHER_VAR=value_with_equals=sign\n")
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -265,19 +267,23 @@ def temp_valid_config_values_file():
 @pytest.fixture
 def temp_config_with_variables():
     """Create a temporary config file with variable references."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-        f.write("""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False
+    ) as f:
+        f.write(
+            """
 auth:
   address: ${AUTH0_ADDRESS}
   audience: $AUTH0_AUDIENCE
 database:
   password: ${DB_PASSWORD}
 special: ${ANOTHER_VAR}
-        """)
+        """
+        )
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -285,12 +291,14 @@ special: ${ANOTHER_VAR}
 @pytest.fixture
 def temp_missing_vars_config_values():
     """Create config values file missing some variables."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("AUTH0_ADDRESS=example.auth0.com\n")
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -298,16 +306,20 @@ def temp_missing_vars_config_values():
 @pytest.fixture
 def temp_config_with_missing_var():
     """Create config file with a missing variable reference."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-        f.write("""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False
+    ) as f:
+        f.write(
+            """
 auth:
   address: ${AUTH0_ADDRESS}
   audience: ${MISSING_VAR}
-        """)
+        """
+        )
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -315,13 +327,15 @@ auth:
 @pytest.fixture
 def temp_invalid_format_values_file():
     """Create config values file with invalid format."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("VALID_KEY=valid_value\n")
         f.write("invalid-key=value\n")  # Invalid: contains hyphen
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -329,12 +343,14 @@ def temp_invalid_format_values_file():
 @pytest.fixture
 def temp_invalid_key_number_values_file():
     """Create config values file with key starting with number."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("123_KEY=value\n")  # Invalid: starts with number
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -342,14 +358,16 @@ def temp_invalid_key_number_values_file():
 @pytest.fixture
 def temp_duplicate_keys_values_file():
     """Create config values file with duplicate keys."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("DUPLICATE_KEY=first_value\n")
         f.write("OTHER_KEY=other_value\n")
         f.write("DUPLICATE_KEY=second_value\n")
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -357,12 +375,14 @@ def temp_duplicate_keys_values_file():
 @pytest.fixture
 def temp_config_with_duplicate_key():
     """Create config file referencing duplicate key."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False
+    ) as f:
         f.write("test: ${DUPLICATE_KEY}")
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -370,14 +390,16 @@ def temp_config_with_duplicate_key():
 @pytest.fixture
 def temp_empty_values_file():
     """Create empty config values file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("# Just comments\n")
         f.write("\n")
         f.write("   \n")  # Whitespace only
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -385,16 +407,18 @@ def temp_empty_values_file():
 @pytest.fixture
 def temp_complex_values_file():
     """Create config values file with complex values."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
-        f.write('URL_WITH_QUERY=https://example.com?param=value&other=123\n')
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
+        f.write("URL_WITH_QUERY=https://example.com?param=value&other=123\n")
         f.write('JSON_STRING={"key": "value", "number": 123}\n')
-        f.write('PATH_WITH_SPACES=/path/to/some file.txt\n')
-        f.write('EMPTY_VALUE=\n')
+        f.write("PATH_WITH_SPACES=/path/to/some file.txt\n")
+        f.write("EMPTY_VALUE=\n")
         f.write('VALUE_WITH_QUOTES="quoted value"\n')
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -402,18 +426,22 @@ def temp_complex_values_file():
 @pytest.fixture
 def temp_config_with_complex_values():
     """Create config file with complex value references."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-        f.write("""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False
+    ) as f:
+        f.write(
+            """
 url: ${URL_WITH_QUERY}
 json: ${JSON_STRING}
 path: ${PATH_WITH_SPACES}
 empty: ${EMPTY_VALUE}
 quoted: ${VALUE_WITH_QUOTES}
-        """)
+        """
+        )
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -421,17 +449,21 @@ quoted: ${VALUE_WITH_QUOTES}
 @pytest.fixture
 def temp_realistic_values_file():
     """Create realistic config values file for integration testing."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("AUTH0_ADDRESS_NO_DOMAIN=policyengine.uk.auth0.com\n")
-        f.write("AUTH0_AUDIENCE_NO_DOMAIN=https://household.api.policyengine.org\n")
+        f.write(
+            "AUTH0_AUDIENCE_NO_DOMAIN=https://household.api.policyengine.org\n"
+        )
         f.write("AUTH0_TEST_TOKEN_NO_DOMAIN=test-jwt-token\n")
         f.write("USER_ANALYTICS_DB_CONNECTION_NAME=project:region:instance\n")
         f.write("USER_ANALYTICS_DB_USERNAME=analytics_user\n")
         f.write("USER_ANALYTICS_DB_PASSWORD=analytics_pass\n")
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -439,8 +471,11 @@ def temp_realistic_values_file():
 @pytest.fixture
 def temp_realistic_config_with_vars():
     """Create realistic config file similar to test_with_auth.yaml."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
-        f.write("""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False
+    ) as f:
+        f.write(
+            """
 app:
   name: policyengine-household-api
   environment: test
@@ -459,11 +494,12 @@ analytics:
     connection_name: ${USER_ANALYTICS_DB_CONNECTION_NAME}
     username: ${USER_ANALYTICS_DB_USERNAME}
     password: ${USER_ANALYTICS_DB_PASSWORD}
-        """)
+        """
+        )
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink()
 
@@ -471,15 +507,17 @@ analytics:
 @pytest.fixture
 def temp_no_read_permission_values_file():
     """Create a config values file with no read permissions."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".env", delete=False
+    ) as f:
         f.write("KEY=value\n")
         temp_path = f.name
-    
+
     # Remove read permissions
     os.chmod(temp_path, 0o000)
-    
+
     yield temp_path
-    
+
     # Restore permissions and delete
     try:
         os.chmod(temp_path, 0o644)
