@@ -1,6 +1,6 @@
 # from policyengine_household_api.api import analytics_db
 from policyengine_household_api.data.analytics_setup import db
-from sqlalchemy import Integer, String, Boolean, DateTime
+from sqlalchemy import Integer, String, DateTime
 from sqlalchemy.orm import mapped_column
 
 

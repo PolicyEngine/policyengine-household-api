@@ -22,6 +22,7 @@ Environment variables always win, allowing you to override specific settings wit
 - `production.yaml.example` - Example production configuration
 - `development.yaml.example` - Example development configuration  
 - `local.yaml.example` - Example for fully local runs without external dependencies
+- `example_values.env` - Example environment variables that can be programmatically read into a config template to allow the storing of sensitive values in a separate file; this will be covered later
 
 ## Configuration Methods
 
@@ -66,6 +67,11 @@ Note: System environment variables starting with underscores are ignored.
 
 You can mount an external configuration file to override the defaults:
 
+#### Command Line
+```bash
+CONFIG_FILE=config/local.yaml make debug
+```
+
 #### Docker Run
 ```bash
 # Mount a custom config file
@@ -76,7 +82,7 @@ docker run -v /path/to/your/config.yaml:/custom/config.yaml \
 
 #### Docker Compose
 ```yaml
-version: '3.8'
+version: '3.13'
 services:
   household-api:
     image: policyengine/household-api
@@ -97,9 +103,6 @@ metadata:
   name: household-api-config
 data:
   config.yaml: |
-    database:
-      provider: postgres
-      host: postgres.default.svc.cluster.local
     auth:
       enabled: true
 ---
@@ -114,10 +117,10 @@ spec:
         env:
         - name: CONFIG_FILE
           value: /config/config.yaml
-        - name: DATABASE__PASSWORD
+        - name: AUTH__ENABLED
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: auth-value
               key: password
         volumeMounts:
         - name: config
@@ -149,14 +152,14 @@ analytics:
     password: Database password
 
 auth:
-  enabled: Whether authentication is required (true/false)
+  enabled: Whether authentication via auth0 is required (true/false)
   auth0:
     address: Auth0 domain (without https:// or trailing slash)
     audience: Auth0 audience/API identifier
     test_token: JWT token used only for pre-deployment GitHub Actions tests
 
 ai:
-  enabled: Whether AI features are enabled (true/false)
+  enabled: Whether AI features are enabled (true/false) (these features are only used in the alpha-mode AI explainer endpoint)
   anthropic:
     api_key: Anthropic API key
 
@@ -164,7 +167,7 @@ ai:
 
 ## User Analytics Configuration
 
-User analytics is an **opt-in** feature that collects API usage metrics for monitoring and analysis. By default, analytics is **disabled** to respect privacy and minimize dependencies.
+User analytics is an **opt-in** feature that collects API usage metrics for monitoring and analysis. By default, analytics is **disabled**.
 
 ### Enabling Analytics
 
@@ -194,13 +197,15 @@ USER_ANALYTICS_DB_PASSWORD=your-password
 
 ### What Data is Collected
 
-When analytics is enabled, the following data is collected per API request:
+When analytics is enabled, the following public data is collected per API request:
 - Client ID (from JWT token)
 - API version
 - Endpoint accessed
 - HTTP method
 - Request content length
 - Timestamp
+
+All of these values are public and are used purely to establish usage rates.
 
 ### Privacy Considerations
 
@@ -293,18 +298,6 @@ docker run -e FLASK_DEBUG=1 \
            policyengine/household-api
 ```
 
-#### Using Custom Config with Make
-
-You can specify a custom configuration file when running the development server locally:
-
-```bash
-# Use a specific config file
-CONFIG_FILE=config/development.yaml make debug
-
-# Or use an absolute path
-CONFIG_FILE=/path/to/your/config.yaml make debug
-```
-
 #### Template Variable Substitution
 
 The configuration loader supports template variable substitution using `${VAR}` or `$VAR` syntax in YAML files. This allows you to keep sensitive values in a separate file and reference them in your config without setting them as environment variables.
@@ -361,7 +354,7 @@ docker run -v /path/to/config.yaml:/app/config/custom.yaml \
 
 Or with Docker Compose:
 ```yaml
-version: '3.8'
+version: '3.13'
 services:
   household-api:
     image: policyengine/household-api
@@ -446,9 +439,6 @@ To use the configuration system in new code:
 
 ```python
 from policyengine_household_api.utils import get_config_value
-
-# Get a configuration value with a default
-db_provider = get_config_value("database.provider", "sqlite")
 
 # Get nested configuration
 auth_enabled = get_config_value("auth.enabled", False)
