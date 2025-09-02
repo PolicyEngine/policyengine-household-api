@@ -9,7 +9,7 @@ while maintaining security in production environments.
 from typing import Optional, Any, Callable
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from ..auth.validation import Auth0JWTBearerTokenValidator
-from ..utils.config_loader import get_config_value
+from ..utils.config_loader import get_config, get_config_value
 
 
 class NoOpDecorator:
@@ -67,6 +67,10 @@ class ConditionalAuthDecorator:
         # Get Auth0 configuration values
         auth0_address = get_config_value("auth.auth0.address", "")
         auth0_audience = get_config_value("auth.auth0.audience", "")
+
+        print(f"Auth enabled config: {self._auth_enabled}")
+        print(f"Auth0 address: {auth0_address}")
+        print(f"Auth0 audience: {auth0_audience}")
 
         # Initialize the appropriate decorator
         if self._auth_enabled:
