@@ -5,7 +5,10 @@ debug:
 	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 flask run --without-threads
 
 test:
-	pytest -vv --timeout=150 -rP tests
+	pytest -vv --timeout=150 -rP tests/to_refactor tests/unit
+
+test-with-auth:
+	CONFIG_FILE=config/test_with_auth.yaml pytest -vv --timeout=150 -rP tests/integration_with_auth
 
 debug-test:
 	FLASK_DEBUG=1 pytest -vv --durations=0 --timeout=150 -rP tests
