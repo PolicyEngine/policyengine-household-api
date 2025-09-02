@@ -293,6 +293,59 @@ docker run -e FLASK_DEBUG=1 \
            policyengine/household-api
 ```
 
+#### Using Custom Config with Make
+
+You can specify a custom configuration file when running the development server locally:
+
+```bash
+# Use a specific config file
+CONFIG_FILE=config/development.yaml make debug
+
+# Or use an absolute path
+CONFIG_FILE=/path/to/your/config.yaml make debug
+```
+
+#### Using Environment Variables from .env Files
+
+The configuration loader supports template variable substitution using `${VAR}` syntax in YAML files. This allows you to keep sensitive values in a `.env` file and reference them in your config:
+
+1. Create a `.env` file with your environment variables:
+```bash
+# .env
+AUTH0_ADDRESS_NO_DOMAIN=your-tenant.auth0.com
+AUTH0_AUDIENCE_NO_DOMAIN=https://your-api-identifier
+ANTHROPIC_API_KEY=sk-ant-...
+ANALYTICS_PASSWORD=secure-password
+```
+
+2. Reference these in your config file using `${VAR}` syntax:
+```yaml
+# config/local.yaml
+auth:
+  enabled: true
+  auth0:
+    address: ${AUTH0_ADDRESS_NO_DOMAIN}
+    audience: ${AUTH0_AUDIENCE_NO_DOMAIN}
+
+ai:
+  enabled: true
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY}
+
+analytics:
+  enabled: true
+  database:
+    password: ${ANALYTICS_PASSWORD}
+```
+
+3. Source the `.env` file and run with the config in the same command:
+```bash
+# Load environment variables and run the debug server
+source .env && CONFIG_FILE=config/local.yaml make debug
+```
+
+This approach keeps sensitive data out of config files while maintaining a clean configuration structure.
+
 ## Using ConfigLoader in Code
 
 To use the configuration system in new code:
