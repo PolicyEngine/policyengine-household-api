@@ -1,5 +1,5 @@
 """
-Patch fixtures for analytics_optional decorator unit tests.
+Patch fixtures for analytics decorator unit tests.
 """
 
 import pytest
@@ -11,7 +11,7 @@ from datetime import datetime
 def mock_analytics_enabled():
     """Mock analytics as enabled."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+        "policyengine_household_api.decorators.analytics.is_analytics_enabled",
         return_value=True,
     ):
         yield
@@ -21,7 +21,7 @@ def mock_analytics_enabled():
 def mock_analytics_disabled():
     """Mock analytics as disabled."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+        "policyengine_household_api.decorators.analytics.is_analytics_enabled",
         return_value=False,
     ):
         yield
@@ -31,7 +31,7 @@ def mock_analytics_disabled():
 def mock_analytics_error():
     """Mock analytics check to raise an error."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+        "policyengine_household_api.decorators.analytics.is_analytics_enabled",
         side_effect=Exception("Error"),
     ):
         yield
@@ -39,17 +39,31 @@ def mock_analytics_error():
 
 @pytest.fixture
 def mock_visit_instance():
-    """Create a mock Visit instance."""
-    return MagicMock()
+    """Create a mock Visit instance that properly tracks attribute assignments."""
+
+    class MockVisit:
+        def __init__(self):
+            self.client_id = None
+            self.api_version = None
+            self.endpoint = None
+            self.method = None
+            self.content_length_bytes = None
+            self.datetime = None
+
+    return MockVisit()
 
 
 @pytest.fixture
 def mock_visit_class(mock_visit_instance):
     """Mock the Visit class to return a mock instance."""
+    # Create a mock class that returns our instance when called as Visit()
+    mock_class = MagicMock(return_value=mock_visit_instance)
+
+    # Patch Visit where it's imported in the decorator module
     with patch(
-        "policyengine_household_api.data.models.Visit",
-        return_value=mock_visit_instance,
-    ) as mock_class:
+        "policyengine_household_api.decorators.analytics.Visit",
+        mock_class,
+    ):
         yield mock_class, mock_visit_instance
 
 
@@ -63,7 +77,7 @@ def mock_request_with_auth():
     mock_request.content_length = 1024
 
     with patch(
-        "policyengine_household_api.decorators.analytics_optional.request",
+        "policyengine_household_api.decorators.analytics.request",
         mock_request,
     ):
         yield mock_request
@@ -79,7 +93,7 @@ def mock_request_without_auth():
     mock_request.content_length = 1024
 
     with patch(
-        "policyengine_household_api.decorators.analytics_optional.request",
+        "policyengine_household_api.decorators.analytics.request",
         mock_request,
     ):
         yield mock_request
@@ -88,21 +102,30 @@ def mock_request_without_auth():
 @pytest.fixture
 def mock_jwt_valid_with_suffix():
     """Mock JWT decode to return client ID with @clients suffix."""
-    with patch("jwt.decode", return_value={"sub": "test-client@clients"}):
+    with patch(
+        "policyengine_household_api.decorators.analytics.jwt.decode",
+        return_value={"sub": "test-client@clients"},
+    ):
         yield
 
 
 @pytest.fixture
 def mock_jwt_valid_without_suffix():
     """Mock JWT decode to return client ID without suffix."""
-    with patch("jwt.decode", return_value={"sub": "test-client"}):
+    with patch(
+        "policyengine_household_api.decorators.analytics.jwt.decode",
+        return_value={"sub": "test-client"},
+    ):
         yield
 
 
 @pytest.fixture
 def mock_jwt_invalid():
     """Mock JWT decode to raise an error."""
-    with patch("jwt.decode", side_effect=Exception("Invalid token")):
+    with patch(
+        "policyengine_household_api.decorators.analytics.jwt.decode",
+        side_effect=Exception("Invalid token"),
+    ):
         yield
 
 
@@ -111,7 +134,7 @@ def mock_datetime_fixed():
     """Mock datetime to return a fixed time."""
     fixed_time = datetime(2024, 1, 1, 12, 0, 0)
     with patch(
-        "policyengine_household_api.decorators.analytics_optional.datetime"
+        "policyengine_household_api.decorators.analytics.datetime"
     ) as mock_dt:
         mock_dt.utcnow.return_value = fixed_time
         yield fixed_time
@@ -121,7 +144,7 @@ def mock_datetime_fixed():
 def mock_version():
     """Mock VERSION constant."""
     with patch(
-        "policyengine_household_api.decorators.analytics_optional.VERSION",
+        "policyengine_household_api.decorators.analytics.VERSION",
         "1.0.0",
     ):
         yield
@@ -130,7 +153,10 @@ def mock_version():
 @pytest.fixture
 def mock_db_session():
     """Mock database session."""
-    with patch("policyengine_household_api.api.db") as mock_db:
+    # Patch db where it's imported in the decorator
+    with patch(
+        "policyengine_household_api.decorators.analytics.db"
+    ) as mock_db:
         session = MagicMock()
         mock_db.session = session
         yield session
@@ -139,7 +165,10 @@ def mock_db_session():
 @pytest.fixture
 def mock_db_session_with_error():
     """Mock database session where add raises an error."""
-    with patch("policyengine_household_api.api.db") as mock_db:
+    # Patch db where it's imported in the decorator
+    with patch(
+        "policyengine_household_api.decorators.analytics.db"
+    ) as mock_db:
         session = MagicMock()
         session.add.side_effect = Exception("Database error")
         mock_db.session = session

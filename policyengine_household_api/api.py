@@ -14,11 +14,16 @@ from sqlalchemy.orm import DeclarativeBase
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from policyengine_household_api.data.analytics_setup import (
+    initialize_analytics_db_if_enabled,
+)
 
 # Internal imports
-from .auth.conditional_decorator import create_auth_decorator
+from .decorators.auth import create_auth_decorator
 from .constants import VERSION, REPO
-from .data.setup import getconn
+from policyengine_household_api.decorators.analytics import (
+    log_analytics_if_enabled,
+)
 
 # Endpoints
 from .endpoints import (
@@ -27,11 +32,8 @@ from .endpoints import (
     generate_ai_explainer,
 )
 
-# Configure authentication
-load_dotenv()
-
 # Create the authentication decorator (will be either Auth0 or no-op based on config)
-require_auth = create_auth_decorator()
+require_auth_if_enabled = create_auth_decorator()
 
 
 print("Initialising API...")
@@ -50,47 +52,20 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
-# Configure database connection
-if os.getenv("FLASK_DEBUG") == "1":
-    db_url = REPO / "policyengine_household_api" / "data" / "policyengine.db"
-    if Path(db_url).exists():
-        Path(db_url).unlink()
-    if not Path(db_url).exists():
-        Path(db_url).touch()
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////" + str(db_url)
-else:
-    app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
-
-
-# Configure database schema
-class Base(DeclarativeBase):
-    pass
-
-
-db = SQLAlchemy(model_class=Base)
-db.init_app(app)
-
-# Note that this only updates if table already exists
-from policyengine_household_api.data.models import Visit
-
-with app.app_context():
-    db.create_all()
-
-from policyengine_household_api.decorators.analytics import log_analytics
+initialize_analytics_db_if_enabled(app)
 
 app.route("/", methods=["GET"])(get_home)
 
 
 @app.route("/<country_id>/calculate", methods=["POST"])
-@require_auth(None)
-@log_analytics
+@require_auth_if_enabled()
+@log_analytics_if_enabled
 def calculate(country_id):
     return get_calculate(country_id)
 
 
 @app.route("/<country_id>/ai-analysis", methods=["POST"])
-@require_auth(None)
+@require_auth_if_enabled()
 def ai_analysis(country_id: str):
     return generate_ai_explainer(country_id)
 

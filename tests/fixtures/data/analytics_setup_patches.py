@@ -10,7 +10,8 @@ from unittest.mock import patch, MagicMock
 def patch_get_config_value_returns_false():
     """Patch get_config_value to return False."""
     with patch(
-        "policyengine_household_api.utils.get_config_value", return_value=False
+        "policyengine_household_api.data.analytics_setup.get_config_value",
+        return_value=False,
     ) as mock:
         yield mock
 
@@ -19,7 +20,8 @@ def patch_get_config_value_returns_false():
 def patch_get_config_value_returns_true():
     """Patch get_config_value to return True."""
     with patch(
-        "policyengine_household_api.utils.get_config_value", return_value=True
+        "policyengine_household_api.data.analytics_setup.get_config_value",
+        return_value=True,
     ) as mock:
         yield mock
 
@@ -28,7 +30,7 @@ def patch_get_config_value_returns_true():
 def patch_get_config_value_raises_exception():
     """Patch get_config_value to raise an exception."""
     with patch(
-        "policyengine_household_api.utils.get_config_value",
+        "policyengine_household_api.data.analytics_setup.get_config_value",
         side_effect=Exception("No config"),
     ) as mock:
         yield mock
@@ -48,7 +50,7 @@ def patch_get_config_value_with_full_config():
         return config_map.get(key, default)
 
     with patch(
-        "policyengine_household_api.utils.get_config_value",
+        "policyengine_household_api.data.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -64,7 +66,7 @@ def patch_get_config_value_missing_connection_name():
         return default  # Returns None for connection_name
 
     with patch(
-        "policyengine_household_api.utils.get_config_value",
+        "policyengine_household_api.data.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -82,7 +84,7 @@ def patch_get_config_value_missing_username():
         return default  # Returns None for username
 
     with patch(
-        "policyengine_household_api.utils.get_config_value",
+        "policyengine_household_api.data.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -101,7 +103,7 @@ def patch_get_config_value_missing_password():
         return config_map.get(key, default)  # Returns None for password
 
     with patch(
-        "policyengine_household_api.utils.get_config_value",
+        "policyengine_household_api.data.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -120,7 +122,7 @@ def patch_get_config_value_first_call_succeeds_then_fails():
             raise Exception("Config loader error")
 
     with patch(
-        "policyengine_household_api.utils.get_config_value",
+        "policyengine_household_api.data.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -130,7 +132,7 @@ def patch_get_config_value_first_call_succeeds_then_fails():
 def patch_google_connector_raises_import_error():
     """Patch Google Cloud SQL Connector to raise ImportError."""
     with patch(
-        "google.cloud.sql.connector.Connector",
+        "policyengine_household_api.data.analytics_setup.Connector",
         side_effect=ImportError("No module"),
     ) as mock:
         yield mock

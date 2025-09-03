@@ -1,0 +1,17 @@
+# DO NOT commit actual production values to the repository
+
+---
+app:
+  name: policyengine-household-api
+  environment: test_with_auth
+  debug: true
+
+auth:
+  enabled: true
+  auth0:
+    address: ${AUTH0_ADDRESS_NO_DOMAIN}  # From env var
+    audience: ${AUTH0_AUDIENCE_NO_DOMAIN}  # From env var
+    test_token: ${AUTH0_TEST_TOKEN_NO_DOMAIN}  # From env var
+
+ai:
+  enabled: false

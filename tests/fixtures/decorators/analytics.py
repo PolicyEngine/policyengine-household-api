@@ -1,5 +1,5 @@
 """
-Fixtures for analytics_optional decorator unit tests.
+Fixtures for analytics decorator unit tests.
 """
 
 import pytest
@@ -76,7 +76,9 @@ def mock_visit_model():
 @pytest.fixture
 def mock_db_session():
     """Mock database session."""
-    with patch("policyengine_household_api.api.db") as mock_db:
+    with patch(
+        "policyengine_household_api.data.analytics_setup.db"
+    ) as mock_db:
         session = MagicMock()
         session.add = MagicMock()
         session.commit = MagicMock()
@@ -90,7 +92,7 @@ def mock_datetime():
     """Mock datetime to return a fixed time."""
     fixed_time = datetime(2024, 1, 1, 12, 0, 0)
     with patch(
-        "policyengine_household_api.decorators.analytics_optional.datetime"
+        "policyengine_household_api.decorators.analytics.datetime"
     ) as mock_dt:
         mock_dt.utcnow.return_value = fixed_time
         mock_dt.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
@@ -101,7 +103,7 @@ def mock_datetime():
 def mock_constants_version():
     """Mock API version constant."""
     with patch(
-        "policyengine_household_api.decorators.analytics_optional.VERSION",
+        "policyengine_household_api.decorators.analytics.VERSION",
         MOCK_API_VERSION,
     ):
         yield MOCK_API_VERSION
@@ -150,7 +152,7 @@ def sample_function():
 @pytest.fixture
 def decorated_sample_function(sample_function):
     """Sample function with analytics decorator applied."""
-    from policyengine_household_api.decorators.analytics_optional import (
+    from policyengine_household_api.decorators.analytics import (
         log_analytics_if_enabled,
     )
 

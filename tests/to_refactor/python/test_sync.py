@@ -2,10 +2,7 @@ import os
 import requests
 import json
 import sys
-from dotenv import load_dotenv
-
-load_dotenv()
-
+from policyengine_household_api.utils.config_loader import get_config_value
 from tests.to_refactor.fixtures import client, extract_json_from_file
 
 API_URL = "https://api.policyengine.org/"
@@ -31,8 +28,7 @@ def test_calculate_sync(client):
         "/" + country_id + "/calculate",
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer "
-            + os.getenv("AUTH0_TEST_TOKEN_NO_DOMAIN"),
+            "Authorization": f"Bearer {get_config_value('auth.auth0.test_token')}",
         },
         json=input_data,
     ).get_json()

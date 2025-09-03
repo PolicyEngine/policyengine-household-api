@@ -1,0 +1,6 @@
+- bump: minor
+  changes:
+    changed:
+    - Fixed code that makes environment variables optional for auth0 configuration
+    - Fixed code that makes environment variables optional for analytics tracking configuration
+    - Made environment variables configurable for AI-powered endpoints

@@ -1,8 +1,10 @@
-from policyengine_household_api.api import db
-from sqlalchemy import Integer, String, Boolean, DateTime
+# from policyengine_household_api.api import analytics_db
+from policyengine_household_api.data.analytics_setup import db
+from sqlalchemy import Integer, String, DateTime
 from sqlalchemy.orm import mapped_column
 
 
+# class Visit(analytics_db.Model):
 class Visit(db.Model):
     # Note that the model represents one visit,
     # while the table name is plural

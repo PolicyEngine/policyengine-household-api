@@ -4,6 +4,7 @@ Unit tests for the ConfigLoader class.
 
 import os
 import pytest
+import yaml
 from pathlib import Path
 from unittest.mock import patch
 import logging
@@ -29,6 +30,21 @@ from tests.fixtures.utils.config_loader import (
     config_with_env_vars,
     config_with_double_underscore,
     config_with_mixed_env_vars,
+    # CONFIG_VALUE_SETTINGS fixtures
+    temp_valid_config_values_file,
+    temp_config_with_variables,
+    temp_missing_vars_config_values,
+    temp_config_with_missing_var,
+    temp_invalid_format_values_file,
+    temp_invalid_key_number_values_file,
+    temp_duplicate_keys_values_file,
+    temp_config_with_duplicate_key,
+    temp_empty_values_file,
+    temp_complex_values_file,
+    temp_config_with_complex_values,
+    temp_realistic_values_file,
+    temp_realistic_config_with_vars,
+    temp_no_read_permission_values_file,
 )
 
 
@@ -124,10 +140,6 @@ class TestExternalConfigLoading:
             config["database"]["provider"]
             == EXTERNAL_CONFIG_DATA["database"]["provider"]
         )
-        assert (
-            config["storage"]["bucket"]
-            == EXTERNAL_CONFIG_DATA["storage"]["bucket"]
-        )
 
     def test__given_no_config_file_env_var__loader_skips_external_config(
         self, temp_default_config, clean_env
@@ -141,7 +153,6 @@ class TestExternalConfigLoading:
             config["app"]["environment"]
             == DEFAULT_CONFIG_DATA["app"]["environment"]
         )
-        assert "storage" not in config  # Storage is only in external config
 
     def test__given_nonexistent_external_config__loader_falls_back_to_default(
         self, temp_default_config, clean_env
@@ -272,10 +283,6 @@ class TestConfigPriority:
         assert (
             config["app"]["debug"] is True
         )  # External overrides default's False
-        assert (
-            config["storage"]["bucket"]
-            == EXTERNAL_CONFIG_DATA["storage"]["bucket"]
-        )
 
         # From env vars (highest priority)
         assert config["app"]["environment"] == "env-override"  # Env var wins
@@ -487,6 +494,150 @@ class TestGlobalFunctions:
         assert default_value == "default"
 
 
+class TestEnvironmentVariableSubstitution:
+    """Test environment variable substitution in config files."""
+
+    def test__given_config_with_env_var_syntax__substitution_occurs(
+        self, tmp_path, clean_env
+    ):
+        """Test that ${VAR} syntax is replaced with environment variable values."""
+        # Set environment variables
+        clean_env.setenv("TEST_APP_NAME", "substituted-app-name")
+        clean_env.setenv("TEST_DB_HOST", "substituted-db-host")
+        clean_env.setenv("TEST_DB_PORT", "5432")
+
+        # Create config with ${VAR} syntax
+        config_data = {
+            "app": {"name": "${TEST_APP_NAME}", "environment": "test"},
+            "database": {"host": "${TEST_DB_HOST}", "port": "${TEST_DB_PORT}"},
+        }
+
+        config_file = tmp_path / "config_with_vars.yaml"
+        config_file.write_text(yaml.dump(config_data))
+
+        loader = ConfigLoader(default_config_path=str(config_file))
+        config = loader.load()
+
+        assert config["app"]["name"] == "substituted-app-name"
+        assert config["database"]["host"] == "substituted-db-host"
+        assert config["database"]["port"] == "5432"
+
+    def test__given_config_with_dollar_var_syntax__substitution_occurs(
+        self, tmp_path, clean_env
+    ):
+        """Test that $VAR syntax (without braces) is also replaced."""
+        clean_env.setenv("TEST_VALUE", "replaced-value")
+
+        config_data = {
+            "setting": "$TEST_VALUE",
+            "path": "/path/to/$TEST_VALUE/dir",
+        }
+
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text(yaml.dump(config_data))
+
+        loader = ConfigLoader(default_config_path=str(config_file))
+        config = loader.load()
+
+        assert config["setting"] == "replaced-value"
+        assert config["path"] == "/path/to/replaced-value/dir"
+
+    def test__given_undefined_env_var__original_syntax_preserved(
+        self, tmp_path, clean_env
+    ):
+        """Test that undefined environment variables keep the original ${VAR} syntax."""
+        config_data = {
+            "undefined": "${UNDEFINED_VAR}",
+            "mixed": "${UNDEFINED_VAR}/some/path",
+        }
+
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text(yaml.dump(config_data))
+
+        loader = ConfigLoader(default_config_path=str(config_file))
+        config = loader.load()
+
+        assert config["undefined"] == "${UNDEFINED_VAR}"
+        assert config["mixed"] == "${UNDEFINED_VAR}/some/path"
+
+    def test__given_nested_config_with_env_vars__substitution_occurs_at_all_levels(
+        self, tmp_path, clean_env
+    ):
+        """Test that substitution works in nested dictionaries and lists."""
+        clean_env.setenv("TEST_NESTED_VALUE", "nested-replaced")
+        clean_env.setenv("TEST_LIST_ITEM", "list-replaced")
+
+        config_data = {
+            "level1": {"level2": {"level3": "${TEST_NESTED_VALUE}"}},
+            "list_items": [
+                "${TEST_LIST_ITEM}",
+                "static-value",
+                {"nested_in_list": "${TEST_NESTED_VALUE}"},
+            ],
+        }
+
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text(yaml.dump(config_data))
+
+        loader = ConfigLoader(default_config_path=str(config_file))
+        config = loader.load()
+
+        assert config["level1"]["level2"]["level3"] == "nested-replaced"
+        assert config["list_items"][0] == "list-replaced"
+        assert config["list_items"][1] == "static-value"
+        assert config["list_items"][2]["nested_in_list"] == "nested-replaced"
+
+    def test__given_auth0_config_with_env_vars__substitution_enables_auth(
+        self, tmp_path, clean_env
+    ):
+        """Test real-world scenario with Auth0 configuration."""
+        # Set Auth0 environment variables
+        clean_env.setenv("AUTH0_ADDRESS_NO_DOMAIN", "test.auth0.com")
+        clean_env.setenv("AUTH0_AUDIENCE_NO_DOMAIN", "https://test-api")
+        clean_env.setenv("AUTH0_TEST_TOKEN_NO_DOMAIN", "test-jwt-token")
+
+        config_data = {
+            "auth": {
+                "enabled": True,
+                "auth0": {
+                    "address": "${AUTH0_ADDRESS_NO_DOMAIN}",
+                    "audience": "${AUTH0_AUDIENCE_NO_DOMAIN}",
+                    "test_token": "${AUTH0_TEST_TOKEN_NO_DOMAIN}",
+                },
+            }
+        }
+
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text(yaml.dump(config_data))
+
+        loader = ConfigLoader(default_config_path=str(config_file))
+        config = loader.load()
+
+        assert config["auth"]["enabled"] is True
+        assert config["auth"]["auth0"]["address"] == "test.auth0.com"
+        assert config["auth"]["auth0"]["audience"] == "https://test-api"
+        assert config["auth"]["auth0"]["test_token"] == "test-jwt-token"
+
+    def test__given_external_config_with_env_vars__substitution_occurs(
+        self, tmp_path, clean_env
+    ):
+        """Test that substitution works in external config files too."""
+        clean_env.setenv("EXTERNAL_VALUE", "external-replaced")
+
+        # Create external config
+        external_data = {"external_setting": "${EXTERNAL_VALUE}"}
+        external_file = tmp_path / "external.yaml"
+        external_file.write_text(yaml.dump(external_data))
+
+        # Set CONFIG_FILE to point to external config
+        clean_env.setenv("CONFIG_FILE", str(external_file))
+
+        loader = ConfigLoader(default_config_path="/non/existent")
+        config = loader.load()
+
+        assert config["external_setting"] == "external-replaced"
+
+
 class TestErrorHandling:
     """Test error handling in various scenarios."""
 
@@ -539,3 +690,258 @@ class TestErrorHandling:
 
                 assert config == {}
                 assert "Unexpected error loading default config" in caplog.text
+
+
+class TestConfigValueSettings:
+    """Test CONFIG_VALUE_SETTINGS functionality."""
+
+    def test__given_no_config_value_settings__uses_environment_variables(
+        self, clean_env, temp_config_with_variables
+    ):
+        """Test that without CONFIG_VALUE_SETTINGS, it falls back to environment variables."""
+        # Set up environment variable
+        clean_env.setenv("TEST_VAR", "from_env")
+        clean_env.setenv("AUTH0_ADDRESS", "from_env_auth")
+        clean_env.setenv("AUTH0_AUDIENCE", "from_env_audience")
+        clean_env.setenv("DB_PASSWORD", "from_env_password")
+        clean_env.setenv("ANOTHER_VAR", "from_env_another")
+
+        # Set CONFIG_FILE to use the config with variables
+        clean_env.setenv("CONFIG_FILE", temp_config_with_variables)
+
+        # Create loader and load config
+        loader = ConfigLoader()
+        config = loader.load()
+
+        # Should use environment variables via os.path.expandvars
+        assert config.get("auth", {}).get("address") == "from_env_auth"
+        assert config.get("auth", {}).get("audience") == "from_env_audience"
+        assert (
+            config.get("database", {}).get("password") == "from_env_password"
+        )
+        assert config.get("special") == "from_env_another"
+
+    def test__given_valid_config_values_file__substitutes_correctly(
+        self,
+        clean_env,
+        temp_valid_config_values_file,
+        temp_config_with_variables,
+    ):
+        """Test that valid config values file is loaded and used for substitution."""
+        # Set up environment
+        clean_env.setenv("CONFIG_FILE", temp_config_with_variables)
+        clean_env.setenv(
+            "CONFIG_VALUE_SETTINGS", temp_valid_config_values_file
+        )
+
+        # Load config
+        loader = ConfigLoader()
+        config = loader.load()
+
+        # Verify substitutions
+        assert config["auth"]["address"] == "example.auth0.com"
+        assert (
+            config["auth"]["audience"] == "https://api.example.com"
+        )  # $VAR syntax
+        assert config["database"]["password"] == "secret123"
+        assert config["special"] == "value_with_equals=sign"
+
+    def test__given_missing_variable_in_values_file__logs_warning(
+        self,
+        clean_env,
+        temp_missing_vars_config_values,
+        temp_config_with_missing_var,
+        caplog,
+    ):
+        """Test that missing variables in values file generate warnings."""
+        # Set up environment
+        clean_env.setenv("CONFIG_FILE", temp_config_with_missing_var)
+        clean_env.setenv(
+            "CONFIG_VALUE_SETTINGS", temp_missing_vars_config_values
+        )
+
+        # Load config with logging
+        with caplog.at_level(logging.WARNING):
+            loader = ConfigLoader()
+            config = loader.load()
+
+        # Verify substitution and warning
+        assert config["auth"]["address"] == "example.auth0.com"
+        assert (
+            config["auth"]["audience"] == "${MISSING_VAR}"
+        )  # Not substituted
+        assert (
+            "Variable ${MISSING_VAR} not found in config values file"
+            in caplog.text
+        )
+
+    def test__given_invalid_format_in_values_file__raises_error(
+        self, clean_env, temp_invalid_format_values_file
+    ):
+        """Test that invalid format in values file raises descriptive error."""
+        # Set up environment
+        clean_env.setenv(
+            "CONFIG_VALUE_SETTINGS", temp_invalid_format_values_file
+        )
+
+        # Load should raise error
+        loader = ConfigLoader()
+        with pytest.raises(ValueError) as exc_info:
+            loader._load_config_values_file()
+
+        assert "Invalid format" in str(exc_info.value)
+        assert "line 2" in str(exc_info.value)
+        assert "invalid-key=value" in str(exc_info.value)
+
+    def test__given_invalid_key_starting_with_number__raises_error(
+        self, clean_env, temp_invalid_key_number_values_file
+    ):
+        """Test that keys starting with numbers raise error."""
+        clean_env.setenv(
+            "CONFIG_VALUE_SETTINGS", temp_invalid_key_number_values_file
+        )
+
+        loader = ConfigLoader()
+        with pytest.raises(ValueError) as exc_info:
+            loader._load_config_values_file()
+
+        assert "Invalid format" in str(exc_info.value)
+        assert "123_KEY=value" in str(exc_info.value)
+
+    def test__given_nonexistent_values_file__raises_descriptive_error(
+        self, clean_env
+    ):
+        """Test that nonexistent values file raises descriptive error."""
+        nonexistent_file = "/tmp/nonexistent_config_values.env"
+        clean_env.setenv("CONFIG_VALUE_SETTINGS", nonexistent_file)
+
+        loader = ConfigLoader()
+        with pytest.raises(FileNotFoundError) as exc_info:
+            loader._load_config_values_file()
+
+        assert "Configuration values file not found" in str(exc_info.value)
+        assert nonexistent_file in str(exc_info.value)
+        assert (
+            "Please ensure the file exists or unset CONFIG_VALUE_SETTINGS"
+            in str(exc_info.value)
+        )
+
+    def test__given_no_permission_to_read_values_file__raises_descriptive_error(
+        self, clean_env, temp_no_read_permission_values_file
+    ):
+        """Test that permission error on values file raises descriptive error."""
+        clean_env.setenv(
+            "CONFIG_VALUE_SETTINGS", temp_no_read_permission_values_file
+        )
+
+        loader = ConfigLoader()
+        with pytest.raises(PermissionError) as exc_info:
+            loader._load_config_values_file()
+
+        assert "Cannot read configuration values file" in str(exc_info.value)
+        assert "Please check file permissions" in str(exc_info.value)
+
+    def test__given_duplicate_keys_in_values_file__uses_latest_value(
+        self,
+        clean_env,
+        temp_duplicate_keys_values_file,
+        temp_config_with_duplicate_key,
+        caplog,
+    ):
+        """Test that duplicate keys use the latest value and log warning."""
+        clean_env.setenv("CONFIG_FILE", temp_config_with_duplicate_key)
+        clean_env.setenv(
+            "CONFIG_VALUE_SETTINGS", temp_duplicate_keys_values_file
+        )
+
+        with caplog.at_level(logging.WARNING):
+            loader = ConfigLoader()
+            config = loader.load()
+
+        # Should use the latest value
+        assert config["test"] == "second_value"
+        # Should log warning
+        assert "Duplicate key 'DUPLICATE_KEY'" in caplog.text
+        assert "line 3" in caplog.text
+
+    def test__given_empty_values_file__works_correctly(
+        self, clean_env, temp_empty_values_file
+    ):
+        """Test that empty values file works without error."""
+        clean_env.setenv("CONFIG_VALUE_SETTINGS", temp_empty_values_file)
+
+        loader = ConfigLoader()
+        values = loader._load_config_values_file()
+
+        assert values == {}
+
+    def test__given_values_file_loaded_once__caches_result(
+        self, clean_env, temp_valid_config_values_file
+    ):
+        """Test that config values file is only loaded once and cached."""
+        clean_env.setenv(
+            "CONFIG_VALUE_SETTINGS", temp_valid_config_values_file
+        )
+
+        loader = ConfigLoader()
+
+        # First load
+        values1 = loader._load_config_values_file()
+        assert "AUTH0_ADDRESS" in values1
+
+        # Second load should return cached result
+        values2 = loader._load_config_values_file()
+        assert values2 is values1  # Same object reference
+
+    def test__given_complex_values__handles_correctly(
+        self,
+        clean_env,
+        temp_complex_values_file,
+        temp_config_with_complex_values,
+    ):
+        """Test that complex values with special characters are handled correctly."""
+        clean_env.setenv("CONFIG_FILE", temp_config_with_complex_values)
+        clean_env.setenv("CONFIG_VALUE_SETTINGS", temp_complex_values_file)
+
+        loader = ConfigLoader()
+        config = loader.load()
+
+        assert config["url"] == "https://example.com?param=value&other=123"
+        assert config["json"] == '{"key": "value", "number": 123}'
+        assert config["path"] == "/path/to/some file.txt"
+        assert config["empty"] == ""
+        assert config["quoted"] == '"quoted value"'
+
+    def test__integration_with_real_config_structure(
+        self,
+        clean_env,
+        temp_realistic_values_file,
+        temp_realistic_config_with_vars,
+    ):
+        """Test integration with real-world config structure."""
+        clean_env.setenv("CONFIG_FILE", temp_realistic_config_with_vars)
+        clean_env.setenv("CONFIG_VALUE_SETTINGS", temp_realistic_values_file)
+
+        loader = ConfigLoader()
+        config = loader.load()
+
+        # Verify all substitutions
+        assert (
+            config["auth"]["auth0"]["address"] == "policyengine.uk.auth0.com"
+        )
+        assert (
+            config["auth"]["auth0"]["audience"]
+            == "https://household.api.policyengine.org"
+        )
+        assert config["auth"]["auth0"]["test_token"] == "test-jwt-token"
+        assert (
+            config["analytics"]["database"]["connection_name"]
+            == "project:region:instance"
+        )
+        assert config["analytics"]["database"]["username"] == "analytics_user"
+        assert config["analytics"]["database"]["password"] == "analytics_pass"
+
+        # Verify non-substituted values remain
+        assert config["app"]["name"] == "policyengine-household-api"
+        assert config["auth"]["enabled"] == True
+        assert config["analytics"]["enabled"] == True

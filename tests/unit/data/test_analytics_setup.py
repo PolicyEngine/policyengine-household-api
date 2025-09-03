@@ -46,7 +46,7 @@ class TestAnalyticsEnabled:
     def test__given_config_explicitly_enables_analytics__analytics_is_enabled(
         self,
         reset_analytics_state,
-        analytics_disabled_env,
+        analytics_enabled_env,
         patch_get_config_value_returns_true,
     ):
         """Analytics should be enabled when config explicitly enables it."""
@@ -69,19 +69,6 @@ class TestAnalyticsEnabled:
 
         assert is_analytics_enabled() is True
 
-    def test__given_all_credential_env_vars_present__analytics_auto_enables(
-        self,
-        reset_analytics_state,
-        analytics_auto_enabled_env,
-        patch_get_config_value_raises_exception,
-    ):
-        """Analytics should auto-enable when all three credential env vars are present."""
-        from policyengine_household_api.data.analytics_setup import (
-            is_analytics_enabled,
-        )
-
-        assert is_analytics_enabled() is True
-
     def test__given_partial_credentials__analytics_remains_disabled(
         self,
         reset_analytics_state,
@@ -93,7 +80,8 @@ class TestAnalyticsEnabled:
             is_analytics_enabled,
         )
 
-        assert is_analytics_enabled() is False
+        with pytest.raises(Exception, match="No config"):
+            is_analytics_enabled()
 
     def test__given_analytics_state_checked_once__subsequent_checks_use_cached_value(
         self,
@@ -163,7 +151,9 @@ class TestAnalyticsConnector:
         )
         from unittest.mock import patch, MagicMock
 
-        with patch("google.cloud.sql.connector.Connector") as MockConnector:
+        with patch(
+            "policyengine_household_api.data.analytics_setup.Connector"
+        ) as MockConnector:
             mock_instance = MagicMock()
             MockConnector.return_value = mock_instance
 
@@ -223,23 +213,6 @@ class TestGetConnection:
         conn = getconn()
         assert conn == mock_connection
         mock_google_connector.connect.assert_called_once()
-
-    def test__given_config_loader_fails__connection_falls_back_to_env_vars(
-        self,
-        reset_analytics_state,
-        analytics_enabled_env,
-        mock_google_connector,
-        patch_get_config_value_first_call_succeeds_then_fails,
-    ):
-        """Connection should fall back to env vars if config loader fails."""
-        from policyengine_household_api.data.analytics_setup import getconn
-        from unittest.mock import MagicMock
-
-        mock_connection = MagicMock()
-        mock_google_connector.connect.return_value = mock_connection
-
-        conn = getconn()
-        assert conn == mock_connection
 
     def test__given_missing_connection_name__connection_returns_none(
         self,

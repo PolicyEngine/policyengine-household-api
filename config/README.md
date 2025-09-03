@@ -19,10 +19,10 @@ Environment variables always win, allowing you to override specific settings wit
 ## Files in this Directory
 
 - `default.yaml` - Default configuration for local development (currently mostly empty/commented)
-- `custom.yaml.example` - Example template for mounting custom configuration
 - `production.yaml.example` - Example production configuration
 - `development.yaml.example` - Example development configuration  
 - `local.yaml.example` - Example for fully local runs without external dependencies
+- `example_values.env` - Example environment variables that can be programmatically read into a config template to allow the storing of sensitive values in a separate file; this will be covered later
 
 ## Configuration Methods
 
@@ -57,15 +57,8 @@ PORT=8080
 Any environment variable with double underscores (`__`) is automatically mapped to nested config:
 
 ```bash
-# DATABASE__HOST becomes database.host
-DATABASE__HOST=localhost
-DATABASE__PORT=3306
-
 # AUTH__ENABLED becomes auth.enabled
 AUTH__ENABLED=true
-
-# SERVER__WORKERS becomes server.workers
-SERVER__WORKERS=4
 ```
 
 Note: System environment variables starting with underscores are ignored.
@@ -73,6 +66,11 @@ Note: System environment variables starting with underscores are ignored.
 ### Method 2: Mounted Config File (Medium Priority)
 
 You can mount an external configuration file to override the defaults:
+
+#### Command Line
+```bash
+CONFIG_FILE=config/local.yaml make debug
+```
 
 #### Docker Run
 ```bash
@@ -84,7 +82,7 @@ docker run -v /path/to/your/config.yaml:/custom/config.yaml \
 
 #### Docker Compose
 ```yaml
-version: '3.8'
+version: '3.13'
 services:
   household-api:
     image: policyengine/household-api
@@ -105,9 +103,6 @@ metadata:
   name: household-api-config
 data:
   config.yaml: |
-    database:
-      provider: postgres
-      host: postgres.default.svc.cluster.local
     auth:
       enabled: true
 ---
@@ -122,10 +117,10 @@ spec:
         env:
         - name: CONFIG_FILE
           value: /config/config.yaml
-        - name: DATABASE__PASSWORD
+        - name: AUTH__ENABLED
           valueFrom:
             secretKeyRef:
-              name: db-secret
+              name: auth-value
               key: password
         volumeMounts:
         - name: config
@@ -145,8 +140,8 @@ The default configuration is baked into the Docker image at `/app/config/default
 ```yaml
 app:
   name: Application name (default: policyengine-household-api)
-  environment: Environment (local/development/staging/production)
-  debug: Debug mode (true/false)
+  environment: Environment (can be any string)
+  debug: Debug mode (true/false) - When true, if analytics enabled, uses local SQLite database instead of Cloud SQL
 
 # User analytics (opt-in feature)
 analytics:
@@ -156,43 +151,23 @@ analytics:
     username: Database username
     password: Database password
 
-# Note: Application database configuration would go here when added
-# Currently the application only uses the analytics database (see above)
-
-storage:
-  provider: Storage backend (local/gcs/s3)
-  bucket: Storage bucket name (for cloud providers)
-  path: Local storage path (for local provider)
-
 auth:
-  enabled: Whether authentication is required (true/false)
+  enabled: Whether authentication via auth0 is required (true/false)
   auth0:
     address: Auth0 domain (without https:// or trailing slash)
     audience: Auth0 audience/API identifier
+    test_token: JWT token used only for pre-deployment GitHub Actions tests
 
 ai:
-  enabled: Whether AI features are enabled (true/false)
-  provider: AI service provider (none/anthropic/openai)
+  enabled: Whether AI features are enabled (true/false) (these features are only used in the alpha-mode AI explainer endpoint)
   anthropic:
     api_key: Anthropic API key
-    model: Model name
-    max_tokens: Maximum tokens
-    temperature: Temperature setting
 
-server:
-  port: Server port (default: 8080)
-  workers: Number of worker processes
-  threads: Number of threads per worker
-  timeout: Request timeout in seconds
-
-logging:
-  level: Log level (DEBUG/INFO/WARNING/ERROR)
-  format: Log format (json/text)
 ```
 
 ## User Analytics Configuration
 
-User analytics is an **opt-in** feature that collects API usage metrics for monitoring and analysis. By default, analytics is **disabled** to respect privacy and minimize dependencies.
+User analytics is an **opt-in** feature that collects API usage metrics for monitoring and analysis. By default, analytics is **disabled**.
 
 ### Enabling Analytics
 
@@ -220,18 +195,17 @@ USER_ANALYTICS_DB_USERNAME=your-username
 USER_ANALYTICS_DB_PASSWORD=your-password
 ```
 
-3. **Automatic Detection** (Backward Compatibility):
-If all three `USER_ANALYTICS_DB_*` environment variables are set, analytics is automatically enabled for backward compatibility with existing deployments.
-
 ### What Data is Collected
 
-When analytics is enabled, the following data is collected per API request:
+When analytics is enabled, the following public data is collected per API request:
 - Client ID (from JWT token)
 - API version
 - Endpoint accessed
 - HTTP method
 - Request content length
 - Timestamp
+
+All of these values are public and are used purely to establish usage rates.
 
 ### Privacy Considerations
 
@@ -268,9 +242,6 @@ AUTH0_ADDRESS_NO_DOMAIN=your-tenant.auth0.com
 AUTH0_AUDIENCE_NO_DOMAIN=https://your-api-identifier
 ```
 
-3. **Automatic Detection** (Backward Compatibility):
-If both `AUTH0_ADDRESS_NO_DOMAIN` and `AUTH0_AUDIENCE_NO_DOMAIN` environment variables are set, authentication is automatically enabled for backward compatibility with existing deployments.
-
 ### Protected Endpoints
 
 When Auth0 is enabled, the following endpoints require valid JWT tokens:
@@ -302,6 +273,7 @@ Currently in production, all configuration comes from environment variables:
 AUTH__ENABLED=true  # Enable Auth0 authentication
 AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
 AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+AUTH0_TEST_TOKEN_NO_DOMAIN=${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }} # Used for local testing purposes
 
 # Analytics configuration (opt-in)
 ANALYTICS__ENABLED=true  # Enable user analytics
@@ -326,49 +298,140 @@ docker run -e FLASK_DEBUG=1 \
            policyengine/household-api
 ```
 
-### Custom Cloud Provider
+#### Template Variable Substitution
 
-Mount a complete custom configuration:
+The configuration loader supports template variable substitution using `${VAR}` or `$VAR` syntax in YAML files. This allows you to keep sensitive values in a separate file and reference them in your config without setting them as environment variables.
+
+##### How It Works
+
+1. Create a config values file (e.g., `config_values.env`) with your sensitive values:
+```bash
+# config_values.env
+AUTH0_DOMAIN=your-domain.auth0.com
+AUTH0_AUDIENCE=https://your-api.example.com
+AUTH0_TOKEN=your-test-token
+ANTHROPIC_API_KEY=your-api-key
+ANALYTICS_PASSWORD=secure-password
+```
+
+2. Reference these in your config file using `${VAR}` or `$VAR` syntax:
+```yaml
+# config/local.yaml
+auth:
+  enabled: true
+  auth0:
+    address: ${AUTH0_DOMAIN}
+    audience: ${AUTH0_AUDIENCE}
+    test_bearer_token: ${AUTH0_TOKEN}
+
+ai:
+  enabled: true
+  anthropic:
+    api_key: $ANTHROPIC_API_KEY  # With or without brackets works
+
+analytics:
+  enabled: true
+  database:
+    password: ${ANALYTICS_PASSWORD}
+```
+
+3. Use the `CONFIG_VALUE_SETTINGS` environment variable to point to your values file:
+```bash
+CONFIG_VALUE_SETTINGS=config_values.env CONFIG_FILE=config/local.yaml make debug
+```
+
+##### Docker Usage
+
+In Docker, you can mount both the config file and the values file:
 
 ```bash
-# Create custom config
-cat > aws-config.yaml <<EOF
-database:
-  provider: postgres
-  host: my-rds-instance.amazonaws.com
-storage:
-  provider: s3
-  bucket: my-household-data
-auth:
-  provider: cognito
-  pool_id: us-east-1_xxxxx
-EOF
-
-# Run with custom config
-docker run -v $(pwd)/aws-config.yaml:/app/config/aws.yaml \
-           -e CONFIG_FILE=/app/config/aws.yaml \
-           -e DATABASE__PASSWORD="${RDS_PASSWORD}" \
+docker run -v /path/to/config.yaml:/app/config/custom.yaml \
+           -v /path/to/values.env:/app/config/values.env \
+           -e CONFIG_FILE=/app/config/custom.yaml \
+           -e CONFIG_VALUE_SETTINGS=/app/config/values.env \
            policyengine/household-api
 ```
 
-## Migration Status
+Or with Docker Compose:
+```yaml
+version: '3.13'
+services:
+  household-api:
+    image: policyengine/household-api
+    volumes:
+      - ./my-config.yaml:/app/config/custom.yaml
+      - ./my-values.env:/app/config/values.env
+    environment:
+      - CONFIG_FILE=/app/config/custom.yaml
+      - CONFIG_VALUE_SETTINGS=/app/config/values.env
+```
 
-### Phase 1 (Current)
-- ✅ `ConfigLoader` class implemented
-- ✅ Hierarchical configuration loading working
-- ✅ Environment variable mapping functional
-- ✅ Docker image includes default config
-- ⏳ Application code still uses `os.getenv()` directly
+##### Kubernetes Usage
 
-### Phase 2 (Next Steps)
-- Gradually update application code to use `get_config_value()` instead of `os.getenv()`
-- Move non-sensitive defaults to config files
-- Keep sensitive values in environment variables
+With Kubernetes, you can use ConfigMaps or Secrets:
 
-### Phase 3 (Future)
-- Configuration files become primary source
-- Environment variables used only for secrets and overrides
-- Full configuration validation with Pydantic models
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: household-api-values
+stringData:
+  values.env: |
+    AUTH0_DOMAIN=your-domain.auth0.com
+    AUTH0_AUDIENCE=https://your-api.example.com
+    ANTHROPIC_API_KEY=your-api-key
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: household-api-config
+data:
+  config.yaml: |
+    auth:
+      enabled: true
+      auth0:
+        address: ${AUTH0_DOMAIN}
+        audience: ${AUTH0_AUDIENCE}
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: api
+        env:
+        - name: CONFIG_FILE
+          value: /config/config.yaml
+        - name: CONFIG_VALUE_SETTINGS
+          value: /secrets/values.env
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: values
+          mountPath: /secrets
+      volumes:
+      - name: config
+        configMap:
+          name: household-api-config
+      - name: values
+        secret:
+          secretName: household-api-values
+```
+
+##### Important Notes
+
+- **Flask Auto-loading**: Flask automatically loads `.env` files when `python-dotenv` is installed and the `FLASK_DEBUG` environment variable is set to true. This will cause these values to override any external config files you specify, which may be undesirable for a given use case. To prevent this, either:
+  - Name your values file something other than `.env` (e.g., `config_values.env`)
+  - Set `FLASK_SKIP_DOTENV=1` when running Flask
+  
+- **Validation**: The loader validates that all referenced variables in the config file exist in the values file, providing clear error messages if any are missing
+
+- **Format**: The values file uses standard `.env` format:
+  - `KEY=value` pairs, one per line
+  - Comments start with `#`
+  - Empty lines are ignored
+  - No quotes needed around values (they'll be included literally if present)
 
 ## Using ConfigLoader in Code
 
@@ -376,9 +439,6 @@ To use the configuration system in new code:
 
 ```python
 from policyengine_household_api.utils import get_config_value
-
-# Get a configuration value with a default
-db_provider = get_config_value("database.provider", "sqlite")
 
 # Get nested configuration
 auth_enabled = get_config_value("auth.enabled", False)
@@ -391,16 +451,3 @@ auth_enabled = get_config_value("auth.enabled", False)
 3. **Use env vars for secrets** - Override sensitive values at runtime
 4. **Version control your configs** - Keep config files in source control (without secrets)
 5. **Environment-specific configs** - Have separate config files for dev/staging/prod
-
-## Debugging Configuration
-
-To see what configuration is being loaded, set the log level to DEBUG:
-
-```bash
-docker run -e LOGGING__LEVEL=DEBUG policyengine/household-api
-```
-
-The application will log:
-- Which config files were loaded
-- Which environment variables were applied
-- Any errors in loading configuration files

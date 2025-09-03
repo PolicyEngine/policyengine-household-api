@@ -8,8 +8,8 @@ while maintaining security in production environments.
 
 from typing import Optional, Any, Callable
 from authlib.integrations.flask_oauth2 import ResourceProtector
-from .validation import Auth0JWTBearerTokenValidator
-from ..utils.config_loader import get_config_value
+from ..auth.validation import Auth0JWTBearerTokenValidator
+from ..utils.config_loader import get_config, get_config_value
 
 
 class NoOpDecorator:
@@ -68,11 +68,6 @@ class ConditionalAuthDecorator:
         auth0_address = get_config_value("auth.auth0.address", "")
         auth0_audience = get_config_value("auth.auth0.audience", "")
 
-        # Backward compatibility: auto-enable if Auth0 env vars are set
-        if not self._auth_enabled and auth0_address and auth0_audience:
-            self._auth_enabled = True
-            print("Auth0 auto-enabled due to presence of AUTH0 configuration")
-
         # Initialize the appropriate decorator
         if self._auth_enabled:
             if auth0_address and auth0_audience:
@@ -83,9 +78,6 @@ class ConditionalAuthDecorator:
                 )
                 resource_protector.register_token_validator(validator)
                 self._decorator = resource_protector
-                print(
-                    f"Auth0 authentication enabled with domain: {auth0_address}"
-                )
             else:
                 # Auth was requested but configuration is missing
                 print("Warning: Auth enabled but Auth0 configuration missing")

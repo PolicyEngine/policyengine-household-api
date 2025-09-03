@@ -1,13 +1,9 @@
 import os
-from dotenv import load_dotenv
 from tests.to_refactor.fixtures import client
 
-load_dotenv()
 
 # Note that this does not test the passage of a functioning token;
 # that is already handled by test_liveness in another file
-
-
 def test_malformed_token(client):
     """Test that a malformed token, when passed to the API, returns a 401"""
     response = client.post(
