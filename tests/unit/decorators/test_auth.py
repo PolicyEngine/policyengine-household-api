@@ -2,7 +2,7 @@
 Unit tests for the conditional authentication decorator.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from policyengine_household_api.decorators.auth import (
     NoOpDecorator,
     ConditionalAuthDecorator,
@@ -66,10 +66,8 @@ class TestNoOpDecorator:
 class TestConditionalAuthDecoratorWithAuthEnabled:
     """Test ConditionalAuthDecorator with authentication enabled."""
 
-    @patch("policyengine_household_api.decorators.auth.print")
     def test__given_auth_enabled_with_valid_config__auth0_is_configured(
         self,
-        mock_print,
         auth_enabled_environment,
         mock_resource_protector,
         mock_auth0_validator,
@@ -94,15 +92,13 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         assert decorator.get_decorator() is mock_protector_instance
         assert decorator.is_enabled is True
 
-        # Check console output
-        mock_print.assert_any_call(
-            f"Auth0 authentication enabled with domain: {AUTH0_CONFIG_DATA['address']}"
-        )
+        # Verify configuration was properly read
+        auth_enabled_environment.assert_any_call("auth.enabled", False)
+        auth_enabled_environment.assert_any_call("auth.auth0.address", "")
+        auth_enabled_environment.assert_any_call("auth.auth0.audience", "")
 
-    @patch("policyengine_household_api.decorators.auth.print")
     def test__given_auth_enabled_missing_config__falls_back_to_noop(
         self,
-        mock_print,
         auth_enabled_missing_config_environment,
         mock_resource_protector,
         mock_auth0_validator,
@@ -121,19 +117,23 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         assert isinstance(decorator.get_decorator(), NoOpDecorator)
         assert decorator.is_enabled is False
 
-        # Check warning message
-        mock_print.assert_any_call(
-            "Warning: Auth enabled but Auth0 configuration missing"
+        # Verify configuration was checked
+        auth_enabled_missing_config_environment.assert_any_call(
+            "auth.enabled", False
+        )
+        auth_enabled_missing_config_environment.assert_any_call(
+            "auth.auth0.address", ""
+        )
+        auth_enabled_missing_config_environment.assert_any_call(
+            "auth.auth0.audience", ""
         )
 
 
 class TestConditionalAuthDecoratorWithAuthDisabled:
     """Test ConditionalAuthDecorator with authentication disabled."""
 
-    @patch("policyengine_household_api.decorators.auth.print")
     def test__given_auth_disabled__returns_noop_decorator(
         self,
-        mock_print,
         auth_disabled_environment,
         mock_resource_protector,
         mock_auth0_validator,
@@ -152,8 +152,8 @@ class TestConditionalAuthDecoratorWithAuthDisabled:
         assert isinstance(decorator.get_decorator(), NoOpDecorator)
         assert decorator.is_enabled is False
 
-        # Check console output
-        mock_print.assert_any_call("Auth0 authentication disabled")
+        # Verify configuration was properly read
+        auth_disabled_environment.assert_any_call("auth.enabled", False)
 
 
 class TestCreateAuthDecorator:
