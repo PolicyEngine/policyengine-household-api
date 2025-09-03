@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2025-09-03 00:22:35
+
+### Changed
+
+- Fixed code that makes environment variables optional for auth0 configuration
+- Fixed code that makes environment variables optional for analytics tracking configuration
+- Made environment variables configurable for AI-powered endpoints
+
 ## [0.10.5] - 2025-09-02 23:43:07
 
 ### Changed
@@ -1525,6 +1533,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.11.0]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.10.5...0.11.0
 [0.10.5]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.10.4...0.10.5
 [0.10.4]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.10.3...0.10.4
 [0.10.3]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.10.2...0.10.3
