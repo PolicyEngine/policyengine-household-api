@@ -1,5 +1,5 @@
 from pathlib import Path
-import pkg_resources
+from importlib.metadata import version
 
 REPO = Path(__file__).parents[1]
 GET = "GET"
@@ -17,7 +17,7 @@ COUNTRY_PACKAGE_NAMES = (
 )
 try:
     COUNTRY_PACKAGE_VERSIONS = {
-        country: pkg_resources.get_distribution(package_name).version
+        country: version(package_name)
         for country, package_name in zip(COUNTRIES, COUNTRY_PACKAGE_NAMES)
     }
 except:

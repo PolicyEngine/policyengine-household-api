@@ -23,7 +23,7 @@ from policyengine_core.parameters import (
 )
 from typing import Annotated
 from policyengine_core.parameters import get_parameter
-import pkg_resources
+from importlib.metadata import version
 from policyengine_core.model_api import Reform, Enum
 from policyengine_core.periods import instant
 import dpath
@@ -65,9 +65,7 @@ class PolicyEngineCountry:
                 }[self.country_id],
                 basicInputs=self.tax_benefit_system.basic_inputs,
                 modelled_policies=self.tax_benefit_system.modelled_policies,
-                version=pkg_resources.get_distribution(
-                    self.country_package_name
-                ).version,
+                version=version(self.country_package_name),
             ),
         )
 
