@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Migrated from pkg_resources to importlib for package management utilities.

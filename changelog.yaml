@@ -1298,3 +1298,8 @@
     changed:
     - Update PolicyEngine US to 1.402.1
   date: 2025-09-22 21:57:28
+- bump: patch
+  changes:
+    changed:
+    - Migrated from pkg_resources to importlib for package management utilities.
+  date: 2025-10-10 19:56:19
