@@ -30,5 +30,5 @@ volumes:
 
 networks:
   my_network:
-    name: policyengine-api_default
+    name: ${DOCKER_NETWORK:-policyengine-api_default}
     external: true
