@@ -59,6 +59,10 @@ docker-run:  ## Run the app as docker container with supporting services
 services-start:  ## Run the docker containers for supporting services (e.g. Redis)
 	docker compose --file $(COMPOSE_FILE) up -d redis
 
+.PHONY: services-stop
+services-stop:  ## Stop the docker containers for supporting services
+	docker compose --file $(COMPOSE_FILE) down
+
 .PHONY: docker-console
 docker-console:  ## Open a one-off container bash session
 	@docker run -p 8080:5000 -v $(PWD):/code \
