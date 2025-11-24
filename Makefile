@@ -6,7 +6,7 @@ install: ## Install Python dependencies
 	pip install -U -e .[dev]
 
 debug: ## Run Flask app with FLASK_DEBUG=1
-	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 flask run --without-threads
+	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 flask run --without-threads --host=0.0.0.0
 
 test: ## Run unit tests
 	pytest -vv --timeout=150 -rP tests/to_refactor tests/unit
