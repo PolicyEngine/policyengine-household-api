@@ -4,14 +4,7 @@ A version of the PolicyEngine API that runs the `calculate` endpoint over househ
 
 ## Local development with Docker Compose
 
-To run this app locally via Docker Compose, edit the `.env` file to configure your environment variables:
-
-```
-% cp .env-example .env
-# edit .env
-```
-
-Then:
+To run this app locally via Docker Compose:
 
 ```
 % make docker-build
