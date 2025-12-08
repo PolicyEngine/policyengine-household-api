@@ -1,0 +1,124 @@
+# Docker Compose configuration for PolicyEngine Household API
+# Use this for local development and CI testing
+#
+# Usage:
+#   Development:     docker compose up
+#   Testing:         docker compose --profile test up
+#   With analytics:  docker compose --profile analytics up
+#
+# See config/README.md for configuration options
+
+services:
+  # Main API service
+  api:
+    build:
+      context: .
+      dockerfile: gcp/policyengine_household_api/Dockerfile.production
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - PORT=8080
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
+      # Optional features - disabled by default for local development
+      - AUTH__ENABLED=${AUTH__ENABLED:-false}
+      - AUTH0_ADDRESS_NO_DOMAIN=${AUTH0_ADDRESS_NO_DOMAIN:-}
+      - AUTH0_AUDIENCE_NO_DOMAIN=${AUTH0_AUDIENCE_NO_DOMAIN:-}
+      - ANALYTICS__ENABLED=${ANALYTICS__ENABLED:-false}
+      - AI__ENABLED=${AI__ENABLED:-false}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      # Mount custom config if provided
+      - ${CONFIG_FILE:-./config/default.yaml}:/app/config/custom.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Development service with hot-reload support
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.build
+    ports:
+      - "${PORT:-8080}:5000"
+    environment:
+      - FLASK_APP=policyengine_household_api.api
+      - FLASK_DEBUG=1
+      - AUTH__ENABLED=${AUTH__ENABLED:-false}
+      - AUTH0_ADDRESS_NO_DOMAIN=${AUTH0_ADDRESS_NO_DOMAIN:-}
+      - AUTH0_AUDIENCE_NO_DOMAIN=${AUTH0_AUDIENCE_NO_DOMAIN:-}
+      - ANALYTICS__ENABLED=${ANALYTICS__ENABLED:-false}
+      - AI__ENABLED=${AI__ENABLED:-false}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      # Mount source code for hot-reload
+      - ./policyengine_household_api:/app/policyengine_household_api:ro
+      - ./config:/app/config:ro
+    command: ["flask", "run", "--host=0.0.0.0", "--without-threads"]
+    profiles:
+      - dev
+
+  # Test runner service
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.build
+    environment:
+      - FLASK_DEBUG=1
+      - AUTH__ENABLED=${AUTH__ENABLED:-false}
+      - AUTH0_ADDRESS_NO_DOMAIN=${AUTH0_ADDRESS_NO_DOMAIN:-}
+      - AUTH0_AUDIENCE_NO_DOMAIN=${AUTH0_AUDIENCE_NO_DOMAIN:-}
+      - AUTH0_TEST_TOKEN_NO_DOMAIN=${AUTH0_TEST_TOKEN_NO_DOMAIN:-}
+      - CONFIG_FILE=${CONFIG_FILE:-}
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./policyengine_household_api:/app/policyengine_household_api:ro
+      - ./config:/app/config:ro
+    command: ["pytest", "-vv", "--timeout=150", "-rP", "tests/to_refactor", "tests/unit"]
+    profiles:
+      - test
+
+  # Test with auth service
+  test-with-auth:
+    build:
+      context: .
+      dockerfile: Dockerfile.build
+    environment:
+      - AUTH__ENABLED=true
+      - AUTH0_ADDRESS_NO_DOMAIN=${AUTH0_ADDRESS_NO_DOMAIN}
+      - AUTH0_AUDIENCE_NO_DOMAIN=${AUTH0_AUDIENCE_NO_DOMAIN}
+      - AUTH0_TEST_TOKEN_NO_DOMAIN=${AUTH0_TEST_TOKEN_NO_DOMAIN}
+      - CONFIG_FILE=/app/config/test_with_auth.yaml
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./policyengine_household_api:/app/policyengine_household_api:ro
+      - ./config:/app/config:ro
+    command: ["pytest", "-vv", "--timeout=150", "-rP", "tests/integration_with_auth"]
+    profiles:
+      - test-auth
+
+  # MySQL database for analytics (optional)
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpass}
+      - MYSQL_DATABASE=user_analytics
+      - MYSQL_USER=${MYSQL_USER:-analytics}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-analytics_pass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - analytics
+
+volumes:
+  mysql_data:
