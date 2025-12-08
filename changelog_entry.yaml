@@ -1,0 +1,6 @@
+- bump: minor
+  changes:
+    added:
+    - Docker Compose structure for local development and CI
+    - .env.example with documented environment variables
+    - Make targets for common Docker operations (docker-up, docker-dev, docker-test)

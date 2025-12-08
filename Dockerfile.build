@@ -1,17 +1,26 @@
+# Development Dockerfile for PolicyEngine Household API
+# Use docker-compose.yml for easier development setup
 FROM python:3.12
-ENV VIRTUAL_ENV=/env
-ENV PATH=/env/bin:$PATH
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y build-essential checkinstall redis-server
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    checkinstall \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN python3.12 -m pip install --upgrade pip
 
 # Copy and install the application
 WORKDIR /app
 COPY . /app
-RUN pip install -e .
+RUN pip install -e .[dev]
 
-# Start Redis
-RUN service redis-server start
+# Set default environment
+ENV FLASK_APP=policyengine_household_api.api
+ENV FLASK_DEBUG=1
+
+# Expose Flask default port
+EXPOSE 5000
 
 CMD ["bash"]

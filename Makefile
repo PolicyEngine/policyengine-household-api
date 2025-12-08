@@ -16,6 +16,31 @@ debug-test:
 format:
 	black . -l 79
 
+# Docker Compose commands
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up
+
+docker-up-detached:
+	docker compose up -d
+
+docker-down:
+	docker compose down
+
+docker-dev:
+	docker compose --profile dev up api-dev
+
+docker-test:
+	docker compose --profile test run --rm test
+
+docker-test-auth:
+	docker compose --profile test-auth run --rm test-with-auth
+
+docker-logs:
+	docker compose logs -f
+
 deploy:
 	python gcp/export.py
 	gcloud config set app/cloud_build_timeout 1800
