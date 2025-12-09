@@ -1313,3 +1313,8 @@
     changed:
     - Update PolicyEngine US to 1.423.0
   date: 2025-10-20 13:58:09
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.452.0
+  date: 2025-12-09 00:51:17
