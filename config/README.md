@@ -95,6 +95,16 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 ```
 
+Or, alternately, use the `docker/docker-compose.yml` file and create a `.env` file in your root directory
+to set all environment variables. Example:
+
+```
+% cat .env
+CONFIG_FILE=/code/config/custom.yaml
+DATABASE__PASSWORD=your-secret-password
+ANTHROPIC_API_KEY=your-key-here
+```
+
 #### Kubernetes ConfigMap
 ```yaml
 apiVersion: v1
