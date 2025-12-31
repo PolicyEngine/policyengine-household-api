@@ -75,3 +75,7 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Docker
+docker/Dockerfile*
+docker/docker-compose.yml
