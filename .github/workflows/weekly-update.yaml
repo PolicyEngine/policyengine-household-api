@@ -203,15 +203,17 @@ jobs:
               f.write(full_summary)
 
           # Create changelog entry for this repo
-          updates_desc = ", ".join(f"{pkg} to {v['new']}" for pkg, v in updates.items())
-          changelog_entry = f"""- bump: patch
-  changes:
-    changed:
-    - Updated PolicyEngine packages ({updates_desc}).
-"""
+          # Get the new version (only policyengine_us for now)
+          new_version = updates["policyengine_us"]["new"]
+          changelog_lines = [
+              "- bump: patch",
+              "  changes:",
+              "    changed:",
+              f"    - Update PolicyEngine US to {new_version}"
+          ]
 
           with open("changelog_entry.yaml", "w") as f:
-              f.write(changelog_entry)
+              f.write("\n".join(changelog_lines) + "\n")
 
           # Set outputs
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
