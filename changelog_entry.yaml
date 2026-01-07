@@ -1,4 +1,4 @@
-- bump: minor
+- bump: patch
   changes:
-    added:
-    - Add GitHub Actions workflow for weekly policyengine-us updates with changelog summary generation.
+    changed:
+    - Update PolicyEngine US to 1.497.1
