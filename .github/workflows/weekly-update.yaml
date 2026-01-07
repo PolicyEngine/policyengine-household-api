@@ -1,0 +1,269 @@
+name: Weekly US Household API Update
+
+on:
+  schedule:
+    # Every Wednesday at 5 PM EST (10 PM UTC)
+    - cron: "0 22 * * 3"
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  update-packages:
+    name: Update PolicyEngine Packages
+    runs-on: ubuntu-latest
+    if: github.repository == 'PolicyEngine/policyengine-household-api'
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: hua7450/issue1178  # TODO: change back to 'main' before merging
+          token: ${{ secrets.POLICYENGINE_GITHUB }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install requests pyyaml
+
+      - name: Check for updates and generate summary
+        id: check_updates
+        run: |
+          python << 'EOF'
+          import re
+          import requests
+          import yaml
+          import os
+
+          # Packages to track (US only - UK is updated separately)
+          PACKAGES = ["policyengine_us"]
+
+          # Read current versions from setup.py
+          with open("setup.py", "r") as f:
+              setup_content = f.read()
+
+          current_versions = {}
+          for pkg in PACKAGES:
+              # Handle both underscore and hyphen naming
+              pattern = rf'{pkg.replace("_", "[-_]")}==([0-9]+\.[0-9]+\.[0-9]+)'
+              match = re.search(pattern, setup_content)
+              if match:
+                  current_versions[pkg] = match.group(1)
+
+          print(f"Current versions: {current_versions}")
+
+          # Get latest versions from PyPI
+          latest_versions = {}
+          for pkg in PACKAGES:
+              pypi_name = pkg.replace("_", "-")
+              resp = requests.get(f"https://pypi.org/pypi/{pypi_name}/json")
+              if resp.status_code == 200:
+                  latest_versions[pkg] = resp.json()["info"]["version"]
+
+          print(f"Latest versions: {latest_versions}")
+
+          # Check for updates
+          updates = {}
+          for pkg in PACKAGES:
+              if pkg in current_versions and pkg in latest_versions:
+                  if current_versions[pkg] != latest_versions[pkg]:
+                      updates[pkg] = {
+                          "old": current_versions[pkg],
+                          "new": latest_versions[pkg]
+                      }
+
+          if not updates:
+              print("No updates available.")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write("has_updates=false\n")
+              exit(0)
+
+          print(f"Updates available: {updates}")
+
+          # Update setup.py
+          new_setup_content = setup_content
+          for pkg, versions in updates.items():
+              pattern = rf'({pkg.replace("_", "[-_]")}==)[0-9]+\.[0-9]+\.[0-9]+'
+              new_setup_content = re.sub(pattern, rf'\g<1>{versions["new"]}', new_setup_content)
+
+          with open("setup.py", "w") as f:
+              f.write(new_setup_content)
+
+          # Generate changelog summary from upstream repos
+          def parse_version(v):
+              return tuple(map(int, v.split(".")))
+
+          def fetch_changelog(pkg):
+              # Map package names to GitHub repos
+              repo_map = {
+                  "policyengine_us": "PolicyEngine/policyengine-us"
+              }
+              repo = repo_map.get(pkg)
+              if not repo:
+                  return None
+              url = f"https://raw.githubusercontent.com/{repo}/main/changelog.yaml"
+              resp = requests.get(url)
+              if resp.status_code == 200:
+                  return yaml.safe_load(resp.text)
+              return None
+
+          def get_changes_between_versions(changelog, old_version, new_version):
+              """Extract changelog entries between old and new versions."""
+              if not changelog:
+                  return []
+
+              old_v = parse_version(old_version)
+              new_v = parse_version(new_version)
+
+              # Calculate version numbers from changelog
+              # First entry has explicit version, rest use bump
+              entries_with_versions = []
+              current_version = None
+
+              for entry in changelog:
+                  if "version" in entry:
+                      current_version = parse_version(entry["version"])
+                  elif current_version and "bump" in entry:
+                      bump = entry["bump"]
+                      major, minor, patch = current_version
+                      if bump == "major":
+                          current_version = (major + 1, 0, 0)
+                      elif bump == "minor":
+                          current_version = (major, minor + 1, 0)
+                      elif bump == "patch":
+                          current_version = (major, minor, patch + 1)
+
+                  if current_version:
+                      entries_with_versions.append((current_version, entry))
+
+              # Filter entries between old and new versions
+              relevant_entries = []
+              for version, entry in entries_with_versions:
+                  if old_v < version <= new_v:
+                      relevant_entries.append(entry)
+
+              return relevant_entries
+
+          def format_changes(entries):
+              """Format changelog entries as markdown."""
+              added = []
+              changed = []
+              fixed = []
+              removed = []
+
+              for entry in entries:
+                  changes = entry.get("changes", {})
+                  added.extend(changes.get("added", []))
+                  changed.extend(changes.get("changed", []))
+                  fixed.extend(changes.get("fixed", []))
+                  removed.extend(changes.get("removed", []))
+
+              sections = []
+              if added:
+                  sections.append("### Added\n" + "\n".join(f"- {item}" for item in added))
+              if changed:
+                  sections.append("### Changed\n" + "\n".join(f"- {item}" for item in changed))
+              if fixed:
+                  sections.append("### Fixed\n" + "\n".join(f"- {item}" for item in fixed))
+              if removed:
+                  sections.append("### Removed\n" + "\n".join(f"- {item}" for item in removed))
+
+              return "\n\n".join(sections) if sections else "No detailed changes available."
+
+          # Build summary
+          summary_parts = []
+
+          # Version table
+          version_table = "| Package | Old Version | New Version |\n|---------|-------------|-------------|\n"
+          for pkg, versions in updates.items():
+              version_table += f"| {pkg} | {versions['old']} | {versions['new']} |\n"
+          summary_parts.append(version_table)
+
+          # Changelog for each package
+          for pkg, versions in updates.items():
+              changelog = fetch_changelog(pkg)
+              if changelog:
+                  entries = get_changes_between_versions(changelog, versions["old"], versions["new"])
+                  if entries:
+                      formatted = format_changes(entries)
+                      summary_parts.append(f"## What Changed ({pkg} {versions['old']} → {versions['new']})\n\n{formatted}")
+                  else:
+                      summary_parts.append(f"## What Changed ({pkg} {versions['old']} → {versions['new']})\n\nNo changelog entries found between these versions.")
+
+          full_summary = "\n\n".join(summary_parts)
+
+          # Save summary to file for PR body
+          with open("pr_summary.md", "w") as f:
+              f.write(full_summary)
+
+          # Create changelog entry for this repo
+          changelog_entry = """- bump: patch
+            changes:
+              changed:
+              - Updated PolicyEngine packages ({}).
+          """.format(", ".join(f"{pkg} to {v['new']}" for pkg, v in updates.items()))
+
+          # Clean up indentation
+          changelog_entry = "\n".join(line.strip() for line in changelog_entry.strip().split("\n"))
+
+          with open("changelog_entry.yaml", "w") as f:
+              f.write(changelog_entry + "\n")
+
+          # Set outputs
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("has_updates=true\n")
+              # Store update info for commit message
+              updates_str = ", ".join(f"{pkg} to {v['new']}" for pkg, v in updates.items())
+              f.write(f"updates_summary={updates_str}\n")
+
+          print("Updates prepared successfully!")
+          EOF
+
+      - name: No updates available
+        if: steps.check_updates.outputs.has_updates != 'true'
+        run: |
+          echo "::notice::No package updates available. policyengine_us is already at the latest version."
+
+      - name: Commit and push changes
+        if: steps.check_updates.outputs.has_updates == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b bot/weekly-us-update
+          git add setup.py changelog_entry.yaml
+          git commit -m "Update policyengine-us (${{ steps.check_updates.outputs.updates_summary }})"
+          git push -f origin bot/weekly-us-update
+
+      - name: Create Pull Request
+        if: steps.check_updates.outputs.has_updates == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.POLICYENGINE_GITHUB }}
+        run: |
+          # Build PR body with summary
+          PR_SUMMARY=$(cat pr_summary.md)
+          PR_BODY="## Summary
+
+          Automated weekly update of policyengine-us.
+
+          Related to #1178
+
+          ## Version Updates
+
+          ${PR_SUMMARY}
+
+          ---
+          Generated automatically by GitHub Actions"
+
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --head bot/weekly-us-update --json number --jq '.[0].number' || echo "")
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR #$EXISTING_PR already exists, updating it"
+            gh pr edit "$EXISTING_PR" --body "$PR_BODY"
+            exit 0
+          fi
+
+          gh pr create \
+            --title "Weekly policyengine-us update" \
+            --body "$PR_BODY"
