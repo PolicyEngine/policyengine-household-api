@@ -1,6 +1,10 @@
 name: Weekly US Household API Update
 
 on:
+  # TODO: Remove push trigger before merging
+  push:
+    branches:
+      - hua7450/issue1178
   schedule:
     # Every Wednesday at 5 PM EST (10 PM UTC)
     - cron: "0 22 * * 3"
