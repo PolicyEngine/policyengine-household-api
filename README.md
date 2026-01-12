@@ -29,6 +29,27 @@ policyapi@[your-docker-id]:/code$ make debug
 
 and point your browser at http://localhost:8080 to access the API.
 
+### Running with other PolicyEngine services
+
+If you're running this alongside other PolicyEngine services (e.g., the main API) and need
+containers to communicate across projects, use the external network mode:
+
+```
+% make docker-network-create   # Create shared network (once)
+% make docker-run-external     # Run with external network
+```
+
+This connects the household API to a shared `policyengine-api_default` network that other
+PolicyEngine docker-compose projects can also join.
+
+For development with external networking:
+
+```
+% make docker-network-create
+% make services-start-external
+% make docker-console
+```
+
 ## Development rules
 
 1. Every endpoint should return a JSON object with at least a "status" and "message" field.

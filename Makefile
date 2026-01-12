@@ -37,6 +37,7 @@ changelog: ## Build changelog
 	touch changelog_entry.yaml
 
 COMPOSE_FILE ?= docker/docker-compose.yml
+COMPOSE_EXTERNAL_FILE ?= docker/docker-compose.external.yml
 DOCKER_IMG ?= policyengine:policyengine-household-api
 DOCKER_NAME ?= policyengine-household-api
 ifeq (, $(shell which docker))
@@ -55,13 +56,25 @@ docker-build: ## Build the docker image
 docker-run:  ## Run the app as docker container with supporting services
 	docker compose --file $(COMPOSE_FILE) up
 
+.PHONY: docker-run-external
+docker-run-external:  ## Run with external network (for multi-service setups)
+	docker compose --file $(COMPOSE_FILE) --file $(COMPOSE_EXTERNAL_FILE) up
+
 .PHONY: services-start
 services-start:  ## Run the docker containers for supporting services (e.g. Redis)
 	docker compose --file $(COMPOSE_FILE) up -d redis
 
+.PHONY: services-start-external
+services-start-external:  ## Start services with external network
+	docker compose --file $(COMPOSE_FILE) --file $(COMPOSE_EXTERNAL_FILE) up -d redis
+
 .PHONY: services-stop
 services-stop:  ## Stop the docker containers for supporting services
 	docker compose --file $(COMPOSE_FILE) down
+
+.PHONY: docker-network-create
+docker-network-create:  ## Create the external Docker network (for multi-service setups)
+	docker network create $(DOCKER_NETWORK) || true
 
 .PHONY: docker-console
 docker-console:  ## Open a one-off container bash session

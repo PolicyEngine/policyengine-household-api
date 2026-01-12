@@ -1,0 +1,17 @@
+# Override file for connecting to an external Docker network.
+# Use this when running alongside other PolicyEngine services.
+#
+# Usage:
+#   make docker-run-external
+#
+# Or manually:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.external.yml up
+#
+# Prerequisites:
+#   The external network must exist. Create it with:
+#   docker network create policyengine-api_default
+
+networks:
+  my_network:
+    name: ${DOCKER_NETWORK:-policyengine-api_default}
+    external: true
