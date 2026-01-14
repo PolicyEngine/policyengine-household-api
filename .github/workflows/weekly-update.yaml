@@ -1,10 +1,6 @@
 name: Weekly US Household API Update
 
 on:
-  # TODO: Remove push trigger before merging
-  push:
-    branches:
-      - hua7450/issue1178
   schedule:
     # Every Wednesday at 5 PM EST (10 PM UTC)
     - cron: "0 22 * * 3"
@@ -20,7 +16,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          ref: hua7450/issue1178  # TODO: change back to 'main' before merging
+          ref: main
           token: ${{ secrets.POLICYENGINE_GITHUB }}
 
       - name: Set up Python
