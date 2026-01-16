@@ -132,19 +132,25 @@ def format_changes(entries):
 
     sections = []
     if added:
-        sections.append("### Added\n" + "\n".join(f"- {item}" for item in added))
+        sections.append(
+            "### Added\n" + "\n".join(f"- {item}" for item in added)
+        )
     if changed:
         sections.append(
             "### Changed\n" + "\n".join(f"- {item}" for item in changed)
         )
     if fixed:
-        sections.append("### Fixed\n" + "\n".join(f"- {item}" for item in fixed))
+        sections.append(
+            "### Fixed\n" + "\n".join(f"- {item}" for item in fixed)
+        )
     if removed:
         sections.append(
             "### Removed\n" + "\n".join(f"- {item}" for item in removed)
         )
 
-    return "\n\n".join(sections) if sections else "No detailed changes available."
+    return (
+        "\n\n".join(sections) if sections else "No detailed changes available."
+    )
 
 
 def generate_summary(updates):
@@ -152,9 +158,7 @@ def generate_summary(updates):
     summary_parts = []
 
     # Version table
-    version_table = (
-        "| Package | Old Version | New Version |\n|---------|-------------|-------------|\n"
-    )
+    version_table = "| Package | Old Version | New Version |\n|---------|-------------|-------------|\n"
     for pkg, versions in updates.items():
         version_table += f"| {pkg} | {versions['old']} | {versions['new']} |\n"
     summary_parts.append(version_table)
@@ -237,7 +241,9 @@ def main():
 
     # Set outputs
     write_github_output("has_updates", "true")
-    updates_str = ", ".join(f"{pkg} to {v['new']}" for pkg, v in updates.items())
+    updates_str = ", ".join(
+        f"{pkg} to {v['new']}" for pkg, v in updates.items()
+    )
     write_github_output("updates_summary", updates_str)
 
     print("Updates prepared successfully!")
