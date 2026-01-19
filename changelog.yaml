@@ -1339,3 +1339,11 @@
     - Add GitHub Actions workflow for weekly policyengine-us updates with changelog
       summary generation.
   date: 2026-01-16 18:07:34
+- bump: minor
+  changes:
+    added:
+    - Docker Compose support for local development with Redis
+    - Makefile targets for building and running Docker containers
+    - Support for external Docker networks when running alongside other PolicyEngine
+      services
+  date: 2026-01-19 14:04:10

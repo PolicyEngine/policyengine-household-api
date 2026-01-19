@@ -1,6 +1,0 @@
-- bump: minor
-  changes:
-    added:
-    - Docker Compose support for local development with Redis
-    - Makefile targets for building and running Docker containers
-    - Support for external Docker networks when running alongside other PolicyEngine services
