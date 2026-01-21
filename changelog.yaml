@@ -1347,3 +1347,8 @@
     - Support for external Docker networks when running alongside other PolicyEngine
       services
   date: 2026-01-19 14:04:10
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.511.1
+  date: 2026-01-21 22:21:35
