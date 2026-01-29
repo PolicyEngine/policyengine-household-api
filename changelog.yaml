@@ -1352,3 +1352,9 @@
     changed:
     - Update PolicyEngine US to 1.511.1
   date: 2026-01-21 22:21:35
+- bump: patch
+  changes:
+    fixed:
+    - Fix PR edit permission error in weekly update workflow by using REST API instead
+      of GraphQL.
+  date: 2026-01-29 03:19:47
