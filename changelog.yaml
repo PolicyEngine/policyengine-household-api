@@ -1358,3 +1358,8 @@
     - Fix PR edit permission error in weekly update workflow by using REST API instead
       of GraphQL.
   date: 2026-01-29 03:19:47
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.532.0
+  date: 2026-01-29 03:36:34
