@@ -41,7 +41,8 @@ EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' 
 
 if [ -n "$EXISTING_PR" ]; then
     echo "PR #$EXISTING_PR already exists, updating it"
-    gh pr edit "$EXISTING_PR" --body "$PR_BODY"
+    # Use REST API instead of gh pr edit to avoid GraphQL read:org scope requirement
+    gh api --method PATCH "/repos/{owner}/{repo}/pulls/$EXISTING_PR" -f body="$PR_BODY"
 else
     echo "Creating new PR"
     gh pr create \
