@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    fixed:
+    - Fix PR edit permission error in weekly update workflow by using REST API instead of GraphQL.
