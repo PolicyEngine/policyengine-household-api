@@ -39,8 +39,10 @@ build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 dev = [
-    "pytest-timeout",    "towncrier>=24.8.0",
-
+    "build",
+    "pytest",
+    "pytest-timeout",
+    "towncrier>=24.8.0",
 ]
 
 [tool.hatch.build.targets.wheel]
