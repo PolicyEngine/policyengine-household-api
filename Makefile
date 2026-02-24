@@ -29,13 +29,9 @@ deploy: ## Deploy to GCP
 	rm Dockerfile
 	rm .gac.json
 
-changelog: ## Build changelog
-	build-changelog changelog.yaml --output changelog.yaml --update-last-date --start-from 0.1.0 --append-file changelog_entry.yaml
-	build-changelog changelog.yaml --org PolicyEngine --repo policyengine-household-api --output CHANGELOG.md --template .github/changelog_template.md
-	bump-version changelog.yaml setup.py policyengine_household_api/constants.py
-	rm changelog_entry.yaml || true
-	touch changelog_entry.yaml
-
+changelog:
+	python .github/bump_version.py
+	towncrier build --yes --version $$(python -c "import re; print(re.search(r'version = \"(.+?)\"', open('pyproject.toml').read()).group(1))")
 COMPOSE_FILE ?= docker/docker-compose.yml
 COMPOSE_EXTERNAL_FILE ?= docker/docker-compose.external.yml
 DOCKER_IMG ?= policyengine:policyengine-household-api
