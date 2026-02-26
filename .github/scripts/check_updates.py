@@ -118,7 +118,9 @@ def parse_changelog_md(text):
         item_match = re.match(r"^-\s+(.+)", line)
         if item_match and current_category:
             current_entry["changes"].setdefault(current_category, [])
-            current_entry["changes"][current_category].append(item_match.group(1))
+            current_entry["changes"][current_category].append(
+                item_match.group(1)
+            )
 
     return entries
 
@@ -158,15 +160,25 @@ def format_changes(entries):
 
     sections = []
     if added:
-        sections.append("### Added\n" + "\n".join(f"- {item}" for item in added))
+        sections.append(
+            "### Added\n" + "\n".join(f"- {item}" for item in added)
+        )
     if changed:
-        sections.append("### Changed\n" + "\n".join(f"- {item}" for item in changed))
+        sections.append(
+            "### Changed\n" + "\n".join(f"- {item}" for item in changed)
+        )
     if fixed:
-        sections.append("### Fixed\n" + "\n".join(f"- {item}" for item in fixed))
+        sections.append(
+            "### Fixed\n" + "\n".join(f"- {item}" for item in fixed)
+        )
     if removed:
-        sections.append("### Removed\n" + "\n".join(f"- {item}" for item in removed))
+        sections.append(
+            "### Removed\n" + "\n".join(f"- {item}" for item in removed)
+        )
 
-    return "\n\n".join(sections) if sections else "No detailed changes available."
+    return (
+        "\n\n".join(sections) if sections else "No detailed changes available."
+    )
 
 
 def generate_summary(updates):
@@ -182,7 +194,9 @@ def generate_summary(updates):
     # Changelog for each package
     for pkg, versions in updates.items():
         changelog_text = fetch_changelog(pkg)
-        changelog = parse_changelog_md(changelog_text) if changelog_text else None
+        changelog = (
+            parse_changelog_md(changelog_text) if changelog_text else None
+        )
         if changelog:
             entries = get_changes_between_versions(
                 changelog, versions["old"], versions["new"]
@@ -258,7 +272,9 @@ def main():
 
     # Set outputs
     write_github_output("has_updates", "true")
-    updates_str = ", ".join(f"{pkg} to {v['new']}" for pkg, v in updates.items())
+    updates_str = ", ".join(
+        f"{pkg} to {v['new']}" for pkg, v in updates.items()
+    )
     write_github_output("updates_summary", updates_str)
 
     print("Updates prepared successfully!")
