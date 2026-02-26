@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    fixed:
+    - Fix weekly update PR missing changelog details by parsing CHANGELOG.md instead of non-existent changelog.yaml from policyengine-us

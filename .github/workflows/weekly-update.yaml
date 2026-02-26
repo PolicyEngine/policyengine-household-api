@@ -26,7 +26,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests pyyaml
+          pip install requests
 
       - name: Check for updates and generate summary
         id: check_updates
