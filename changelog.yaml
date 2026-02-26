@@ -1369,3 +1369,8 @@
     - Fix weekly update PR missing changelog details by parsing CHANGELOG.md instead
       of non-existent changelog.yaml from policyengine-us
   date: 2026-02-26 01:01:47
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.587.1
+  date: 2026-02-26 01:08:40
