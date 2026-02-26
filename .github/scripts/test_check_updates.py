@@ -8,6 +8,7 @@ from check_updates import (
     generate_changelog_entry,
     get_changes_between_versions,
     get_current_versions,
+    parse_changelog_md,
     parse_version,
     update_setup_content,
 )
@@ -106,17 +107,16 @@ class TestGetChangesBetweenVersions:
 
     def test_filters_entries_between_versions(self):
         changelog = [
+            {"version": "2.0.0", "changes": {"changed": ["Breaking change"]}},
+            {"version": "1.1.0", "changes": {"added": ["New feature"]}},
+            {"version": "1.0.1", "changes": {"fixed": ["Bug fix"]}},
             {"version": "1.0.0", "changes": {"added": ["Initial"]}},
-            {"bump": "patch", "changes": {"fixed": ["Bug fix"]}},
-            {"bump": "minor", "changes": {"added": ["New feature"]}},
-            {"bump": "major", "changes": {"changed": ["Breaking change"]}},
         ]
-        # Version progression: 1.0.0 -> 1.0.1 -> 1.1.0 -> 2.0.0
         result = get_changes_between_versions(changelog, "1.0.0", "1.1.0")
         # Should include 1.0.1 and 1.1.0, but not 1.0.0 or 2.0.0
         assert len(result) == 2
-        assert result[0]["changes"]["fixed"] == ["Bug fix"]
-        assert result[1]["changes"]["added"] == ["New feature"]
+        assert result[0]["changes"]["added"] == ["New feature"]
+        assert result[1]["changes"]["fixed"] == ["Bug fix"]
 
     def test_returns_empty_for_same_version(self):
         changelog = [
@@ -124,6 +124,59 @@ class TestGetChangesBetweenVersions:
         ]
         result = get_changes_between_versions(changelog, "1.0.0", "1.0.0")
         assert result == []
+
+
+class TestParseChangelogMd:
+    def test_single_version(self):
+        text = "## [1.0.0] - 2024-01-01\n\n### Added\n\n- Initial release\n"
+        result = parse_changelog_md(text)
+        assert len(result) == 1
+        assert result[0]["version"] == "1.0.0"
+        assert result[0]["changes"]["added"] == ["Initial release"]
+
+    def test_multiple_versions(self):
+        text = (
+            "## [1.1.0] - 2024-02-01\n\n### Added\n\n- New feature\n\n"
+            "## [1.0.0] - 2024-01-01\n\n### Added\n\n- Initial release\n"
+        )
+        result = parse_changelog_md(text)
+        assert len(result) == 2
+        assert result[0]["version"] == "1.1.0"
+        assert result[1]["version"] == "1.0.0"
+
+    def test_multiple_categories(self):
+        text = (
+            "## [1.0.0] - 2024-01-01\n\n"
+            "### Added\n\n- Feature A\n\n"
+            "### Fixed\n\n- Bug B\n\n"
+            "### Changed\n\n- Update C\n\n"
+            "### Removed\n\n- Old thing D\n"
+        )
+        result = parse_changelog_md(text)
+        assert len(result) == 1
+        changes = result[0]["changes"]
+        assert changes["added"] == ["Feature A"]
+        assert changes["fixed"] == ["Bug B"]
+        assert changes["changed"] == ["Update C"]
+        assert changes["removed"] == ["Old thing D"]
+
+    def test_dates_with_timestamps_ignored(self):
+        text = "## [2.0.0] - 2024-06-15\n\n### Changed\n\n- Big update\n"
+        result = parse_changelog_md(text)
+        assert result[0]["version"] == "2.0.0"
+
+    def test_h1_changelog_heading_ignored(self):
+        text = (
+            "# Changelog\n\n"
+            "## [1.0.0] - 2024-01-01\n\n### Added\n\n- Something\n"
+        )
+        result = parse_changelog_md(text)
+        assert len(result) == 1
+        assert result[0]["version"] == "1.0.0"
+
+    def test_empty_input(self):
+        assert parse_changelog_md("") == []
+        assert parse_changelog_md(None) == []
 
 
 class TestFormatChanges:

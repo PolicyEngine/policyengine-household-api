@@ -11,7 +11,6 @@ import re
 import sys
 
 import requests
-import yaml
 
 # Packages to track (US only - UK is updated separately)
 PACKAGES = ["policyengine_us"]
@@ -74,11 +73,58 @@ def fetch_changelog(pkg):
     repo = REPO_MAP.get(pkg)
     if not repo:
         return None
-    url = f"https://raw.githubusercontent.com/{repo}/main/changelog.yaml"
+    url = f"https://raw.githubusercontent.com/{repo}/main/CHANGELOG.md"
     resp = requests.get(url)
     if resp.status_code == 200:
-        return yaml.safe_load(resp.text)
+        return resp.text
     return None
+
+
+def parse_changelog_md(text):
+    """Parse a Keep a Changelog markdown file into structured entries.
+
+    Returns a list of dicts like:
+        [{"version": "1.2.3", "changes": {"added": [...], "fixed": [...]}}, ...]
+    """
+    if not text:
+        return []
+
+    entries = []
+    current_entry = None
+    current_category = None
+
+    for line in text.splitlines():
+        # Match version heading: ## [1.2.3] - 2024-01-01
+        version_match = re.match(
+            r"^##\s+\[(\d+\.\d+\.\d+)\]", line
+        )
+        if version_match:
+            current_entry = {
+                "version": version_match.group(1),
+                "changes": {},
+            }
+            entries.append(current_entry)
+            current_category = None
+            continue
+
+        if current_entry is None:
+            continue
+
+        # Match category heading: ### Added, ### Changed, etc.
+        category_match = re.match(r"^###\s+(\w+)", line)
+        if category_match:
+            current_category = category_match.group(1).lower()
+            continue
+
+        # Match list item: - Some change description
+        item_match = re.match(r"^-\s+(.+)", line)
+        if item_match and current_category:
+            current_entry["changes"].setdefault(current_category, [])
+            current_entry["changes"][current_category].append(
+                item_match.group(1)
+            )
+
+    return entries
 
 
 def get_changes_between_versions(changelog, old_version, new_version):
@@ -89,27 +135,11 @@ def get_changes_between_versions(changelog, old_version, new_version):
     old_v = parse_version(old_version)
     new_v = parse_version(new_version)
 
-    entries_with_versions = []
-    current_version = None
-
-    for entry in changelog:
-        if "version" in entry:
-            current_version = parse_version(entry["version"])
-        elif current_version and "bump" in entry:
-            bump = entry["bump"]
-            major, minor, patch = current_version
-            if bump == "major":
-                current_version = (major + 1, 0, 0)
-            elif bump == "minor":
-                current_version = (major, minor + 1, 0)
-            elif bump == "patch":
-                current_version = (major, minor, patch + 1)
-
-        if current_version:
-            entries_with_versions.append((current_version, entry))
-
     relevant_entries = []
-    for version, entry in entries_with_versions:
+    for entry in changelog:
+        if "version" not in entry:
+            continue
+        version = parse_version(entry["version"])
         if old_v < version <= new_v:
             relevant_entries.append(entry)
 
@@ -165,7 +195,8 @@ def generate_summary(updates):
 
     # Changelog for each package
     for pkg, versions in updates.items():
-        changelog = fetch_changelog(pkg)
+        changelog_text = fetch_changelog(pkg)
+        changelog = parse_changelog_md(changelog_text) if changelog_text else None
         if changelog:
             entries = get_changes_between_versions(
                 changelog, versions["old"], versions["new"]
