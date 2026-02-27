@@ -12,6 +12,7 @@ setup(
     install_requires=[
         "anthropic",
         "Authlib>=1.3.1",
+        "policyengine-core>=3.23.5",
         "cloud-sql-python-connector",
         "flask>=2.2",
         "flask-cors>=3",
