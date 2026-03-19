@@ -1,4 +1,4 @@
 - bump: patch
   changes:
     fixed:
-    - Switch versioning workflow from PAT to GitHub App token for authentication
+    - Pass GitHub App token to EndBug/add-and-commit to allow pushing to protected main branch

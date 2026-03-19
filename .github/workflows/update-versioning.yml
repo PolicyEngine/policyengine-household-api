@@ -25,10 +25,9 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: main
           token: ${{ steps.app-token.outputs.token }}
       - name: Setup Python
         uses: actions/setup-python@v2
@@ -45,3 +44,4 @@ jobs:
           committer_name: Github Actions[bot]
           author_name: Github Actions[bot]
           message: Update PolicyEngine Household API
+          github_token: ${{ steps.app-token.outputs.token }}
