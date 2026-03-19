@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    fixed:
-    - Pass GitHub App token to EndBug/add-and-commit to allow pushing to protected main branch

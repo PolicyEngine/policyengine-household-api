@@ -1374,3 +1374,9 @@
     changed:
     - Update PolicyEngine US to 1.587.1
   date: 2026-02-26 01:08:40
+- bump: patch
+  changes:
+    fixed:
+    - Pass GitHub App token to EndBug/add-and-commit to allow pushing to protected
+      main branch
+  date: 2026-03-19 14:08:06
