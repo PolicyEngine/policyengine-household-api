@@ -1,4 +1,4 @@
 - bump: patch
   changes:
     fixed:
-    - Switch weekly update workflow from PAT to GitHub App token for authentication
+    - Switch versioning workflow from PAT to GitHub App token for authentication
