@@ -45,3 +45,4 @@ jobs:
           committer_name: Github Actions[bot]
           author_name: Github Actions[bot]
           message: Update PolicyEngine Household API
+          github_token: ${{ steps.app-token.outputs.token }}
