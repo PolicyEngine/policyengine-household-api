@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Remove unused gcp/bump_country_package.py script.
