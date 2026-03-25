@@ -2,7 +2,6 @@ from pydantic import BaseModel, RootModel
 from typing import Union, Optional, Any
 from enum import Enum
 
-
 example_household_us = {
     "people": {
         "you": {"age": {"2024": 40}, "employment_income": {"2024": 29000}},

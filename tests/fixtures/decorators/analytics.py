@@ -7,7 +7,6 @@ from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 import jwt
 
-
 # Mock request data
 MOCK_JWT_TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LWNsaWVudEBjbGllbnRzIiwiZXhwIjoxNjQwOTk1MjAwfQ.test"
 MOCK_CLIENT_ID = "test-client"

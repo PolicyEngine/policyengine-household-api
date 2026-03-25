@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict, Any
 import pytest
 
-
 # Sample configuration data constants
 DEFAULT_CONFIG_DATA = {
     "app": {
