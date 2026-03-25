@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict, Any
 import pytest
 
-
 # Sample configuration data constants
 DEFAULT_CONFIG_DATA = {
     "app": {
@@ -270,16 +269,14 @@ def temp_config_with_variables():
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", delete=False
     ) as f:
-        f.write(
-            """
+        f.write("""
 auth:
   address: ${AUTH0_ADDRESS}
   audience: $AUTH0_AUDIENCE
 database:
   password: ${DB_PASSWORD}
 special: ${ANOTHER_VAR}
-        """
-        )
+        """)
         temp_path = f.name
 
     yield temp_path
@@ -309,13 +306,11 @@ def temp_config_with_missing_var():
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", delete=False
     ) as f:
-        f.write(
-            """
+        f.write("""
 auth:
   address: ${AUTH0_ADDRESS}
   audience: ${MISSING_VAR}
-        """
-        )
+        """)
         temp_path = f.name
 
     yield temp_path
@@ -429,15 +424,13 @@ def temp_config_with_complex_values():
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", delete=False
     ) as f:
-        f.write(
-            """
+        f.write("""
 url: ${URL_WITH_QUERY}
 json: ${JSON_STRING}
 path: ${PATH_WITH_SPACES}
 empty: ${EMPTY_VALUE}
 quoted: ${VALUE_WITH_QUOTES}
-        """
-        )
+        """)
         temp_path = f.name
 
     yield temp_path
@@ -474,8 +467,7 @@ def temp_realistic_config_with_vars():
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", delete=False
     ) as f:
-        f.write(
-            """
+        f.write("""
 app:
   name: policyengine-household-api
   environment: test
@@ -494,8 +486,7 @@ analytics:
     connection_name: ${USER_ANALYTICS_DB_CONNECTION_NAME}
     username: ${USER_ANALYTICS_DB_USERNAME}
     password: ${USER_ANALYTICS_DB_PASSWORD}
-        """
-        )
+        """)
         temp_path = f.name
 
     yield temp_path

@@ -6,7 +6,6 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any
 
-
 # Sample Auth0 configuration data
 AUTH0_CONFIG_DATA = {
     "address": "test-tenant.auth0.com",
