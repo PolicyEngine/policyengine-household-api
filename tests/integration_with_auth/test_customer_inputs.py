@@ -6,6 +6,7 @@ from typing import Any, List, Tuple
 from tests.data.customer_households import (
     my_friend_ben_household,
     amplifi_household,
+    amplifi_household_2025,
     impactica_household,
 )
 from policyengine_household_api.models.household import HouseholdModelUS
@@ -32,6 +33,7 @@ class TestCustomerInputs:
         "household",
         [
             amplifi_household,
+            amplifi_household_2025,
         ],
     )
     def test_amplifi(self, client, household):
