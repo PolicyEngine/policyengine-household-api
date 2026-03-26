@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Fixed Amplifi and My Friend Ben test households with correct fixture data
