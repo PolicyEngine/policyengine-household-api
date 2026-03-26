@@ -1396,3 +1396,8 @@
     - Renamed benefits_navigator test household to amplifi with updated household
       data
   date: 2026-03-25 22:10:16
+- bump: patch
+  changes:
+    changed:
+    - Fixed Amplifi and My Friend Ben test households with correct fixture data
+  date: 2026-03-26 23:01:49
