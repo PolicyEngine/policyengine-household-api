@@ -1,160 +1,228 @@
 my_friend_ben_household = {
     "people": {
-        "7449": {
-            "employment_income": {"2023": 23489, "2022": 23489},
-            "age": {"2023": 44, "2022": 44},
-            "is_pregnant": {"2023": False},
-            "is_tax_unit_head": {"2023": True, "2022": True},
-            "wic_category": {"2023": None},
-            "wic": {"2023": None},
-            "medicaid": {"2023": None},
-            "ssi": {"2023": None},
-            "ssi_earned_income": {"2023": 23489},
-            "ssi_unearned_income": {"2023": 0},
-            "is_ssi_disabled": {"2023": False},
-            "ssi_countable_resources": {"2023": 1000},
-            "ssi_amount_if_eligible": {"2023": None},
-            "co_state_supplement": {"2023": None},
-            "co_oap": {"2023": None},
-            "pell_grant": {"2023": None},
-            "pell_grant_dependent_available_income": {"2023": 23489},
-            "pell_grant_countable_assets": {"2023": 2000},
-            "cost_of_attending_college": {"2023": 0},
-            "pell_grant_months_in_school": {"2023": 9},
-            "co_chp_eligible": {"2023": None},
-        },
-        "7450": {
-            "employment_income": {"2023": 0, "2022": 0},
-            "age": {"2023": 45, "2022": 45},
-            "is_pregnant": {"2023": True},
-            "is_tax_unit_head": {"2023": False, "2022": False},
-            "wic_category": {"2023": None},
-            "wic": {"2023": None},
-            "medicaid": {"2023": None},
-            "ssi": {"2023": None},
-            "ssi_earned_income": {"2023": 0},
-            "ssi_unearned_income": {"2023": 0},
-            "is_ssi_disabled": {"2023": False},
-            "ssi_countable_resources": {"2023": 1000},
-            "ssi_amount_if_eligible": {"2023": None},
-            "co_state_supplement": {"2023": None},
-            "co_oap": {"2023": None},
-            "pell_grant": {"2023": None},
-            "pell_grant_dependent_available_income": {"2023": 0},
-            "pell_grant_countable_assets": {"2023": 2000},
-            "cost_of_attending_college": {"2023": 0},
-            "pell_grant_months_in_school": {"2023": 9},
-            "co_chp_eligible": {"2023": None},
-        },
-        "7451": {
-            "employment_income": {"2023": 0, "2022": 0},
-            "age": {"2023": 5, "2022": 5},
-            "is_pregnant": {"2023": False},
-            "is_tax_unit_head": {"2023": False, "2022": False},
-            "wic_category": {"2023": None},
-            "wic": {"2023": None},
-            "medicaid": {"2023": None},
-            "ssi": {"2023": None},
-            "ssi_earned_income": {"2023": 0},
-            "ssi_unearned_income": {"2023": 0},
-            "is_ssi_disabled": {"2023": False},
-            "ssi_countable_resources": {"2023": 0},
-            "ssi_amount_if_eligible": {"2023": None},
-            "co_state_supplement": {"2023": None},
-            "co_oap": {"2023": None},
-            "pell_grant": {"2023": None},
-            "pell_grant_dependent_available_income": {"2023": 0},
-            "pell_grant_countable_assets": {"2023": 2000},
-            "cost_of_attending_college": {"2023": 0},
-            "pell_grant_months_in_school": {"2023": 9},
-            "co_chp_eligible": {"2023": None},
-        },
-        "7452": {
-            "employment_income": {"2023": 0, "2022": 0},
-            "age": {"2023": 1, "2022": 1},
-            "is_pregnant": {"2023": False},
-            "is_tax_unit_head": {"2023": False, "2022": False},
-            "wic_category": {"2023": None},
-            "wic": {"2023": None},
-            "medicaid": {"2023": None},
-            "ssi": {"2023": None},
-            "ssi_earned_income": {"2023": 0},
-            "ssi_unearned_income": {"2023": 0},
-            "is_ssi_disabled": {"2023": False},
-            "ssi_countable_resources": {"2023": 0},
-            "ssi_amount_if_eligible": {"2023": None},
-            "co_state_supplement": {"2023": None},
-            "co_oap": {"2023": None},
-            "pell_grant": {"2023": None},
-            "pell_grant_dependent_available_income": {"2023": 0},
-            "pell_grant_countable_assets": {"2023": 2000},
-            "cost_of_attending_college": {"2023": 0},
-            "pell_grant_months_in_school": {"2023": 9},
-            "co_chp_eligible": {"2023": None},
-        },
+        "2021359": {
+            "age": {
+                "2024": 49,
+                "2025": 49,
+            },
+            "is_pregnant": {
+                "2025": True,
+            },
+            "ssi_countable_resources": {
+                "2025": 200,
+            },
+            "is_disabled": {
+                "2025": False,
+            },
+            "employment_income": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "self_employment_income": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "rental_income": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "taxable_pension_income": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "social_security": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "unemployment_compensation": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "capital_gains": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "taxable_ira_distributions": {
+                "2024": 0,
+                "2025": 0,
+            },
+            "medicaid": {
+                "2025": None,
+            },
+            "medicaid_category": {
+                "2025": None,
+            },
+            "is_optional_senior_or_disabled_for_medicaid": {
+                "2025": None,
+            },
+            "ssi_reported": {
+                "2025": 0,
+            },
+            "is_blind": {
+                "2025": False,
+            },
+            "ssi_earned_income": {
+                "2025": 0,
+            },
+            "ssi_unearned_income": {
+                "2025": 0,
+            },
+            "is_tax_unit_spouse": {
+                "2024": False,
+                "2025": False,
+            },
+            "is_tax_unit_head": {
+                "2025": True,
+            },
+            "is_tax_unit_dependent": {
+                "2024": False,
+                "2025": False,
+            },
+            "co_state_supplement": {
+                "2025": None,
+            },
+            "co_oap": {
+                "2025": None,
+            },
+            "current_pregnancies": {
+                "2025": 1,
+            },
+            "co_chp_eligible": {
+                "2025": None,
+            },
+            "co_family_affordability_credit": {
+                "2024": None,
+            },
+            "wic": {
+                "2025": None,
+            },
+            "wic_category": {
+                "2025": None,
+            },
+            "commodity_supplemental_food_program": {
+                "2025": None,
+            },
+            "ssi": {
+                "2025": None,
+            },
+            "child_support_expense": {
+                "2025": 0,
+            },
+            "real_estate_taxes": {
+                "2025": 0,
+            },
+            "medical_out_of_pocket_expenses": {
+                "2025": 0,
+            },
+            "is_snap_ineligible_student": {
+                "2025": True,
+            },
+            "is_full_time_college_student": {
+                "2025": True,
+            },
+        }
     },
     "tax_units": {
-        "tax_unit": {
-            "members": ["7449", "7450", "7451", "7452"],
-            "eitc": {"2023": None},
-            "co_eitc": {"2023": None},
-            "ctc": {"2023": None},
-            "tax_unit_is_joint": {"2023": True},
-            "pell_grant_primary_income": {"2023": 23489},
-            "pell_grant_dependents_in_college": {"2023": 0},
+        "main_tax_unit": {
+            "members": ["2021359"],
+            "co_eitc": {
+                "2024": None,
+            },
+            "co_ctc": {
+                "2024": None,
+            },
+            "eitc": {
+                "2024": None,
+            },
+            "ctc_value": {
+                "2024": None,
+            },
         }
     },
-    "families": {"family": {"members": ["7449", "7450", "7451", "7452"]}},
+    "families": {
+        "family": {
+            "members": ["2021359"],
+        }
+    },
     "households": {
         "household": {
-            "state_code_str": {"2023": "CO"},
-            "members": ["7449", "7450", "7451", "7452"],
+            "members": ["2021359"],
+            "state_code": {
+                "2024": "CO",
+                "2025": "CO",
+            },
         }
-    },
-    "marital_units": {
-        "marital_unit_1": {
-            "members": ["7449", "7450"],
-        },
-        "marital_unit_2": {"members": ["7451"]},
-        "marital_unit_3": {"members": ["7452"]},
     },
     "spm_units": {
         "spm_unit": {
-            "members": ["7449", "7450", "7451", "7452"],
-            "snap_child_support_deduction": {"2023": 0},
-            "snap_dependent_care_deduction": {"2023": 6000},
-            "snap_earned_income": {"2023": None},
-            "snap_earned_income_deduction": {"2023": 4697.8},
-            "snap_standard_deduction": {"2023": None},
-            "snap_net_income_pre_shelter": {"2023": None},
-            "snap_excess_shelter_expense_deduction": {"2023": None},
-            "housing_cost": {"2023": 18000},
-            "snap_assets": {"2023": 2000},
-            "snap_gross_income": {"2023": 23489},
-            "snap_net_income": {"2023": None},
-            "snap_deductions": {"2023": None},
-            "meets_snap_net_income_test": {"2023": None},
-            "meets_snap_gross_income_test": {"2023": True},
-            "meets_snap_asset_test": {"2023": True},
-            "is_snap_eligible": {"2023": None},
-            "meets_snap_categorical_eligibility": {"2023": False},
-            "snap_utility_allowance": {"2023": None},
-            "has_heating_cooling_expense": {"2023": False},
-            "has_phone_expense": {"2023": False},
-            "utility_expense": {"2023": 0},
-            "snap_emergency_allotment": {"2023": 0},
-            "snap": {"2023": None},
-            "acp": {"2023": None},
-            "school_meal_daily_subsidy": {"2023": None},
-            "school_meal_tier": {"2023": None},
-            "meets_school_meal_categorical_eligibility": {"2023": None},
-            "lifeline": {"2023": None},
-            "co_tanf_countable_gross_earned_income": {"2023": 23489},
-            "co_tanf_countable_gross_unearned_income": {"2023": 0},
-            "co_tanf": {"2023": None},
-            "co_tanf_grant_standard": {"2023": None},
-            "co_tanf_countable_earned_income_grant_standard": {"2023": None},
-            "broadband_cost": {"2023": 500},
+            "members": ["2021359"],
+            "school_meal_countable_income": {
+                "2025": 0,
+            },
+            "snap_unearned_income": {
+                "2025": 0,
+            },
+            "snap_earned_income": {
+                "2025": 0,
+            },
+            "snap_assets": {
+                "2025": 200,
+            },
+            "snap_emergency_allotment": {
+                "2025": 0,
+            },
+            "housing_cost": {
+                "2025": 0,
+            },
+            "has_phone_expense": {
+                "2025": False,
+            },
+            "has_heating_cooling_expense": {
+                "2025": False,
+            },
+            "heating_cooling_expense": {
+                "2025": 0,
+            },
+            "spm_unit_pre_subsidy_childcare_expenses": {
+                "2025": 0,
+            },
+            "water_expense": {
+                "2025": 0,
+            },
+            "phone_expense": {
+                "2025": 0,
+            },
+            "homeowners_association_fees": {
+                "2025": 0,
+            },
+            "homeowners_insurance": {
+                "2025": 0,
+            },
+            "snap": {
+                "2025-01": None,
+            },
+            "co_tanf_countable_gross_earned_income": {
+                "2025": 0,
+            },
+            "co_tanf_countable_gross_unearned_income": {
+                "2025": 0,
+            },
+            "co_tanf": {
+                "2025": None,
+            },
+            "broadband_cost": {
+                "2025": 500,
+            },
+            "lifeline": {
+                "2025": None,
+            },
+            "school_meal_daily_subsidy": {
+                "2025": None,
+            },
+            "school_meal_tier": {
+                "2025": None,
+            },
         }
     },
+    "marital_units": {},
 }
