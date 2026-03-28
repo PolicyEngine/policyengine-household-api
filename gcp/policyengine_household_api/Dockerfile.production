@@ -34,9 +34,19 @@ COPY ./config/default.yaml /app/config/default.yaml
 # Copy startup script
 COPY ./gcp/policyengine_household_api/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
-  
+
+# Drop root privileges in the runtime image.
+RUN groupadd policyapi && \
+    useradd --gid policyapi --create-home policyapi && \
+    chown -R policyapi:policyapi /app /opt/venv
+ 
 # Configure environment (runs as root by default)
 ENV PATH="/opt/venv/bin:$PATH"
 EXPOSE 8080
-  
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl --fail --silent http://127.0.0.1:8080/liveness_check || exit 1
+
+USER policyapi
+ 
 CMD ["/app/start.sh"]

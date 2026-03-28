@@ -1,0 +1,1 @@
+Return JSON service metadata from the home endpoint and improve self-hosted Docker guidance, including a container healthcheck and non-root runtime user.

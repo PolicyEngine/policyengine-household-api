@@ -2,6 +2,28 @@
 
 A version of the PolicyEngine API that runs the `calculate` endpoint over household object. To debug locally, run `make debug`. 
 
+## Quick self-hosted run
+
+If you want to try the API without requesting hosted credentials, run the published Docker image:
+
+```
+docker run --rm -p 8080:8080 ghcr.io/policyengine/policyengine-household-api:latest
+```
+
+Then inspect the service metadata:
+
+```
+curl http://localhost:8080/
+```
+
+and send calculations to:
+
+```
+http://localhost:8080/us/calculate
+```
+
+Hosted API docs live at https://www.policyengine.org/us/api.
+
 ## Local development with Docker Compose
 
 To run this app locally via Docker Compose:

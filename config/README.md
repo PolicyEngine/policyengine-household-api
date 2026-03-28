@@ -77,7 +77,7 @@ CONFIG_FILE=config/local.yaml make debug
 # Mount a custom config file
 docker run -v /path/to/your/config.yaml:/custom/config.yaml \
            -e CONFIG_FILE=/custom/config.yaml \
-           policyengine/household-api
+           ghcr.io/policyengine/policyengine-household-api:latest
 ```
 
 #### Docker Compose
@@ -85,7 +85,7 @@ docker run -v /path/to/your/config.yaml:/custom/config.yaml \
 version: '3.13'
 services:
   household-api:
-    image: policyengine/household-api
+    image: ghcr.io/policyengine/policyengine-household-api:latest
     volumes:
       - ./my-config.yaml:/app/config/custom.yaml
     environment:
@@ -123,7 +123,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: policyengine/household-api
+        image: ghcr.io/policyengine/policyengine-household-api:latest
         env:
         - name: CONFIG_FILE
           value: /config/config.yaml
@@ -301,11 +301,12 @@ Use environment variables to override specific settings:
 
 ```bash
 docker run -e FLASK_DEBUG=1 \
+           -p 8080:8080 \
            -e AUTH__ENABLED=false \    # Disable Auth0 for local dev
            -e ANALYTICS__ENABLED=false \ # Disable analytics for local dev
            -e AI__ENABLED=false \
            -e DATABASE__PROVIDER=sqlite \
-           policyengine/household-api
+           ghcr.io/policyengine/policyengine-household-api:latest
 ```
 
 #### Template Variable Substitution
@@ -359,7 +360,7 @@ docker run -v /path/to/config.yaml:/app/config/custom.yaml \
            -v /path/to/values.env:/app/config/values.env \
            -e CONFIG_FILE=/app/config/custom.yaml \
            -e CONFIG_VALUE_SETTINGS=/app/config/values.env \
-           policyengine/household-api
+           ghcr.io/policyengine/policyengine-household-api:latest
 ```
 
 Or with Docker Compose:
@@ -367,7 +368,7 @@ Or with Docker Compose:
 version: '3.13'
 services:
   household-api:
-    image: policyengine/household-api
+    image: ghcr.io/policyengine/policyengine-household-api:latest
     volumes:
       - ./my-config.yaml:/app/config/custom.yaml
       - ./my-values.env:/app/config/values.env
