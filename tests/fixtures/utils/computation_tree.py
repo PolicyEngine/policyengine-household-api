@@ -8,7 +8,8 @@ MOCK_STREAMING_CHUNKS = ["Histo", "rical", " quot", "e res", "ponse"]
 
 
 @pytest.fixture
-def mock_config_ai_disabled():
+def mock_config_ai_disabled(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with patch(
         "policyengine_household_api.utils.computation_tree.get_config_value"
     ) as mock_config:
@@ -25,7 +26,8 @@ def mock_config_ai_disabled():
 
 
 @pytest.fixture
-def mock_config_ai_enabled_no_key():
+def mock_config_ai_enabled_no_key(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with patch(
         "policyengine_household_api.utils.computation_tree.get_config_value"
     ) as mock_config:

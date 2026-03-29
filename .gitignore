@@ -16,3 +16,4 @@ dist/*
 **/*.csv.gz
 .env
 .ds_store
+uv.lock
