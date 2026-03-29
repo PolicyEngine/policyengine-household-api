@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.11] - 2026-03-29 16:25:42
+
+### Changed
+
+- Return JSON service metadata from the home endpoint and improve self-hosted Docker guidance, including a container healthcheck and non-root runtime user.
+
 ## [0.13.10] - 2026-03-26 23:01:49
 
 ### Changed
@@ -1661,6 +1667,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.13.11]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.10...0.13.11
 [0.13.10]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.9...0.13.10
 [0.13.9]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.8...0.13.9
 [0.13.8]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.7...0.13.8

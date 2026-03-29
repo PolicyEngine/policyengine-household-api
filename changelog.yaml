@@ -1401,3 +1401,9 @@
     changed:
     - Fixed Amplifi and My Friend Ben test households with correct fixture data
   date: 2026-03-26 23:01:49
+- bump: patch
+  changes:
+    changed:
+    - Return JSON service metadata from the home endpoint and improve self-hosted
+      Docker guidance, including a container healthcheck and non-root runtime user.
+  date: 2026-03-29 16:25:42
