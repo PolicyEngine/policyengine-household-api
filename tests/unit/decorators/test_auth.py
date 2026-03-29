@@ -7,10 +7,12 @@ from policyengine_household_api.decorators.auth import (
     NoOpDecorator,
     ConditionalAuthDecorator,
     create_auth_decorator,
+    StaticBearerTokenValidator,
 )
 from tests.fixtures.decorators.auth import (
     AUTH0_CONFIG_DATA,
     auth_enabled_environment,
+    auth_test_environment,
     auth_disabled_environment,
     auth_enabled_missing_config_environment,
     auth_backward_compat_environment,
@@ -65,6 +67,29 @@ class TestNoOpDecorator:
 
 class TestConditionalAuthDecoratorWithAuthEnabled:
     """Test ConditionalAuthDecorator with authentication enabled."""
+
+    def test__given_test_auth_environment__uses_static_token_validator(
+        self,
+        auth_test_environment,
+        mock_resource_protector,
+        mock_auth0_validator,
+    ):
+        _, mock_protector_instance = mock_resource_protector
+        mock_validator_class, _ = mock_auth0_validator
+
+        decorator = ConditionalAuthDecorator()
+
+        mock_validator_class.assert_not_called()
+        registered_validator = (
+            mock_protector_instance.register_token_validator.call_args[0][0]
+        )
+        assert isinstance(registered_validator, StaticBearerTokenValidator)
+        assert registered_validator.expected_token == "test-jwt-token"
+        assert decorator.get_decorator() is mock_protector_instance
+        assert decorator.is_enabled is True
+
+        auth_test_environment.assert_any_call("app.environment", "")
+        auth_test_environment.assert_any_call("auth.auth0.test_token", "")
 
     def test__given_auth_enabled_with_valid_config__auth0_is_configured(
         self,

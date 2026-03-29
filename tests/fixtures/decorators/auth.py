@@ -20,6 +20,19 @@ AUTH_ENABLED_CONFIG = {
     }
 }
 
+AUTH_TEST_ENVIRONMENT_CONFIG = {
+    "app": {
+        "environment": "test_with_auth",
+    },
+    "auth": {
+        "enabled": True,
+        "auth0": {
+            **AUTH0_CONFIG_DATA,
+            "test_token": "test-jwt-token",
+        },
+    },
+}
+
 AUTH_DISABLED_CONFIG = {
     "auth": {
         "enabled": False,
@@ -92,6 +105,27 @@ def auth_enabled_environment():
                 "auth.enabled": True,
                 "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
                 "auth.auth0.audience": AUTH0_CONFIG_DATA["audience"],
+            }
+            return config_map.get(path, default)
+
+        mock_config.side_effect = config_side_effect
+        yield mock_config
+
+
+@pytest.fixture
+def auth_test_environment():
+    """Set up environment for local bearer-token validation in tests."""
+    with patch(
+        "policyengine_household_api.decorators.auth.get_config_value"
+    ) as mock_config:
+
+        def config_side_effect(path: str, default: Any = None) -> Any:
+            config_map = {
+                "app.environment": "test_with_auth",
+                "auth.enabled": True,
+                "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
+                "auth.auth0.audience": AUTH0_CONFIG_DATA["audience"],
+                "auth.auth0.test_token": "test-jwt-token",
             }
             return config_map.get(path, default)
 
