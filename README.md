@@ -10,6 +10,9 @@ If you want to try the API without requesting hosted credentials, run the publis
 docker run --rm -p 8080:8080 ghcr.io/policyengine/policyengine-household-api:latest
 ```
 
+The image can take a little time to initialize on first start and is best run on a machine with roughly
+4 GB of RAM available.
+
 Then inspect the service metadata:
 
 ```

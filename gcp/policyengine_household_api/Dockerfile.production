@@ -40,11 +40,11 @@ RUN groupadd policyapi && \
     useradd --gid policyapi --create-home policyapi && \
     chown -R policyapi:policyapi /app /opt/venv
  
-# Configure environment (runs as root by default)
+# Configure runtime environment.
 ENV PATH="/opt/venv/bin:$PATH"
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
   CMD curl --fail --silent http://127.0.0.1:8080/liveness_check || exit 1
 
 USER policyapi
