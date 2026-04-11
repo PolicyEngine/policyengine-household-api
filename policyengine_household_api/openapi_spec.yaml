@@ -13,16 +13,39 @@ servers:
 paths:
   /:
     get:
-      summary: Get the home page of the PolicyEngine API
+      summary: Get service metadata for the PolicyEngine household API
       operationId: get_home
-      description: Returns the home page of the PolicyEngine API as an HTML string.
+      description: Returns service metadata, documentation links, and self-hosting hints.
       responses:
         200:
-          description: The home page.
+          description: Service metadata.
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      docs_url:
+                        type: string
+                      container_image:
+                        type: string
+                      hosted_calculate_url:
+                        type: string
+                      local_calculate_url:
+                        type: string
+                      health_checks:
+                        type: object
+                        properties:
+                          liveness:
+                            type: string
+                          readiness:
+                            type: string
   /{country_id}/metadata:
     get:
       summary: Get metadata for a country
@@ -50,6 +73,17 @@ paths:
                     nullable: true
                   result:
                     type: object
+                  policyengine_bundle:
+                    type: object
+                    properties:
+                      model_version:
+                        type: string
+                      data_version:
+                        type: string
+                        nullable: true
+                      dataset:
+                        type: string
+                        nullable: true
                     properties:
                       variables:
                         type: object
