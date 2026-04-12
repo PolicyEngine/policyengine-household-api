@@ -1412,3 +1412,8 @@
     changed:
     - Update PolicyEngine US to 1.626.1
   date: 2026-04-01 21:30:32
+- bump: patch
+  changes:
+    added:
+    - Return PolicyEngine bundle metadata from household calculate responses.
+  date: 2026-04-12 01:07:14
