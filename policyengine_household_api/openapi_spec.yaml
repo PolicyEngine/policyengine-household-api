@@ -73,6 +73,17 @@ paths:
                     nullable: true
                   result:
                     type: object
+                  policyengine_bundle:
+                    type: object
+                    properties:
+                      model_version:
+                        type: string
+                      data_version:
+                        type: string
+                        nullable: true
+                      dataset:
+                        type: string
+                        nullable: true
                     properties:
                       variables:
                         type: object

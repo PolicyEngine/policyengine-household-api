@@ -3,7 +3,6 @@ from flask import Response, request
 from uuid import UUID
 from policyengine_household_api.country import COUNTRIES
 from policyengine_household_api.utils.validate_country import validate_country
-import json
 import logging
 
 
@@ -47,6 +46,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         status="ok",
         message=None,
         result=result,
+        policyengine_bundle=dict(country.policyengine_bundle),
     )
 
     if enable_ai_explainer:

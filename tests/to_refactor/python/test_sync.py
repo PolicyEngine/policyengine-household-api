@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import sys
+from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.utils.config_loader import get_config_value
 from tests.to_refactor.fixtures import client, extract_json_from_file
 
@@ -33,5 +34,12 @@ def test_calculate_sync(client):
         json=input_data,
     ).get_json()
 
-    # Compare the outputs
+    policyengine_bundle = resLight.pop("policyengine_bundle")
+
+    # Compare the legacy response body and assert the new provenance separately.
     assert resAPI == resLight
+    assert policyengine_bundle == {
+        "model_version": COUNTRY_PACKAGE_VERSIONS[country_id],
+        "data_version": None,
+        "dataset": None,
+    }

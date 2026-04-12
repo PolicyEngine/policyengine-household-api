@@ -21,19 +21,12 @@ from policyengine_core.parameters import (
     ParameterScale,
     ParameterScaleBracket,
 )
-from typing import Annotated
 from policyengine_core.parameters import get_parameter
-from importlib.metadata import version
 from policyengine_core.model_api import Reform, Enum
 from policyengine_core.periods import instant
 import dpath
 import math
 from uuid import UUID, uuid4
-import policyengine_uk
-import policyengine_us
-import policyengine_canada
-import policyengine_ng
-import policyengine_il
 
 
 class PolicyEngineCountry:
@@ -44,7 +37,15 @@ class PolicyEngineCountry:
         self.tax_benefit_system: TaxBenefitSystem = (
             self.country_package.CountryTaxBenefitSystem()
         )
+        self.policyengine_bundle = self.build_policyengine_bundle()
         self.build_metadata()
+
+    def build_policyengine_bundle(self) -> dict:
+        return {
+            "model_version": COUNTRY_PACKAGE_VERSIONS[self.country_id],
+            "data_version": None,
+            "dataset": None,
+        }
 
     def build_metadata(self):
         self.metadata = dict(
@@ -65,7 +66,7 @@ class PolicyEngineCountry:
                 }[self.country_id],
                 basicInputs=self.tax_benefit_system.basic_inputs,
                 modelled_policies=self.tax_benefit_system.modelled_policies,
-                version=version(self.country_package_name),
+                version=self.policyengine_bundle["model_version"],
             ),
         )
 
@@ -314,11 +315,11 @@ class PolicyEngineCountry:
                         system.parameters, parameter_name
                     )
                     node_type = type(parameter.values_list[-1].value)
-                    if node_type == int:
+                    if node_type is int:
                         node_type = float
                     try:
                         value = float(value)
-                    except:
+                    except (TypeError, ValueError):
                         pass
                     parameter.update(
                         start=instant(start_instant),
@@ -373,14 +374,14 @@ class PolicyEngineCountry:
                     entity_index = population.get_index(entity_id)
                     if variable.value_type == Enum:
                         entity_result = result.decode()[entity_index].name
-                    elif variable.value_type == float:
+                    elif variable.value_type is float:
                         entity_result = float(str(result[entity_index]))
                         # Convert infinities to JSON infinities
                         if entity_result == float("inf"):
                             entity_result = "Infinity"
                         elif entity_result == float("-inf"):
                             entity_result = "-Infinity"
-                    elif variable.value_type == str:
+                    elif variable.value_type is str:
                         entity_result = str(result[entity_index])
                     else:
                         entity_result = result.tolist()[entity_index]
@@ -459,7 +460,7 @@ def create_policy_reform(policy_data: dict) -> dict:
             for period, value in values.items():
                 start, end = period.split(".")
                 node_type = type(node.values_list[-1].value)
-                if node_type == int:
+                if node_type is int:
                     node_type = float  # '0' is of type int by default, but usually we want to cast to float.
                 node.update(
                     start=instant(start),
