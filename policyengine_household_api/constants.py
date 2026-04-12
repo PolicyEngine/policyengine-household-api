@@ -15,11 +15,10 @@ COUNTRY_PACKAGE_NAMES = (
     "policyengine_ng",
     "policyengine_il",
 )
-try:
-    COUNTRY_PACKAGE_VERSIONS = {
-        country: version(package_name)
-        for country, package_name in zip(COUNTRIES, COUNTRY_PACKAGE_NAMES)
-    }
-except:
-    COUNTRY_PACKAGE_VERSIONS = {country: "0.0.0" for country in COUNTRIES}
+COUNTRY_PACKAGE_VERSIONS = {}
+for country, package_name in zip(COUNTRIES, COUNTRY_PACKAGE_NAMES):
+    try:
+        COUNTRY_PACKAGE_VERSIONS[country] = version(package_name)
+    except Exception:
+        COUNTRY_PACKAGE_VERSIONS[country] = "0.0.0"
 __version__ = VERSION
