@@ -1417,3 +1417,25 @@
     added:
     - Return PolicyEngine bundle metadata from household calculate responses.
   date: 2026-04-12 01:07:14
+- bump: patch
+  changes:
+    fixed:
+    - Flatten every (entity, variable, period) triple in flatten_variables_from_household
+      (#1462).
+    - Tighten /calculate_demo rate limit from 1/second to 1/10 seconds (#1463).
+    - Stop unconditionally wiping the analytics SQLite DB and fix the sqlite:// URI
+      (#1464).
+    - Restrict CORS to PolicyEngine origins by default, anchored so attacker subdomains
+      can't bypass (#1465).
+    - Replace invalid ConnectionError(description=...) with a GCPError class (#1466).
+    - Keep "0"/"1" env-var values as integers instead of collapsing to False/True
+      (#1467).
+    - Verify JWT signatures in the analytics decorator and drop datetime.utcnow (#1468).
+    - Re-raise tracer failures in PolicyEngineCountry.calculate so the endpoint can
+      return a real 500 (#1469).
+    - Validate /calculate payloads and cap axes scans; add per-endpoint rate limit
+      (#1470).
+    - Time-bound and lazy-load the Auth0 JWKS fetch so a startup outage doesn't crash
+      the API, caching only successes so the lazy retry actually retries (#1471).
+    - Replace deprecated dpath.util.search with dpath.search (#1472).
+  date: 2026-04-17 16:45:19
