@@ -84,8 +84,11 @@ def readiness_check():
     )
 
 
+# Note: `/calculate_demo` is intentionally public (documented in
+# config/README.md). It is guarded by a conservative rate limit rather
+# than JWT authentication.
 @app.route("/<country_id>/calculate_demo", methods=["POST"])
-@limiter.limit("1 per second")
+@limiter.limit("1 per 10 seconds")
 def calculate_demo(country_id):
     return get_calculate(country_id)
 
