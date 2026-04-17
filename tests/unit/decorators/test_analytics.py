@@ -18,6 +18,7 @@ from tests.fixtures.decorators.analytics_patches import (
     mock_jwt_valid_with_suffix,
     mock_jwt_valid_without_suffix,
     mock_jwt_invalid,
+    mock_jwt_unverified,
     mock_datetime_fixed,
     mock_version,
     mock_db_session,
@@ -200,6 +201,30 @@ class TestAnalyticsDecorator:
         # Should not raise error even if analytics check fails
         result = decorated("arg1", "arg2", kwarg1="test")
         assert result == "Result: arg1, arg2, test"
+
+    def test__given_unverified_jwt__decorator_logs_with_null_client_id(
+        self,
+        sample_function,
+        mock_analytics_enabled,
+        mock_visit_class,
+        mock_request_with_auth,
+        mock_jwt_unverified,
+        mock_datetime_fixed,
+        mock_version,
+        mock_db_session,
+    ):
+        """Decorator should store null client_id when signature can't be verified."""
+        from policyengine_household_api.decorators.analytics import (
+            log_analytics_if_enabled,
+        )
+
+        _, visit_instance = mock_visit_class
+
+        decorated = log_analytics_if_enabled(sample_function)
+        decorated("arg1", "arg2")
+
+        # Unverified JWT means we MUST NOT trust the sub claim.
+        assert visit_instance.client_id is None
 
     def test__given_function_decorated__metadata_is_preserved(
         self, sample_function
