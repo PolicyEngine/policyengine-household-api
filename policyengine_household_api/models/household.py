@@ -43,12 +43,13 @@ class HouseholdEntity(RootModel):
 
 
 class HouseholdModelGeneric(BaseModel):
-    # Fields are optional so that the API can accept scan-style
-    # payloads (e.g. `{"people": {...}, "axes": [...]}`) which omit
-    # the `households` entity group. The compute layer does not
-    # require every group to be present.
+    # ``people`` is the one entity group that is always required; a
+    # request without a single person has nothing to compute against.
+    # ``households`` is optional so that scan-style payloads
+    # (``{"people": {...}, "axes": [...]}``) that omit it are still
+    # accepted, matching what the compute layer expects.
+    people: dict[str, HouseholdEntity]
     households: Optional[dict[str, HouseholdEntity]] = {}
-    people: Optional[dict[str, HouseholdEntity]] = {}
 
 
 class HouseholdModelUS(HouseholdModelGeneric):
