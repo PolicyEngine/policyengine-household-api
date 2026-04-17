@@ -48,10 +48,7 @@ def initialize_analytics_db_if_enabled(app):
             REPO / "policyengine_household_api" / "data" / "policyengine.db"
         )
         # Only wipe the analytics DB when explicitly requested via
-        # RESET_ANALYTICS=1 (or the analytics.reset config flag).
-        # Previously the DB was unconditionally unlinked on every init
-        # in debug mode, wiping captured analytics on every process
-        # start.
+        # RESET_ANALYTICS=1 (or the ``analytics.reset`` config flag).
         should_reset = os.getenv("RESET_ANALYTICS", "").lower() in (
             "1",
             "true",

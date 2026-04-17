@@ -433,11 +433,9 @@ class PolicyEngineCountry:
             return household, None
 
         except Exception:
-            # Previously this swallowed the exception and implicitly
-            # returned None, which crashed the caller in
-            # endpoints/household.py that unpacks the return value into
-            # (result, computation_tree_uuid). Re-raise so the endpoint
-            # can surface a real 500 instead of a TypeError.
+            # Re-raise so endpoints/household.py (which unpacks
+            # ``(result, computation_tree_uuid)``) can surface a real
+            # 500 instead of a TypeError on ``None`` unpacking.
             logging.exception("Tracer failed while computing household")
             raise
 
