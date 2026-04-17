@@ -115,7 +115,10 @@ def log_analytics_if_enabled(func):
                     new_visit.client_id = client_id
             except Exception as e:
                 logger.debug(f"Could not extract client_id from JWT: {e}")
-                new_visit.client_id = "unknown"
+                # Match the verified-fail path: a missing/unparseable
+                # header must also be stored as NULL, never as a
+                # sentinel string we'd have to filter out downstream.
+                new_visit.client_id = None
 
             # Set API version
             new_visit.api_version = VERSION
