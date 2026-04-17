@@ -59,9 +59,15 @@ def _resolve_cors_origins():
     )
 
     if raw is None:
+        # Flask-CORS uses re.match, which is a prefix match; anchor with
+        # ``$`` so a hostile host like ``policyengine.org.attacker.com``
+        # cannot satisfy the wildcard pattern. Include ``localhost:*``
+        # so local dev servers can hit the API without extra setup.
         origins = [
             "https://policyengine.org",
-            r"https://.*\.policyengine\.org",
+            r"https://.*\.policyengine\.org$",
+            r"http://localhost(:[0-9]+)?$",
+            r"http://127\.0\.0\.1(:[0-9]+)?$",
         ]
     elif isinstance(raw, str):
         origins = [o.strip() for o in raw.split(",") if o.strip()]
