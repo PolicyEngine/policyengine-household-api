@@ -24,6 +24,7 @@ from .constants import VERSION, REPO
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
+from policyengine_household_api.utils.config_loader import get_config_value
 
 # Endpoints
 from .endpoints import (
@@ -40,7 +41,52 @@ print("Initialising API...")
 
 app = application = flask.Flask(__name__)
 
-CORS(app)
+# Reject absurdly large request bodies before any view runs. 10 MiB is
+# well above the largest legitimate household payload we have seen
+# (axes scans push a few hundred KiB) while still capping the memory a
+# single attacker can force us to allocate. Overridable via the
+# ``MAX_CONTENT_LENGTH`` env var (bytes).
+app.config["MAX_CONTENT_LENGTH"] = int(
+    os.getenv("MAX_CONTENT_LENGTH", 10 * 1024 * 1024)
+)
+
+
+def _resolve_cors_origins():
+    """
+    Resolve the CORS allowed origins list.
+
+    Priority:
+      1. CORS_ALLOWED_ORIGINS env var (comma-separated list)
+      2. config value "cors.allowed_origins" (list or comma string)
+      3. Safe default: the PolicyEngine production domains
+
+    Use regex patterns so that wildcard subdomains work with
+    Flask-CORS's `origins` kwarg.
+    """
+    raw = os.getenv("CORS_ALLOWED_ORIGINS") or get_config_value(
+        "cors.allowed_origins", None
+    )
+
+    if raw is None:
+        # Flask-CORS uses re.match, which is a prefix match; anchor with
+        # ``$`` so a hostile host like ``policyengine.org.attacker.com``
+        # cannot satisfy the wildcard pattern. Include ``localhost:*``
+        # so local dev servers can hit the API without extra setup.
+        origins = [
+            "https://policyengine.org",
+            r"https://.*\.policyengine\.org$",
+            r"http://localhost(:[0-9]+)?$",
+            r"http://127\.0\.0\.1(:[0-9]+)?$",
+        ]
+    elif isinstance(raw, str):
+        origins = [o.strip() for o in raw.split(",") if o.strip()]
+    else:
+        origins = list(raw)
+
+    return origins
+
+
+CORS(app, origins=_resolve_cors_origins())
 
 # Use in-memory storage for rate limiting
 # Note that this provides limits per-instance;
@@ -59,6 +105,7 @@ app.route("/", methods=["GET"])(get_home)
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth_if_enabled()
+@limiter.limit("60 per minute")
 @log_analytics_if_enabled
 def calculate(country_id):
     return get_calculate(country_id)
@@ -84,8 +131,11 @@ def readiness_check():
     )
 
 
+# Note: `/calculate_demo` is intentionally public (documented in
+# config/README.md). It is guarded by a conservative rate limit rather
+# than JWT authentication.
 @app.route("/<country_id>/calculate_demo", methods=["POST"])
-@limiter.limit("1 per second")
+@limiter.limit("1 per 10 seconds")
 def calculate_demo(country_id):
     return get_calculate(country_id)
 
