@@ -41,6 +41,15 @@ print("Initialising API...")
 
 app = application = flask.Flask(__name__)
 
+# Reject absurdly large request bodies before any view runs. 10 MiB is
+# well above the largest legitimate household payload we have seen
+# (axes scans push a few hundred KiB) while still capping the memory a
+# single attacker can force us to allocate. Overridable via the
+# ``MAX_CONTENT_LENGTH`` env var (bytes).
+app.config["MAX_CONTENT_LENGTH"] = int(
+    os.getenv("MAX_CONTENT_LENGTH", 10 * 1024 * 1024)
+)
+
 
 def _resolve_cors_origins():
     """
