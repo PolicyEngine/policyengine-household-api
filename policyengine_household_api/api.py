@@ -90,6 +90,7 @@ app.route("/", methods=["GET"])(get_home)
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth_if_enabled()
+@limiter.limit("60 per minute")
 @log_analytics_if_enabled
 def calculate(country_id):
     return get_calculate(country_id)
