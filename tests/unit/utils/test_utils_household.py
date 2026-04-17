@@ -57,6 +57,37 @@ class TestFlattenVariablesFromHousehold:
         assert employment_income[0].period == "2024"
         assert employment_income[0].value == 5000
 
+    def test__given_variable_with_zero_periods__no_entries_and_no_error(
+        self,
+    ):
+        """A variable whose period dict is empty must not leak the last
+        loop binding from an earlier variable. Regression guard for the
+        indentation-era bug where ``new_pair`` was referenced outside
+        the period loop (``UnboundLocalError`` if no periods ever ran,
+        or the previous variable's tuple reappearing here).
+        """
+        household = HouseholdModelUS.model_validate(
+            {
+                "people": {
+                    "you": {
+                        # Explicit zero-period dict.
+                        "employment_income": {},
+                    }
+                },
+                "households": {
+                    "your household": {"members": ["you"]},
+                },
+            }
+        )
+
+        # Should not raise.
+        flattened = flatten_variables_from_household(household)
+
+        employment_income = [
+            v for v in flattened if v.variable == "employment_income"
+        ]
+        assert employment_income == []
+
     def test__given_filter__only_matching_entries_returned(self):
         household = _build_household({"2024": 1, "2025": 2})
 
