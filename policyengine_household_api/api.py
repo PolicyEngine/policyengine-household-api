@@ -24,6 +24,7 @@ from .constants import VERSION, REPO
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
+from policyengine_household_api.utils.config_loader import get_config_value
 
 # Endpoints
 from .endpoints import (
@@ -40,7 +41,37 @@ print("Initialising API...")
 
 app = application = flask.Flask(__name__)
 
-CORS(app)
+
+def _resolve_cors_origins():
+    """
+    Resolve the CORS allowed origins list.
+
+    Priority:
+      1. CORS_ALLOWED_ORIGINS env var (comma-separated list)
+      2. config value "cors.allowed_origins" (list or comma string)
+      3. Safe default: the PolicyEngine production domains
+
+    Use regex patterns so that wildcard subdomains work with
+    Flask-CORS's `origins` kwarg.
+    """
+    raw = os.getenv("CORS_ALLOWED_ORIGINS") or get_config_value(
+        "cors.allowed_origins", None
+    )
+
+    if raw is None:
+        origins = [
+            "https://policyengine.org",
+            r"https://.*\.policyengine\.org",
+        ]
+    elif isinstance(raw, str):
+        origins = [o.strip() for o in raw.split(",") if o.strip()]
+    else:
+        origins = list(raw)
+
+    return origins
+
+
+CORS(app, origins=_resolve_cors_origins())
 
 # Use in-memory storage for rate limiting
 # Note that this provides limits per-instance;
