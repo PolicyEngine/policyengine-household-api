@@ -484,7 +484,7 @@ def create_policy_reform(policy_data: dict) -> dict:
 
 
 def get_requested_computations(household: dict):
-    requested_computations = dpath.util.search(
+    requested_computations = dpath.search(
         household,
         "*/*/*/*",
         afilter=lambda t: t is None,
