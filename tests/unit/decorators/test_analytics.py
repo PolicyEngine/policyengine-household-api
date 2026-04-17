@@ -69,7 +69,7 @@ class TestAnalyticsDecorator:
         session.add.assert_called_once_with(visit)
         session.commit.assert_called_once()
 
-    def test__given_no_authorization__decorator_logs_with_unknown_client(
+    def test__given_no_authorization__decorator_logs_with_null_client(
         self,
         sample_function,
         mock_analytics_enabled,
@@ -79,7 +79,11 @@ class TestAnalyticsDecorator:
         mock_version,
         mock_db_session,
     ):
-        """Decorator should handle missing authorization by using 'unknown' client_id."""
+        """Missing Authorization header must store NULL client_id.
+
+        Aligns with the verified-fail path: any identity we can't prove
+        is stored as None, never as an attacker-writable sentinel.
+        """
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
@@ -90,11 +94,10 @@ class TestAnalyticsDecorator:
         result = decorated("arg1", "arg2", kwarg1="test")
 
         assert result == "Result: arg1, arg2, test"
-        # Should log with 'unknown' client_id when auth is missing
-        assert visit_instance.client_id == "unknown"
+        assert visit_instance.client_id is None
         mock_db_session.add.assert_called_once_with(visit_instance)
 
-    def test__given_jwt_decode_error__decorator_logs_with_unknown_client(
+    def test__given_jwt_decode_error__decorator_logs_with_null_client(
         self,
         sample_function,
         mock_analytics_enabled,
@@ -105,7 +108,7 @@ class TestAnalyticsDecorator:
         mock_version,
         mock_db_session,
     ):
-        """Decorator should handle JWT decode errors by using 'unknown' client_id."""
+        """JWT decode errors must also produce a NULL client_id."""
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
@@ -116,7 +119,7 @@ class TestAnalyticsDecorator:
         result = decorated("arg1", "arg2", kwarg1="test")
 
         assert result == "Result: arg1, arg2, test"
-        assert visit_instance.client_id == "unknown"
+        assert visit_instance.client_id is None
 
     def test__given_client_id_with_suffix__decorator_strips_suffix(
         self,
