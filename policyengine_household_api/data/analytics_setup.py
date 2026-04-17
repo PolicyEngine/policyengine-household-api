@@ -47,11 +47,24 @@ def initialize_analytics_db_if_enabled(app):
         db_url = (
             REPO / "policyengine_household_api" / "data" / "policyengine.db"
         )
-        if Path(db_url).exists():
+        # Only wipe the analytics DB when explicitly requested via
+        # RESET_ANALYTICS=1 (or the analytics.reset config flag).
+        # Previously the DB was unconditionally unlinked on every init
+        # in debug mode, wiping captured analytics on every process
+        # start.
+        should_reset = os.getenv("RESET_ANALYTICS", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ) or get_config_value("analytics.reset", False)
+        if should_reset and Path(db_url).exists():
             Path(db_url).unlink()
         if not Path(db_url).exists():
             Path(db_url).touch()
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////" + str(db_url)
+        # sqlite: absolute paths require exactly three slashes plus the
+        # leading "/" from the absolute path (=> "sqlite:////tmp/x.db").
+        # db_url here is already absolute, so use an f-string.
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_url}"
     else:
         app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
