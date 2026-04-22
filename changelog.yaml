@@ -1439,3 +1439,8 @@
       the API, caching only successes so the lazy retry actually retries (#1471).
     - Replace deprecated dpath.util.search with dpath.search (#1472).
   date: 2026-04-17 16:45:19
+- bump: patch
+  changes:
+    changed:
+    - Update PolicyEngine US to 1.663.0
+  date: 2026-04-22 22:45:54
