@@ -3,6 +3,7 @@ Unit tests for the conditional authentication decorator.
 """
 
 from unittest.mock import Mock
+import pytest
 from policyengine_household_api.decorators.auth import (
     NoOpDecorator,
     ConditionalAuthDecorator,
@@ -122,25 +123,25 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         auth_enabled_environment.assert_any_call("auth.auth0.address", "")
         auth_enabled_environment.assert_any_call("auth.auth0.audience", "")
 
-    def test__given_auth_enabled_missing_config__falls_back_to_noop(
+    def test__given_auth_enabled_missing_config__raises_configuration_error(
         self,
         auth_enabled_missing_config_environment,
         mock_resource_protector,
         mock_auth0_validator,
     ):
-        """Test fallback to NoOp when auth is enabled but config is missing."""
+        """Test auth fails closed when enabled but config is missing."""
         mock_protector_class, _ = mock_resource_protector
         mock_validator_class, _ = mock_auth0_validator
 
-        decorator = ConditionalAuthDecorator()
+        with pytest.raises(
+            RuntimeError,
+            match="Authentication is enabled but required Auth0 configuration is missing",
+        ):
+            ConditionalAuthDecorator()
 
         # Verify Auth0 components were not created
         mock_validator_class.assert_not_called()
         mock_protector_class.assert_not_called()
-
-        # Verify we get a NoOpDecorator
-        assert isinstance(decorator.get_decorator(), NoOpDecorator)
-        assert decorator.is_enabled is False
 
         # Verify configuration was checked
         auth_enabled_missing_config_environment.assert_any_call(

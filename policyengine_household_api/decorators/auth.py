@@ -10,7 +10,7 @@ from typing import Optional, Any, Callable
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from ..auth.validation import Auth0JWTBearerTokenValidator
-from ..utils.config_loader import get_config, get_config_value
+from ..utils.config_loader import get_config_value
 
 
 class StaticBearerToken:
@@ -120,10 +120,15 @@ class ConditionalAuthDecorator:
                 resource_protector.register_token_validator(validator)
                 self._decorator = resource_protector
             else:
-                # Auth was requested but configuration is missing
-                print("Warning: Auth enabled but Auth0 configuration missing")
-                self._auth_enabled = False
-                self._decorator = NoOpDecorator()
+                missing = []
+                if not auth0_address:
+                    missing.append("auth.auth0.address")
+                if not auth0_audience:
+                    missing.append("auth.auth0.audience")
+                raise RuntimeError(
+                    "Authentication is enabled but required Auth0 "
+                    f"configuration is missing: {', '.join(missing)}"
+                )
         else:
             # Authentication is disabled
             self._decorator = NoOpDecorator()
