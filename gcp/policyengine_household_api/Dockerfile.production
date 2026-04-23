@@ -2,37 +2,34 @@
 FROM --platform=linux/amd64 python:3.12-slim AS builder
 WORKDIR /build
 COPY . .
-  
+
 # Install build dependencies
 RUN apt-get update && apt-get install -y build-essential
 RUN rm -rf /var/lib/apt/lists/*
-  
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-  
-# Install Python dependencies from lock file for reproducible builds
-RUN pip install --no-cache-dir --upgrade pip
-COPY requirements.lock .
-RUN pip install --no-cache-dir -r requirements.lock
-RUN pip install --no-cache-dir --no-deps -e .
-  
+
+# Install uv for fast, reproducible dependency resolution
+RUN pip install --no-cache-dir uv
+
+# Install Python dependencies from uv.lock for reproducible builds
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+RUN uv sync --frozen --no-dev
+
 #----------------- Production stage -----------------
 FROM --platform=linux/amd64 python:3.12-slim AS production
 WORKDIR /app
-  
+
 # Install runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends curl
 RUN rm -rf /var/lib/apt/lists/*
-  
+
 # Copy artifacts from build stage
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
-  
+
 # Copy default configuration
 RUN mkdir -p /app/config
 COPY ./config/default.yaml /app/config/default.yaml
-  
+
 # Copy startup script
 COPY ./gcp/policyengine_household_api/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
@@ -41,7 +38,7 @@ RUN chmod +x /app/start.sh
 RUN groupadd policyapi && \
     useradd --gid policyapi --create-home policyapi && \
     chown -R policyapi:policyapi /app /opt/venv
- 
+
 # Configure runtime environment.
 ENV PATH="/opt/venv/bin:$PATH"
 EXPOSE 8080
@@ -50,5 +47,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
   CMD curl --fail --silent http://127.0.0.1:8080/liveness_check || exit 1
 
 USER policyapi
- 
+
 CMD ["/app/start.sh"]
