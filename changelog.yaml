@@ -1417,9 +1417,3 @@
     added:
     - Return PolicyEngine bundle metadata from household calculate responses.
   date: 2026-04-12 01:07:14
-- bump: patch
-  changes:
-    changed:
-    - Restore the household API codebase to the 0.13.13 baseline
-    - Pin policyengine_core to <=3.23.6 and urllib3 to <=1.26.20
-  date: 2026-04-23 18:45:51
