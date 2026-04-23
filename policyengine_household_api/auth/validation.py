@@ -43,12 +43,17 @@ def _fetch_jwks_uncached(issuer: str):
         return None
 
 
-def _fetch_jwks(issuer: str):
+def _fetch_jwks(issuer: str, *, force_refresh: bool = False):
     """Fetch JWKS, caching only successful results.
 
     On failure we record the time but do not memoise the ``None`` — a
     later call will retry (subject to ``JWKS_RETRY_INTERVAL_SECONDS``
     backoff) so that the validator self-heals once Auth0 recovers.
+
+    ``force_refresh`` bypasses the recent-failure backoff. This is used
+    for a one-time retry on the first authenticated request after a
+    startup-time fetch failure, so a transient boot hiccup doesn't
+    create an unnecessary 30-second auth outage.
     """
     with _jwks_lock:
         cached = _jwks_cache.get(issuer)
@@ -57,6 +62,7 @@ def _fetch_jwks(issuer: str):
         last_failure = _jwks_last_failure.get(issuer)
         if (
             last_failure is not None
+            and not force_refresh
             and time.monotonic() - last_failure < JWKS_RETRY_INTERVAL_SECONDS
         ):
             # Too soon after the last failure — don't hammer Auth0.
@@ -98,6 +104,7 @@ class Auth0JWTBearerTokenValidator(JWTBearerTokenValidator):
 
         super(Auth0JWTBearerTokenValidator, self).__init__(public_key)
         self._issuer = issuer
+        self._force_retry_after_construction_failure = public_key is None
         self.claims_options = {
             "exp": {"essential": True},
             "aud": {"essential": True, "value": audience},
@@ -110,5 +117,20 @@ class Auth0JWTBearerTokenValidator(JWTBearerTokenValidator):
         # the network fetch (subject to a short backoff) until Auth0
         # responds.
         if self.public_key is None:
-            self.public_key = _fetch_jwks(self._issuer)
-        return super().authenticate_token(token_string)
+            self.public_key = _fetch_jwks(
+                self._issuer,
+                force_refresh=self._force_retry_after_construction_failure,
+            )
+            self._force_retry_after_construction_failure = False
+            if self.public_key is None:
+                logger.warning(
+                    "JWKS unavailable during token validation for %s",
+                    self._issuer,
+                )
+                return None
+
+        try:
+            return super().authenticate_token(token_string)
+        except ValueError as error:
+            logger.debug("Authenticate token failed. %r", error)
+            return None

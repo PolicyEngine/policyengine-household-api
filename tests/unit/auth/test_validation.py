@@ -2,8 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from policyengine_household_api.auth import validation
 
 
@@ -43,24 +41,14 @@ class TestAuth0JWTBearerTokenValidator:
         assert kwargs.get("timeout") is not None
         assert kwargs["timeout"] > 0
 
-    def test__given_jwks_fetch_fails_then_succeeds__lazy_retry_recovers(
-        self, monkeypatch
-    ):
+    def test__given_jwks_fetch_fails_then_succeeds__lazy_retry_recovers(self):
         """The lazy retry must actually retry.
 
-        Regression guard for the bug where ``_fetch_jwks`` was wrapped
-        in ``@lru_cache`` — that memoised the ``None`` failure, so the
-        "lazy retry" on the next authenticated request kept getting the
-        cached ``None`` back and never hit the network again.
-
-        Strategy: the first call to ``_fetch_jwks_uncached`` returns
-        ``None``; the second returns a sentinel key. Construction must
-        see ``None``; a later ``authenticate_token`` call must swap in
-        the sentinel key, proving the network retry happened.
+        Regression guard for the startup-failure path introduced in
+        #1473: construction may record a failed fetch timestamp, but
+        the first real authentication attempt must still retry
+        immediately instead of waiting out the backoff window.
         """
-        # Skip the retry-backoff so the second call reaches the fetch.
-        monkeypatch.setattr(validation, "JWKS_RETRY_INTERVAL_SECONDS", 0)
-
         sentinel_key = object()
         calls = {"n": 0}
 
@@ -89,6 +77,49 @@ class TestAuth0JWTBearerTokenValidator:
 
         assert calls["n"] == 2, "lazy retry did not hit the network again"
         assert v.public_key is sentinel_key
+
+    def test__given_jwks_still_unavailable__authenticate_token_returns_none(
+        self,
+    ):
+        """A missing JWKS should fail as invalid_token, not crash authlib."""
+        with patch.object(
+            validation,
+            "_fetch_jwks_uncached",
+            return_value=None,
+        ):
+            v = validation.Auth0JWTBearerTokenValidator(
+                "still-down.auth0.com", "aud"
+            )
+
+            with patch.object(
+                validation.JWTBearerTokenValidator,
+                "authenticate_token",
+                side_effect=AssertionError(
+                    "parent authenticate_token should not be called"
+                ),
+            ):
+                result = v.authenticate_token("irrelevant-token")
+
+        assert result is None
+
+    def test__given_authlib_raises_value_error__authenticate_token_returns_none(
+        self,
+    ):
+        """Plain ValueError from key selection should map to invalid_token."""
+        sentinel_key = object()
+        with patch.object(validation, "_fetch_jwks", return_value=sentinel_key):
+            v = validation.Auth0JWTBearerTokenValidator(
+                "value-error.auth0.com", "aud"
+            )
+
+        with patch.object(
+            validation.JWTBearerTokenValidator,
+            "authenticate_token",
+            side_effect=ValueError("Invalid key"),
+        ):
+            result = v.authenticate_token("irrelevant-token")
+
+        assert result is None
 
     def test__given_recent_failure__retry_is_throttled(self, monkeypatch):
         """Back-to-back lazy retries after failure must not hammer Auth0."""
