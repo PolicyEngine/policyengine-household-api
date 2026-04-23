@@ -11,7 +11,7 @@ setup(
     python_requires=">=3.12",
     install_requires=[
         "anthropic",
-        "Authlib>=1.3.1",
+        "Authlib>=1.3.1,<1.7.0",
         "cloud-sql-python-connector",
         "flask>=2.2",
         "flask-cors>=3",
