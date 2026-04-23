@@ -1,5 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Restore the household API codebase to the 0.13.13 baseline
-    - Pin policyengine_core to <=3.23.6 and urllib3 to <=1.26.20
