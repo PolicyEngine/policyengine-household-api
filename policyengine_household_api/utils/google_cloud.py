@@ -5,25 +5,6 @@ from typing import Annotated, Any
 from uuid import UUID
 
 
-class GCPError(Exception):
-    """
-    Raised for errors interacting with Google Cloud services.
-
-    Accepts an optional ``description`` keyword argument (for
-    compatibility with prior call sites that tried to pass
-    ``description=...`` to ``ConnectionError``) in addition to the
-    normal positional message.
-    """
-
-    def __init__(
-        self,
-        message: str | None = None,
-        description: str | None = None,
-    ):
-        self.description = description or message or ""
-        super().__init__(self.description)
-
-
 class GoogleCloudStorageManager:
     """
     A class to manage uploading and downloading data to/from Google Cloud Buckets
@@ -78,7 +59,7 @@ class GoogleCloudStorageManager:
         try:
             return data.model_dump_json()
         except Exception as e:
-            raise GCPError(
+            raise Exception(
                 description=f"Error deserializing Pydantic model to JSON: {e}",
             )
 
@@ -96,7 +77,7 @@ class GoogleCloudStorageManager:
 
             return deserializer.model_validate(data_dict)
         except Exception as e:
-            raise GCPError(
+            raise Exception(
                 description=f"Error serializing JSON to Pydantic model: {e}",
             )
 
@@ -120,7 +101,7 @@ class GoogleCloudStorageManager:
 
             print(f"JSON uploaded to {destination_blob_name}.")
         except Exception as e:
-            raise GCPError(
+            raise ConnectionError(
                 description=f"Error uploading JSON to {destination_blob_name}: {e}",
             )
 
@@ -138,6 +119,6 @@ class GoogleCloudStorageManager:
 
             return blob.download_as_text()
         except Exception as e:
-            raise GCPError(
+            raise ConnectionError(
                 description=f"Error downloading JSON from {source_blob_name}: {e}",
             )

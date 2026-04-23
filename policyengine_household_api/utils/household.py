@@ -58,7 +58,8 @@ def flatten_variables_from_household(
                             ][period],
                         }
                     )
-                    flattened_variables.append(new_pair)
+
+                flattened_variables.append(new_pair)
 
     if filter:
         flattened_variables = filter_flattened_variables(

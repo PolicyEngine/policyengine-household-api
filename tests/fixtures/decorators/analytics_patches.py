@@ -101,56 +101,42 @@ def mock_request_without_auth():
 
 @pytest.fixture
 def mock_jwt_valid_with_suffix():
-    """Mock verified JWT sub to return client ID with @clients suffix."""
+    """Mock JWT decode to return client ID with @clients suffix."""
     with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
-        return_value="test-client@clients",
+        "policyengine_household_api.decorators.analytics.jwt.decode",
+        return_value={"sub": "test-client@clients"},
     ):
         yield
 
 
 @pytest.fixture
 def mock_jwt_valid_without_suffix():
-    """Mock verified JWT sub to return client ID without suffix."""
+    """Mock JWT decode to return client ID without suffix."""
     with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
-        return_value="test-client",
+        "policyengine_household_api.decorators.analytics.jwt.decode",
+        return_value={"sub": "test-client"},
     ):
         yield
 
 
 @pytest.fixture
 def mock_jwt_invalid():
-    """Mock verified JWT sub to raise an error."""
+    """Mock JWT decode to raise an error."""
     with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
+        "policyengine_household_api.decorators.analytics.jwt.decode",
         side_effect=Exception("Invalid token"),
     ):
         yield
 
 
 @pytest.fixture
-def mock_jwt_unverified():
-    """Mock verified JWT sub to return None (signature could not be verified)."""
-    with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
-        return_value=None,
-    ):
-        yield
-
-
-@pytest.fixture
 def mock_datetime_fixed():
-    """Mock datetime to return a fixed (UTC-aware) time."""
-    from datetime import timezone
-
-    fixed_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    """Mock datetime to return a fixed time."""
+    fixed_time = datetime(2024, 1, 1, 12, 0, 0)
     with patch(
         "policyengine_household_api.decorators.analytics.datetime"
     ) as mock_dt:
-        mock_dt.now.return_value = fixed_time
-        # Keep the real timezone object reachable through the mock.
-        mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
+        mock_dt.utcnow.return_value = fixed_time
         yield fixed_time
 
 

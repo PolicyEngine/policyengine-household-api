@@ -46,11 +46,3 @@ ai:
   enabled: false
   anthropic:
     api_key: ""  # Override with ANTHROPIC_API_KEY
-
-# CORS configuration
-cors:
-  # List of allowed origins (strings or regex patterns). If left null
-  # the API defaults to PolicyEngine production domains. Override with
-  # CORS_ALLOWED_ORIGINS (comma-separated) in environments that serve
-  # additional frontends.
-  allowed_origins: null

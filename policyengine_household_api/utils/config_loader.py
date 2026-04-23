@@ -392,13 +392,13 @@ class ConfigLoader:
             value: String value from environment variable
 
         Returns:
-            Converted value (int, float, bool, or original string)
+            Converted value (bool, int, float, or original string)
         """
-        # Try integer conversion first so that "0" and "1" are kept as
-        # their numeric values. Using bool words (true/false/yes/no)
-        # exclusively for booleans avoids collapsing numeric 0/1 into
-        # False/True, which silently broke ports, counts, and any other
-        # int-valued config set via env var.
+        if value.lower() in ("true", "yes", "1"):
+            return True
+        if value.lower() in ("false", "no", "0"):
+            return False
+
         try:
             return int(value)
         except ValueError:
@@ -408,12 +408,6 @@ class ConfigLoader:
             return float(value)
         except ValueError:
             pass
-
-        lowered = value.lower()
-        if lowered in ("true", "yes"):
-            return True
-        if lowered in ("false", "no"):
-            return False
 
         return value
 

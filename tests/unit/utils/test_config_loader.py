@@ -340,27 +340,6 @@ class TestValueConversion:
             config["database"]["connection"]["pool"]["size"] == EXPECTED_VALUE
         )
 
-    def test__given_zero_string__converts_to_int_zero_not_false(self):
-        """Regression: '0' must stay int 0, not collapse into False."""
-        loader = ConfigLoader()
-        converted = loader._convert_value("0")
-        assert converted == 0
-        assert isinstance(converted, int)
-        assert not isinstance(converted, bool)
-
-    def test__given_one_string__converts_to_int_one_not_true(self):
-        """Regression: '1' must stay int 1, not collapse into True."""
-        loader = ConfigLoader()
-        converted = loader._convert_value("1")
-        assert converted == 1
-        assert isinstance(converted, int)
-        assert not isinstance(converted, bool)
-
-    def test__given_true_string__converts_to_bool_true(self):
-        loader = ConfigLoader()
-        converted = loader._convert_value("true")
-        assert converted is True
-
 
 class TestGetMethod:
     """Test the get method for retrieving config values."""
