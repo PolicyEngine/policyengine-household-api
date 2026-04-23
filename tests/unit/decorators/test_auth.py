@@ -2,10 +2,12 @@
 Unit tests for the conditional authentication decorator.
 """
 
+import pytest
 from unittest.mock import Mock
 from policyengine_household_api.decorators.auth import (
     NoOpDecorator,
     ConditionalAuthDecorator,
+    AuthConfigurationError,
     create_auth_decorator,
     StaticBearerTokenValidator,
 )
@@ -122,25 +124,25 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         auth_enabled_environment.assert_any_call("auth.auth0.address", "")
         auth_enabled_environment.assert_any_call("auth.auth0.audience", "")
 
-    def test__given_auth_enabled_missing_config__falls_back_to_noop(
+    def test__given_auth_enabled_missing_config__raises_configuration_error(
         self,
         auth_enabled_missing_config_environment,
         mock_resource_protector,
         mock_auth0_validator,
     ):
-        """Test fallback to NoOp when auth is enabled but config is missing."""
+        """Test auth fails closed when auth is enabled but config is missing."""
         mock_protector_class, _ = mock_resource_protector
         mock_validator_class, _ = mock_auth0_validator
 
-        decorator = ConditionalAuthDecorator()
+        with pytest.raises(
+            AuthConfigurationError,
+            match="Auth enabled but Auth0 configuration missing",
+        ):
+            ConditionalAuthDecorator()
 
         # Verify Auth0 components were not created
         mock_validator_class.assert_not_called()
         mock_protector_class.assert_not_called()
-
-        # Verify we get a NoOpDecorator
-        assert isinstance(decorator.get_decorator(), NoOpDecorator)
-        assert decorator.is_enabled is False
 
         # Verify configuration was checked
         auth_enabled_missing_config_environment.assert_any_call(
@@ -207,3 +209,16 @@ class TestCreateAuthDecorator:
         decorator = create_auth_decorator()
 
         assert isinstance(decorator, NoOpDecorator)
+
+    def test__given_auth_enabled_missing_config__raises_configuration_error(
+        self,
+        auth_enabled_missing_config_environment,
+        mock_resource_protector,
+        mock_auth0_validator,
+    ):
+        """Test that factory raises when auth is enabled but misconfigured."""
+        with pytest.raises(
+            AuthConfigurationError,
+            match="Auth enabled but Auth0 configuration missing",
+        ):
+            create_auth_decorator()

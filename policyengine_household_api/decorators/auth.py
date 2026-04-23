@@ -10,7 +10,43 @@ from typing import Optional, Any, Callable
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from ..auth.validation import Auth0JWTBearerTokenValidator
-from ..utils.config_loader import get_config, get_config_value
+from ..utils.config_loader import get_config_value
+
+
+class AuthConfigurationError(RuntimeError):
+    """Raised when authentication is enabled but required config is missing."""
+
+
+class StaticBearerToken:
+    """Minimal token object for test-only bearer token validation."""
+
+    def __init__(self, token_string: str, scope: str = ""):
+        self.token_string = token_string
+        self.scope = scope
+
+    def is_expired(self) -> bool:
+        return False
+
+    def is_revoked(self) -> bool:
+        return False
+
+    def get_scope(self) -> str:
+        return self.scope
+
+
+class StaticBearerTokenValidator(BearerTokenValidator):
+    """Accept a single configured bearer token for test environments."""
+
+    def __init__(self, expected_token: str):
+        super().__init__()
+        self.expected_token = expected_token
+
+    def authenticate_token(
+        self, token_string: Optional[str]
+    ) -> Optional[StaticBearerToken]:
+        if token_string == self.expected_token:
+            return StaticBearerToken(token_string)
+        return None
 
 
 class StaticBearerToken:
@@ -120,10 +156,9 @@ class ConditionalAuthDecorator:
                 resource_protector.register_token_validator(validator)
                 self._decorator = resource_protector
             else:
-                # Auth was requested but configuration is missing
-                print("Warning: Auth enabled but Auth0 configuration missing")
-                self._auth_enabled = False
-                self._decorator = NoOpDecorator()
+                raise AuthConfigurationError(
+                    "Auth enabled but Auth0 configuration missing"
+                )
         else:
             # Authentication is disabled
             self._decorator = NoOpDecorator()

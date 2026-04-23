@@ -85,6 +85,7 @@ def readiness_check():
 
 
 @app.route("/<country_id>/calculate_demo", methods=["POST"])
+@require_auth_if_enabled()
 @limiter.limit("1 per second")
 def calculate_demo(country_id):
     return get_calculate(country_id)

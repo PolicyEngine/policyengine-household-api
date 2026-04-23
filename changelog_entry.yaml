@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    fixed:
+    - Fail closed when auth is enabled without Auth0 configuration and require auth on calculate_demo.
