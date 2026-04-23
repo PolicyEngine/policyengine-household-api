@@ -27,39 +27,3 @@ class TestCalculateEndpoint:
             "data_version": None,
             "dataset": None,
         }
-
-    def test__given_invalid_household_shape__returns_400(self, client):
-        response = client.post(
-            "/us/calculate",
-            json={"household": "not a dict"},
-            headers=self.auth_headers,
-        )
-        assert response.status_code == 400
-        payload = json.loads(response.data)
-        assert payload["status"] == "error"
-
-    def test__given_too_many_axes__returns_400(self, client):
-        response = client.post(
-            "/us/calculate",
-            json={
-                "household": {
-                    **valid_household_requesting_ctc_calculation,
-                    "axes": [[{"name": "employment_income", "count": 5}]] * 11,
-                }
-            },
-            headers=self.auth_headers,
-        )
-        assert response.status_code == 400
-
-    def test__given_axes_count_over_cap__returns_400(self, client):
-        response = client.post(
-            "/us/calculate",
-            json={
-                "household": {
-                    **valid_household_requesting_ctc_calculation,
-                    "axes": [[{"name": "employment_income", "count": 500}]],
-                }
-            },
-            headers=self.auth_headers,
-        )
-        assert response.status_code == 400

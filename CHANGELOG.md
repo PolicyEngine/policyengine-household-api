@@ -5,28 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.13.15] - 2026-04-22 22:45:54
-
-### Changed
-
-- Update PolicyEngine US to 1.663.0
-
-## [0.13.14] - 2026-04-17 16:45:19
-
-### Fixed
-
-- Flatten every (entity, variable, period) triple in flatten_variables_from_household (#1462).
-- Tighten /calculate_demo rate limit from 1/second to 1/10 seconds (#1463).
-- Stop unconditionally wiping the analytics SQLite DB and fix the sqlite:// URI (#1464).
-- Restrict CORS to PolicyEngine origins by default, anchored so attacker subdomains can't bypass (#1465).
-- Replace invalid ConnectionError(description=...) with a GCPError class (#1466).
-- Keep "0"/"1" env-var values as integers instead of collapsing to False/True (#1467).
-- Verify JWT signatures in the analytics decorator and drop datetime.utcnow (#1468).
-- Re-raise tracer failures in PolicyEngineCountry.calculate so the endpoint can return a real 500 (#1469).
-- Validate /calculate payloads and cap axes scans; add per-endpoint rate limit (#1470).
-- Time-bound and lazy-load the Auth0 JWKS fetch so a startup outage doesn't crash the API, caching only successes so the lazy retry actually retries (#1471).
-- Replace deprecated dpath.util.search with dpath.search (#1472).
-
 ## [0.13.13] - 2026-04-12 01:07:14
 
 ### Added
@@ -1701,8 +1679,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-[0.13.15]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.14...0.13.15
-[0.13.14]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.13...0.13.14
 [0.13.13]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.12...0.13.13
 [0.13.12]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.11...0.13.12
 [0.13.11]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.10...0.13.11

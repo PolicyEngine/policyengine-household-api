@@ -40,9 +40,7 @@ CUSTOM_CONFIG_DATA = {
 # Environment variable test data
 ENV_VAR_TEST_DATA = {
     # Traditional PolicyEngine env vars
-    # Use "true" (not "1") because "1" is now preserved as int 1,
-    # so bool conversion requires a bool word.
-    "FLASK_DEBUG": "true",
+    "FLASK_DEBUG": "1",
     "USER_ANALYTICS_DB_CONNECTION_NAME": "test-connection-name",
     "USER_ANALYTICS_DB_USERNAME": "test-username",
     "USER_ANALYTICS_DB_PASSWORD": "test-password",
@@ -66,25 +64,24 @@ DOUBLE_UNDERSCORE_ENV_VARS = {
 }
 
 # Type conversion test data
-# "0" and "1" are preserved as their integer values; only textual bool
-# words (true/false/yes/no) convert to booleans.
 TYPE_CONVERSION_TEST_CASES = [
-    # Boolean conversions (word forms only)
+    # Boolean conversions
     ("true", True),
     ("True", True),
     ("TRUE", True),
     ("yes", True),
     ("Yes", True),
+    ("1", True),
     ("false", False),
     ("False", False),
     ("FALSE", False),
     ("no", False),
     ("No", False),
-    # Integer conversions (including "0" and "1", which are numeric)
-    ("0", 0),
-    ("1", 1),
+    ("0", False),
+    # Integer conversions
     ("123", 123),
     ("-456", -456),
+    ("0", False),  # Note: "0" converts to False, not 0
     # Float conversions
     ("3.14", 3.14),
     ("-2.5", -2.5),

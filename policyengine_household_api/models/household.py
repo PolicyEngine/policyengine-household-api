@@ -43,13 +43,8 @@ class HouseholdEntity(RootModel):
 
 
 class HouseholdModelGeneric(BaseModel):
-    # ``people`` is the one entity group that is always required; a
-    # request without a single person has nothing to compute against.
-    # ``households`` is optional so that scan-style payloads
-    # (``{"people": {...}, "axes": [...]}``) that omit it are still
-    # accepted, matching what the compute layer expects.
+    households: dict[str, HouseholdEntity]
     people: dict[str, HouseholdEntity]
-    households: Optional[dict[str, HouseholdEntity]] = {}
 
 
 class HouseholdModelUS(HouseholdModelGeneric):
