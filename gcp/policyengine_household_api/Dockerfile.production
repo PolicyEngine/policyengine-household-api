@@ -11,9 +11,11 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
   
-# Install Python dependencies
+# Install Python dependencies from lock file for reproducible builds
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install -e .
+COPY requirements.lock .
+RUN pip install --no-cache-dir -r requirements.lock
+RUN pip install --no-cache-dir --no-deps -e .
   
 #----------------- Production stage -----------------
 FROM --platform=linux/amd64 python:3.12-slim AS production

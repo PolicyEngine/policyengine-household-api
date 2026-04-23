@@ -1,0 +1,448 @@
+aiofiles==25.1.0
+    # via cloud-sql-python-connector
+aiohappyeyeballs==2.6.1
+    # via aiohttp
+aiohttp==3.13.5
+    # via cloud-sql-python-connector
+aiosignal==1.4.0
+    # via aiohttp
+annotated-doc==0.0.4
+    # via typer
+annotated-types==0.7.0
+    # via pydantic
+anthropic==0.96.0
+    # via policyengine-household-api (setup.py)
+anyio==4.13.0
+    # via
+    #   anthropic
+    #   httpx
+argparse==1.4.0
+    # via
+    #   linecheck
+    #   yaml-changelog
+asttokens==3.0.1
+    # via stack-data
+attrs==26.1.0
+    # via aiohttp
+authlib==1.6.11
+    # via policyengine-household-api (setup.py)
+black[jupyter]==24.3.0
+    # via
+    #   policyengine-canada
+    #   policyengine-household-api (setup.py)
+blinker==1.9.0
+    # via flask
+cachelib==0.9.0
+    # via flask-caching
+certifi==2026.4.22
+    # via
+    #   httpcore
+    #   httpx
+    #   requests
+cffi==2.0.0
+    # via cryptography
+charset-normalizer==3.4.7
+    # via requests
+click==8.3.3
+    # via
+    #   black
+    #   flask
+    #   typer
+cloud-sql-python-connector==1.20.2
+    # via policyengine-household-api (setup.py)
+coverage==6.5.0
+    # via policyengine-canada
+cryptography==46.0.7
+    # via
+    #   authlib
+    #   cloud-sql-python-connector
+    #   google-auth
+datetime==6.0
+    # via yaml-changelog
+decorator==5.2.1
+    # via ipython
+deprecated==1.3.1
+    # via limits
+distro==1.9.0
+    # via anthropic
+dnspython==2.8.0
+    # via cloud-sql-python-connector
+docstring-parser==0.18.0
+    # via anthropic
+dpath==2.2.0
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+executing==2.2.1
+    # via stack-data
+filelock==3.29.0
+    # via huggingface-hub
+flask==2.3.3
+    # via
+    #   flask-caching
+    #   flask-cors
+    #   flask-limiter
+    #   flask-sqlalchemy
+    #   policyengine-household-api (setup.py)
+flask-caching==2.0.2
+    # via policyengine-household-api (setup.py)
+flask-cors==6.0.2
+    # via policyengine-household-api (setup.py)
+flask-limiter==4.1.1
+    # via policyengine-household-api (setup.py)
+flask-sqlalchemy==3.1.1
+    # via policyengine-household-api (setup.py)
+frozenlist==1.8.0
+    # via
+    #   aiohttp
+    #   aiosignal
+fsspec==2026.3.0
+    # via huggingface-hub
+google-api-core[grpc]==2.30.3
+    # via
+    #   google-cloud-appengine-logging
+    #   google-cloud-core
+    #   google-cloud-logging
+    #   google-cloud-storage
+google-auth==2.49.2
+    # via
+    #   cloud-sql-python-connector
+    #   google-api-core
+    #   google-cloud-appengine-logging
+    #   google-cloud-core
+    #   google-cloud-logging
+    #   google-cloud-storage
+google-cloud-appengine-logging==1.9.0
+    # via google-cloud-logging
+google-cloud-audit-log==0.5.0
+    # via google-cloud-logging
+google-cloud-core==2.5.1
+    # via
+    #   google-cloud-logging
+    #   google-cloud-storage
+google-cloud-logging==3.15.0
+    # via policyengine-household-api (setup.py)
+google-cloud-storage==3.10.1
+    # via policyengine-household-api (setup.py)
+google-crc32c==1.8.0
+    # via
+    #   google-cloud-storage
+    #   google-resumable-media
+google-resumable-media==2.8.2
+    # via google-cloud-storage
+googleapis-common-protos[grpc]==1.74.0
+    # via
+    #   google-api-core
+    #   google-cloud-audit-log
+    #   grpc-google-iam-v1
+    #   grpcio-status
+grpc-google-iam-v1==0.14.4
+    # via google-cloud-logging
+grpcio==1.80.0
+    # via
+    #   google-api-core
+    #   google-cloud-appengine-logging
+    #   google-cloud-logging
+    #   googleapis-common-protos
+    #   grpc-google-iam-v1
+    #   grpcio-status
+grpcio-status==1.80.0
+    # via google-api-core
+gunicorn==25.3.0
+    # via policyengine-household-api (setup.py)
+h11==0.16.0
+    # via httpcore
+h5py==3.16.0
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+hf-xet==1.4.3
+    # via huggingface-hub
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via
+    #   anthropic
+    #   huggingface-hub
+huggingface-hub==1.11.0
+    # via policyengine-core
+idna==3.13
+    # via
+    #   anyio
+    #   httpx
+    #   requests
+    #   yarl
+importlib-metadata==8.7.1
+    # via opentelemetry-api
+inflect==7.5.0
+    # via policyengine-household-api (setup.py)
+iniconfig==2.3.0
+    # via pytest
+ipython==8.39.0
+    # via
+    #   black
+    #   policyengine-core
+    #   pyvis
+itsdangerous==2.2.0
+    # via flask
+jedi==0.19.2
+    # via ipython
+jinja2==3.1.6
+    # via
+    #   flask
+    #   pyvis
+jiter==0.14.0
+    # via anthropic
+jsonpickle==4.1.1
+    # via pyvis
+limits==5.8.0
+    # via flask-limiter
+linecheck==0.1.0
+    # via policyengine-canada
+markdown-it-py==4.0.0
+    # via rich
+markupsafe==3.0.3
+    # via
+    #   jinja2
+    #   werkzeug
+matplotlib-inline==0.2.1
+    # via ipython
+mdurl==0.1.2
+    # via markdown-it-py
+microdf-python==1.3.0
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+    #   policyengine-uk
+    #   policyengine-us
+more-itertools==11.0.2
+    # via inflect
+multidict==6.7.1
+    # via
+    #   aiohttp
+    #   yarl
+mypy-extensions==1.1.0
+    # via black
+networkx==3.6.1
+    # via pyvis
+nptyping==1.4.4
+    # via policyengine-canada
+numexpr==2.14.1
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+numpy==2.4.4
+    # via
+    #   h5py
+    #   microdf-python
+    #   nptyping
+    #   numexpr
+    #   pandas
+    #   policyengine-core
+    #   policyengine-il
+    #   policyengine-ng
+opentelemetry-api==1.41.0
+    # via google-cloud-logging
+ordered-set==4.1.0
+    # via flask-limiter
+packaging==26.1
+    # via
+    #   black
+    #   gunicorn
+    #   huggingface-hub
+    #   limits
+    #   plotly
+    #   pytest
+    #   wheel
+pandas==3.0.2
+    # via
+    #   microdf-python
+    #   policyengine-canada
+    #   policyengine-core
+    #   policyengine-us
+parso==0.8.6
+    # via jedi
+pathlib==1.0.1
+    # via
+    #   linecheck
+    #   yaml-changelog
+pathspec==1.1.0
+    # via black
+pexpect==4.9.0
+    # via ipython
+platformdirs==4.9.6
+    # via black
+plotly==5.24.1
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+pluggy==1.6.0
+    # via pytest
+policyengine-canada==0.96.3
+    # via policyengine-household-api (setup.py)
+policyengine-core==3.23.6
+    # via
+    #   policyengine-canada
+    #   policyengine-household-api (setup.py)
+    #   policyengine-il
+    #   policyengine-ng
+    #   policyengine-uk
+    #   policyengine-us
+policyengine-il==0.1.0
+    # via policyengine-household-api (setup.py)
+policyengine-ng==0.5.1
+    # via policyengine-household-api (setup.py)
+policyengine-uk==2.31.0
+    # via policyengine-household-api (setup.py)
+policyengine-us==1.626.1
+    # via policyengine-household-api (setup.py)
+prompt-toolkit==3.0.52
+    # via ipython
+propcache==0.4.1
+    # via
+    #   aiohttp
+    #   yarl
+proto-plus==1.27.2
+    # via
+    #   google-api-core
+    #   google-cloud-appengine-logging
+    #   google-cloud-logging
+protobuf==6.33.6
+    # via
+    #   google-api-core
+    #   google-cloud-appengine-logging
+    #   google-cloud-audit-log
+    #   google-cloud-logging
+    #   googleapis-common-protos
+    #   grpc-google-iam-v1
+    #   grpcio-status
+    #   proto-plus
+psutil==6.1.1
+    # via policyengine-core
+ptyprocess==0.7.0
+    # via pexpect
+pure-eval==0.2.3
+    # via stack-data
+pyasn1==0.6.3
+    # via pyasn1-modules
+pyasn1-modules==0.4.2
+    # via google-auth
+pycparser==3.0
+    # via cffi
+pydantic==2.13.3
+    # via
+    #   anthropic
+    #   policyengine-household-api (setup.py)
+pydantic-core==2.46.3
+    # via pydantic
+pygments==2.20.0
+    # via
+    #   ipython
+    #   pytest
+    #   rich
+pyjwt==2.12.1
+    # via policyengine-household-api (setup.py)
+pymysql==1.1.2
+    # via policyengine-household-api (setup.py)
+pytest==8.4.2
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+python-dateutil==2.9.0.post0
+    # via pandas
+python-dotenv==1.2.2
+    # via policyengine-household-api (setup.py)
+pytz==2026.1.post1
+    # via datetime
+pyvis==0.3.2
+    # via policyengine-core
+pyyaml==6.0.3
+    # via
+    #   huggingface-hub
+    #   yaml-changelog
+requests==2.33.1
+    # via
+    #   cloud-sql-python-connector
+    #   google-api-core
+    #   google-cloud-storage
+    #   policyengine-canada
+    #   policyengine-core
+    #   yaml-changelog
+rich==15.0.0
+    # via typer
+shellingham==1.5.4
+    # via typer
+six==1.17.0
+    # via python-dateutil
+sniffio==1.3.1
+    # via anthropic
+sortedcontainers==2.4.0
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+sqlalchemy==2.0.49
+    # via flask-sqlalchemy
+stack-data==0.6.3
+    # via ipython
+standard-imghdr==3.13.0
+    # via policyengine-core
+tenacity==9.1.4
+    # via plotly
+tokenize-rt==6.2.0
+    # via black
+tqdm==4.67.3
+    # via
+    #   huggingface-hub
+    #   policyengine-canada
+    #   policyengine-us
+traitlets==5.14.3
+    # via
+    #   ipython
+    #   matplotlib-inline
+typeguard==4.5.1
+    # via inflect
+typer==0.24.2
+    # via huggingface-hub
+typing-extensions==4.15.0
+    # via
+    #   aiosignal
+    #   anthropic
+    #   anyio
+    #   flask-limiter
+    #   grpcio
+    #   huggingface-hub
+    #   limits
+    #   opentelemetry-api
+    #   pydantic
+    #   pydantic-core
+    #   sqlalchemy
+    #   typeguard
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via pydantic
+typish==1.9.3
+    # via nptyping
+urllib3==1.26.20
+    # via
+    #   policyengine-household-api (setup.py)
+    #   requests
+wcwidth==0.6.0
+    # via prompt-toolkit
+werkzeug==3.1.8
+    # via
+    #   flask
+    #   flask-cors
+wheel==0.47.0
+    # via
+    #   policyengine-canada
+    #   policyengine-core
+wrapt==2.1.2
+    # via deprecated
+yaml-changelog==0.3.0
+    # via policyengine-canada
+yarl==1.23.0
+    # via aiohttp
+zipp==3.23.1
+    # via importlib-metadata
+zope-interface==8.3
+    # via datetime
