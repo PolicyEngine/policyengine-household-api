@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), 
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.15] - 2026-04-23 18:04:20
+
+### Changed
+
+- Pin Authlib below 1.7.0 because the current auth module reproduces ValueError "Invalid key" on 1.7.0 but not on 1.6.11
+
 ## [0.13.14] - 2026-04-23 17:00:25
 
 ### Changed
@@ -1686,6 +1692,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+[0.13.15]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.14...0.13.15
 [0.13.14]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.13...0.13.14
 [0.13.13]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.12...0.13.13
 [0.13.12]: https://github.com/PolicyEngine/policyengine-household-api/compare/0.13.11...0.13.12

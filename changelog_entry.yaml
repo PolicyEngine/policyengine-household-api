@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    changed:
-    - Pin Authlib below 1.7.0 because the current auth module reproduces ValueError "Invalid key" on 1.7.0 but not on 1.6.11
