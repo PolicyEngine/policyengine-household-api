@@ -158,3 +158,34 @@ jobs:
             USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
             AI__ENABLED=true
             ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    if: |
+      (github.repository == 'PolicyEngine/policyengine-household-api')
+      && (github.event.head_commit.message == 'Update PolicyEngine Household API')
+    needs: [lint-and-test, deploy]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.5"
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI }}
+          skip-existing: true
