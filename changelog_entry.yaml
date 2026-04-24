@@ -1,0 +1,5 @@
+- bump: patch
+  changes:
+    fixed:
+    - Fail closed when authentication is enabled but Auth0 configuration is
+      incomplete.
