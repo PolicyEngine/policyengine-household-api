@@ -1,6 +1,9 @@
-name: Deploy via staging
+name: Release via staging
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       deploy_production:
@@ -24,7 +27,12 @@ jobs:
   lint-and-test:
     name: Lint and test
     runs-on: ubuntu-latest
-    if: github.repository == 'PolicyEngine/policyengine-household-api'
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.head_commit.message == 'Update PolicyEngine Household API'
+      )
 
     steps:
       - name: Checkout code
@@ -63,7 +71,12 @@ jobs:
     name: Build Docker image
     runs-on: ubuntu-latest
     needs: lint-and-test
-    if: github.repository == 'PolicyEngine/policyengine-household-api'
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.head_commit.message == 'Update PolicyEngine Household API'
+      )
     outputs:
       image_ref: ${{ steps.image.outputs.image_ref }}
 
@@ -90,16 +103,34 @@ jobs:
           username: _json_key
           password: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
         run: |
+          ARTIFACT_TAG="${IMAGE_NAME}:${GITHUB_SHA}"
+          GHCR_SHA_TAG="ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_SHA}"
+          GHCR_LATEST_TAG="ghcr.io/${GITHUB_REPOSITORY}:latest"
+
           docker build \
             -f ./gcp/policyengine_household_api/Dockerfile.production \
-            -t "${IMAGE_NAME}:${GITHUB_SHA}" \
+            -t "${ARTIFACT_TAG}" \
             .
-          docker push "${IMAGE_NAME}:${GITHUB_SHA}"
+          docker push "${ARTIFACT_TAG}"
+
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            docker tag "${ARTIFACT_TAG}" "${GHCR_SHA_TAG}"
+            docker push "${GHCR_SHA_TAG}"
+            docker tag "${ARTIFACT_TAG}" "${GHCR_LATEST_TAG}"
+            docker push "${GHCR_LATEST_TAG}"
+          fi
 
       - name: Verify image was pushed
         env:
@@ -114,7 +145,12 @@ jobs:
     name: Deploy to App Engine staging
     runs-on: ubuntu-latest
     needs: build-docker
-    if: github.repository == 'PolicyEngine/policyengine-household-api'
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.head_commit.message == 'Update PolicyEngine Household API'
+      )
     environment: staging
     outputs:
       staging_url: ${{ steps.deploy.outputs.version_url }}
@@ -151,7 +187,12 @@ jobs:
     name: Integration tests against staging
     runs-on: ubuntu-latest
     needs: deploy-staging
-    if: github.repository == 'PolicyEngine/policyengine-household-api'
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.head_commit.message == 'Update PolicyEngine Household API'
+      )
     environment: staging
 
     steps:
@@ -223,7 +264,11 @@ jobs:
     needs: [build-docker, integration-tests-staging]
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      inputs.deploy_production
+      (
+        (github.event_name == 'push' &&
+         github.event.head_commit.message == 'Update PolicyEngine Household API') ||
+        (github.event_name == 'workflow_dispatch' && inputs.deploy_production)
+      )
     environment: production
     outputs:
       production_url: ${{ steps.deploy.outputs.version_url }}
@@ -259,3 +304,63 @@ jobs:
 
       - name: Verify production health
         run: bash .github/scripts/health-check.sh "${{ steps.deploy.outputs.version_url }}"
+
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      github.event_name == 'push' &&
+      github.event.head_commit.message == 'Update PolicyEngine Household API'
+    needs: [deploy-production]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-api
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.5"
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  tag-release:
+    name: Publish git tag
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      github.event_name == 'push' &&
+      github.event.head_commit.message == 'Update PolicyEngine Household API'
+    needs: [publish]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Publish Git tag
+        run: bash .github/publish-git-tag.sh
