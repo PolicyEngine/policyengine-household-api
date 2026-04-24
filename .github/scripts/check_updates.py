@@ -3,12 +3,13 @@
 Check for PolicyEngine package updates and generate PR summary.
 
 This script checks PyPI for newer versions of PolicyEngine packages,
-updates setup.py if needed, and generates changelog summaries.
+updates pyproject.toml if needed, and generates changelog summaries.
 """
 
 import os
 import re
 import sys
+import tomllib
 
 import requests
 
@@ -24,14 +25,21 @@ def parse_version(version_str):
     return tuple(map(int, version_str.split(".")))
 
 
-def get_current_versions(setup_content):
-    """Extract current package versions from setup.py content."""
+def get_current_versions(pyproject_content):
+    """Extract current package versions from pyproject.toml content."""
     current_versions = {}
+    dependencies = tomllib.loads(pyproject_content)["project"].get(
+        "dependencies", []
+    )
     for pkg in PACKAGES:
-        pattern = rf'{pkg.replace("_", "[-_]")}==([0-9]+\.[0-9]+\.[0-9]+)'
-        match = re.search(pattern, setup_content)
-        if match:
-            current_versions[pkg] = match.group(1)
+        package_names = (pkg, pkg.replace("_", "-"))
+        for dependency in dependencies:
+            for package_name in package_names:
+                if dependency.startswith(f"{package_name}=="):
+                    current_versions[pkg] = dependency.split("==", 1)[1]
+                    break
+            if pkg in current_versions:
+                break
     return current_versions
 
 
@@ -59,12 +67,19 @@ def find_updates(current_versions, latest_versions):
     return updates
 
 
-def update_setup_content(setup_content, updates):
-    """Update setup.py content with new versions."""
-    new_content = setup_content
+def update_pyproject_content(pyproject_content, updates):
+    """Update pyproject.toml content with new versions."""
+    new_content = pyproject_content
     for pkg, versions in updates.items():
-        pattern = rf'({pkg.replace("_", "[-_]")}==)[0-9]+\.[0-9]+\.[0-9]+'
-        new_content = re.sub(pattern, rf'\g<1>{versions["new"]}', new_content)
+        pattern = (
+            rf'("{pkg.replace("_", "[-_]")}==)'
+            rf'{re.escape(versions["old"])}(")'
+        )
+        new_content = re.sub(
+            pattern,
+            rf'\g<1>{versions["new"]}\g<2>',
+            new_content,
+        )
     return new_content
 
 
@@ -234,11 +249,11 @@ def write_github_output(key, value):
 
 def main():
     """Main entry point for the script."""
-    # Read current versions from setup.py
-    with open("setup.py", "r") as f:
-        setup_content = f.read()
+    # Read current versions from pyproject.toml
+    with open("pyproject.toml", "r") as f:
+        pyproject_content = f.read()
 
-    current_versions = get_current_versions(setup_content)
+    current_versions = get_current_versions(pyproject_content)
     print(f"Current versions: {current_versions}")
 
     # Get latest versions from PyPI
@@ -255,10 +270,10 @@ def main():
 
     print(f"Updates available: {updates}")
 
-    # Update setup.py
-    new_setup_content = update_setup_content(setup_content, updates)
-    with open("setup.py", "w") as f:
-        f.write(new_setup_content)
+    # Update pyproject.toml
+    new_pyproject_content = update_pyproject_content(pyproject_content, updates)
+    with open("pyproject.toml", "w") as f:
+        f.write(new_pyproject_content)
 
     # Generate and save PR summary
     full_summary = generate_summary(updates)
