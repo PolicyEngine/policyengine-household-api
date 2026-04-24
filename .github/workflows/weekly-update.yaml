@@ -59,7 +59,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b bot/weekly-us-update
-          git add pyproject.toml uv.lock changelog_entry.yaml
+          git add pyproject.toml uv.lock changelog.d/*.md
           git commit -m "Update policyengine-us (${{ steps.check_updates.outputs.updates_summary }})"
           git push -f origin bot/weekly-us-update
 

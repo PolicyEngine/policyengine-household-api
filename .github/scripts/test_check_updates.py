@@ -1,11 +1,9 @@
 """Unit tests for check_updates.py"""
 
-import pytest
-
 from check_updates import (
     find_updates,
     format_changes,
-    generate_changelog_entry,
+    generate_changelog_fragment,
     get_changes_between_versions,
     get_current_versions,
     parse_changelog_md,
@@ -227,11 +225,8 @@ class TestFormatChanges:
         assert "### Removed" not in result
 
 
-class TestGenerateChangelogEntry:
+class TestGenerateChangelogFragment:
     def test_generates_correct_format(self):
         updates = {"policyengine_us": {"old": "1.0.0", "new": "1.5.0"}}
-        result = generate_changelog_entry(updates)
-        assert "- bump: patch" in result
-        assert "changes:" in result
-        assert "changed:" in result
-        assert "Update PolicyEngine US to 1.5.0" in result
+        result = generate_changelog_fragment(updates)
+        assert result == "Update PolicyEngine US to 1.5.0.\n"

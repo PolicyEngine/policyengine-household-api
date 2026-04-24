@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import tomllib
+from pathlib import Path
 
 import requests
 
@@ -229,14 +230,10 @@ def generate_summary(updates):
     return "\n\n".join(summary_parts)
 
 
-def generate_changelog_entry(updates):
-    """Generate changelog entry for this repo."""
+def generate_changelog_fragment(updates):
+    """Generate towncrier changelog fragment content for this repo."""
     new_version = updates["policyengine_us"]["new"]
-    return f"""- bump: patch
-  changes:
-    changed:
-    - Update PolicyEngine US to {new_version}
-"""
+    return f"Update PolicyEngine US to {new_version}.\n"
 
 
 def write_github_output(key, value):
@@ -282,10 +279,12 @@ def main():
     with open("pr_summary.md", "w") as f:
         f.write(full_summary)
 
-    # Create changelog entry
-    changelog_entry = generate_changelog_entry(updates)
-    with open("changelog_entry.yaml", "w") as f:
-        f.write(changelog_entry)
+    # Create changelog fragment
+    changelog_dir = Path("changelog.d")
+    changelog_dir.mkdir(exist_ok=True)
+    new_version = updates["policyengine_us"]["new"]
+    fragment_path = changelog_dir / f"policyengine-us-{new_version}.changed.md"
+    fragment_path.write_text(generate_changelog_fragment(updates))
 
     # Set outputs
     write_github_output("has_updates", "true")

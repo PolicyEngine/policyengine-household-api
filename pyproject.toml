@@ -37,6 +37,7 @@ dependencies = [
 dev = [
     "pytest-timeout",
     "ruff>=0.9.0",
+    "towncrier>=24.8.0",
 ]
 
 [build-system]
@@ -49,6 +50,39 @@ required-version = "==0.8.5"
 [tool.ruff]
 line-length = 79
 target-version = "py312"
+
+[tool.towncrier]
+package = "policyengine_household_api"
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+title_format = "## [{version}] - {project_date}"
+issue_format = ""
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["policyengine_household_api"]
