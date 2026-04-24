@@ -9,7 +9,7 @@ debug: ## Run Flask app with FLASK_DEBUG=1
 	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 flask run --without-threads --host=0.0.0.0
 
 test: ## Run unit tests
-	pytest -vv --timeout=150 -rP tests/to_refactor tests/unit
+	pytest -vv --timeout=150 -rP .github/scripts tests/to_refactor tests/unit
 
 test-with-auth: ## Run integration tests
 	CONFIG_FILE=config/test_with_auth.yaml pytest -vv --timeout=150 -rP tests/integration_with_auth
@@ -33,8 +33,7 @@ deploy: ## Deploy to GCP
 	rm .gac.json
 
 changelog: ## Build changelog
-	python .github/bump_version.py
-	towncrier build --yes --version $$(python -c "import re; print(re.search(r'version = \"(.+?)\"', open('pyproject.toml').read()).group(1))")
+	python .github/scripts/update_versioning.py
 
 COMPOSE_FILE ?= docker/docker-compose.yml
 COMPOSE_EXTERNAL_FILE ?= docker/docker-compose.external.yml

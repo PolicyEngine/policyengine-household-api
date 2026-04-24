@@ -114,23 +114,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
-        run: |
-          ARTIFACT_TAG="${IMAGE_NAME}:${GITHUB_SHA}"
-          GHCR_SHA_TAG="ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_SHA}"
-          GHCR_LATEST_TAG="ghcr.io/${GITHUB_REPOSITORY}:latest"
-
-          docker build \
-            -f ./gcp/policyengine_household_api/Dockerfile.production \
-            -t "${ARTIFACT_TAG}" \
-            .
-          docker push "${ARTIFACT_TAG}"
-
-          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF}" = "refs/heads/main" ]; then
-            docker tag "${ARTIFACT_TAG}" "${GHCR_SHA_TAG}"
-            docker push "${GHCR_SHA_TAG}"
-            docker tag "${ARTIFACT_TAG}" "${GHCR_LATEST_TAG}"
-            docker push "${GHCR_LATEST_TAG}"
-          fi
+        run: bash .github/scripts/build-and-push-image.sh
 
       - name: Verify image was pushed
         env:
@@ -154,6 +138,7 @@ jobs:
     environment: staging
     outputs:
       staging_url: ${{ steps.deploy.outputs.version_url }}
+      staging_version_id: ${{ steps.deploy.outputs.version_id }}
 
     steps:
       - name: Checkout code
@@ -170,7 +155,7 @@ jobs:
         with:
           deliverables: "./gcp/policyengine_household_api/app.staging.yaml"
           image_url: ${{ needs.build-docker.outputs.image_ref }}
-          promote: true
+          promote: false
           flags: "--quiet"
           env_vars: |-
             APP__ENVIRONMENT=staging
@@ -218,50 +203,67 @@ jobs:
           AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
           AUTH0_CLIENT_ID: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_ID }}
           AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_SECRET }}
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          import urllib.request
-
-          url = f"https://{os.environ['AUTH0_DOMAIN']}/oauth/token"
-          payload = json.dumps(
-              {
-                  "client_id": os.environ["AUTH0_CLIENT_ID"],
-                  "client_secret": os.environ["AUTH0_CLIENT_SECRET"],
-                  "audience": os.environ["AUTH0_AUDIENCE"],
-                  "grant_type": "client_credentials",
-              }
-          ).encode("utf-8")
-
-          req = urllib.request.Request(
-              url,
-              data=payload,
-              headers={"Content-Type": "application/json"},
-              method="POST",
-          )
-
-          with urllib.request.urlopen(req, timeout=30) as response:
-              body = json.loads(response.read().decode("utf-8"))
-
-          token = body["access_token"]
-
-          github_env = os.environ["GITHUB_ENV"]
-          with open(github_env, "a", encoding="utf-8") as fh:
-              fh.write(f"HOUSEHOLD_API_AUTH_TOKEN={token}\n")
-
-          print(f"::add-mask::{token}")
-          PY
+        run: python .github/scripts/fetch_auth0_test_token.py
 
       - name: Run deployed integration tests
         env:
           HOUSEHOLD_API_BASE_URL: ${{ needs.deploy-staging.outputs.staging_url }}
         run: bash .github/scripts/run-deployed-tests.sh
 
+  promote-staging:
+    name: Promote staging version
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, integration-tests-staging]
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.head_commit.message == 'Update PolicyEngine Household API'
+      )
+    environment: staging
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Promote tested staging version
+        env:
+          SERVICE_NAME: staging
+          VERSION: ${{ needs.deploy-staging.outputs.staging_version_id }}
+        run: bash .github/scripts/set-traffic.sh
+
+  cleanup-failed-staging:
+    name: Clean up failed staging version
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, integration-tests-staging]
+    if: |
+      always() &&
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      needs.deploy-staging.outputs.staging_version_id != '' &&
+      (
+        needs.deploy-staging.result == 'failure' ||
+        needs.integration-tests-staging.result == 'failure'
+      )
+    environment: staging
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Delete failed staging version
+        env:
+          SERVICE_NAME: staging
+          VERSION: ${{ needs.deploy-staging.outputs.staging_version_id }}
+        run: bash .github/scripts/delete-appengine-version.sh
+
   deploy-production:
     name: Deploy to App Engine production
     runs-on: ubuntu-latest
-    needs: [build-docker, integration-tests-staging]
+    needs: [build-docker, promote-staging]
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
       (
