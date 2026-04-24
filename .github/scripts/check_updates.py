@@ -77,7 +77,7 @@ def update_pyproject_content(pyproject_content, updates):
         )
         new_content = re.sub(
             pattern,
-            rf'\g<1>{versions["new"]}\g<2>',
+            rf"\g<1>{versions['new']}\g<2>",
             new_content,
         )
     return new_content
@@ -271,7 +271,9 @@ def main():
     print(f"Updates available: {updates}")
 
     # Update pyproject.toml
-    new_pyproject_content = update_pyproject_content(pyproject_content, updates)
+    new_pyproject_content = update_pyproject_content(
+        pyproject_content, updates
+    )
     with open("pyproject.toml", "w") as f:
         f.write(new_pyproject_content)
 

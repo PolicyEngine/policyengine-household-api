@@ -17,8 +17,11 @@ test-with-auth: ## Run integration tests
 debug-test: ## Run tests with FLASK_DEBUG=1
 	FLASK_DEBUG=1 pytest -vv --durations=0 --timeout=150 -rP tests
 
-format: ## Run black
-	black . -l 79
+format: ## Format code with Ruff
+	ruff format .
+
+format-check: ## Check code formatting with Ruff
+	ruff format --check .
 
 deploy: ## Deploy to GCP
 	python gcp/export.py

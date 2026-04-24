@@ -102,9 +102,7 @@ class TestJWTBearerTokenValidation:
 
     def test_authenticate_token_rejects_wrong_key(self, validator):
         """A JWT signed with a different key must be rejected."""
-        wrong_key = rsa.generate_private_key(
-            65537, 2048, default_backend()
-        )
+        wrong_key = rsa.generate_private_key(65537, 2048, default_backend())
         token = _make_token(wrong_key)
         result = validator.authenticate_token(token)
         assert result is None

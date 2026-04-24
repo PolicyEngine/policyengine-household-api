@@ -67,7 +67,8 @@ valid_entity_description = {
     "people": [
         "you",
         "your partner",
-        "your first dependent" "your second dependent",
+        "your first dependent",
+        "your second dependent",
     ],
     "households": ["your household"],
     "spm_units": ["your household"],
@@ -229,11 +230,14 @@ def mock_anthropic_api_key():
         return default
 
     # Patch both locations where get_config_value is used
-    with patch(
-        "policyengine_household_api.utils.computation_tree.get_config_value",
-        side_effect=config_side_effect,
-    ), patch(
-        "policyengine_household_api.endpoints.household_explainer.get_config_value",
-        side_effect=config_side_effect,
+    with (
+        patch(
+            "policyengine_household_api.utils.computation_tree.get_config_value",
+            side_effect=config_side_effect,
+        ),
+        patch(
+            "policyengine_household_api.endpoints.household_explainer.get_config_value",
+            side_effect=config_side_effect,
+        ),
     ):
         yield
