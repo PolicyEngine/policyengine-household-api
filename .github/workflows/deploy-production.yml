@@ -166,6 +166,12 @@ jobs:
       (github.repository == 'PolicyEngine/policyengine-household-api')
       && (github.event.head_commit.message == 'Update PolicyEngine Household API')
     needs: [lint-and-test, deploy]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-api
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -185,7 +191,3 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI }}
-          skip-existing: true
