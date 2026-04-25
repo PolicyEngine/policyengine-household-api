@@ -7,8 +7,8 @@ COPY . .
 RUN apt-get update && apt-get install -y build-essential
 RUN rm -rf /var/lib/apt/lists/*
 
-# Install uv for fast, reproducible dependency resolution
-RUN pip install --no-cache-dir uv
+# Install the repo-pinned uv version for reproducible dependency resolution
+RUN pip install --no-cache-dir uv==0.8.5
 
 # Install Python dependencies from uv.lock for reproducible builds
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv

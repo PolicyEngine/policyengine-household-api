@@ -53,6 +53,7 @@ Thumbs.db
 docs/
 *.md
 README*
+!README.md
 
 # Tests
 tests/
