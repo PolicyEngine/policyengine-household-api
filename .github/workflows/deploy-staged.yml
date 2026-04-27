@@ -71,6 +71,9 @@ jobs:
     name: Build Docker image
     runs-on: ubuntu-latest
     needs: lint-and-test
+    permissions:
+      contents: read
+      packages: write
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
       (
@@ -104,6 +107,7 @@ jobs:
           password: ${{ secrets.GCP_SA_KEY }}
 
       - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -113,12 +117,40 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Extract deploy image metadata
+        id: deploy-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long,prefix=,suffix=
+
+      - name: Extract GHCR image metadata
+        id: ghcr-meta
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,format=long,prefix=,suffix=
+            type=raw,value=latest
+
       - name: Build and push Docker image
-        run: bash .github/scripts/build-and-push-image.sh
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./gcp/policyengine_household_api/Dockerfile.production
+          push: true
+          tags: |
+            ${{ steps.deploy-meta.outputs.tags }}
+            ${{ steps.ghcr-meta.outputs.tags }}
+          labels: ${{ steps.deploy-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Verify image was pushed
         env:
-          GENERATED_TAGS: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          GENERATED_TAGS: ${{ steps.deploy-meta.outputs.tags }}
         run: bash .github/scripts/verify-image-push.sh
 
       - name: Record image reference

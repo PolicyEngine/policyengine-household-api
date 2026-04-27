@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Verify that the Docker image was successfully pushed to GitHub Container Registry
+# Verify that the Docker image was successfully pushed to a registry.
 set -e
 
-# Get the generated tags from the metadata action
+# Get the generated tags from docker/metadata-action.
 GENERATED_TAGS="${GENERATED_TAGS}"
 
 if [ -z "$GENERATED_TAGS" ]; then
