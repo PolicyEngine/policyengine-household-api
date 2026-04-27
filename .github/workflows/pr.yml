@@ -8,7 +8,7 @@ env:
   REGION: us-central1
   IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
   PYTHON_VERSION: "3.12"
-  PR_VALIDATION_SERVICE: pr-validation
+  PR_VALIDATION_SERVICE: prv
 
 concurrency:
   group: household-api-pr-validation
@@ -200,6 +200,9 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -226,6 +229,9 @@ jobs:
       )
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:

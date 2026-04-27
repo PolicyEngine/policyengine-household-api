@@ -1,4 +1,4 @@
-service: pr-validation
+service: prv
 runtime: custom
 env: flex
 resources:
