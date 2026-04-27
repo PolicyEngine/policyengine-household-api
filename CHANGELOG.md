@@ -1,3 +1,10 @@
+## [0.14.1] - 2026-04-27
+
+### Fixed
+
+- Restore Docker's GitHub Actions image publishing path for staged releases so GHCR image names are normalized before push.
+
+
 ## [0.14.0] - 2026-04-27
 
 ### Changed
