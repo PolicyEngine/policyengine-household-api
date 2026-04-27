@@ -13,9 +13,7 @@ from uuid import UUID
 # functionality within the calculate method;
 # test entire calculate in TestCalculateMain
 class TestCalculateComputationTree:
-
     def test_calculate_no_tree(self):
-
         # Given a valid country calculation under current law with no tree requested
         country = PolicyEngineCountry(country_package_name_us, country_id_us)
 
@@ -30,7 +28,6 @@ class TestCalculateComputationTree:
         assert test_uuid_value is None
 
     def test_calculate_tree_requested(self):
-
         # Given a valid country calculation under current law with a tree requested
         country = PolicyEngineCountry(country_package_name_us, country_id_us)
 
@@ -46,7 +43,6 @@ class TestCalculateComputationTree:
 
 
 class TestPolicyEngineBundle:
-
     def test_country_exposes_policyengine_bundle(self):
         country = PolicyEngineCountry(country_package_name_us, country_id_us)
 

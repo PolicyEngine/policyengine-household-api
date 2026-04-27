@@ -31,6 +31,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.5"
+
       - name: Install dependencies
         run: |
           pip install requests
@@ -39,6 +44,10 @@ jobs:
         id: check_updates
         run: python .github/scripts/check_updates.py
 
+      - name: Refresh lockfile
+        if: steps.check_updates.outputs.has_updates == 'true'
+        run: uv lock --upgrade-package policyengine-us
+
       - name: No updates available
         if: steps.check_updates.outputs.has_updates != 'true'
         run: |
@@ -46,13 +55,9 @@ jobs:
 
       - name: Commit and push changes
         if: steps.check_updates.outputs.has_updates == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b bot/weekly-us-update
-          git add setup.py changelog_entry.yaml
-          git commit -m "Update policyengine-us (${{ steps.check_updates.outputs.updates_summary }})"
-          git push -f origin bot/weekly-us-update
+        env:
+          UPDATES_SUMMARY: ${{ steps.check_updates.outputs.updates_summary }}
+        run: bash .github/scripts/commit-weekly-update.sh
 
       - name: Create Pull Request
         if: steps.check_updates.outputs.has_updates == 'true'

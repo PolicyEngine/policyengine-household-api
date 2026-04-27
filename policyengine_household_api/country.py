@@ -211,9 +211,9 @@ class PolicyEngineCountry:
                     dict(value=value.name, label=value.value)
                     for value in variable.possible_values
                 ]
-                variable_data[variable_name][
-                    "defaultValue"
-                ] = variable.default_value.name
+                variable_data[variable_name]["defaultValue"] = (
+                    variable.default_value.name
+                )
         return variable_data
 
     def build_parameters(self) -> dict:
@@ -403,7 +403,6 @@ class PolicyEngineCountry:
         # Execute all household tracer operations
         try:
             if enable_ai_explainer:
-
                 entity_description = EntityDescription.model_validate(
                     simulation.describe_entities()
                 )

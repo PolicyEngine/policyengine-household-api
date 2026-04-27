@@ -29,14 +29,18 @@ jobs:
         with:
           ref: main
           token: ${{ steps.app-token.outputs.token }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.5"
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Sync dependencies
+        run: uv sync --extra dev
       - name: Build changelog
-        run: pip install yaml-changelog && make changelog
-      - name: Preview changelog update
-        run: ".github/get-changelog-diff.sh"
+        run: uv run python .github/scripts/update_versioning.py
       - name: Update changelog
         uses: EndBug/add-and-commit@v9
         with:

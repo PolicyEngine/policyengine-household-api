@@ -19,7 +19,6 @@ from tests.fixtures.utils.computation_tree import (
 
 
 class TestTriggerStreamingAIAnalysis:
-
     def test__given_ai_disabled__then_returns_none(
         self, mock_config_ai_disabled
     ):
@@ -66,7 +65,6 @@ class TestTriggerStreamingAIAnalysis:
 
 
 class TestTriggerBufferedAIAnalysis:
-
     def test__given_ai_disabled__then_returns_none(
         self, mock_config_ai_disabled
     ):

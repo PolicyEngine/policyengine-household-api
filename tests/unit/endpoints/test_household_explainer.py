@@ -61,7 +61,6 @@ class TestGenerateAIExplainer:
         mock_cloud_download,
         mock_anthropic_api_key,
     ):
-
         request_with_invalid_uuid = {
             "computation_tree_uuid": uuid_not_found,
             "household": valid_household_requesting_calculation,

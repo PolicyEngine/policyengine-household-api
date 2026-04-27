@@ -1,16 +1,14 @@
 """Unit tests for check_updates.py"""
 
-import pytest
-
 from check_updates import (
     find_updates,
     format_changes,
-    generate_changelog_entry,
+    generate_changelog_fragment,
     get_changes_between_versions,
     get_current_versions,
     parse_changelog_md,
     parse_version,
-    update_setup_content,
+    update_pyproject_content,
 )
 
 
@@ -27,30 +25,33 @@ class TestParseVersion:
 
 class TestGetCurrentVersions:
     def test_extracts_underscore_version(self):
-        setup_content = """
-install_requires=[
+        pyproject_content = """
+[project]
+dependencies = [
     "policyengine_us==1.2.3",
 ]
 """
-        versions = get_current_versions(setup_content)
+        versions = get_current_versions(pyproject_content)
         assert versions == {"policyengine_us": "1.2.3"}
 
     def test_extracts_hyphen_version(self):
-        setup_content = """
-install_requires=[
+        pyproject_content = """
+[project]
+dependencies = [
     "policyengine-us==4.5.6",
 ]
 """
-        versions = get_current_versions(setup_content)
+        versions = get_current_versions(pyproject_content)
         assert versions == {"policyengine_us": "4.5.6"}
 
     def test_no_match_returns_empty(self):
-        setup_content = """
-install_requires=[
+        pyproject_content = """
+[project]
+dependencies = [
     "some_other_package==1.0.0",
 ]
 """
-        versions = get_current_versions(setup_content)
+        versions = get_current_versions(pyproject_content)
         assert versions == {}
 
 
@@ -74,27 +75,28 @@ class TestFindUpdates:
         assert updates == {}
 
 
-class TestUpdateSetupContent:
+class TestUpdatePyprojectContent:
     def test_updates_version_with_underscore(self):
-        setup_content = "policyengine_us==1.0.0"
+        pyproject_content = '"policyengine_us==1.0.0"'
         updates = {"policyengine_us": {"old": "1.0.0", "new": "2.0.0"}}
-        result = update_setup_content(setup_content, updates)
-        assert result == "policyengine_us==2.0.0"
+        result = update_pyproject_content(pyproject_content, updates)
+        assert result == '"policyengine_us==2.0.0"'
 
     def test_updates_version_with_hyphen(self):
-        setup_content = "policyengine-us==1.0.0"
+        pyproject_content = '"policyengine-us==1.0.0"'
         updates = {"policyengine_us": {"old": "1.0.0", "new": "2.0.0"}}
-        result = update_setup_content(setup_content, updates)
-        assert result == "policyengine-us==2.0.0"
+        result = update_pyproject_content(pyproject_content, updates)
+        assert result == '"policyengine-us==2.0.0"'
 
     def test_preserves_other_content(self):
-        setup_content = """install_requires=[
+        pyproject_content = """[project]
+dependencies = [
     "flask==2.0.0",
     "policyengine_us==1.0.0",
     "requests==2.28.0",
 ]"""
         updates = {"policyengine_us": {"old": "1.0.0", "new": "1.5.0"}}
-        result = update_setup_content(setup_content, updates)
+        result = update_pyproject_content(pyproject_content, updates)
         assert "flask==2.0.0" in result
         assert "policyengine_us==1.5.0" in result
         assert "requests==2.28.0" in result
@@ -223,11 +225,8 @@ class TestFormatChanges:
         assert "### Removed" not in result
 
 
-class TestGenerateChangelogEntry:
+class TestGenerateChangelogFragment:
     def test_generates_correct_format(self):
         updates = {"policyengine_us": {"old": "1.0.0", "new": "1.5.0"}}
-        result = generate_changelog_entry(updates)
-        assert "- bump: patch" in result
-        assert "changes:" in result
-        assert "changed:" in result
-        assert "Update PolicyEngine US to 1.5.0" in result
+        result = generate_changelog_fragment(updates)
+        assert result == "Update PolicyEngine US to 1.5.0.\n"

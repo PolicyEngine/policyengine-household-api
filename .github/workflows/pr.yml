@@ -4,53 +4,51 @@ on: pull_request
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  PROJECT_ID: policyengine-household-api
+  PYTHON_VERSION: "3.12"
+
+concurrency:
+  group: household-api-pr
+  cancel-in-progress: false
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4  
-        with:
-          python-version: "3.12"
-      - uses: psf/black@24.3.0
-        with:
-          options: ". -l 79 --check"
-          version: "24.3.0"
-  check-version:
-    name: Check version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Build changelog
-        run: pip install yaml-changelog && make changelog
-      - name: Preview changelog update
-        run: ".github/get-changelog-diff.sh"
-      - name: Check version number has been properly updated
-        run: ".github/is-version-number-acceptable.sh"
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install Ruff
+        run: pip install "ruff>=0.9.0"
+      - name: Ruff format check
+        run: ruff format --check .
+  check-changelog:
+    name: Check changelog fragment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check changelog fragment exists
+        run: bash .github/scripts/check-changelog-fragment.sh
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
         with:
-          project_id: policyengine-household-api
+          project_id: ${{ env.PROJECT_ID }}
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
       - name: Install dependencies

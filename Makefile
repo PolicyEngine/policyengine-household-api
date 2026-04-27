@@ -9,7 +9,7 @@ debug: ## Run Flask app with FLASK_DEBUG=1
 	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 flask run --without-threads --host=0.0.0.0
 
 test: ## Run unit tests
-	pytest -vv --timeout=150 -rP tests/to_refactor tests/unit
+	pytest -vv --timeout=150 -rP .github/scripts tests/to_refactor tests/unit
 
 test-with-auth: ## Run integration tests
 	CONFIG_FILE=config/test_with_auth.yaml pytest -vv --timeout=150 -rP tests/integration_with_auth
@@ -17,8 +17,11 @@ test-with-auth: ## Run integration tests
 debug-test: ## Run tests with FLASK_DEBUG=1
 	FLASK_DEBUG=1 pytest -vv --durations=0 --timeout=150 -rP tests
 
-format: ## Run black
-	black . -l 79
+format: ## Format code with Ruff
+	ruff format .
+
+format-check: ## Check code formatting with Ruff
+	ruff format --check .
 
 deploy: ## Deploy to GCP
 	python gcp/export.py
@@ -30,11 +33,7 @@ deploy: ## Deploy to GCP
 	rm .gac.json
 
 changelog: ## Build changelog
-	build-changelog changelog.yaml --output changelog.yaml --update-last-date --start-from 0.1.0 --append-file changelog_entry.yaml
-	build-changelog changelog.yaml --org PolicyEngine --repo policyengine-household-api --output CHANGELOG.md --template .github/changelog_template.md
-	bump-version changelog.yaml setup.py policyengine_household_api/constants.py
-	rm changelog_entry.yaml || true
-	touch changelog_entry.yaml
+	python .github/scripts/update_versioning.py
 
 COMPOSE_FILE ?= docker/docker-compose.yml
 COMPOSE_EXTERNAL_FILE ?= docker/docker-compose.external.yml

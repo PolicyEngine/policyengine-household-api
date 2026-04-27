@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Set traffic to new App Engine version
-set -e
+# Set traffic to a specific App Engine version.
+set -euo pipefail
 
 # Get required environment variables
 SERVICE_NAME="${SERVICE_NAME}"

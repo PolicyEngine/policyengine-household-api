@@ -42,7 +42,6 @@ def log_analytics_if_enabled(func):
 
         # Analytics is enabled, proceed with logging
         try:
-
             # Create a record that will be emitted to the db
             new_visit = Visit()
 

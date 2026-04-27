@@ -19,7 +19,6 @@ from policyengine_household_api.utils.household import (
 
 
 class TestCustomerInputs:
-
     @pytest.mark.parametrize(
         "household",
         [
