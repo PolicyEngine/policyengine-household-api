@@ -1,3 +1,14 @@
+## [0.14.0] - 2026-04-27
+
+### Changed
+
+- Adopt Towncrier changelog fragments and automate version bumps from fragment types.
+
+### Removed
+
+- Remove PR-time App Engine deployment validation; pull requests now run local lint and test checks only.
+
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
