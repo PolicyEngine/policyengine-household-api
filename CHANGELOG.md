@@ -1,3 +1,10 @@
+## [0.14.2] - 2026-04-27
+
+### Fixed
+
+- Check out repository files before staged release promotion and cleanup jobs run local scripts.
+
+
 ## [0.14.1] - 2026-04-27
 
 ### Fixed
