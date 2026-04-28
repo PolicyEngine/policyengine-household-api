@@ -1,4 +1,5 @@
 import importlib
+import logging
 from flask import Response
 import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
@@ -431,8 +432,12 @@ class PolicyEngineCountry:
 
             return household, None
 
-        except Exception as e:
-            print(f"Error computing tracer output: {e}")
+        except Exception:
+            # Re-raise so endpoints/household.py (which unpacks
+            # ``(result, computation_tree_uuid)``) can surface a real
+            # 500 instead of a TypeError on ``None`` unpacking.
+            logging.exception("Tracer failed while computing household")
+            raise
 
 
 def create_policy_reform(policy_data: dict) -> dict:
@@ -477,7 +482,7 @@ def create_policy_reform(policy_data: dict) -> dict:
 
 
 def get_requested_computations(household: dict):
-    requested_computations = dpath.util.search(
+    requested_computations = dpath.search(
         household,
         "*/*/*/*",
         afilter=lambda t: t is None,

@@ -18,6 +18,7 @@ from tests.fixtures.decorators.analytics_patches import (
     mock_jwt_valid_with_suffix,
     mock_jwt_valid_without_suffix,
     mock_jwt_invalid,
+    mock_jwt_unverified,
     mock_datetime_fixed,
     mock_version,
     mock_db_session,
@@ -68,7 +69,7 @@ class TestAnalyticsDecorator:
         session.add.assert_called_once_with(visit)
         session.commit.assert_called_once()
 
-    def test__given_no_authorization__decorator_logs_with_unknown_client(
+    def test__given_no_authorization__decorator_logs_with_null_client(
         self,
         sample_function,
         mock_analytics_enabled,
@@ -78,7 +79,11 @@ class TestAnalyticsDecorator:
         mock_version,
         mock_db_session,
     ):
-        """Decorator should handle missing authorization by using 'unknown' client_id."""
+        """Missing Authorization header must store NULL client_id.
+
+        Aligns with the verified-fail path: any identity we can't prove
+        is stored as None, never as an attacker-writable sentinel.
+        """
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
@@ -89,11 +94,10 @@ class TestAnalyticsDecorator:
         result = decorated("arg1", "arg2", kwarg1="test")
 
         assert result == "Result: arg1, arg2, test"
-        # Should log with 'unknown' client_id when auth is missing
-        assert visit_instance.client_id == "unknown"
+        assert visit_instance.client_id is None
         mock_db_session.add.assert_called_once_with(visit_instance)
 
-    def test__given_jwt_decode_error__decorator_logs_with_unknown_client(
+    def test__given_jwt_decode_error__decorator_logs_with_null_client(
         self,
         sample_function,
         mock_analytics_enabled,
@@ -104,7 +108,7 @@ class TestAnalyticsDecorator:
         mock_version,
         mock_db_session,
     ):
-        """Decorator should handle JWT decode errors by using 'unknown' client_id."""
+        """JWT decode errors must also produce a NULL client_id."""
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
@@ -115,7 +119,7 @@ class TestAnalyticsDecorator:
         result = decorated("arg1", "arg2", kwarg1="test")
 
         assert result == "Result: arg1, arg2, test"
-        assert visit_instance.client_id == "unknown"
+        assert visit_instance.client_id is None
 
     def test__given_client_id_with_suffix__decorator_strips_suffix(
         self,
@@ -200,6 +204,30 @@ class TestAnalyticsDecorator:
         # Should not raise error even if analytics check fails
         result = decorated("arg1", "arg2", kwarg1="test")
         assert result == "Result: arg1, arg2, test"
+
+    def test__given_unverified_jwt__decorator_logs_with_null_client_id(
+        self,
+        sample_function,
+        mock_analytics_enabled,
+        mock_visit_class,
+        mock_request_with_auth,
+        mock_jwt_unverified,
+        mock_datetime_fixed,
+        mock_version,
+        mock_db_session,
+    ):
+        """Decorator should store null client_id when signature can't be verified."""
+        from policyengine_household_api.decorators.analytics import (
+            log_analytics_if_enabled,
+        )
+
+        _, visit_instance = mock_visit_class
+
+        decorated = log_analytics_if_enabled(sample_function)
+        decorated("arg1", "arg2")
+
+        # Unverified JWT means we MUST NOT trust the sub claim.
+        assert visit_instance.client_id is None
 
     def test__given_function_decorated__metadata_is_preserved(
         self, sample_function

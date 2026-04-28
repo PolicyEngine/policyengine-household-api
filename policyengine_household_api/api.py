@@ -4,14 +4,10 @@ This is the main Flask app for the PolicyEngine API.
 
 # Python imports
 import os
-from pathlib import Path
 
 # External imports
 from flask_cors import CORS
 import flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from policyengine_household_api.data.analytics_setup import (
@@ -20,7 +16,6 @@ from policyengine_household_api.data.analytics_setup import (
 
 # Internal imports
 from .decorators.auth import create_auth_decorator
-from .constants import VERSION, REPO
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
@@ -39,6 +34,15 @@ require_auth_if_enabled = create_auth_decorator()
 print("Initialising API...")
 
 app = application = flask.Flask(__name__)
+
+# Reject absurdly large request bodies before any view runs. 10 MiB is
+# well above the largest legitimate household payload we have seen
+# (axes scans push a few hundred KiB) while still capping the memory a
+# single attacker can force us to allocate. Overridable via the
+# ``MAX_CONTENT_LENGTH`` env var (bytes).
+app.config["MAX_CONTENT_LENGTH"] = int(
+    os.getenv("MAX_CONTENT_LENGTH", 10 * 1024 * 1024)
+)
 
 CORS(app)
 
@@ -59,6 +63,7 @@ app.route("/", methods=["GET"])(get_home)
 
 @app.route("/<country_id>/calculate", methods=["POST"])
 @require_auth_if_enabled()
+@limiter.limit("60 per minute")
 @log_analytics_if_enabled
 def calculate(country_id):
     return get_calculate(country_id)
@@ -84,8 +89,11 @@ def readiness_check():
     )
 
 
+# Note: `/calculate_demo` is intentionally public (documented in
+# config/README.md). It is guarded by a conservative rate limit rather
+# than JWT authentication.
 @app.route("/<country_id>/calculate_demo", methods=["POST"])
-@limiter.limit("1 per second")
+@limiter.limit("1 per 10 seconds")
 def calculate_demo(country_id):
     return get_calculate(country_id)
 

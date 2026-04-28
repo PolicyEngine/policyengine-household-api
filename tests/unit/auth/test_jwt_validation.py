@@ -4,17 +4,18 @@ with the same KeySet code path used in production.
 
 These tests use self-signed RSA keys — no Auth0 credentials, no network
 calls, no secrets. They exist to catch transitive dependency breakage
-(e.g. authlib 1.7.0 delegating to joserfc which rejects authlib's KeySet).
+(e.g. authlib 1.7.0 delegating to joserfc, which requires joserfc keys).
 """
 
-import time
 import base64
+import time
+
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
-from authlib.jose.rfc7517.jwk import JsonWebKey
 from authlib.jose import jwt as authlib_jwt
 from authlib.oauth2.rfc7523 import JWTBearerTokenValidator
+from joserfc.jwk import KeySet
 
 
 def _int_to_base64url(n: int) -> str:
@@ -50,7 +51,7 @@ def rsa_keypair():
 def validator(rsa_keypair):
     """Create a JWTBearerTokenValidator with the test keyset."""
     _, jwks = rsa_keypair
-    keyset = JsonWebKey.import_key_set(jwks)
+    keyset = KeySet.import_key_set(jwks)
     v = JWTBearerTokenValidator(keyset)
     v.claims_options = {
         "exp": {"essential": True},
@@ -77,10 +78,10 @@ def _make_token(private_key, **claim_overrides) -> str:
 class TestJWTBearerTokenValidation:
     """
     Exercises the exact code path used in production:
-    JsonWebKey.import_key_set() -> JWTBearerTokenValidator -> authenticate_token()
+    KeySet.import_key_set() -> JWTBearerTokenValidator -> authenticate_token()
 
     This is the path that broke when authlib 1.7.0 delegated to joserfc,
-    which rejected authlib's KeySet type in guess_key().
+    which rejected authlib's deprecated KeySet type in guess_key().
     """
 
     def test_authenticate_token_with_valid_jwt(self, rsa_keypair, validator):
@@ -97,8 +98,9 @@ class TestJWTBearerTokenValidation:
         """An expired JWT must not crash the validator."""
         private_key, _ = rsa_keypair
         token = _make_token(private_key, exp=int(time.time()) - 60)
-        # Must not raise — returning None (rejected) is acceptable
+        # Must not raise while decoding through the joserfc key path.
         result = validator.authenticate_token(token)
+        assert result["sub"] == "test-user@clients"
 
     def test_authenticate_token_rejects_wrong_key(self, validator):
         """A JWT signed with a different key must be rejected."""
@@ -108,9 +110,9 @@ class TestJWTBearerTokenValidation:
         assert result is None
 
     def test_import_key_set_returns_usable_keyset(self, rsa_keypair):
-        """JsonWebKey.import_key_set must produce a keyset that
+        """KeySet.import_key_set must produce a keyset that
         JWTBearerTokenValidator can use without errors."""
         _, jwks = rsa_keypair
-        keyset = JsonWebKey.import_key_set(jwks)
+        keyset = KeySet.import_key_set(jwks)
         # Must not raise
         JWTBearerTokenValidator(keyset)

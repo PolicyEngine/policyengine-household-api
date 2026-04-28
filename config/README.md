@@ -270,6 +270,12 @@ The following endpoints remain unprotected:
 - When enabled, all protected endpoints validate JWT tokens against Auth0's JWKS
 - The Auth0 domain and audience must match the configured values
 
+## Analytics reset (debug only)
+
+`RESET_ANALYTICS=1` (or `analytics.reset: true` in YAML) wipes the
+local SQLite analytics DB on startup. This is **only** consulted when
+`FLASK_DEBUG=1`; production never resets the analytics DB.
+
 ## Usage Examples
 
 ### Production Deployment (Current)
