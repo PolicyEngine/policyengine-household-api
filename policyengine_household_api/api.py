@@ -4,14 +4,10 @@ This is the main Flask app for the PolicyEngine API.
 
 # Python imports
 import os
-from pathlib import Path
 
 # External imports
 from flask_cors import CORS
 import flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from policyengine_household_api.data.analytics_setup import (
@@ -20,11 +16,9 @@ from policyengine_household_api.data.analytics_setup import (
 
 # Internal imports
 from .decorators.auth import create_auth_decorator
-from .constants import VERSION, REPO
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
-from policyengine_household_api.utils.config_loader import get_config_value
 
 # Endpoints
 from .endpoints import (
@@ -50,43 +44,7 @@ app.config["MAX_CONTENT_LENGTH"] = int(
     os.getenv("MAX_CONTENT_LENGTH", 10 * 1024 * 1024)
 )
 
-
-def _resolve_cors_origins():
-    """
-    Resolve the CORS allowed origins list.
-
-    Priority:
-      1. CORS_ALLOWED_ORIGINS env var (comma-separated list)
-      2. config value "cors.allowed_origins" (list or comma string)
-      3. Safe default: the PolicyEngine production domains
-
-    Use regex patterns so that wildcard subdomains work with
-    Flask-CORS's `origins` kwarg.
-    """
-    raw = os.getenv("CORS_ALLOWED_ORIGINS") or get_config_value(
-        "cors.allowed_origins", None
-    )
-
-    if raw is None:
-        # Flask-CORS uses re.match, which is a prefix match; anchor with
-        # ``$`` so a hostile host like ``policyengine.org.attacker.com``
-        # cannot satisfy the wildcard pattern. Include ``localhost:*``
-        # so local dev servers can hit the API without extra setup.
-        origins = [
-            "https://policyengine.org",
-            r"https://.*\.policyengine\.org$",
-            r"http://localhost(:[0-9]+)?$",
-            r"http://127\.0\.0\.1(:[0-9]+)?$",
-        ]
-    elif isinstance(raw, str):
-        origins = [o.strip() for o in raw.split(",") if o.strip()]
-    else:
-        origins = list(raw)
-
-    return origins
-
-
-CORS(app, origins=_resolve_cors_origins())
+CORS(app)
 
 # Use in-memory storage for rate limiting
 # Note that this provides limits per-instance;

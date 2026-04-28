@@ -270,33 +270,6 @@ The following endpoints remain unprotected:
 - When enabled, all protected endpoints validate JWT tokens against Auth0's JWKS
 - The Auth0 domain and audience must match the configured values
 
-## CORS Configuration
-
-Browsers enforce CORS against the API. The default allowlist accepts:
-
-- `https://policyengine.org`
-- Any `https://*.policyengine.org` host (anchored regex)
-- `http://localhost` on any port (dev servers)
-- `http://127.0.0.1` on any port
-
-Override with `CORS_ALLOWED_ORIGINS` (comma-separated strings or
-regexes) or `cors.allowed_origins` in YAML:
-
-```bash
-CORS_ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com
-```
-
-```yaml
-cors:
-  allowed_origins:
-    - https://app.example.com
-    - 'https://.*\.example\.com$'
-```
-
-Always terminate regex patterns with `$` — Flask-CORS matches with
-`re.match`, so an unanchored pattern like `https://.*\.example\.com`
-would accept `https://example.com.attacker.com`.
-
 ## Analytics reset (debug only)
 
 `RESET_ANALYTICS=1` (or `analytics.reset: true` in YAML) wipes the
