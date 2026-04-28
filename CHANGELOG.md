@@ -1,3 +1,11 @@
+## [0.14.4] - 2026-04-28
+
+### Fixed
+
+- Reapply selected audit security and correctness fixes that were rolled back in the 0.13.13 restoration.
+- Migrate Auth0 JWKS validation to joserfc keys so Authlib 1.7.0 works without the temporary version cap.
+
+
 ## [0.14.3] - 2026-04-28
 
 ### Changed
