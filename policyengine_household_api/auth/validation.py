@@ -5,7 +5,7 @@ from threading import Lock
 from urllib.request import urlopen
 
 from authlib.oauth2.rfc7523 import JWTBearerTokenValidator
-from authlib.jose.rfc7517.jwk import JsonWebKey
+from joserfc.jwk import KeySet
 
 logger = logging.getLogger(__name__)
 
@@ -30,14 +30,14 @@ _jwks_lock = Lock()
 def _fetch_jwks_uncached(issuer: str):
     """Fetch the JWKS for an Auth0 issuer, bypassing the cache.
 
-    Returns an authlib key set on success, ``None`` on failure. Errors
+    Returns a joserfc key set on success, ``None`` on failure. Errors
     are logged rather than raised so that a transient Auth0 outage
     doesn't crash the process at import time.
     """
     jwks_url = f"{issuer}.well-known/jwks.json"
     try:
         with urlopen(jwks_url, timeout=JWKS_FETCH_TIMEOUT) as response:
-            return JsonWebKey.import_key_set(json.loads(response.read()))
+            return KeySet.import_key_set(json.loads(response.read()))
     except Exception as e:
         logger.warning(f"Failed to fetch JWKS from {jwks_url}: {e}")
         return None

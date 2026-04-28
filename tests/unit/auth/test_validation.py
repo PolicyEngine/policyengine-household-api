@@ -1,8 +1,13 @@
 """Unit tests for auth/validation.py (JWKS lazy-fetch)."""
 
+import json
+import time
 from unittest.mock import patch
 
-import pytest
+import jwt
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from jwt.algorithms import RSAAlgorithm
 
 from policyengine_household_api.auth import validation
 
@@ -121,3 +126,59 @@ class TestAuth0JWTBearerTokenValidator:
         assert first is sentinel
         assert second is sentinel
         assert mock_fetch.call_count == 1
+
+    def test__given_rs256_jwks__authenticates_signed_token(self):
+        """Regression guard for Authlib 1.7's joserfc key path."""
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+        public_jwk = json.loads(RSAAlgorithm.to_jwk(private_key.public_key()))
+        public_jwk.update(
+            {
+                "kid": "test-key",
+                "use": "sig",
+                "alg": "RS256",
+            }
+        )
+        jwks = {"keys": [public_jwk]}
+
+        private_pem = private_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        token = jwt.encode(
+            {
+                "iss": "https://tenant.example/",
+                "aud": "audience",
+                "exp": int(time.time()) + 300,
+                "sub": "client-id",
+            },
+            private_pem,
+            algorithm="RS256",
+            headers={"kid": "test-key"},
+        )
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return None
+
+            def read(self):
+                return json.dumps(jwks).encode()
+
+        with patch(
+            "policyengine_household_api.auth.validation.urlopen",
+            return_value=FakeResponse(),
+        ):
+            validator = validation.Auth0JWTBearerTokenValidator(
+                "tenant.example",
+                "audience",
+            )
+
+        claims = validator.authenticate_token(token)
+
+        assert claims["sub"] == "client-id"
