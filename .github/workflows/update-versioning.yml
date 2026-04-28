@@ -5,7 +5,6 @@ on:
     branches: [ main ]
 
 env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
   REGION: us-central1
   SERVICE_NAME: policyengine-household-api
   IMAGE_NAME: gcr.io/policyengine-household-api/policyengine-household-api
@@ -25,16 +24,16 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: main
           token: ${{ steps.app-token.outputs.token }}
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8.1.0
         with:
           version: "0.8.5"
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Sync dependencies
