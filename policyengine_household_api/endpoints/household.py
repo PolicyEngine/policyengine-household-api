@@ -65,26 +65,40 @@ def _validate_axes(household_json: dict) -> None:
         )
 
     for i, entry in enumerate(axes):
-        # Each entry is itself a list of axis specifications (supports
-        # nested/crossed scans in policyengine-core).
-        entries = entry if isinstance(entry, list) else [entry]
-        for axis in entries:
-            if not isinstance(axis, dict):
-                raise ValueError(
-                    f"'axes[{i}]' must be an object or list of objects"
-                )
-            count = axis.get("count")
-            if count is None:
-                continue
-            try:
-                count_int = int(count)
-            except (TypeError, ValueError):
-                raise ValueError(f"'axes[{i}].count' must be an integer")
-            if count_int < 1 or count_int > MAX_AXES_COUNT:
-                raise ValueError(
-                    f"'axes[{i}].count' must be between 1 and "
-                    f"{MAX_AXES_COUNT}; got {count_int}"
-                )
+        for axis in _axes_entry_specs(entry, i):
+            _validate_axis_count(axis, i)
+
+
+def _axes_entry_specs(entry, index: int) -> list[dict]:
+    # Each entry may itself be a list of axis specifications, which
+    # supports nested/crossed scans in policyengine-core.
+    axes = entry if isinstance(entry, list) else [entry]
+    for axis in axes:
+        if not isinstance(axis, dict):
+            raise ValueError(
+                f"'axes[{index}]' must be an object or list of objects"
+            )
+    return axes
+
+
+def _validate_axis_count(axis: dict, index: int) -> None:
+    count = axis.get("count")
+    if count is None:
+        return
+
+    count_int = _parse_axis_count(count, index)
+    if count_int < 1 or count_int > MAX_AXES_COUNT:
+        raise ValueError(
+            f"'axes[{index}].count' must be between 1 and "
+            f"{MAX_AXES_COUNT}; got {count_int}"
+        )
+
+
+def _parse_axis_count(count, index: int) -> int:
+    try:
+        return int(count)
+    except (TypeError, ValueError):
+        raise ValueError(f"'axes[{index}].count' must be an integer")
 
 
 @validate_country
