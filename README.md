@@ -92,19 +92,27 @@ and `rent` are defined for the month.
 
 Pick one cadence per request and use it everywhere:
 
-| You want                   | Send inputs as     | Request outputs as |
-|----------------------------|--------------------|--------------------|
-| Annual totals              | `{"2026": V}`      | `{"2026": null}`   |
-| A specific month           | `{"2026-01": V}`   | `{"2026-01": null}`|
+| You want         | Send inputs as     | Request outputs as     |
+| ---------------- | ------------------ | ---------------------- |
+| Annual totals    | `{"2026": V}`      | `{"2026": null}`       |
+| A specific month | `{"2026-01": V}`   | `{"2026-01": null}`    |
 
 If you only think in yearly amounts, use year keys for everything — including
-monthly variables. The API distributes a year-keyed numeric value across the
-12 months as `V/12` per month before the engine runs, and the engine returns
-the annual sum on the way back. Booleans, strings, and enums are broadcast
-unchanged across months.
+monthly variables. For numeric inputs, the API treats the year value as the
+annual total and distributes it across the 12 months before the engine runs;
+the engine returns the annual sum on the way back. Booleans, strings, and
+enums are broadcast unchanged across months.
 
-If you need per-month variation (e.g. modeling a one-off income shock in
-March), key both the input and the output to the same month.
+You can also mix a year key with one or more month keys for the same
+variable to pin specific months — e.g. `{"2026": 36000, "2026-06": 0}`
+means "the annual total is $36k with June pinned to $0; the other 11
+months absorb the full $36k." Pinned month values consume part of the
+annual total and the remainder is split across the unset months. If
+the pinned months sum to more than the annual total, the request is
+rejected with a 400 — the budget is inconsistent.
+
+If you need per-month variation without a yearly anchor, key both the
+input and the output to the same month.
 
 ### What goes wrong when you mix shapes
 

@@ -3,6 +3,9 @@
 These tests cover `detect_period_warnings`, which surfaces request shapes
 that produce plausible-but-wrong numbers — most notably, single-month input
 on a MONTH-defined variable paired with an annual output request.
+
+The detector returns structured `PartialMonthlyInputWarning` dataclasses;
+the endpoint serializes them to strings on the wire.
 """
 
 import json
@@ -10,12 +13,20 @@ import json
 import pytest
 from policyengine_us import CountryTaxBenefitSystem
 
-from policyengine_household_api.country import detect_period_warnings
+from policyengine_household_api.country import (
+    PartialMonthlyInputWarning,
+    detect_period_warnings,
+)
 
 
 @pytest.fixture(scope="module")
 def us_system():
     return CountryTaxBenefitSystem()
+
+
+def _messages(warnings):
+    """Render each structured warning to its user-facing string."""
+    return [w.message for w in warnings]
 
 
 class TestDetectPeriodWarnings:
@@ -33,12 +44,13 @@ class TestDetectPeriodWarnings:
         warnings = detect_period_warnings(household, us_system)
 
         assert len(warnings) == 1
-        message = warnings[0]
-        assert "snap_earned_income" in message
-        assert "spm_unit_1" in message
-        assert "2026-01" in message
-        assert "1 of 12" in message
-        assert "2026" in message
+        warning = warnings[0]
+        assert isinstance(warning, PartialMonthlyInputWarning)
+        assert warning.variable == "snap_earned_income"
+        assert warning.entity_plural == "spm_units"
+        assert warning.entity_id == "spm_unit_1"
+        assert warning.year == "2026"
+        assert warning.months_set == (1,)
 
     def test__all_twelve_monthly_inputs_with_annual_output__no_warning(
         self, us_system
@@ -55,9 +67,7 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
-
-        assert warnings == []
+        assert detect_period_warnings(household, us_system) == []
 
     def test__monthly_input_with_monthly_output__no_warning(self, us_system):
         # Per-month input + per-month output is a coherent request.
@@ -70,9 +80,7 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
-
-        assert warnings == []
+        assert detect_period_warnings(household, us_system) == []
 
     def test__annual_input_with_annual_output__no_warning(self, us_system):
         # Year-keyed input + year-keyed output is the recommended pattern.
@@ -85,9 +93,7 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
-
-        assert warnings == []
+        assert detect_period_warnings(household, us_system) == []
 
     def test__annual_input_with_monthly_output__no_warning(self, us_system):
         # Annual input on a MONTH var still means every month is set after
@@ -101,9 +107,7 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
-
-        assert warnings == []
+        assert detect_period_warnings(household, us_system) == []
 
     def test__year_defined_variable__never_warns(self, us_system):
         # YEAR-defined variables don't have the missing-month hazard.
@@ -116,18 +120,18 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
+        assert detect_period_warnings(household, us_system) == []
 
-        assert warnings == []
-
-    def test__partial_months_three_set__warning_lists_them(self, us_system):
+    def test__partial_months_three_set__warning_lists_them_in_order(
+        self, us_system
+    ):
         household = {
             "spm_units": {
                 "spm_unit_1": {
                     "snap_earned_income": {
+                        "2026-06": 3000,
                         "2026-01": 3000,
                         "2026-03": 3000,
-                        "2026-06": 3000,
                     },
                     "snap": {"2026": None},
                 }
@@ -137,16 +141,19 @@ class TestDetectPeriodWarnings:
         warnings = detect_period_warnings(household, us_system)
 
         assert len(warnings) == 1
-        message = warnings[0]
-        assert "3 of 12" in message
-        # Lists each set month, not abbreviated.
-        assert "2026-01" in message
-        assert "2026-03" in message
-        assert "2026-06" in message
+        warning = warnings[0]
+        # months_set is sorted regardless of input order.
+        assert warning.months_set == (1, 3, 6)
+        # And the rendered message lists them in that same chronological order.
+        assert "(2026-01, 2026-03, 2026-06)" in warning.message
+        assert "3 of 12" in warning.message
 
-    def test__many_months_set__sample_truncated_in_message(self, us_system):
+    def test__many_months_set__sample_truncates_to_three_with_ellipsis(
+        self, us_system
+    ):
         # When more than 3 months are set, the warning truncates with "..."
-        # so the message stays readable.
+        # so the message stays readable. Exactly the first three (sorted)
+        # are listed, followed by ", ...".
         household = {
             "spm_units": {
                 "spm_unit_1": {
@@ -161,8 +168,10 @@ class TestDetectPeriodWarnings:
         warnings = detect_period_warnings(household, us_system)
 
         assert len(warnings) == 1
-        assert "..." in warnings[0]
-        assert "7 of 12" in warnings[0]
+        warning = warnings[0]
+        assert warning.months_set == (1, 2, 3, 4, 5, 6, 7)
+        assert "(2026-01, 2026-02, 2026-03, ...)" in warning.message
+        assert "7 of 12" in warning.message
 
     def test__multiple_offending_variables__each_gets_a_warning(
         self, us_system
@@ -180,9 +189,8 @@ class TestDetectPeriodWarnings:
         warnings = detect_period_warnings(household, us_system)
 
         assert len(warnings) == 2
-        joined = " | ".join(warnings)
-        assert "snap_earned_income" in joined
-        assert "snap_unearned_income" in joined
+        names = {w.variable for w in warnings}
+        assert names == {"snap_earned_income", "snap_unearned_income"}
 
     def test__no_annual_output_request__no_warning_even_for_partial_input(
         self, us_system
@@ -198,9 +206,7 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
-
-        assert warnings == []
+        assert detect_period_warnings(household, us_system) == []
 
     def test__year_defined_output_does_not_trigger_warning(self, us_system):
         # YEAR-defined variables don't have the missing-month hazard, so
@@ -220,9 +226,7 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
-
-        assert warnings == []
+        assert detect_period_warnings(household, us_system) == []
 
     def test__different_year_input_and_output__no_warning(self, us_system):
         # If Jan-2026 input doesn't overlap with the 2027 annual output,
@@ -236,9 +240,7 @@ class TestDetectPeriodWarnings:
             },
         }
 
-        warnings = detect_period_warnings(household, us_system)
-
-        assert warnings == []
+        assert detect_period_warnings(household, us_system) == []
 
     def test__axes_key_does_not_break_detection(self, us_system):
         # `axes` is a list — the detector must skip it without erroring.
@@ -258,9 +260,7 @@ class TestDetectPeriodWarnings:
 
 
 class TestEndpointAttachesWarnings:
-    """Round-trip: the warning is exposed in the API response body."""
-
-    auth_headers: dict = {}
+    """Round-trip: the warning is exposed in the API response body as strings."""
 
     def test__partial_monthly_input__response_includes_warnings(self, client):
         from tests.fixtures.country import (
@@ -283,6 +283,8 @@ class TestEndpointAttachesWarnings:
         assert response.status_code == 200
         body = json.loads(response.data)
         assert "warnings" in body
+        # On the wire warnings are strings, not dataclasses.
+        assert all(isinstance(w, str) for w in body["warnings"])
         assert any("snap_earned_income" in w for w in body["warnings"])
 
     def test__well_formed_request__no_warnings_field_in_response(self, client):

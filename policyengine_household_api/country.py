@@ -110,14 +110,15 @@ class PartialMonthlyInputWarning:
         )
 
 
-def detect_period_warnings(household: dict, system) -> list[str]:
-    """Return user-facing warning strings for surprising request shapes."""
-    return [w.message for w in _collect_period_warnings(household, system)]
-
-
-def _collect_period_warnings(
+def detect_period_warnings(
     household: dict, system
 ) -> list[PartialMonthlyInputWarning]:
+    """Return structured warnings for surprising request shapes.
+
+    Returning dataclasses (not strings) keeps the variable / year /
+    months_set fields available to callers — e.g. the endpoint can
+    serialize to a richer JSON shape later without a second pass.
+    """
     annual_month_output_years: set[str] = set()
     monthly_inputs: dict[tuple[str, str, str, str], set[int]] = {}
 
@@ -136,9 +137,9 @@ def _collect_period_warnings(
                 is_month_var = variable.definition_period == "month"
                 for period_key, value in period_map.items():
                     if value is None:
-                        # Annual null output requests on MONTH-defined vars
-                        # are the only ones that produce the missing-month
-                        # hazard — YEAR-defined vars don't have months.
+                        # None = output request, not an input. Annual nulls
+                        # on MONTH-defined vars arm the missing-month
+                        # hazard; YEAR-defined vars don't have months.
                         if is_month_var and _is_year_key(period_key):
                             annual_month_output_years.add(period_key)
                         continue
@@ -305,8 +306,15 @@ def _distribute_numeric_year_value(
 
     Explicit monthly values for the same year are preserved (the partner
     is overriding that month). The remainder ``V - sum(explicit)`` is
-    split evenly across the unset months, rounded to two decimals.
-    Output-request slots (``None``) count as unset.
+    split evenly across the unset months as a raw float — matches the
+    hosted v1 API, which emits unrounded values like ``163.63637`` and
+    relies on the engine to consume the float directly. Rounding here
+    would introduce drift the engine sums back differently.
+
+    Output-request slots (``None``) count as unset. ``validate_period_budgets``
+    is the canonical place to surface a budget-overrun error to partners,
+    but this function defends in depth: a negative remainder means
+    ``sum(explicit) > annual_value``, which we refuse to silently distribute.
     """
     explicit_months: dict[int, float] = {}
     for inner_key, inner_value in period_map.items():
@@ -318,6 +326,12 @@ def _distribute_numeric_year_value(
         explicit_months[month] = float(inner_value)
 
     remainder = annual_value - sum(explicit_months.values())
+    if remainder < 0:
+        raise ValueError(
+            f"Monthly values for {year} sum to "
+            f"{sum(explicit_months.values())}, which exceeds the annual "
+            f"total {annual_value}."
+        )
     unset_count = 12 - len(explicit_months)
     if unset_count <= 0:
         # All 12 months are explicit. validate_period_budgets has already
@@ -325,7 +339,7 @@ def _distribute_numeric_year_value(
         del period_map[year]
         return
 
-    per_unset = round(remainder / unset_count, 2)
+    per_unset = remainder / unset_count
     del period_map[year]
     for month in range(1, 13):
         month_key = f"{year}-{month:02d}"
@@ -662,6 +676,9 @@ class PolicyEngineCountry:
             situation=normalized_household,
         )
 
+        # Independent clone for the response-building loop below, which
+        # mutates `household` to fill in computed values. Not related to
+        # the normalizer above — that one's already a separate copy.
         household = json.loads(json.dumps(household))
 
         # Run tracer on household

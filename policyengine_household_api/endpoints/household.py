@@ -169,7 +169,9 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     )
 
     if period_warnings:
-        response_body["warnings"] = period_warnings
+        # Serialize to strings on the wire; the structured dataclasses
+        # stay available for any future caller that wants the fields.
+        response_body["warnings"] = [w.message for w in period_warnings]
 
     if enable_ai_explainer:
         response_body["computation_tree_uuid"] = str(computation_tree_uuid)

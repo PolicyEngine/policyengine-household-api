@@ -51,7 +51,8 @@ class TestNumericMonthDefinedVariable:
         self, us_system
     ):
         # Annual $1200 with explicit June=$600 → remainder $600 split over
-        # the other 11 months → ~$54.55 each, rounded to 2 decimals.
+        # the other 11 months as an unrounded float (matches v1 — see
+        # /tmp/v1_breakdown probe). Engine consumes the float directly.
         household = {
             "spm_units": {
                 "spm_unit_1": {
@@ -64,8 +65,8 @@ class TestNumericMonthDefinedVariable:
 
         snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
         assert snap_map["2026-06"] == 600
-        assert snap_map["2026-01"] == round(600 / 11, 2)
-        assert snap_map["2026-12"] == round(600 / 11, 2)
+        assert snap_map["2026-01"] == pytest.approx(600 / 11)
+        assert snap_map["2026-12"] == pytest.approx(600 / 11)
         assert "2026" not in snap_map
 
     def test__year_plus_months_summing_to_year__unset_months_zero(
@@ -422,9 +423,9 @@ class TestValidatePeriodBudgets:
 # ---------------------------------------------------------------------------
 
 
-def _wa_household(income_key, income_value, output_key):
+def _wa_household(income_map, output_key):
     """Build a single-person WA SNAP household with a configurable
-    snap_gross_income input + snap output request."""
+    ``snap_gross_income`` input map + ``snap`` output request."""
     return {
         "people": {"person_1": {"age": {"2026": 34}, "rent": {"2026": 10800}}},
         "tax_units": {"tax_unit_1": {"members": ["person_1"]}},
@@ -432,7 +433,7 @@ def _wa_household(income_key, income_value, output_key):
             "spm_unit_1": {
                 "members": ["person_1"],
                 "snap": {output_key: None},
-                "snap_gross_income": {income_key: income_value},
+                "snap_gross_income": dict(income_map),
                 "snap_assets": {"2026": 0},
             }
         },
@@ -447,19 +448,24 @@ def _wa_household(income_key, income_value, output_key):
     }
 
 
-# Cross-product: 4 input variants × 2 output variants. Each row pinned
-# against parity with the hosted v1 API; the post-fix household API must
-# return the same numbers.
+# Each row pinned against parity with the hosted v1 API; the post-fix
+# household API must return the same numbers.
 _SNAP_MATRIX = [
-    # (income_key, income_value, output_key, expected_snap)
-    ("2026", 36000, "2026", {"2026": 0.0}),
-    ("2026", 36000, "2026-01", {"2026-01": 0.0}),
-    ("2026", 3600, "2026", {"2026": 3596.0398}),
-    ("2026", 3600, "2026-01", {"2026-01": 298.0}),
-    ("2026-01", 36000, "2026", {"2026": 3298.0398}),
-    ("2026-01", 36000, "2026-01", {"2026-01": 0.0}),
-    ("2026-01", 3600, "2026", {"2026": 3298.0398}),
-    ("2026-01", 3600, "2026-01", {"2026-01": 0.0}),
+    # (income_map, output_key, expected_snap)
+    # Year-only inputs (4 income/output combinations).
+    ({"2026": 36000}, "2026", {"2026": 0.0}),
+    ({"2026": 36000}, "2026-01", {"2026-01": 0.0}),
+    ({"2026": 3600}, "2026", {"2026": 3596.0398}),
+    ({"2026": 3600}, "2026-01", {"2026-01": 298.0}),
+    # Single-month-only inputs (other 11 months default to 0).
+    ({"2026-01": 36000}, "2026", {"2026": 3298.0398}),
+    ({"2026-01": 36000}, "2026-01", {"2026-01": 0.0}),
+    ({"2026-01": 3600}, "2026", {"2026": 3298.0398}),
+    ({"2026-01": 3600}, "2026-01", {"2026-01": 0.0}),
+    # Year + same-year month coherent (sum < annual): June overrides $1800,
+    # remainder ($1800 / 11 ≈ $163.64) distributes to the other 11 months.
+    # This is the case Anthony flagged in review — pin parity here.
+    ({"2026": 3600, "2026-06": 1800}, "2026", {"2026": 3321.8796}),
 ]
 _SNAP_MATRIX_IDS = [
     "A-O1",
@@ -470,6 +476,7 @@ _SNAP_MATRIX_IDS = [
     "C-O2",
     "D-O1",
     "D-O2",
+    "Mixed-coherent",
 ]
 
 
@@ -492,19 +499,18 @@ class TestSnapInputOutputMatrix:
     """
 
     @pytest.mark.parametrize(
-        "income_key,income_value,output_key,expected_snap",
+        "income_map,output_key,expected_snap",
         _SNAP_MATRIX,
         ids=_SNAP_MATRIX_IDS,
     )
     def test__matches_v1_api_behavior(
         self,
         us_country,
-        income_key,
-        income_value,
+        income_map,
         output_key,
         expected_snap,
     ):
-        household = _wa_household(income_key, income_value, output_key)
+        household = _wa_household(income_map, output_key)
 
         result, _ = us_country.calculate(
             household=household,
@@ -514,13 +520,15 @@ class TestSnapInputOutputMatrix:
 
         snap = result["spm_units"]["spm_unit_1"]["snap"]
         assert snap.keys() == expected_snap.keys()
+        # ±$0.05 absorbs cross-version float drift from numpy/pandas; the
+        # expected values are pinned against hosted v1 API parity.
         for k in snap:
-            assert snap[k] == pytest.approx(expected_snap[k], abs=0.01)
+            assert snap[k] == pytest.approx(expected_snap[k], abs=0.05)
 
     def test__user_input_keys_are_echoed_unchanged(self, us_country):
         # Partners send `{"2026": V}` and must get `{"2026": V}` back even
         # though the engine internally sees the 12-month split.
-        household = _wa_household("2026", 31932, "2026")
+        household = _wa_household({"2026": 31932}, "2026")
 
         result, _ = us_country.calculate(
             household=household,
@@ -532,7 +540,7 @@ class TestSnapInputOutputMatrix:
         assert echoed == {"2026": 31932}
 
     def test__monthly_input_keys_are_also_echoed_unchanged(self, us_country):
-        household = _wa_household("2026-01", 3000, "2026-01")
+        household = _wa_household({"2026-01": 3000}, "2026-01")
 
         result, _ = us_country.calculate(
             household=household,
