@@ -27,7 +27,60 @@ from policyengine_core.model_api import Reform, Enum
 from policyengine_core.periods import instant
 import dpath
 import math
+import re
 from uuid import UUID, uuid4
+
+
+_YEAR_KEY_RE = re.compile(r"^\d{4}$")
+
+
+def _normalize_period_keys(household: dict, system) -> dict:
+    """Expand YEAR-keyed inputs for MONTH-defined variables into 12 monthly entries.
+
+    policyengine-core's `Simulation(situation=...)` silently drops a YEAR-period
+    assignment on a MONTH-defined variable, leaving the engine to read 0 for
+    every month (see issue #1489). The hosted v1 API behaves as if the annual
+    value spans the year, so partners get a sensible answer.
+
+    To match that behavior, distribute the annual value across the year before
+    the engine sees it:
+    - numeric V is split as V/12 per month;
+    - boolean / string / enum values are broadcast unchanged;
+    - null values (output requests) are left alone — the engine still sums.
+    """
+
+    for entity_plural, entities in household.items():
+        if entity_plural == "axes" or not isinstance(entities, dict):
+            continue
+        for entity_data in entities.values():
+            if not isinstance(entity_data, dict):
+                continue
+            for variable_name, period_map in entity_data.items():
+                if not isinstance(period_map, dict):
+                    continue
+                variable = system.variables.get(variable_name)
+                if variable is None or variable.definition_period != "month":
+                    continue
+                _expand_year_keys_in_place(period_map)
+    return household
+
+
+def _expand_year_keys_in_place(period_map: dict) -> None:
+    for period_key in list(period_map.keys()):
+        if not _YEAR_KEY_RE.match(period_key):
+            continue
+        value = period_map[period_key]
+        if value is None:
+            # Output request — keep the YEAR key so the engine sums the months.
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            monthly_value = value
+        else:
+            monthly_value = value / 12
+        del period_map[period_key]
+        for month in range(1, 13):
+            month_key = f"{period_key}-{month:02d}"
+            period_map.setdefault(month_key, monthly_value)
 
 
 class PolicyEngineCountry:
@@ -330,9 +383,16 @@ class PolicyEngineCountry:
         else:
             system = self.tax_benefit_system
 
+        # Hand a normalized copy to the engine so YEAR-keyed MONTH inputs
+        # behave like the hosted v1 API (issue #1489). Keep the original
+        # `household` intact so the response echoes back the user's keys.
+        normalized_household = _normalize_period_keys(
+            json.loads(json.dumps(household)), system
+        )
+
         simulation = self.country_package.Simulation(
             tax_benefit_system=system,
-            situation=household,
+            situation=normalized_household,
         )
 
         household = json.loads(json.dumps(household))

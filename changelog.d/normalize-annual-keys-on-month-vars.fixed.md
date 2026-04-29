@@ -1,0 +1,1 @@
+Match the hosted v1 API when partners send a YEAR-period key on a MONTH-defined variable: the household API now distributes the annual numeric value across the year (V/12 per month) before the engine runs, instead of silently defaulting it to 0. Boolean / string / enum values broadcast unchanged. Output requests echo the partner's original keys.
