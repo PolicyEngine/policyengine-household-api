@@ -99,11 +99,13 @@ def detect_period_warnings(household: dict, system) -> list[str]:
         warnings.append(
             f"`{variable_name}` on `{entity_plural}/{entity_id}` was keyed "
             f"for {len(sorted_months)} of 12 months in {year} ({sample}); "
-            f"the remaining {missing} months will default to 0 in the "
-            f"engine. Because an annual output is requested for {year}, "
-            f"those zero months are summed into the annual total. To get "
-            f"an accurate annual figure, either send a yearly key "
-            f'(`{{"{year}": V}}`) or set all 12 monthly keys.'
+            f"the remaining {missing} months will read the engine's "
+            f"fallback value (often 0, sometimes a formula-derived value), "
+            f"not the value you set. Because an annual output is requested "
+            f"for {year}, those fallback values are summed into the annual "
+            f"total and may not match what you intended. To get an accurate "
+            f'annual figure, either send a yearly key (`{{"{year}": V}}`) '
+            f"or set all 12 monthly keys."
         )
 
     return warnings
@@ -155,7 +157,12 @@ def _expand_year_keys_in_place(period_map: dict) -> None:
         del period_map[period_key]
         for month in range(1, 13):
             month_key = f"{period_key}-{month:02d}"
-            period_map.setdefault(month_key, monthly_value)
+            # Fill missing slots and overwrite None (output-request) slots —
+            # the YEAR-keyed input is what the user means for that month.
+            # Non-null monthly inputs already in the map win, so partners can
+            # set a year-wide value and override one month explicitly.
+            if period_map.get(month_key) is None:
+                period_map[month_key] = monthly_value
 
 
 class PolicyEngineCountry:

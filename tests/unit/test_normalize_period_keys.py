@@ -95,6 +95,21 @@ class TestExpandYearKeysInPlace:
         # Other months get value/12.
         assert period_map["2026-01"] == 100
 
+    def test__monthly_output_request_with_annual_input__gets_filled(self):
+        # Year input + null output request on a specific month: the year
+        # value must reach that month so the engine doesn't read None and
+        # return the variable's default. Otherwise:
+        #   `{"2026": "SUA", "2026-06": null}` -> engine sees None for June
+        #   -> returns the enum default instead of "SUA". This is the v1
+        #   vs v2 divergence on enum inputs that surfaced during partner-
+        #   facing testing.
+        period_map = {"2026": "SUA", "2026-06": None}
+
+        _expand_year_keys_in_place(period_map)
+
+        for month in range(1, 13):
+            assert period_map[f"2026-{month:02d}"] == "SUA"
+
 
 class TestNormalizePeriodKeys:
     def test__month_defined_variable__gets_split(self, us_system):
