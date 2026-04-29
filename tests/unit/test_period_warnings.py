@@ -1,13 +1,9 @@
 """Unit tests for the period-shape warning detector.
 
-`detect_period_warnings` surfaces two kinds of structured warnings:
-
-- ``OverlappingPeriodWarning`` — both annual and monthly inputs were
-  given for the same year on the same variable; the household API keeps
-  the later one (last write wins) and drops the other.
-- ``PartialMonthlyInputWarning`` — partial monthly input paired with an
-  annual output for the same year; the unset months read the engine's
-  fallback and silently inflate the annual sum.
+`detect_period_warnings` surfaces ``PartialMonthlyInputWarning`` when
+partial monthly input is paired with an annual output for the same year;
+the unset months read the engine's fallback (often 0, sometimes a
+formula-derived value) and silently inflate the annual sum.
 
 The endpoint serializes the dataclasses to strings on the wire.
 """
@@ -18,7 +14,6 @@ import pytest
 from policyengine_us import CountryTaxBenefitSystem
 
 from policyengine_household_api.country import (
-    OverlappingPeriodWarning,
     PartialMonthlyInputWarning,
     detect_period_warnings,
 )
@@ -259,125 +254,6 @@ class TestDetectPeriodWarnings:
         assert len(warnings) == 1
 
 
-class TestOverlappingPeriodWarning:
-    def test__year_first_then_month__warns_with_dropped_year(self, us_system):
-        # `{"2026": 1200, "2026-06": 600}` — last is the month → year drops.
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {"2026": 1200, "2026-06": 600},
-                }
-            }
-        }
-
-        warnings = detect_period_warnings(household, us_system)
-
-        overlaps = [
-            w for w in warnings if isinstance(w, OverlappingPeriodWarning)
-        ]
-        assert len(overlaps) == 1
-        w = overlaps[0]
-        assert w.variable == "snap_earned_income"
-        assert w.entity_plural == "spm_units"
-        assert w.entity_id == "spm_unit_1"
-        assert w.year == "2026"
-        assert w.kept_keys == ("2026-06",)
-        assert w.dropped_keys == ("2026",)
-        # The message phrases the rule in JSON-object terms (not chronology).
-        assert "appears last in the JSON object" in w.message
-        # And it documents the null-output exemption so partners aren't
-        # confused by `{"2026": V, "2026-MM": null}` shapes.
-        assert "Output-request slots (`null`) don't trigger this" in w.message
-
-    def test__month_first_then_year__warns_with_dropped_month(self, us_system):
-        # `{"2026-01": 100, "2026": 1200}` — last is the year → months drop.
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {"2026-01": 100, "2026": 1200},
-                }
-            }
-        }
-
-        warnings = detect_period_warnings(household, us_system)
-
-        overlaps = [
-            w for w in warnings if isinstance(w, OverlappingPeriodWarning)
-        ]
-        assert len(overlaps) == 1
-        assert overlaps[0].kept_keys == ("2026",)
-        assert overlaps[0].dropped_keys == ("2026-01",)
-
-    def test__year_only_input__no_overlap_warning(self, us_system):
-        # Baseline: a single annual entry is the recommended pattern,
-        # not a conflict — must not produce an overlap warning.
-        household = {
-            "spm_units": {"spm_unit_1": {"snap_earned_income": {"2026": 1200}}}
-        }
-
-        warnings = detect_period_warnings(household, us_system)
-
-        assert not any(
-            isinstance(w, OverlappingPeriodWarning) for w in warnings
-        )
-
-    def test__monthly_only_input__no_overlap_warning(self, us_system):
-        # Baseline: a single monthly entry is also a single-input shape
-        # — no conflict, no overlap warning.
-        household = {
-            "spm_units": {
-                "spm_unit_1": {"snap_earned_income": {"2026-01": 100}}
-            }
-        }
-
-        warnings = detect_period_warnings(household, us_system)
-
-        assert not any(
-            isinstance(w, OverlappingPeriodWarning) for w in warnings
-        )
-
-    def test__year_input_with_monthly_null_output_is_not_an_overlap(
-        self, us_system
-    ):
-        # `{"2026": 1200, "2026-06": null}` — the month is an output request,
-        # not an input, so it doesn't conflict with the year input.
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {"2026": 1200, "2026-06": None}
-                }
-            }
-        }
-
-        warnings = detect_period_warnings(household, us_system)
-
-        assert not any(
-            isinstance(w, OverlappingPeriodWarning) for w in warnings
-        )
-
-    def test__overlap_resolution_suppresses_partial_monthly_warning(
-        self, us_system
-    ):
-        # `{"2026-01": 3000, "2026": 36000}` paired with `snap: {"2026": null}`.
-        # Last is the year → month drops. After resolution there's no partial
-        # monthly input, so the partial-monthly warning must NOT fire.
-        # (Only the OverlappingPeriodWarning surfaces.)
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {"2026-01": 3000, "2026": 36000},
-                    "snap": {"2026": None},
-                }
-            }
-        }
-
-        warnings = detect_period_warnings(household, us_system)
-
-        kinds = {type(w).__name__ for w in warnings}
-        assert "OverlappingPeriodWarning" in kinds
-        assert "PartialMonthlyInputWarning" not in kinds
-
-
 class TestEndpointAttachesWarnings:
     """Round-trip: the warning is exposed in the API response body as strings."""
 
@@ -420,13 +296,12 @@ class TestEndpointAttachesWarnings:
         body = json.loads(response.data)
         assert "warnings" not in body
 
-    def test__overlap_warning_round_trips_through_flask_client(self, client):
-        # Last-wins resolution depends on JSON-object insertion order
-        # surviving the wire. CPython's `json.loads` preserves order,
-        # but pydantic / Flask reconstruction could in theory reshuffle.
-        # This end-to-end test pins the contract: send a year+month
-        # payload, confirm the resulting OverlappingPeriodWarning string
-        # names the monthly key as the kept input.
+    def test__budget_overrun_returns_400(self, client):
+        # When explicit monthly inputs sum to more than the annual total
+        # for a numeric MONTH-defined variable, the request is rejected
+        # with a 400 — matching the OpenFisca/policyengine-core behavior
+        # that raises ``ValueError("Inconsistent input...")`` for the
+        # same shape.
         from tests.fixtures.country import (
             valid_household_requesting_ctc_calculation,
         )
@@ -436,21 +311,19 @@ class TestEndpointAttachesWarnings:
             "spm_units": {
                 "spm_unit": {
                     "members": ["you"],
-                    "snap_earned_income": {"2024": 1200, "2024-06": 600},
+                    "snap_earned_income": {
+                        "2024": 1200,
+                        "2024-06": 999,
+                        "2024-07": 999,
+                    },
                 }
             },
         }
 
         response = client.post("/us/calculate", json={"household": household})
 
-        assert response.status_code == 200
+        assert response.status_code == 400
         body = json.loads(response.data)
-        assert "warnings" in body
-        overlap_warnings = [
-            w for w in body["warnings"] if "appears last in the JSON" in w
-        ]
-        assert len(overlap_warnings) == 1
-        # The monthly key (last in insertion order) was kept.
-        assert "`2024-06`" in overlap_warnings[0]
-        # The annual key (earlier) was dropped.
-        assert "`2024`" in overlap_warnings[0]
+        assert body["status"] == "error"
+        assert "snap_earned_income" in body["message"]
+        assert "exceeds the annual total" in body["message"]

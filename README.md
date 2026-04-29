@@ -108,23 +108,35 @@ same month.
 
 ### Sending both annual and monthly inputs for the same variable
 
-If a variable receives both a year key and same-year month keys with non-null
-values, the API keeps whichever group **appears last in the JSON object**
-(not whichever month is later in the year — the rule is purely about JSON
-insertion order, which CPython and most JSON libraries preserve) and drops
-the other. The response carries an `OverlappingPeriodWarning` listing the
-kept and dropped keys so you can see exactly what landed.
+You can pin specific months while letting the year value cover the rest.
+For numeric MONTH-defined variables, the year value is treated as the
+**annual total**: explicit monthly values consume part of the budget, and
+the remainder splits evenly across the unset months. This matches the
+hosted v1 API and OpenFisca's `set_input_divide_by_period`.
 
-```json
-// Last entry is monthly → annual drops; only June is set, others default to 0.
-"snap_earned_income": {"2026": 36000, "2026-06": 1500}
+```jsonc
+// Annual $1200 with June pinned to $600. Remaining $600 splits across
+// the other 11 months as raw float ≈ $54.55/mo.
+"snap_earned_income": {"2026": 1200, "2026-06": 600}
 
-// Last entry is annual → all earlier monthlies drop; year expands to V/12.
-"snap_earned_income": {"2026-01": 100, "2026-03": 200, "2026": 36000}
+// All 12 months explicit and consistent with the annual total.
+// The year key just disappears; every month keeps its explicit value.
+"snap_earned_income": {"2026": 1200, "2026-01": 100, ..., "2026-12": 100}
 ```
 
-Output-request `null` slots don't participate in this resolution — they're
-requests, not inputs, so `{"2026": 1200, "2026-06": null}` keeps both.
+For boolean / string / enum MONTH-defined variables, explicit monthly values
+override the year-broadcast for that month while the year value applies to
+the rest:
+
+```jsonc
+// "SUA all year except LUA in June".
+"snap_utility_allowance_type": {"2026": "SUA", "2026-06": "LUA"}
+```
+
+If the explicit monthly values sum to more than the annual total, the API
+rejects the request with a 400 — the budget is inconsistent. Output-request
+`null` slots don't count as inputs, so `{"2026": 1200, "2026-06": null}`
+keeps both: the year expands as usual and the engine returns June's value.
 
 ### What goes wrong when you mix shapes
 
