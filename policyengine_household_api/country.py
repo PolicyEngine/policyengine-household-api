@@ -131,6 +131,11 @@ def detect_period_warnings(household: dict, system) -> list[PeriodWarning]:
     warnings: list[PeriodWarning] = []
     annual_month_output_years: set[str] = set()
     monthly_inputs: dict[tuple[str, str, str, str], set[int]] = {}
+    # `(variable, entity, year)` tuples whose period map already carries a
+    # non-null year-key input. The normalizer fills the unset months from
+    # the year-input remainder, so the partial-monthly hazard does not
+    # apply — the unset months don't read the engine's fallback.
+    years_with_year_input: set[tuple[str, str, str, str]] = set()
 
     for entity_plural, entities in household.items():
         if entity_plural == "axes" or not isinstance(entities, dict):
@@ -155,6 +160,16 @@ def detect_period_warnings(household: dict, system) -> list[PeriodWarning]:
                         continue
                     if not is_month_var:
                         continue
+                    if _is_year_key(period_key):
+                        years_with_year_input.add(
+                            (
+                                variable_name,
+                                entity_plural,
+                                entity_id,
+                                period_key,
+                            )
+                        )
+                        continue
                     year = _month_key_year(period_key)
                     if year is None:
                         continue
@@ -173,6 +188,16 @@ def detect_period_warnings(household: dict, system) -> list[PeriodWarning]:
         if year not in annual_month_output_years:
             continue
         if len(months) >= 12:
+            continue
+        # If the same period map also has a non-null year input for this
+        # year, the normalizer fills the unset months from the remainder
+        # — there's no missing-month hazard to warn about.
+        if (
+            variable_name,
+            entity_plural,
+            entity_id,
+            year,
+        ) in years_with_year_input:
             continue
         warnings.append(
             PartialMonthlyInputWarning(
@@ -208,13 +233,17 @@ def _is_numeric_value_type(variable) -> bool:
 
 
 def validate_period_budgets(household: dict, system) -> None:
-    """Reject requests where explicit monthly inputs exceed the annual total.
+    """Reject requests where all 12 monthly inputs disagree with the annual.
 
     For numeric MONTH-defined variables, partners may send both a year key
-    (the annual total) and one or more monthly overrides. Sums above the
-    annual total are inconsistent — raise so the endpoint can return a
-    400 rather than producing a silently wrong benefit number. Mirrors
-    the OpenFisca/policyengine-core check that raises in the same shape.
+    (the annual total) and one or more monthly overrides. policyengine-core's
+    ``set_input_divide_by_period`` raises ``ValueError("Inconsistent input")``
+    in exactly one situation: every month of the year is explicit AND the
+    sum of those monthlies doesn't match the annual total. Partial-month
+    overrides (any number from 0 to 11 explicit months) are silently
+    accepted and the remainder is distributed across the unset months,
+    even when the remainder is negative. We mirror that exact rule so
+    partner integrations match v1 byte-for-byte.
     """
     for entity_plural, entities in (household or {}).items():
         if entity_plural == "axes" or not isinstance(entities, dict):
@@ -250,18 +279,25 @@ def _check_year_budget(
         if not _is_numeric(value):
             continue
         year = period_key
-        explicit_sum = 0.0
+        explicit_months: dict[int, float] = {}
         for inner_key, inner_value in period_map.items():
             if _month_key_year(inner_key) != year:
                 continue
             if not _is_numeric(inner_value):
                 continue
-            explicit_sum += float(inner_value)
-        if explicit_sum > float(value):
+            month = _parsed_period(inner_key).start.month
+            explicit_months[month] = float(inner_value)
+        # v1 raises only when every month is explicit and the sum
+        # disagrees with the annual; partial monthlies are silently
+        # distributed (even if the remainder is negative).
+        if len(explicit_months) < 12:
+            continue
+        explicit_sum = sum(explicit_months.values())
+        if explicit_sum != float(value):
             raise ValueError(
-                f"Monthly values for `{variable_name}` on "
+                f"Inconsistent input: monthly values for `{variable_name}` on "
                 f"`{entity_plural}/{entity_id}` in {year} sum to "
-                f"{explicit_sum}, which exceeds the annual total {value}."
+                f"{explicit_sum}, which doesn't match the annual total {value}."
             )
 
 
@@ -332,11 +368,12 @@ def _distribute_numeric_year_value(
     Explicit monthly values for the same year are preserved (the partner
     is overriding that month). The remainder ``V − sum(explicit)`` is
     split evenly across the unset months as a raw float, matching the
-    hosted v1 API and OpenFisca's ``set_input_divide_by_period``.
-
-    ``validate_period_budgets`` rejects budget overruns up front, so a
-    negative remainder shouldn't reach this code; the explicit guard
-    below is defense-in-depth.
+    hosted v1 API and OpenFisca's ``set_input_divide_by_period`` —
+    including the case where the remainder is negative (sum of explicit
+    months > annual). ``validate_period_budgets`` only rejects the
+    fully-explicit-12-months case where sum != annual; partial monthlies
+    are silently distributed even if that pushes the unset months
+    negative, exactly like v1.
     """
     explicit_months: dict[int, float] = {}
     for inner_key, inner_value in period_map.items():
@@ -347,20 +384,14 @@ def _distribute_numeric_year_value(
         month = _parsed_period(inner_key).start.month
         explicit_months[month] = float(inner_value)
 
-    remainder = annual_value - sum(explicit_months.values())
-    if remainder < 0:
-        raise AssertionError(
-            "validate_period_budgets was bypassed: monthly values for "
-            f"{year} sum to {sum(explicit_months.values())}, which exceeds "
-            f"the annual total {annual_value}."
-        )
     unset_count = 12 - len(explicit_months)
     if unset_count <= 0:
         # All 12 months are explicit. validate_period_budgets has already
-        # confirmed they sum to <= annual_value, so just remove the YEAR key.
+        # confirmed they sum to == annual_value, so just remove the YEAR key.
         del period_map[year]
         return
 
+    remainder = annual_value - sum(explicit_months.values())
     per_unset = remainder / unset_count
     del period_map[year]
     for month in range(1, 13):

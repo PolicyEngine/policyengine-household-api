@@ -253,6 +253,24 @@ class TestDetectPeriodWarnings:
 
         assert len(warnings) == 1
 
+    def test__year_input_with_partial_months__no_partial_monthly_warning(
+        self, us_system
+    ):
+        # `{"2026": 36000, "2026-06": 1500}` — the year-key fills the
+        # unset months from the remainder, so they don't read the
+        # engine's fallback. The detector must NOT fire a partial-monthly
+        # warning even though only one explicit month key is present.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {"2026": 36000, "2026-06": 1500},
+                    "snap": {"2026": None},
+                }
+            }
+        }
+
+        assert detect_period_warnings(household, us_system) == []
+
 
 class TestEndpointAttachesWarnings:
     """Round-trip: the warning is exposed in the API response body as strings."""
@@ -296,26 +314,23 @@ class TestEndpointAttachesWarnings:
         body = json.loads(response.data)
         assert "warnings" not in body
 
-    def test__budget_overrun_returns_400(self, client):
-        # When explicit monthly inputs sum to more than the annual total
-        # for a numeric MONTH-defined variable, the request is rejected
-        # with a 400 — matching the OpenFisca/policyengine-core behavior
-        # that raises ``ValueError("Inconsistent input...")`` for the
-        # same shape.
+    def test__inconsistent_full_year_returns_400(self, client):
+        # All 12 months explicit AND sum != annual → 400 ("Inconsistent
+        # input"). Mirrors policyengine-core's
+        # ``set_input_divide_by_period`` raise. Partial-month overruns
+        # are silently distributed, not rejected.
         from tests.fixtures.country import (
             valid_household_requesting_ctc_calculation,
         )
 
+        explicit = {f"2024-{m:02d}": 50 for m in range(1, 13)}
+        explicit["2024"] = 1200  # monthlies sum to $600
         household = {
             **valid_household_requesting_ctc_calculation,
             "spm_units": {
                 "spm_unit": {
                     "members": ["you"],
-                    "snap_earned_income": {
-                        "2024": 1200,
-                        "2024-06": 999,
-                        "2024-07": 999,
-                    },
+                    "snap_earned_income": explicit,
                 }
             },
         }
@@ -325,5 +340,5 @@ class TestEndpointAttachesWarnings:
         assert response.status_code == 400
         body = json.loads(response.data)
         assert body["status"] == "error"
+        assert "Inconsistent input" in body["message"]
         assert "snap_earned_income" in body["message"]
-        assert "exceeds the annual total" in body["message"]

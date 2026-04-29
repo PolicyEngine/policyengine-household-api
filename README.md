@@ -118,10 +118,6 @@ hosted v1 API and OpenFisca's `set_input_divide_by_period`.
 // Annual $1200 with June pinned to $600. Remaining $600 splits across
 // the other 11 months as raw float ≈ $54.55/mo.
 "snap_earned_income": {"2026": 1200, "2026-06": 600}
-
-// All 12 months explicit and consistent with the annual total.
-// The year key just disappears; every month keeps its explicit value.
-"snap_earned_income": {"2026": 1200, "2026-01": 100, ..., "2026-12": 100}
 ```
 
 For boolean / string / enum MONTH-defined variables, explicit monthly values
@@ -133,10 +129,14 @@ the rest:
 "snap_utility_allowance_type": {"2026": "SUA", "2026-06": "LUA"}
 ```
 
-If the explicit monthly values sum to more than the annual total, the API
-rejects the request with a 400 — the budget is inconsistent. Output-request
-`null` slots don't count as inputs, so `{"2026": 1200, "2026-06": null}`
-keeps both: the year expands as usual and the engine returns June's value.
+The API only rejects with a 400 when **every month** of the year is
+explicit AND those monthlies don't sum to the annual total — that's an
+"Inconsistent input" the engine can't reconcile. Partial monthly
+overrides (any number from 0 to 11 explicit months) are accepted; the
+remainder is distributed across the unset months even when it's negative
+(matching v1 / OpenFisca exactly). Output-request `null` slots don't
+count as inputs, so `{"2026": 1200, "2026-06": null}` keeps both: the
+year expands as usual and the engine returns June's value.
 
 ### What goes wrong when you mix shapes
 

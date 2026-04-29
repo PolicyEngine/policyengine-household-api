@@ -360,9 +360,10 @@ class TestValidatePeriodBudgets:
 
         validate_period_budgets(household, us_system)  # must not raise
 
-    def test__explicit_months_exceed_annual__raises_value_error(
-        self, us_system
-    ):
+    def test__partial_monthlies_above_annual__no_error(self, us_system):
+        # v1 / OpenFisca silently distributes a negative remainder when
+        # only some months are explicit and they sum above the annual.
+        # We mirror that — no validator rejection here.
         household = {
             "spm_units": {
                 "spm_unit_1": {
@@ -375,15 +376,52 @@ class TestValidatePeriodBudgets:
             }
         }
 
+        validate_period_budgets(household, us_system)  # must not raise
+
+    def test__all_twelve_months_below_annual__raises_value_error(
+        self, us_system
+    ):
+        # Every month explicit AND sum != annual → v1 raises
+        # "Inconsistent input"; we match.
+        explicit = {f"2026-{m:02d}": 50 for m in range(1, 13)}
+        explicit["2026"] = 1200  # but monthlies sum to $600
+        household = {
+            "spm_units": {"spm_unit_1": {"snap_earned_income": explicit}}
+        }
+
         with pytest.raises(ValueError) as exc_info:
             validate_period_budgets(household, us_system)
 
         message = str(exc_info.value)
+        assert "Inconsistent input" in message
         assert "snap_earned_income" in message
-        assert "spm_unit_1" in message
         assert "2026" in message
-        assert "1998" in message
+        assert "600" in message
         assert "1200" in message
+
+    def test__all_twelve_months_above_annual__raises_value_error(
+        self, us_system
+    ):
+        explicit = {f"2026-{m:02d}": 200 for m in range(1, 13)}
+        explicit["2026"] = 1200  # monthlies sum to $2400
+        household = {
+            "spm_units": {"spm_unit_1": {"snap_earned_income": explicit}}
+        }
+
+        with pytest.raises(ValueError):
+            validate_period_budgets(household, us_system)
+
+    def test__negative_year_only_input__no_error(self, us_system):
+        # Year-only with a negative value — explicit_sum is 0, but v1
+        # accepts the shape (some MONTH-defined numeric variables can
+        # legitimately be negative). The validator must not reject it.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {"snap_earned_income": {"2026": -1200}}
+            }
+        }
+
+        validate_period_budgets(household, us_system)  # must not raise
 
     def test__bool_var_does_not_trigger_budget_check(self, us_system):
         # Budget logic is numeric-only. Passing both year + month bools
