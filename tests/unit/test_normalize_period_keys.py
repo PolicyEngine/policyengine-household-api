@@ -177,6 +177,55 @@ class TestNormalizePeriodKeys:
 
         assert household["spm_units"]["spm_unit_1"]["snap"] == {"2026": None}
 
+    def test__month_defined_boolean__broadcasts_true_unchanged(
+        self, us_system
+    ):
+        # `is_incarcerated` is a MONTH-defined bool. A YEAR-keyed `True` must
+        # broadcast to True for every month — it must NOT be coerced to
+        # `True / 12 == 0.0833...` (bool is a subclass of int in Python).
+        household = {
+            "people": {"person_1": {"is_incarcerated": {"2026": True}}},
+        }
+
+        _normalize_period_keys(household, us_system)
+
+        flag_map = household["people"]["person_1"]["is_incarcerated"]
+        assert "2026" not in flag_map
+        for month in range(1, 13):
+            assert flag_map[f"2026-{month:02d}"] is True
+
+    def test__month_defined_boolean__broadcasts_false_unchanged(
+        self, us_system
+    ):
+        household = {
+            "people": {"person_1": {"is_incarcerated": {"2026": False}}},
+        }
+
+        _normalize_period_keys(household, us_system)
+
+        flag_map = household["people"]["person_1"]["is_incarcerated"]
+        for month in range(1, 13):
+            assert flag_map[f"2026-{month:02d}"] is False
+
+    def test__month_defined_enum__broadcasts_unchanged(self, us_system):
+        # `snap_utility_allowance_type` is a MONTH-defined Enum.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_utility_allowance_type": {"2026": "SUA"},
+                }
+            },
+        }
+
+        _normalize_period_keys(household, us_system)
+
+        utility_map = household["spm_units"]["spm_unit_1"][
+            "snap_utility_allowance_type"
+        ]
+        assert "2026" not in utility_map
+        for month in range(1, 13):
+            assert utility_map[f"2026-{month:02d}"] == "SUA"
+
 
 def _wa_household(income_key, income_value, output_key):
     """Build a single-person WA SNAP household with a configurable input/output."""

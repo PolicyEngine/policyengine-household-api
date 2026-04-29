@@ -75,6 +75,52 @@ For development with external networking:
 % make docker-console
 ```
 
+## Period-key conventions
+
+Every input and output on `/calculate` is keyed by a period string. Two shapes
+are supported:
+
+- **Year key** — `"2026"`. Treated as the value for the entire year.
+- **Month key** — `"2026-01"`. Treated as the value for that single month.
+
+Each PolicyEngine variable has a fixed `definition_period` (year or month).
+Annual variables like `employment_income` and `state_name` are defined for
+the year; monthly variables like `snap_earned_income`, `snap_gross_income`,
+and `rent` are defined for the month.
+
+### Recommended pattern: stay consistent within a request
+
+Pick one cadence per request and use it everywhere:
+
+| You want                   | Send inputs as     | Request outputs as |
+|----------------------------|--------------------|--------------------|
+| Annual totals              | `{"2026": V}`      | `{"2026": null}`   |
+| A specific month           | `{"2026-01": V}`   | `{"2026-01": null}`|
+
+If you only think in yearly amounts, use year keys for everything — including
+monthly variables. The API distributes a year-keyed numeric value across the
+12 months as `V/12` per month before the engine runs, and the engine returns
+the annual sum on the way back. Booleans, strings, and enums are broadcast
+unchanged across months.
+
+If you need per-month variation (e.g. modeling a one-off income shock in
+March), key both the input and the output to the same month.
+
+### What goes wrong when you mix shapes
+
+Sending a single-month input (`{"2026-01": V}`) on a monthly variable but
+requesting an annual output (`{"2026": null}`) is the most common pitfall.
+The other 11 months default to 0 in the engine, so the annual sum looks like
+a year of benefits even though only January was actually specified. The API
+returns a `warnings` array in the response when it detects this combination
+so you can correct the request before relying on the number.
+
+### What the API echoes back
+
+Output keys are echoed back exactly as you sent them. Input keys are
+preserved unchanged; the year-to-month split happens internally and never
+shows up in the response.
+
 ## Development rules
 
 1. Every endpoint should return a JSON object with at least a "status" and "message" field.

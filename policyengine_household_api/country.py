@@ -32,6 +32,81 @@ from uuid import UUID, uuid4
 
 
 _YEAR_KEY_RE = re.compile(r"^\d{4}$")
+_MONTH_KEY_RE = re.compile(r"^(\d{4})-(\d{2})$")
+
+
+def detect_period_warnings(household: dict, system) -> list[str]:
+    """Surface request shapes likely to surprise partners.
+
+    The most common pitfall: setting a MONTH-defined variable for only one
+    month (e.g. `snap_earned_income: {"2026-01": 3000}`) and asking for an
+    annual output (e.g. `snap: {"2026": null}`). The engine fills the other
+    11 months with the variable's default — typically 0 — and the annual
+    sum looks like a year of benefits even though only January was actually
+    specified. Returning a warning lets partners catch the mistake before
+    relying on the number.
+
+    Returns one warning string per offending (variable, entity, year) so
+    multiple issues in a single request all surface.
+    """
+
+    annual_output_years: set[str] = set()
+    monthly_inputs: dict[tuple[str, str, str, str], set[int]] = {}
+
+    for entity_plural, entities in household.items():
+        if entity_plural == "axes" or not isinstance(entities, dict):
+            continue
+        for entity_id, entity_data in entities.items():
+            if not isinstance(entity_data, dict):
+                continue
+            for variable_name, period_map in entity_data.items():
+                if not isinstance(period_map, dict):
+                    continue
+                variable = system.variables.get(variable_name)
+                if variable is None:
+                    continue
+                for period_key, value in period_map.items():
+                    if value is None:
+                        if _YEAR_KEY_RE.match(period_key):
+                            annual_output_years.add(period_key)
+                        continue
+                    if variable.definition_period != "month":
+                        continue
+                    match = _MONTH_KEY_RE.match(period_key)
+                    if not match:
+                        continue
+                    year = match.group(1)
+                    month = int(match.group(2))
+                    key = (variable_name, entity_plural, entity_id, year)
+                    monthly_inputs.setdefault(key, set()).add(month)
+
+    warnings: list[str] = []
+    for (
+        variable_name,
+        entity_plural,
+        entity_id,
+        year,
+    ), months in monthly_inputs.items():
+        if year not in annual_output_years:
+            continue
+        if len(months) >= 12:
+            continue
+        sorted_months = sorted(months)
+        sample = ", ".join(f"{year}-{m:02d}" for m in sorted_months[:3])
+        if len(sorted_months) > 3:
+            sample += ", ..."
+        missing = 12 - len(sorted_months)
+        warnings.append(
+            f"`{variable_name}` on `{entity_plural}/{entity_id}` was keyed "
+            f"for {len(sorted_months)} of 12 months in {year} ({sample}); "
+            f"the remaining {missing} months will default to 0 in the "
+            f"engine. Because an annual output is requested for {year}, "
+            f"those zero months are summed into the annual total. To get "
+            f"an accurate annual figure, either send a yearly key "
+            f'(`{{"{year}": V}}`) or set all 12 monthly keys.'
+        )
+
+    return warnings
 
 
 def _normalize_period_keys(household: dict, system) -> dict:
