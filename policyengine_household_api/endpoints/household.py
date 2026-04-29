@@ -6,6 +6,7 @@ from uuid import UUID
 from policyengine_household_api.country import (
     COUNTRIES,
     detect_period_warnings,
+    validate_period_budgets,
 )
 from policyengine_household_api.models.household import (
     HouseholdModelGeneric,
@@ -120,18 +121,19 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     policy_json = payload.get("policy", {})
     enable_ai_explainer = payload.get("enable_ai_explainer", False)
 
+    country = COUNTRIES.get(country_id)
+
     # Validate inbound payload shape before reaching the compute layer.
     try:
         _validate_household_payload(country_id, household_json)
         _validate_axes(household_json)
+        validate_period_budgets(household_json, country.tax_benefit_system)
     except ValueError as e:
         return Response(
             json.dumps({"status": "error", "message": str(e)}),
             status=400,
             mimetype="application/json",
         )
-
-    country = COUNTRIES.get(country_id)
 
     # Detect request shapes likely to surprise partners (e.g. single-month
     # input on a MONTH-defined variable combined with an annual output

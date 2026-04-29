@@ -202,6 +202,28 @@ class TestDetectPeriodWarnings:
 
         assert warnings == []
 
+    def test__year_defined_output_does_not_trigger_warning(self, us_system):
+        # YEAR-defined variables don't have the missing-month hazard, so
+        # an annual null on a YEAR-defined variable must not arm the
+        # warning trigger for unrelated MONTH inputs.
+        household = {
+            "people": {
+                "person_1": {
+                    # `state_name` is YEAR-defined.
+                    "state_name": {"2026": None},
+                }
+            },
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {"2026-01": 3000},
+                }
+            },
+        }
+
+        warnings = detect_period_warnings(household, us_system)
+
+        assert warnings == []
+
     def test__different_year_input_and_output__no_warning(self, us_system):
         # If Jan-2026 input doesn't overlap with the 2027 annual output,
         # there's no hazard for that year.
