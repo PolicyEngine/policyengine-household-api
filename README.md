@@ -99,20 +99,32 @@ Pick one cadence per request and use it everywhere:
 
 If you only think in yearly amounts, use year keys for everything — including
 monthly variables. For numeric inputs, the API treats the year value as the
-annual total and distributes it across the 12 months before the engine runs;
-the engine returns the annual sum on the way back. Booleans, strings, and
-enums are broadcast unchanged across months.
+annual total and distributes it as `V/12` across the 12 months before the
+engine runs; the engine returns the annual sum on the way back. Booleans,
+strings, and enums are broadcast unchanged across months.
 
-You can also mix a year key with one or more month keys for the same
-variable to pin specific months — e.g. `{"2026": 36000, "2026-06": 0}`
-means "the annual total is $36k with June pinned to $0; the other 11
-months absorb the full $36k." Pinned month values consume part of the
-annual total and the remainder is split across the unset months. If
-the pinned months sum to more than the annual total, the request is
-rejected with a 400 — the budget is inconsistent.
+If you need per-month variation, key both the input and the output to the
+same month.
 
-If you need per-month variation without a yearly anchor, key both the
-input and the output to the same month.
+### Sending both annual and monthly inputs for the same variable
+
+If a variable receives both a year key and same-year month keys with non-null
+values, the API keeps whichever group **appears last in the JSON object**
+(not whichever month is later in the year — the rule is purely about JSON
+insertion order, which CPython and most JSON libraries preserve) and drops
+the other. The response carries an `OverlappingPeriodWarning` listing the
+kept and dropped keys so you can see exactly what landed.
+
+```json
+// Last entry is monthly → annual drops; only June is set, others default to 0.
+"snap_earned_income": {"2026": 36000, "2026-06": 1500}
+
+// Last entry is annual → all earlier monthlies drop; year expands to V/12.
+"snap_earned_income": {"2026-01": 100, "2026-03": 200, "2026": 36000}
+```
+
+Output-request `null` slots don't participate in this resolution — they're
+requests, not inputs, so `{"2026": 1200, "2026-06": null}` keeps both.
 
 ### What goes wrong when you mix shapes
 

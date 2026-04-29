@@ -110,15 +110,54 @@ class PartialMonthlyInputWarning:
         )
 
 
-def detect_period_warnings(
-    household: dict, system
-) -> list[PartialMonthlyInputWarning]:
+@dataclass(frozen=True)
+class OverlappingPeriodWarning:
+    """A variable received both a year key and same-year monthly keys
+    with non-null values. The household API resolves this by keeping
+    whichever group's most-recent insertion is later in the payload
+    (last write wins) and dropping the other.
+    """
+
+    variable: str
+    entity_plural: str
+    entity_id: str
+    year: str
+    kept_keys: tuple[str, ...]
+    dropped_keys: tuple[str, ...]
+
+    @property
+    def message(self) -> str:
+        kept = ", ".join(f"`{k}`" for k in self.kept_keys)
+        dropped = ", ".join(f"`{k}`" for k in self.dropped_keys)
+        return (
+            f"`{self.variable}` on `{self.entity_plural}/{self.entity_id}` "
+            f"received both annual and monthly inputs for {self.year}; "
+            f"using whichever appears last in the JSON object ({kept}) "
+            f"and ignoring the earlier entries ({dropped}). Output-request "
+            f"slots (`null`) don't trigger this — only non-null inputs do. "
+            f"To suppress this warning, send only the period shape you intend."
+        )
+
+
+# Type alias for any warning the detector can emit.
+PeriodWarning = PartialMonthlyInputWarning | OverlappingPeriodWarning
+
+
+def detect_period_warnings(household: dict, system) -> list[PeriodWarning]:
     """Return structured warnings for surprising request shapes.
 
-    Returning dataclasses (not strings) keeps the variable / year /
-    months_set fields available to callers — e.g. the endpoint can
-    serialize to a richer JSON shape later without a second pass.
+    Two kinds today:
+    - ``OverlappingPeriodWarning`` — both a year key and same-year monthly
+      keys were provided for the same variable; the later input wins.
+    - ``PartialMonthlyInputWarning`` — partial monthly input paired with
+      an annual output for the same year; unset months read the engine's
+      fallback and silently inflate the annual sum.
+
+    Each variable's period map is walked once: ``_year_overlap_resolutions``
+    is computed up front so the resolution feeds both the overlap warning
+    and the post-resolution surviving-monthly check.
     """
+    warnings: list[PeriodWarning] = []
     annual_month_output_years: set[str] = set()
     monthly_inputs: dict[tuple[str, str, str, str], set[int]] = {}
 
@@ -135,25 +174,43 @@ def detect_period_warnings(
                 if variable is None:
                     continue
                 is_month_var = variable.definition_period == "month"
+                resolutions = _year_overlap_resolutions(period_map)
+
+                # Output requests with annual nulls on MONTH vars arm the
+                # missing-month hazard. YEAR-defined vars don't have months.
+                # Inputs dropped by overlap resolution don't reach the
+                # engine, so don't count them as monthly inputs either.
+                dropped_keys: set[str] = {
+                    k for _kept, drops in resolutions.values() for k in drops
+                }
                 for period_key, value in period_map.items():
                     if value is None:
-                        # None = output request, not an input. Annual nulls
-                        # on MONTH-defined vars arm the missing-month
-                        # hazard; YEAR-defined vars don't have months.
                         if is_month_var and _is_year_key(period_key):
                             annual_month_output_years.add(period_key)
                         continue
-                    if not is_month_var:
+                    if not is_month_var or period_key in dropped_keys:
                         continue
                     year = _month_key_year(period_key)
                     if year is None:
                         continue
                     parsed = _parsed_period(period_key)
-                    month = parsed.start.month
                     key = (variable_name, entity_plural, entity_id, year)
-                    monthly_inputs.setdefault(key, set()).add(month)
+                    monthly_inputs.setdefault(key, set()).add(
+                        parsed.start.month
+                    )
 
-    warnings: list[PartialMonthlyInputWarning] = []
+                for year, (kept_keys, dropped) in resolutions.items():
+                    warnings.append(
+                        OverlappingPeriodWarning(
+                            variable=variable_name,
+                            entity_plural=entity_plural,
+                            entity_id=entity_id,
+                            year=year,
+                            kept_keys=kept_keys,
+                            dropped_keys=dropped,
+                        )
+                    )
+
     for (
         variable_name,
         entity_plural,
@@ -177,38 +234,49 @@ def detect_period_warnings(
 
 
 # ---------------------------------------------------------------------------
+# Year-vs-month overlap resolution (last write wins)
+# ---------------------------------------------------------------------------
+#
+# When a variable receives both a year-key input and same-year monthly-key
+# inputs, the API resolves the conflict by insertion order: whichever group
+# (year vs. monthlies) has the latest-inserted member in the JSON object
+# survives, the other is dropped. Output-request slots (None) don't
+# participate — they're requests, not inputs.
+
+
+def _year_overlap_resolutions(
+    period_map: dict,
+) -> dict[str, tuple[tuple[str, ...], tuple[str, ...]]]:
+    """For each year in ``period_map`` that has a non-null year+month
+    input collision, return ``{year: (kept_keys, dropped_keys)}``. Years
+    without a collision are absent from the result. ``period_map`` is
+    not mutated.
+    """
+    pos = {key: index for index, key in enumerate(period_map)}
+    out: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {}
+    for year_key, year_value in period_map.items():
+        if not _is_year_key(year_key) or year_value is None:
+            continue
+        year = year_key
+        month_keys = [
+            k
+            for k, v in period_map.items()
+            if _month_key_year(k) == year and v is not None
+        ]
+        if not month_keys:
+            continue
+        last_year_pos = pos[year_key]
+        last_month_pos = max(pos[k] for k in month_keys)
+        if last_month_pos > last_year_pos:
+            out[year] = (tuple(month_keys), (year_key,))
+        else:
+            out[year] = ((year_key,), tuple(month_keys))
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Period-key normalization
 # ---------------------------------------------------------------------------
-
-
-def validate_period_budgets(household: dict, system) -> None:
-    """Reject requests where explicit monthly inputs exceed the annual total.
-
-    For numeric MONTH-defined variables, partners may send both a year key
-    (the annual total) and one or more month keys (explicit overrides).
-    Sums above the annual total are inconsistent — raise so the endpoint
-    can return a 400 rather than producing a misleading benefit number.
-    """
-    for entity_plural, entities in (household or {}).items():
-        if entity_plural == "axes" or not isinstance(entities, dict):
-            continue
-        for entity_id, entity_data in entities.items():
-            if not isinstance(entity_data, dict):
-                continue
-            for variable_name, period_map in entity_data.items():
-                if not isinstance(period_map, dict):
-                    continue
-                variable = system.variables.get(variable_name)
-                if variable is None or variable.definition_period != "month":
-                    continue
-                if not _is_numeric_value_type(variable):
-                    continue
-                _check_year_budget(
-                    period_map=period_map,
-                    variable_name=variable_name,
-                    entity_plural=entity_plural,
-                    entity_id=entity_id,
-                )
 
 
 def _is_numeric_value_type(variable) -> bool:
@@ -217,54 +285,26 @@ def _is_numeric_value_type(variable) -> bool:
     return vt in (int, float)
 
 
-def _check_year_budget(
-    period_map: dict,
-    variable_name: str,
-    entity_plural: str,
-    entity_id: str,
-) -> None:
-    for period_key, value in list(period_map.items()):
-        if not _is_year_key(period_key):
-            continue
-        if not _is_numeric(value):
-            continue
-        year = period_key
-        explicit_sum = 0.0
-        for inner_key, inner_value in period_map.items():
-            if _month_key_year(inner_key) != year:
-                continue
-            if not _is_numeric(inner_value):
-                continue
-            explicit_sum += float(inner_value)
-        if explicit_sum > float(value):
-            raise ValueError(
-                f"Monthly values for `{variable_name}` on "
-                f"`{entity_plural}/{entity_id}` in {year} sum to "
-                f"{explicit_sum}, which exceeds the annual total {value}."
-            )
-
-
 def _normalize_period_keys(household: dict, system) -> dict:
-    """Return a deep-copied household with YEAR-keyed inputs expanded to months.
+    """Return a deep-copied household ready for the engine.
 
-    policyengine-core's ``Simulation(situation=...)`` silently drops a year-
-    period assignment on a MONTH-defined variable (see issue #1489). The
-    hosted v1 API distributes the annual value across the year so partners
-    get a sensible answer. To match that behavior, this normalizer walks the
-    situation, looks up each variable's ``definition_period``, and rewrites
-    YEAR-keyed values for MONTH-defined variables before the engine sees them.
+    Two transforms run on each MONTH-defined variable's period map:
 
-    Behavior per value type:
-    - numeric: the year value is treated as the annual total. Any explicit
-      monthly values for the same year are subtracted, and the remainder is
-      split evenly across the unset months (rounded to two decimals).
-    - boolean / string / enum: the year value is broadcast unchanged to the
-      unset months. Explicit monthly values still override.
-    - null (output request): the YEAR key is left alone so the engine
-      returns the annual sum across the 12 monthly values.
+    1. **Year-vs-month overlap resolution.** If both a year key and same-
+       year month keys carry non-null values, drop whichever group has the
+       earlier last-insertion in the dict — last write wins. ``detect_period_warnings``
+       surfaces an ``OverlappingPeriodWarning`` for each resolution so the
+       partner sees what was kept.
 
-    Caller hands the returned dict to the engine. The original household is
-    never mutated, so the response can echo the partner's keys verbatim.
+    2. **Year-key expansion.** policyengine-core's ``Simulation(situation=...)``
+       silently drops a year-period assignment on a MONTH-defined variable
+       (issue #1489), so the surviving year-key value is rewritten into 12
+       month entries before the engine sees them: numeric V splits as V/12;
+       bool / str / enum broadcast unchanged. Null (output-request) year
+       keys are left alone so the engine still returns the annual sum.
+
+    The original household is never mutated, so the response can echo the
+    partner's keys verbatim.
     """
     normalized = copy.deepcopy(household)
     for entity_plural, entities in normalized.items():
@@ -279,11 +319,26 @@ def _normalize_period_keys(household: dict, system) -> dict:
                 variable = system.variables.get(variable_name)
                 if variable is None or variable.definition_period != "month":
                     continue
+                resolutions = _year_overlap_resolutions(period_map)
+                _apply_year_overlap_resolutions_in_place(
+                    period_map, resolutions
+                )
                 _expand_year_keys_in_place(period_map, variable)
     return normalized
 
 
+def _apply_year_overlap_resolutions_in_place(
+    period_map: dict,
+    resolutions: dict[str, tuple[tuple[str, ...], tuple[str, ...]]],
+) -> None:
+    """Drop the loser group of each precomputed year-vs-month resolution."""
+    for _kept, dropped in resolutions.values():
+        for key in dropped:
+            period_map.pop(key, None)
+
+
 def _expand_year_keys_in_place(period_map: dict, variable) -> None:
+    """Rewrite each surviving non-null year key into 12 monthly entries."""
     is_numeric = _is_numeric_value_type(variable)
     for period_key in list(period_map.keys()):
         if not _is_year_key(period_key):
@@ -302,67 +357,28 @@ def _expand_year_keys_in_place(period_map: dict, variable) -> None:
 def _distribute_numeric_year_value(
     period_map: dict, year: str, annual_value: float
 ) -> None:
-    """Distribute an annual numeric V across the 12 months of ``year``.
+    """Distribute an annual numeric V as V/12 across the 12 months of ``year``.
 
-    Explicit monthly values for the same year are preserved (the partner
-    is overriding that month). The remainder ``V - sum(explicit)`` is
-    split evenly across the unset months as a raw float — matches the
-    hosted v1 API, which emits unrounded values like ``163.63637`` and
-    relies on the engine to consume the float directly. Rounding here
-    would introduce drift the engine sums back differently.
-
-    Output-request slots (``None``) count as unset. ``validate_period_budgets``
-    is the canonical place to surface a budget-overrun error to partners
-    (raises ``ValueError`` → 400 from the endpoint). This function defends
-    in depth with an ``AssertionError`` for the unreachable case:
-    ``sum(explicit) > annual_value`` should never get here in production
-    because the validator runs first.
+    Overlap resolution has already removed any same-year monthly inputs, so
+    the only collisions left are with output-request (``None``) slots — those
+    get overwritten so the engine sees the input on every month.
     """
-    explicit_months: dict[int, float] = {}
-    for inner_key, inner_value in period_map.items():
-        if _month_key_year(inner_key) != year:
-            continue
-        if not _is_numeric(inner_value):
-            continue
-        month = _parsed_period(inner_key).start.month
-        explicit_months[month] = float(inner_value)
-
-    remainder = annual_value - sum(explicit_months.values())
-    if remainder < 0:
-        raise AssertionError(
-            "validate_period_budgets was bypassed: monthly values for "
-            f"{year} sum to {sum(explicit_months.values())}, which exceeds "
-            f"the annual total {annual_value}."
-        )
-    unset_count = 12 - len(explicit_months)
-    if unset_count <= 0:
-        # All 12 months are explicit. validate_period_budgets has already
-        # confirmed they sum to <= annual_value, so just remove the YEAR key.
-        del period_map[year]
-        return
-
-    per_unset = remainder / unset_count
+    per_month = annual_value / 12
     del period_map[year]
     for month in range(1, 13):
         month_key = f"{year}-{month:02d}"
-        if month in explicit_months:
-            continue
-        # Overwrite missing slots and None (output-request) slots; preserve
-        # any explicit non-null monthly inputs (already in `explicit_months`
-        # so this branch is only for unset / null slots).
         if period_map.get(month_key) is None:
-            period_map[month_key] = per_unset
+            period_map[month_key] = per_month
 
 
 def _broadcast_year_value(period_map: dict, year: str, value) -> None:
-    """Broadcast a non-numeric annual value (bool/str/enum) to every month."""
+    """Broadcast a non-numeric annual value (bool/str/enum) to every month.
+
+    Same overlap-already-resolved invariant as :func:`_distribute_numeric_year_value`.
+    """
     del period_map[year]
     for month in range(1, 13):
         month_key = f"{year}-{month:02d}"
-        # Fill missing slots and overwrite None (output-request) slots so the
-        # engine sees the year-input on every month, including any month the
-        # partner asked for as output. Non-null monthly inputs already in the
-        # map win, so partners can override one month explicitly.
         if period_map.get(month_key) is None:
             period_map[month_key] = value
 
@@ -667,10 +683,12 @@ class PolicyEngineCountry:
         else:
             system = self.tax_benefit_system
 
-        # Hand a normalized copy to the engine so YEAR-keyed MONTH inputs
-        # behave like the hosted v1 API (issue #1489). The normalizer
-        # deep-copies internally, so the original `household` is intact and
-        # the response can echo back the user's keys.
+        # Resolve year-vs-month input overlap (last-wins) and expand any
+        # surviving year-keyed inputs across the 12 months — the engine
+        # silently drops year-keyed assignments on MONTH-defined variables
+        # (issue #1489). The normalizer deep-copies internally so the
+        # original `household` is intact and the response can echo back
+        # the user's keys.
         normalized_household = _normalize_period_keys(household, system)
 
         simulation = self.country_package.Simulation(

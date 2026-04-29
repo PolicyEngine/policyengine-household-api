@@ -15,7 +15,6 @@ from policyengine_us import CountryTaxBenefitSystem
 from policyengine_household_api.country import (
     PolicyEngineCountry,
     _normalize_period_keys,
-    validate_period_budgets,
 )
 from tests.fixtures.country import country_id_us, country_package_name_us
 
@@ -47,71 +46,6 @@ class TestNumericMonthDefinedVariable:
         for month in range(1, 13):
             assert snap_map[f"2026-{month:02d}"] == 2661.0
 
-    def test__year_plus_partial_months__remainder_distributes_to_unset(
-        self, us_system
-    ):
-        # Annual $1200 with explicit June=$600 → remainder $600 split over
-        # the other 11 months as an unrounded float (matches v1 — see
-        # /tmp/v1_breakdown probe). Engine consumes the float directly.
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {"2026": 1200, "2026-06": 600}
-                }
-            }
-        }
-
-        normalized = _normalize_period_keys(household, us_system)
-
-        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
-        assert snap_map["2026-06"] == 600
-        assert snap_map["2026-01"] == pytest.approx(600 / 11)
-        assert snap_map["2026-12"] == pytest.approx(600 / 11)
-        assert "2026" not in snap_map
-
-    def test__year_plus_months_summing_to_year__unset_months_zero(
-        self, us_system
-    ):
-        # Annual $600 with explicit Jan+Feb=$300+$300 → remainder $0 →
-        # other 10 months get $0.
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {
-                        "2026": 600,
-                        "2026-01": 300,
-                        "2026-02": 300,
-                    }
-                }
-            }
-        }
-
-        normalized = _normalize_period_keys(household, us_system)
-
-        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
-        assert snap_map["2026-01"] == 300
-        assert snap_map["2026-02"] == 300
-        for month in range(3, 13):
-            assert snap_map[f"2026-{month:02d}"] == 0.0
-
-    def test__year_plus_all_twelve_months__year_key_dropped_no_redistribution(
-        self, us_system
-    ):
-        # All 12 months explicit and consistent with the annual total —
-        # the YEAR key just disappears, every month keeps its explicit value.
-        explicit = {f"2026-{m:02d}": 100 for m in range(1, 13)}
-        explicit["2026"] = 1200
-        household = {
-            "spm_units": {"spm_unit_1": {"snap_earned_income": explicit}}
-        }
-
-        normalized = _normalize_period_keys(household, us_system)
-
-        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
-        assert "2026" not in snap_map
-        for month in range(1, 13):
-            assert snap_map[f"2026-{month:02d}"] == 100
-
     def test__null_year_output__year_key_left_intact(self, us_system):
         # Output requests must keep the YEAR key so the engine sums the months.
         household = {"spm_units": {"spm_unit_1": {"snap": {"2026": None}}}}
@@ -133,14 +67,92 @@ class TestNumericMonthDefinedVariable:
             "2026-01": 3000
         }
 
-    def test__bypassing_validator_with_overrun_raises_assertion_error(
+
+class TestYearMonthOverlapResolution:
+    """When both year and same-year monthly inputs collide for a variable,
+    the API keeps the group whose latest insertion is later in the dict."""
+
+    def test__year_first_then_month__month_wins(self, us_system):
+        # `{"2026": 1200, "2026-06": 600}` — month inserted last → year drops.
+        # Only June is set; other 11 months default to 0 in the engine.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {"2026": 1200, "2026-06": 600}
+                }
+            }
+        }
+
+        normalized = _normalize_period_keys(household, us_system)
+
+        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
+        assert snap_map == {"2026-06": 600}
+
+    def test__month_first_then_year__year_wins(self, us_system):
+        # `{"2026-01": 100, "2026": 1200}` — year inserted last → month drops.
+        # Year then expands as V/12 across all 12 months.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {"2026-01": 100, "2026": 1200}
+                }
+            }
+        }
+
+        normalized = _normalize_period_keys(household, us_system)
+
+        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
+        for month in range(1, 13):
+            assert snap_map[f"2026-{month:02d}"] == 100  # 1200/12
+        assert "2026" not in snap_map
+
+    def test__multiple_months_then_year__all_months_drop(self, us_system):
+        # `{"2026-01": 100, "2026-03": 200, "2026": 1200}` — year is last
+        # among year+monthlies for 2026, so all explicit monthlies drop.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {
+                        "2026-01": 100,
+                        "2026-03": 200,
+                        "2026": 1200,
+                    }
+                }
+            }
+        }
+
+        normalized = _normalize_period_keys(household, us_system)
+
+        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
+        for month in range(1, 13):
+            assert snap_map[f"2026-{month:02d}"] == 100  # 1200/12
+        assert "2026" not in snap_map
+
+    def test__year_then_multiple_months__year_drops_months_kept(
         self, us_system
     ):
-        # `validate_period_budgets` runs at the endpoint and is the
-        # canonical 400 path. The normalizer also defends in depth: if
-        # someone calls it directly with a budget overrun, the unreachable
-        # branch raises AssertionError so the bug surfaces loudly instead
-        # of distributing a negative per-month value silently.
+        # `{"2026": 1200, "2026-01": 100, "2026-03": 200}` — last is a
+        # monthly, so year drops; both monthlies survive.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {
+                        "2026": 1200,
+                        "2026-01": 100,
+                        "2026-03": 200,
+                    }
+                }
+            }
+        }
+
+        normalized = _normalize_period_keys(household, us_system)
+
+        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
+        assert snap_map == {"2026-01": 100, "2026-03": 200}
+
+    def test__overrun_no_longer_an_error__last_wins_quietly(self, us_system):
+        # The shape that used to raise (sum of monthlies > annual) is now
+        # resolved — last wins, the budget concept is gone.
         household = {
             "spm_units": {
                 "spm_unit_1": {
@@ -153,11 +165,46 @@ class TestNumericMonthDefinedVariable:
             }
         }
 
-        with pytest.raises(AssertionError) as exc_info:
-            _normalize_period_keys(household, us_system)
+        normalized = _normalize_period_keys(household, us_system)
 
-        assert "validate_period_budgets was bypassed" in str(exc_info.value)
-        assert "2026" in str(exc_info.value)
+        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
+        # Last is 2026-07 (a month), so year drops; both monthlies survive.
+        assert snap_map == {"2026-06": 999, "2026-07": 999}
+
+    def test__null_output_request_does_not_count_as_overlap(self, us_system):
+        # `{"2026-01": 100, "2026": null}` — the year-keyed null is an
+        # output request, exempt from resolution. The monthly input survives.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {"2026-01": 100, "2026": None}
+                }
+            }
+        }
+
+        normalized = _normalize_period_keys(household, us_system)
+
+        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
+        assert snap_map == {"2026-01": 100, "2026": None}
+
+    def test__different_years_do_not_collide(self, us_system):
+        # `{"2026": 1200, "2027-06": 600}` — months and year are for
+        # different years, so there's no overlap. Each survives.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {"2026": 1200, "2027-06": 600}
+                }
+            }
+        }
+
+        normalized = _normalize_period_keys(household, us_system)
+
+        snap_map = normalized["spm_units"]["spm_unit_1"]["snap_earned_income"]
+        # 2026 was distributed (V/12 = 100); 2027-06 untouched.
+        assert snap_map["2026-01"] == 100
+        assert snap_map["2027-06"] == 600
+        assert "2026" not in snap_map
 
 
 # ---------------------------------------------------------------------------
@@ -232,12 +279,13 @@ class TestNonNumericMonthDefinedVariable:
         for month in range(1, 13):
             assert utility_map[f"2026-{month:02d}"] == "SUA"
 
-    def test__enum_year_input_with_explicit_month_override__month_wins(
+    def test__enum_year_input_then_explicit_month__month_wins_year_drops(
         self, us_system
     ):
-        # `{"2026": "SUA", "2026-06": "LUA"}` -> June is LUA; other months
-        # inherit the year-input "SUA". This lets partners express "SUA all
-        # year except June".
+        # `{"2026": "SUA", "2026-06": "LUA"}` — last-wins: 2026-06 is later
+        # in insertion order, so the year drops. Only June is set; other
+        # 11 months read the engine default. The partner sees an
+        # OverlappingPeriodWarning explaining the resolution.
         household = {
             "spm_units": {
                 "spm_unit_1": {
@@ -254,9 +302,7 @@ class TestNonNumericMonthDefinedVariable:
         utility_map = normalized["spm_units"]["spm_unit_1"][
             "snap_utility_allowance_type"
         ]
-        assert utility_map["2026-06"] == "LUA"
-        for month in [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12]:
-            assert utility_map[f"2026-{month:02d}"] == "SUA"
+        assert utility_map == {"2026-06": "LUA"}
 
 
 # ---------------------------------------------------------------------------
@@ -357,95 +403,7 @@ class TestNormalizerEdges:
 
 
 # ---------------------------------------------------------------------------
-# validate_period_budgets: explicit months exceeding annual -> 400
-# ---------------------------------------------------------------------------
-
-
-class TestValidatePeriodBudgets:
-    def test__explicit_months_below_annual__no_error(self, us_system):
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {"2026": 1200, "2026-06": 600}
-                }
-            }
-        }
-
-        validate_period_budgets(household, us_system)  # must not raise
-
-    def test__explicit_months_equal_annual__no_error(self, us_system):
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {
-                        "2026": 600,
-                        "2026-01": 300,
-                        "2026-02": 300,
-                    }
-                }
-            }
-        }
-
-        validate_period_budgets(household, us_system)  # must not raise
-
-    def test__explicit_months_exceed_annual__raises_value_error(
-        self, us_system
-    ):
-        household = {
-            "spm_units": {
-                "spm_unit_1": {
-                    "snap_earned_income": {
-                        "2026": 1200,
-                        "2026-06": 999,
-                        "2026-07": 999,
-                    }
-                }
-            }
-        }
-
-        with pytest.raises(ValueError) as exc_info:
-            validate_period_budgets(household, us_system)
-
-        message = str(exc_info.value)
-        assert "snap_earned_income" in message
-        assert "spm_unit_1" in message
-        assert "2026" in message
-        assert "1998" in message  # the explicit sum
-        assert "1200" in message  # the annual total
-
-    def test__bool_var_does_not_trigger_budget_check(self, us_system):
-        # Budget logic is numeric-only. Passing both year + month bools
-        # must not raise even though the "sum" doesn't make sense.
-        household = {
-            "people": {
-                "person_1": {
-                    "is_incarcerated": {"2026": True, "2026-06": False}
-                }
-            }
-        }
-
-        validate_period_budgets(household, us_system)  # must not raise
-
-    def test__year_defined_var_skipped(self, us_system):
-        # YEAR-defined vars don't have the budget concept.
-        household = {
-            "people": {"person_1": {"employment_income": {"2026": 31932}}}
-        }
-
-        validate_period_budgets(household, us_system)  # must not raise
-
-    def test__unknown_variable_skipped(self, us_system):
-        household = {
-            "spm_units": {
-                "spm_unit_1": {"not_a_variable": {"2026": 100, "2026-01": 200}}
-            }
-        }
-
-        validate_period_budgets(household, us_system)  # must not raise
-
-
-# ---------------------------------------------------------------------------
-# End-to-end SNAP matrix: post-fix household API matches v1 numerically
+# End-to-end SNAP matrix
 # ---------------------------------------------------------------------------
 
 
@@ -474,8 +432,10 @@ def _wa_household(income_map, output_key):
     }
 
 
-# Each row pinned against parity with the hosted v1 API; the post-fix
-# household API must return the same numbers.
+# Year-only or month-only matrix rows are pinned against parity with the
+# hosted v1 API — the post-fix household API must return the same numbers.
+# (The mixed year+month case is covered separately because the household
+# API's last-wins resolution diverges from v1's redistribute behavior.)
 _SNAP_MATRIX = [
     # (income_map, output_key, expected_snap)
     # Year-only inputs (4 income/output combinations).
@@ -488,10 +448,6 @@ _SNAP_MATRIX = [
     ({"2026-01": 36000}, "2026-01", {"2026-01": 0.0}),
     ({"2026-01": 3600}, "2026", {"2026": 3298.0398}),
     ({"2026-01": 3600}, "2026-01", {"2026-01": 0.0}),
-    # Year + same-year month coherent (sum < annual): June overrides $1800,
-    # remainder ($1800 / 11 ≈ $163.64) distributes to the other 11 months.
-    # This is the case Anthony flagged in review — pin parity here.
-    ({"2026": 3600, "2026-06": 1800}, "2026", {"2026": 3321.8796}),
 ]
 _SNAP_MATRIX_IDS = [
     "A-O1",
@@ -502,7 +458,6 @@ _SNAP_MATRIX_IDS = [
     "C-O2",
     "D-O1",
     "D-O2",
-    "Mixed-coherent",
 ]
 
 
