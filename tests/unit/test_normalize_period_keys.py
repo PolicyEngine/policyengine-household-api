@@ -239,14 +239,13 @@ class TestSnapInputOutputMatrix:
     """
 
     @pytest.mark.parametrize(
-        "case,income_key,income_value,output_key,expected_snap",
-        _SNAP_MATRIX,
+        "income_key,income_value,output_key,expected_snap",
+        [row[1:] for row in _SNAP_MATRIX],
         ids=[row[0] for row in _SNAP_MATRIX],
     )
     def test__matches_v1_api_behavior(
         self,
         us_country,
-        case,
         income_key,
         income_value,
         output_key,
