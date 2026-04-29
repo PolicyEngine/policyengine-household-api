@@ -24,11 +24,6 @@ def us_system():
     return CountryTaxBenefitSystem()
 
 
-def _messages(warnings):
-    """Render each structured warning to its user-facing string."""
-    return [w.message for w in warnings]
-
-
 class TestDetectPeriodWarnings:
     def test__monthly_input_with_annual_output__warns(self, us_system):
         # The classic pitfall: only Jan keyed, but annual output requested.

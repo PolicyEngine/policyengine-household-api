@@ -312,9 +312,11 @@ def _distribute_numeric_year_value(
     would introduce drift the engine sums back differently.
 
     Output-request slots (``None``) count as unset. ``validate_period_budgets``
-    is the canonical place to surface a budget-overrun error to partners,
-    but this function defends in depth: a negative remainder means
-    ``sum(explicit) > annual_value``, which we refuse to silently distribute.
+    is the canonical place to surface a budget-overrun error to partners
+    (raises ``ValueError`` → 400 from the endpoint). This function defends
+    in depth with an ``AssertionError`` for the unreachable case:
+    ``sum(explicit) > annual_value`` should never get here in production
+    because the validator runs first.
     """
     explicit_months: dict[int, float] = {}
     for inner_key, inner_value in period_map.items():
@@ -327,10 +329,10 @@ def _distribute_numeric_year_value(
 
     remainder = annual_value - sum(explicit_months.values())
     if remainder < 0:
-        raise ValueError(
-            f"Monthly values for {year} sum to "
-            f"{sum(explicit_months.values())}, which exceeds the annual "
-            f"total {annual_value}."
+        raise AssertionError(
+            "validate_period_budgets was bypassed: monthly values for "
+            f"{year} sum to {sum(explicit_months.values())}, which exceeds "
+            f"the annual total {annual_value}."
         )
     unset_count = 12 - len(explicit_months)
     if unset_count <= 0:

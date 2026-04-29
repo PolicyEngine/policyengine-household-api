@@ -133,6 +133,32 @@ class TestNumericMonthDefinedVariable:
             "2026-01": 3000
         }
 
+    def test__bypassing_validator_with_overrun_raises_assertion_error(
+        self, us_system
+    ):
+        # `validate_period_budgets` runs at the endpoint and is the
+        # canonical 400 path. The normalizer also defends in depth: if
+        # someone calls it directly with a budget overrun, the unreachable
+        # branch raises AssertionError so the bug surfaces loudly instead
+        # of distributing a negative per-month value silently.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {
+                        "2026": 1200,
+                        "2026-06": 999,
+                        "2026-07": 999,
+                    }
+                }
+            }
+        }
+
+        with pytest.raises(AssertionError) as exc_info:
+            _normalize_period_keys(household, us_system)
+
+        assert "validate_period_budgets was bypassed" in str(exc_info.value)
+        assert "2026" in str(exc_info.value)
+
 
 # ---------------------------------------------------------------------------
 # _normalize_period_keys: bool / enum / string MONTH-defined variables
