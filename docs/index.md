@@ -13,18 +13,73 @@ This API does not run population-level microsimulations. For "how does this refo
 ## What you can do
 
 - Compute taxes and benefits for any US, UK, Canadian, Israeli, or Nigerian household
-- Use a single request, sent as JSON over HTTPS
 - Send inputs annually or month by month, and request outputs at the same cadence
 - Get a structured 400 response when the request is malformed, with the specific field that's wrong
 
-## Status
+## A working example
 
-This documentation is being written. The API itself is in production at `https://household.api.policyengine.org`. Pages marked _Coming soon_ below are next on the writing queue.
+A family of four in California with $30,000 in annual earnings. Find their SNAP allotment for 2026:
+
+```bash
+curl https://household.api.policyengine.org/us/calculate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "household": {
+      "people": {
+        "parent_1": {"age": {"2026": 35}, "employment_income": {"2026": 30000}},
+        "parent_2": {"age": {"2026": 35}},
+        "child_1":  {"age": {"2026": 7}},
+        "child_2":  {"age": {"2026": 4}}
+      },
+      "families":   {"family_1":   {"members": ["parent_1","parent_2","child_1","child_2"]}},
+      "tax_units":  {"tax_unit_1": {"members": ["parent_1","parent_2","child_1","child_2"]}},
+      "households": {"household_1":{"members": ["parent_1","parent_2","child_1","child_2"], "state_name": {"2026": "CA"}}},
+      "spm_units":  {"spm_unit_1": {"members": ["parent_1","parent_2","child_1","child_2"], "snap": {"2026": null}}}
+    }
+  }'
+```
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "result": {
+    "spm_units": {
+      "spm_unit_1": {
+        "snap": {"2026": 3924.54}
+      }
+    }
+  }
+}
+```
+
+The household receives $3,924.54 in SNAP across 2026.
+
+## Endpoints
+
+The hosted API runs at `https://household.api.policyengine.org`. The only endpoint partners use is `/calculate`:
+
+```
+POST /{country_id}/calculate
+```
+
+Where `country_id` is one of `us`, `uk`, `ca`, `il`, or `ng`. The body is a JSON object with a `household` field (and an optional `policy` field for reform comparisons).
+
+## Self-hosted
+
+If you don't want to depend on the hosted service, run the published Docker image:
+
+```bash
+docker run --rm -p 8080:8080 ghcr.io/policyengine/policyengine-household-api:latest
+```
+
+The image takes a few seconds to initialize and runs on a machine with roughly 4 GB of RAM. Calculation requests then go to `http://localhost:8080/{country_id}/calculate`.
 
 ## Read next
 
-- [Request format](request-format.md) — _Coming soon_
-- [Period keys](period-keys.md) — _Coming soon_
-- [Response format](response-format.md) — _Coming soon_
-- [Cookbook](cookbook/index.md) — partner recipes (eligibility-cliff recipe is live)
-- [Changelog](changelog.md) — _Coming soon_
+- [Request format](request-format.md) — entities, members, inputs vs outputs
+- [Period keys](period-keys.md) — year vs month keys, and what happens when you mix them
+- [Response format](response-format.md) — output shape, warnings, error catalog
+- [Cookbook](cookbook/index.md) — partner recipes for common workflows
+- [Changelog](changelog.md) — what changed and when
