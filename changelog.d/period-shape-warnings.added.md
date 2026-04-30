@@ -1,0 +1,1 @@
+Add a `warnings` field to `/calculate` responses when the request mixes single-month input on a MONTH-defined variable with an annual output request. The other 11 months default to 0 in the engine, silently inflating annual sums; the warning explains the issue and points partners to a fix (send a yearly key, or set all 12 monthly keys).
