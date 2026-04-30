@@ -14,7 +14,7 @@ Each entry links to the pull request and includes the date the change shipped to
 
 ## Pinning a version
 
-Hosted clients always run the latest release. If you need a specific model version for reproducibility, run the [self-hosted Docker image](index.md#self-hosted) and pin a tag:
+The hosted API always runs the latest release. If you need a specific model version for reproducibility, run the [self-hosted Docker image](index.md#self-hosted) and pin a tag:
 
 ```bash
 docker run --rm -p 8080:8080 ghcr.io/policyengine/policyengine-household-api:1.634.8
@@ -54,4 +54,4 @@ Requests with malformed `axes` now return a 400 from the validator instead of a 
 
 ### Removed: CORS origin restrictions (PR #1488)
 
-The API no longer restricts CORS by origin. Self-hosted clients integrating from any domain work without a CORS preflight rejection.
+The API no longer restricts CORS by origin. Self-hosted deployments integrating from any domain work without a CORS preflight rejection.

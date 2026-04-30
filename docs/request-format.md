@@ -16,7 +16,7 @@ The `/calculate` endpoint takes a JSON body with a `household` field. The househ
 }
 ```
 
-Five entity groups, each a dict from entity-instance ID to the data for that instance. The IDs are partner-chosen strings — `"parent_1"`, `"household_1"`, `"my_client"` — they only need to be unique within their group.
+Five entity groups, each a dict from entity-instance ID to the data for that instance. The IDs are partner-chosen strings — `"parent_1"`, `"household_1"`, `"my_household"` — they only need to be unique within their group.
 
 ## Entities
 

@@ -57,12 +57,11 @@
   display: none;
 }
 
-/* And hide the empty <nav> wrappers those anchor lists used to live in,
- * so the active page doesn't have a hollow gap below it. */
-.md-nav--primary .md-nav__item--active > nav.md-nav,
-.md-nav--primary .md-nav__item--active > .md-nav__list:has(> li > a[href^="#"]) {
-  display: none;
-}
+/* The previous version of this rule also hid `nav.md-nav` under any
+ * active item, which broke Cookbook (its recipe sub-pages disappeared
+ * when the user was on the cookbook index). The individual-link rule
+ * above is enough — anchor `#` links are hidden one by one, real
+ * sub-pages survive. */
 
 /* Left sidebar — modest breathing room between items. */
 .md-nav__list .md-nav__item {
@@ -86,6 +85,13 @@
 .md-nav__link--active {
   background-color: var(--md-code-bg-color);
   font-weight: 600;
+}
+
+/* Nested sub-items (Cookbook recipes) — slightly smaller font and a
+ * left indent to read as a sub-tier. */
+.md-nav--primary .md-nav .md-nav__link {
+  font-size: 0.78rem;
+  padding-left: 1.5rem;
 }
 
 /* Section titles ("Cookbook", "PolicyEngine Household API"). */

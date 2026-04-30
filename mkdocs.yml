@@ -68,6 +68,6 @@ nav:
   - Response format: response-format.md
   - Cookbook:
       - cookbook/index.md
-      - "What's my client's SNAP for 2026?": cookbook/snap-annual.md
-      - "When does my client lose SNAP this year?": cookbook/eligibility-cliff.md
+      - "What's my SNAP for 2026?": cookbook/snap-annual.md
+      - "When will I lose SNAP this year?": cookbook/eligibility-cliff.md
   - Changelog: changelog.md

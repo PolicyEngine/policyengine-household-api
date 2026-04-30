@@ -2,7 +2,7 @@
 
 The PolicyEngine Household API computes taxes and benefits for a single household at a single point in time. Send a JSON description of the household, get back a JSON response with the values you asked for.
 
-This guide is for partners integrating the API into client-facing tools — case-management software, eligibility screeners, financial planning calculators, and similar.
+This guide is for partners integrating the API into user-facing tools — case-management software, eligibility screeners, financial planning calculators, and similar.
 
 ## Who this is for
 

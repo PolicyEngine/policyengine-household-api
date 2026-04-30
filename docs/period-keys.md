@@ -138,4 +138,4 @@ The API echoes your output keys back exactly. If you request `{"2026": null}`, y
 ## What's next
 
 - [Response format](response-format.md) — the full response shape and error catalog
-- [When does my client lose SNAP this year?](cookbook/eligibility-cliff.md) — the canonical month-keyed recipe
+- [When will I lose SNAP this year?](cookbook/eligibility-cliff.md) — the canonical month-keyed recipe

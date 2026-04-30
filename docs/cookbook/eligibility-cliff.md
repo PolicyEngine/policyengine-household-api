@@ -1,4 +1,4 @@
-# When does my client lose SNAP this year?
+# When will I lose SNAP this year?
 
 Find the month in which SNAP eligibility ends after a mid-year income change — in a single API call, with no extra round trips.
 

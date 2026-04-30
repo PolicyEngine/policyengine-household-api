@@ -1,4 +1,4 @@
-# What's my client's SNAP for 2026?
+# What's my SNAP for 2026?
 
 Compute a household's annual SNAP allotment in a single API call. This is the simplest useful request — one household, one variable, one period.
 
@@ -168,10 +168,10 @@ Add other variables alongside `snap`. The request returns all of them in one rou
 Change `state_name` to any two-letter state code. SNAP allotments differ between states because of broad-based categorical eligibility (BBCE) thresholds and standard utility allowances.
 
 **See month-by-month detail.**
-Replace `"snap": {"2026": null}` with twelve month keys to get a per-month breakdown. See [When does my client lose SNAP this year?](eligibility-cliff.md) for the pattern.
+Replace `"snap": {"2026": null}` with twelve month keys to get a per-month breakdown. See [When will I lose SNAP this year?](eligibility-cliff.md) for the pattern.
 
 ## What's next
 
 - [Request format](../request-format.md) — the entity structure in detail
 - [Period keys](../period-keys.md) — when to use year keys vs month keys
-- [When does my client lose SNAP this year?](eligibility-cliff.md) — the month-keyed equivalent of this recipe
+- [When will I lose SNAP this year?](eligibility-cliff.md) — the month-keyed equivalent of this recipe

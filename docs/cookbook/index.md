@@ -4,8 +4,8 @@ End-to-end recipes for common partner workflows. Each recipe is a self-contained
 
 ## Recipes
 
-- [What's my client's SNAP for 2026?](snap-annual.md) — the simplest useful request, with annual income and an annual benefit
-- [When does my client lose SNAP this year?](eligibility-cliff.md) — find the month a benefit cliff fires using month-keyed inputs and outputs
+- [What's my SNAP for 2026?](snap-annual.md) — the simplest useful request, with annual income and an annual benefit
+- [When will I lose SNAP this year?](eligibility-cliff.md) — find the month a benefit cliff fires using month-keyed inputs and outputs
 
 ## Suggesting a recipe
 
