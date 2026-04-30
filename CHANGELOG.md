@@ -1,3 +1,15 @@
+## [0.15.0] - 2026-04-30
+
+### Added
+
+- Add a `warnings` field to `/calculate` responses when the request mixes single-month input on a MONTH-defined variable with an annual output request. The other 11 months default to 0 in the engine, silently inflating annual sums; the warning explains the issue and points partners to a fix (send a yearly key, or set all 12 monthly keys).
+- Reject `/calculate` requests with malformed period keys (e.g. `"not-a-period"`, `"2026/13"`) with a 400 ("Invalid period key") that names the offending key, variable, and entity. Previously these were passed through to the engine and silently ignored, leaving partners with a confusing zero result. Pydantic doesn't validate period-key strings, so this is the first checkpoint that catches them.
+
+### Fixed
+
+- Match the hosted v1 API when partners send a YEAR-period key on a MONTH-defined variable. Numeric values are treated as annual totals: any explicit monthly inputs are subtracted, and the remainder splits evenly across the unset months as a raw float (matching policyengine-core's `set_input_divide_by_period`, which has had this behavior since 2015). Boolean / string / enum values broadcast unchanged across the unset months while explicit monthly values override. The API rejects with a 400 ("Inconsistent input") only when every month of the year is explicit AND those monthlies don't sum to the annual total — partial monthly overrides are silently accepted with the remainder distributed across the unset months, matching v1's exact rule. Negative annual values are accepted (some MONTH-defined numeric variables can legitimately be negative). Output requests echo the partner's original keys. Adds a `warnings` array to the response when partial monthly input is paired with an annual output for the same year and there is no year-key fallback for that variable, so partners see a heads-up that the unset months will read the engine's default (purely additive — v1 has no such warning, the numeric output is unchanged).
+
+
 ## [0.14.4] - 2026-04-28
 
 ### Fixed
