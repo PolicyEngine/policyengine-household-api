@@ -67,6 +67,88 @@ class TestCalculateEndpoint:
         )
         assert response.status_code == 400
 
+    def test__year_keyed_input_reaches_engine(self, client):
+        """Regression guard for the silent-drop bug fixed in PR #1490.
+
+        Year-keyed numeric input on a MONTH-defined variable used to be
+        silently dropped, so partner inputs read as 0 inside the engine.
+        Asserts that a non-zero year-keyed input produces a different
+        annual result from a zero year-keyed input — independent of which
+        program rules are in force, so it survives parameter updates.
+        """
+
+        def snap_with(employment_income: int) -> float:
+            household = {
+                "people": {
+                    "parent_1": {
+                        "age": {"2026": 35},
+                        "employment_income": {"2026": employment_income},
+                    },
+                    "parent_2": {"age": {"2026": 35}},
+                    "child_1": {"age": {"2026": 7}},
+                    "child_2": {"age": {"2026": 4}},
+                },
+                "families": {
+                    "family_1": {
+                        "members": [
+                            "parent_1",
+                            "parent_2",
+                            "child_1",
+                            "child_2",
+                        ]
+                    }
+                },
+                "tax_units": {
+                    "tax_unit_1": {
+                        "members": [
+                            "parent_1",
+                            "parent_2",
+                            "child_1",
+                            "child_2",
+                        ]
+                    }
+                },
+                "households": {
+                    "household_1": {
+                        "members": [
+                            "parent_1",
+                            "parent_2",
+                            "child_1",
+                            "child_2",
+                        ],
+                        "state_name": {"2026": "CA"},
+                    }
+                },
+                "spm_units": {
+                    "spm_unit_1": {
+                        "members": [
+                            "parent_1",
+                            "parent_2",
+                            "child_1",
+                            "child_2",
+                        ],
+                        "snap": {"2026": None},
+                    }
+                },
+            }
+            response = client.post(
+                "/us/calculate",
+                json={"household": household},
+                headers=self.auth_headers,
+            )
+            assert response.status_code == 200
+            payload = json.loads(response.data)
+            return payload["result"]["spm_units"]["spm_unit_1"]["snap"]["2026"]
+
+        snap_with_earnings = snap_with(30_000)
+        snap_without_earnings = snap_with(0)
+
+        assert snap_without_earnings != snap_with_earnings, (
+            "SNAP did not respond to year-keyed employment_income — "
+            "the year-to-month distribution was likely dropped before "
+            "reaching the engine."
+        )
+
     def test__given_ai_explainer_tracer_fails__returns_500(self, client):
         with patch(
             "policyengine_household_api.country.generate_computation_tree",
