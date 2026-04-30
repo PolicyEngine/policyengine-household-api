@@ -1,9 +1,6 @@
 site_name: Household API
 site_description: Partner integration guide for the PolicyEngine Household API.
 site_url: https://policyengine.github.io/policyengine-household-api/
-repo_url: https://github.com/PolicyEngine/policyengine-household-api
-repo_name: PolicyEngine/policyengine-household-api
-edit_uri: edit/main/docs/
 
 theme:
   name: material
@@ -37,7 +34,6 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
-    - content.action.edit
 
 extra_css:
   - stylesheets/extra.css
