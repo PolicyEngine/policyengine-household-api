@@ -7,6 +7,7 @@ from policyengine_household_api.country import (
     COUNTRIES,
     detect_period_warnings,
     validate_period_budgets,
+    validate_period_keys,
 )
 from policyengine_household_api.models.household import (
     HouseholdModelGeneric,
@@ -127,6 +128,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     try:
         _validate_household_payload(country_id, household_json)
         _validate_axes(household_json)
+        validate_period_keys(household_json, country.tax_benefit_system)
         validate_period_budgets(household_json, country.tax_benefit_system)
     except ValueError as e:
         return Response(

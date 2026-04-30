@@ -16,6 +16,7 @@ from policyengine_household_api.country import (
     PolicyEngineCountry,
     _normalize_period_keys,
     validate_period_budgets,
+    validate_period_keys,
 )
 from tests.fixtures.country import country_id_us, country_package_name_us
 
@@ -297,9 +298,12 @@ class TestNormalizerEdges:
             == 100
         )
 
-    def test__non_string_period_key__does_not_crash(self, us_system):
-        # Pydantic schemas should keep non-string keys out, but defend in
-        # depth: an unparseable key shouldn't blow up the normalizer.
+    def test__unparseable_period_key__normalizer_does_not_crash(
+        self, us_system
+    ):
+        # ``validate_period_keys`` rejects this case at the endpoint
+        # boundary; the normalizer is downstream and should still be
+        # robust if a malformed key ever reaches it (defense in depth).
         household = {
             "spm_units": {
                 "spm_unit_1": {"snap_earned_income": {"not-a-period": 100}}
@@ -326,6 +330,71 @@ class TestNormalizerEdges:
         }
         # And the returned dict is a different object.
         assert normalized is not household
+
+
+# ---------------------------------------------------------------------------
+# validate_period_keys: malformed period keys -> 400
+# ---------------------------------------------------------------------------
+
+
+class TestValidatePeriodKeys:
+    def test__well_formed_year_and_month_keys__no_error(self, us_system):
+        household = {
+            "spm_units": {
+                "spm_unit_1": {
+                    "snap_earned_income": {"2026": 1200, "2026-06": 100}
+                }
+            }
+        }
+
+        validate_period_keys(household, us_system)  # must not raise
+
+    def test__unparseable_period_key__raises(self, us_system):
+        household = {
+            "spm_units": {
+                "spm_unit_1": {"snap_earned_income": {"not-a-period": 100}}
+            }
+        }
+
+        with pytest.raises(ValueError, match="Invalid period key"):
+            validate_period_keys(household, us_system)
+
+    def test__error_message_names_variable_and_entity(self, us_system):
+        household = {
+            "spm_units": {
+                "spm_unit_1": {"snap_earned_income": {"2026/13": 100}}
+            }
+        }
+
+        with pytest.raises(ValueError) as exc:
+            validate_period_keys(household, us_system)
+
+        message = str(exc.value)
+        assert "2026/13" in message
+        assert "snap_earned_income" in message
+        assert "spm_units/spm_unit_1" in message
+
+    def test__unknown_variable_skipped__no_error(self, us_system):
+        # Pydantic catches unknown variable names upstream; the validator
+        # walks past them rather than producing a confusing error.
+        household = {
+            "spm_units": {
+                "spm_unit_1": {"not_a_real_variable": {"not-a-period": 100}}
+            }
+        }
+
+        validate_period_keys(household, us_system)  # must not raise
+
+    def test__axes_list_skipped__no_error(self, us_system):
+        # `axes` is a list — the validator must skip it without erroring.
+        household = {
+            "axes": [{"name": "employment_income", "count": 5}],
+            "spm_units": {
+                "spm_unit_1": {"snap_earned_income": {"2026": 1200}}
+            },
+        }
+
+        validate_period_keys(household, us_system)  # must not raise
 
 
 # ---------------------------------------------------------------------------

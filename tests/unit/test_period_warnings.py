@@ -342,3 +342,29 @@ class TestEndpointAttachesWarnings:
         assert body["status"] == "error"
         assert "Inconsistent input" in body["message"]
         assert "snap_earned_income" in body["message"]
+
+    def test__unparseable_period_key_returns_400(self, client):
+        # Malformed period keys are rejected before normalization with an
+        # explicit error so partners don't see a silent zero.
+        from tests.fixtures.country import (
+            valid_household_requesting_ctc_calculation,
+        )
+
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "spm_units": {
+                "spm_unit": {
+                    "members": ["you"],
+                    "snap_earned_income": {"not-a-period": 100},
+                }
+            },
+        }
+
+        response = client.post("/us/calculate", json={"household": household})
+
+        assert response.status_code == 400
+        body = json.loads(response.data)
+        assert body["status"] == "error"
+        assert "Invalid period key" in body["message"]
+        assert "not-a-period" in body["message"]
+        assert "snap_earned_income" in body["message"]

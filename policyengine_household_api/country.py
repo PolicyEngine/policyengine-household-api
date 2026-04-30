@@ -73,6 +73,88 @@ def _is_numeric(value) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Household walk
+# ---------------------------------------------------------------------------
+#
+# Validation, warning detection, and YEAR-key expansion all need the same
+# household traversal: skip the top-level ``axes`` list, descend into each
+# entity instance, and yield each ``(variable, period_map)`` pair. A single
+# slot walker lets each pass focus on its rule instead of repeating the
+# nested-loop boilerplate.
+
+
+@dataclass(frozen=True)
+class _VariableSlot:
+    """A located period-map for one variable on one entity instance.
+
+    ``period_map`` is the live dict, so callers that want to mutate it
+    (the normalizer) and callers that only read (the validators and the
+    warning detector) can share the same iterator.
+    """
+
+    entity_plural: str
+    entity_id: str
+    variable_name: str
+    variable: object
+    period_map: dict
+
+
+def _walk_variable_slots(household: dict, system):
+    """Yield a ``_VariableSlot`` for every (entity, variable) period map.
+
+    Skips the top-level ``axes`` list, any non-dict value, and any
+    variable name the system doesn't recognize (Pydantic rejects unknown
+    names upstream; this is defense-in-depth so a stray key can't crash
+    the walk).
+    """
+    for entity_plural, entities in (household or {}).items():
+        if entity_plural == "axes" or not isinstance(entities, dict):
+            continue
+        for entity_id, entity_data in entities.items():
+            if not isinstance(entity_data, dict):
+                continue
+            for variable_name, period_map in entity_data.items():
+                if not isinstance(period_map, dict):
+                    continue
+                variable = system.variables.get(variable_name)
+                if variable is None:
+                    continue
+                yield _VariableSlot(
+                    entity_plural=entity_plural,
+                    entity_id=entity_id,
+                    variable_name=variable_name,
+                    variable=variable,
+                    period_map=period_map,
+                )
+
+
+# ---------------------------------------------------------------------------
+# Period-key validation
+# ---------------------------------------------------------------------------
+
+
+def validate_period_keys(household: dict, system) -> None:
+    """Reject any period key that doesn't parse as a year or month.
+
+    policyengine-core's ``period()`` raises on malformed strings; without
+    this check the engine would silently ignore the slot and the partner
+    would see a confusing zero. Surfacing it as a 400 with the offending
+    key gives them an explicit signal. Pydantic doesn't validate
+    period-key strings today, so this is the single defensive checkpoint.
+    """
+    for slot in _walk_variable_slots(household, system):
+        for period_key in slot.period_map:
+            if _parsed_period(period_key) is None:
+                raise ValueError(
+                    f"Invalid period key `{period_key}` for "
+                    f"`{slot.variable_name}` on "
+                    f"`{slot.entity_plural}/{slot.entity_id}`. "
+                    f'Expected a year (e.g. "2026") or a month '
+                    f'(e.g. "2026-01").'
+                )
+
+
+# ---------------------------------------------------------------------------
 # Period-shape warnings
 # ---------------------------------------------------------------------------
 
@@ -137,47 +219,38 @@ def detect_period_warnings(household: dict, system) -> list[PeriodWarning]:
     # apply — the unset months don't read the engine's fallback.
     years_with_year_input: set[tuple[str, str, str, str]] = set()
 
-    for entity_plural, entities in household.items():
-        if entity_plural == "axes" or not isinstance(entities, dict):
-            continue
-        for entity_id, entity_data in entities.items():
-            if not isinstance(entity_data, dict):
+    for slot in _walk_variable_slots(household, system):
+        is_month_var = slot.variable.definition_period == "month"
+        for period_key, value in slot.period_map.items():
+            if value is None:
+                # Annual nulls on MONTH vars arm the missing-month
+                # hazard. YEAR-defined vars don't have months.
+                if is_month_var and _is_year_key(period_key):
+                    annual_month_output_years.add(period_key)
                 continue
-            for variable_name, period_map in entity_data.items():
-                if not isinstance(period_map, dict):
-                    continue
-                variable = system.variables.get(variable_name)
-                if variable is None:
-                    continue
-                is_month_var = variable.definition_period == "month"
-                for period_key, value in period_map.items():
-                    if value is None:
-                        # Annual nulls on MONTH vars arm the
-                        # missing-month hazard. YEAR-defined vars
-                        # don't have months.
-                        if is_month_var and _is_year_key(period_key):
-                            annual_month_output_years.add(period_key)
-                        continue
-                    if not is_month_var:
-                        continue
-                    if _is_year_key(period_key):
-                        years_with_year_input.add(
-                            (
-                                variable_name,
-                                entity_plural,
-                                entity_id,
-                                period_key,
-                            )
-                        )
-                        continue
-                    year = _month_key_year(period_key)
-                    if year is None:
-                        continue
-                    parsed = _parsed_period(period_key)
-                    key = (variable_name, entity_plural, entity_id, year)
-                    monthly_inputs.setdefault(key, set()).add(
-                        parsed.start.month
+            if not is_month_var:
+                continue
+            if _is_year_key(period_key):
+                years_with_year_input.add(
+                    (
+                        slot.variable_name,
+                        slot.entity_plural,
+                        slot.entity_id,
+                        period_key,
                     )
+                )
+                continue
+            year = _month_key_year(period_key)
+            if year is None:
+                continue
+            parsed = _parsed_period(period_key)
+            key = (
+                slot.variable_name,
+                slot.entity_plural,
+                slot.entity_id,
+                year,
+            )
+            monthly_inputs.setdefault(key, set()).add(parsed.start.month)
 
     for (
         variable_name,
@@ -245,26 +318,17 @@ def validate_period_budgets(household: dict, system) -> None:
     even when the remainder is negative. We mirror that exact rule so
     partner integrations match v1 byte-for-byte.
     """
-    for entity_plural, entities in (household or {}).items():
-        if entity_plural == "axes" or not isinstance(entities, dict):
+    for slot in _walk_variable_slots(household, system):
+        if slot.variable.definition_period != "month":
             continue
-        for entity_id, entity_data in entities.items():
-            if not isinstance(entity_data, dict):
-                continue
-            for variable_name, period_map in entity_data.items():
-                if not isinstance(period_map, dict):
-                    continue
-                variable = system.variables.get(variable_name)
-                if variable is None or variable.definition_period != "month":
-                    continue
-                if not _is_numeric_value_type(variable):
-                    continue
-                _check_year_budget(
-                    period_map=period_map,
-                    variable_name=variable_name,
-                    entity_plural=entity_plural,
-                    entity_id=entity_id,
-                )
+        if not _is_numeric_value_type(slot.variable):
+            continue
+        _check_year_budget(
+            period_map=slot.period_map,
+            variable_name=slot.variable_name,
+            entity_plural=slot.entity_plural,
+            entity_id=slot.entity_id,
+        )
 
 
 def _check_year_budget(
@@ -328,19 +392,10 @@ def _normalize_period_keys(household: dict, system) -> dict:
     partner's keys verbatim.
     """
     normalized = copy.deepcopy(household)
-    for entity_plural, entities in normalized.items():
-        if entity_plural == "axes" or not isinstance(entities, dict):
+    for slot in _walk_variable_slots(normalized, system):
+        if slot.variable.definition_period != "month":
             continue
-        for entity_data in entities.values():
-            if not isinstance(entity_data, dict):
-                continue
-            for variable_name, period_map in entity_data.items():
-                if not isinstance(period_map, dict):
-                    continue
-                variable = system.variables.get(variable_name)
-                if variable is None or variable.definition_period != "month":
-                    continue
-                _expand_year_keys_in_place(period_map, variable)
+        _expand_year_keys_in_place(slot.period_map, slot.variable)
     return normalized
 
 
