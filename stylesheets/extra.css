@@ -1,0 +1,292 @@
+/*
+ * PolicyEngine brand overrides for Material for MkDocs.
+ * Matches @policyengine/ui-kit/theme.css tokens.
+ */
+
+:root {
+  /* Primary — teal-500 / teal-600 from the PE design system. */
+  --md-primary-fg-color: #2C7A7B;        /* teal-600 — headers, buttons */
+  --md-primary-fg-color--light: #319795;  /* teal-500 */
+  --md-primary-fg-color--dark: #285E61;   /* teal-700 — pressed */
+  --md-primary-bg-color: #FFFFFF;
+  --md-primary-bg-color--light: #FFFFFFB3;
+
+  /* Accent — used for hover, focus, links. */
+  --md-accent-fg-color: #319795;          /* teal-500 */
+  --md-accent-fg-color--transparent: #31979519;
+  --md-accent-bg-color: #FFFFFF;
+  --md-accent-bg-color--light: #FFFFFFB3;
+
+  /* Body text — black foreground per PE design tokens. */
+  --md-default-fg-color: #000000;
+  --md-default-fg-color--light: #4B5563;  /* gray-600 */
+  --md-default-fg-color--lighter: #6B7280; /* gray-500 / muted-foreground */
+  --md-default-fg-color--lightest: #E2E8F0; /* border / gray-200 */
+
+  /* Backgrounds. */
+  --md-default-bg-color: #FFFFFF;
+  --md-code-bg-color: #F2F4F7;            /* gray-100 / muted */
+  --md-code-fg-color: #000000;
+
+  /* Code highlighting accents. */
+  --md-code-hl-color: #31979533;
+  --md-code-hl-name-color: #2C7A7B;
+  --md-code-hl-string-color: #285E61;
+}
+
+/* Dark mode — flip backgrounds, keep teal accents. */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #319795;
+  --md-primary-fg-color--light: #38B2AC;
+  --md-primary-fg-color--dark: #2C7A7B;
+  --md-accent-fg-color: #38B2AC;
+  --md-default-bg-color: #1A202C;
+  --md-default-fg-color: #F9FAFB;
+  --md-code-bg-color: #2D3748;
+}
+
+/* Hide the right-side "Table of contents" pane completely. */
+.md-sidebar--secondary {
+  display: none !important;
+}
+
+/* Hide the per-page anchor links that Material inlines under the active
+ * page in the primary nav. Real page links survive because their hrefs
+ * are paths, not anchors. */
+.md-nav--primary .md-nav__link[href^="#"] {
+  display: none;
+}
+
+/* And hide the empty <nav> wrappers those anchor lists used to live in,
+ * so the active page doesn't have a hollow gap below it. */
+.md-nav--primary .md-nav__item--active > nav.md-nav,
+.md-nav--primary .md-nav__item--active > .md-nav__list:has(> li > a[href^="#"]) {
+  display: none;
+}
+
+/* Left sidebar — modest breathing room between items. */
+.md-nav__list .md-nav__item {
+  padding: 0.05rem 0;
+}
+
+.md-nav__link {
+  padding: 0.25rem 0.6rem;
+  margin: 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.md-nav__link:hover {
+  background-color: var(--md-code-bg-color);
+}
+
+/* Active page — light pill background, like the "Intro to Claude"
+ * highlight in the Claude API docs sidebar. */
+.md-nav__link--active {
+  background-color: var(--md-code-bg-color);
+  font-weight: 600;
+}
+
+/* Section titles ("Cookbook", "PolicyEngine Household API"). */
+.md-nav__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--md-default-fg-color);
+  padding: 0.5rem 0.6rem 0.25rem;
+}
+
+/* Material renders a duplicate section title inside expanded sub-navs
+ * for screen-reader navigation. Hide it visually on desktop — the
+ * clickable section link at the top of the sub-nav already labels it. */
+.md-nav--primary .md-nav__item--nested > nav.md-nav > .md-nav__title {
+  display: none;
+}
+
+/* Hide the expand/collapse toggle caret next to nested section links
+ * (e.g. "Cookbook") — the sub-pages are always visible, so the toggle
+ * is redundant. */
+.md-nav--primary .md-nav__item--nested > .md-nav__container > .md-nav__link[for] {
+  display: none;
+}
+
+/* Reclaim the space the toggle used to occupy and zero the container's
+ * own padding — its inner <a> already has the link padding, so without
+ * this Cookbook gets double-indented. */
+.md-nav--primary .md-nav__item--nested > .md-nav__container {
+  display: block;
+  padding: 0;
+}
+
+/* Top-level section dividers — small gap before each new section. */
+.md-nav--primary > .md-nav__list > .md-nav__item--section {
+  margin-top: 0.5rem;
+}
+
+/* Reclaim the space the right TOC was occupying for the content column. */
+.md-main__inner {
+  margin-right: auto;
+}
+
+/* Header bar — taller than the Material default for more breathing room.
+ * Matches the proportions of the Claude API docs top bar. */
+.md-header {
+  height: 4rem;        /* default is ~2.4rem */
+}
+
+/* Vertically center every direct child of the header — logo, title,
+ * search, theme toggle. Without this, taller items (the wordmark logo)
+ * sit at the top because Material's default alignment is start. */
+.md-header__inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* The logo button uses its own height; center its contents too. */
+.md-header__button.md-logo {
+  display: flex;
+  align-items: center;
+}
+
+.md-header__title {
+  font-size: 1.4rem;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+/* Bump the logo icon to match the larger title. */
+.md-header__button.md-logo {
+  padding: 0.4rem;
+}
+
+.md-header__button.md-logo svg,
+.md-header__button.md-logo img {
+  height: 2rem;
+  width: auto;          /* horizontal wordmark needs aspect-ratio-preserving width */
+  max-width: 11rem;
+}
+
+/* Push the content down to clear the taller header. */
+.md-main {
+  padding-top: 1rem;
+}
+
+/* Push the search bar to the far right of the header. */
+.md-header__title {
+  flex-grow: 1;           /* fill remaining space between logo and search */
+  margin-left: 1rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--md-primary-bg-color);
+  opacity: 1;
+}
+
+/* Material switches between site name and current-page title via these
+ * topic spans. We always want the site name ("Household API") visible. */
+.md-header__topic:first-child {
+  opacity: 1 !important;
+}
+.md-header__topic:nth-child(2) {
+  display: none;          /* hide the duplicate "current page" topic */
+}
+
+/* Visual order at the right edge: [theme toggle] [search].
+ * Default Material DOM order is [option (palette)] [search], so we
+ * make order explicit via flex `order`. */
+.md-header__option {
+  order: 1;
+  margin-right: 0.5rem;
+}
+.md-search {
+  order: 2;
+}
+
+/* Full-width header and main content, like Claude API docs.
+ * Material's default centers everything inside a 61rem grid; we want
+ * the logo at the left edge and the sidebar against the viewport. */
+.md-header__inner,
+.md-main__inner.md-grid,
+.md-tabs__inner {
+  max-width: none;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Headings — sentence case is enforced by the writing skill, not CSS, but
+ * weight + sizing match the design system. */
+/* All heading levels — black, matching the design tokens. Material's
+ * defaults render h1 in a muted gray and h4+ in lighter colors; we
+ * force the same `--md-default-fg-color` everywhere for consistency. */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  font-size: 1.75rem;   /* text-3xl ≈ 28px */
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  font-size: 1.5rem;    /* text-2xl ≈ 24px */
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  padding-bottom: 0.3rem;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+  font-size: 1.25rem;   /* text-xl ≈ 20px */
+}
+
+/* Code — JetBrains Mono is loaded via the theme.font.code key. */
+.md-typeset code,
+.md-typeset pre,
+.md-typeset kbd {
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Tables — clean borders, header row in muted background. */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 6px;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-code-bg-color);
+  font-weight: 600;
+}
+
+/* Admonitions — tint the "note" variant teal to match brand. */
+.md-typeset .admonition.note,
+.md-typeset details.note {
+  border-color: #319795;
+}
+
+.md-typeset .note > .admonition-title,
+.md-typeset .note > summary {
+  background-color: #E6FFFA;   /* teal-50 */
+}
+
+.md-typeset .note > .admonition-title::before,
+.md-typeset .note > summary::before {
+  background-color: #319795;
+}
+
+/* Links — teal-600 default, teal-500 on hover (matches design tokens). */
+.md-typeset a {
+  color: #2C7A7B;
+}
+
+.md-typeset a:hover {
+  color: #319795;
+}

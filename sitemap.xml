@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/changelog/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/period-keys/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/request-format/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/response-format/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/cookbook/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/cookbook/eligibility-cliff/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+    <url>
+         <loc>https://policyengine.github.io/policyengine-household-api/cookbook/snap-annual/</loc>
+         <lastmod>2026-04-30</lastmod>
+    </url>
+</urlset>
