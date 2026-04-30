@@ -375,7 +375,7 @@
         
   
   <span class="md-ellipsis">
-    What's my client's SNAP for 2026?
+    What's my SNAP for 2026?
   </span>
   
 
@@ -396,7 +396,7 @@
         
   
   <span class="md-ellipsis">
-    When does my client lose SNAP this year?
+    When will I lose SNAP this year?
   </span>
   
 
@@ -579,7 +579,7 @@
 </ul>
 <p>Each entry links to the pull request and includes the date the change shipped to production.</p>
 <h2 id="pinning-a-version">Pinning a version<a class="headerlink" href="#pinning-a-version" title="Permanent link">&para;</a></h2>
-<p>Hosted clients always run the latest release. If you need a specific model version for reproducibility, run the <a href="../#self-hosted">self-hosted Docker image</a> and pin a tag:</p>
+<p>The hosted API always runs the latest release. If you need a specific model version for reproducibility, run the <a href="../#self-hosted">self-hosted Docker image</a> and pin a tag:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span>ghcr.io/policyengine/policyengine-household-api:1.634.8
 </span></code></pre></div>
 <p>The image tag matches the <code>model_version</code> returned in <code>policyengine_bundle</code> on every response, so you can confirm what's running.</p>
@@ -599,7 +599,7 @@
 <h3 id="changed-axes-validation-moved-out-of-the-compute-path-pr-1488">Changed: Axes validation moved out of the compute path (PR #1488)<a class="headerlink" href="#changed-axes-validation-moved-out-of-the-compute-path-pr-1488" title="Permanent link">&para;</a></h3>
 <p>Requests with malformed <code>axes</code> now return a 400 from the validator instead of a 500 from the engine. The cap remains 10 entries × 100 count.</p>
 <h3 id="removed-cors-origin-restrictions-pr-1488">Removed: CORS origin restrictions (PR #1488)<a class="headerlink" href="#removed-cors-origin-restrictions-pr-1488" title="Permanent link">&para;</a></h3>
-<p>The API no longer restricts CORS by origin. Self-hosted clients integrating from any domain work without a CORS preflight rejection.</p>
+<p>The API no longer restricts CORS by origin. Self-hosted deployments integrating from any domain work without a CORS preflight rejection.</p>
 
 
 
