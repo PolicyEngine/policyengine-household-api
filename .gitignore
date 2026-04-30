@@ -16,3 +16,6 @@ dist/*
 **/*.csv.gz
 .env
 .ds_store
+
+# MkDocs build output
+site/

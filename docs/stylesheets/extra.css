@@ -1,0 +1,108 @@
+/*
+ * PolicyEngine brand overrides for Material for MkDocs.
+ * Matches @policyengine/ui-kit/theme.css tokens.
+ */
+
+:root {
+  /* Primary — teal-500 / teal-600 from the PE design system. */
+  --md-primary-fg-color: #2C7A7B;        /* teal-600 — headers, buttons */
+  --md-primary-fg-color--light: #319795;  /* teal-500 */
+  --md-primary-fg-color--dark: #285E61;   /* teal-700 — pressed */
+  --md-primary-bg-color: #FFFFFF;
+  --md-primary-bg-color--light: #FFFFFFB3;
+
+  /* Accent — used for hover, focus, links. */
+  --md-accent-fg-color: #319795;          /* teal-500 */
+  --md-accent-fg-color--transparent: #31979519;
+  --md-accent-bg-color: #FFFFFF;
+  --md-accent-bg-color--light: #FFFFFFB3;
+
+  /* Body text — black foreground per PE design tokens. */
+  --md-default-fg-color: #000000;
+  --md-default-fg-color--light: #4B5563;  /* gray-600 */
+  --md-default-fg-color--lighter: #6B7280; /* gray-500 / muted-foreground */
+  --md-default-fg-color--lightest: #E2E8F0; /* border / gray-200 */
+
+  /* Backgrounds. */
+  --md-default-bg-color: #FFFFFF;
+  --md-code-bg-color: #F2F4F7;            /* gray-100 / muted */
+  --md-code-fg-color: #000000;
+
+  /* Code highlighting accents. */
+  --md-code-hl-color: #31979533;
+  --md-code-hl-name-color: #2C7A7B;
+  --md-code-hl-string-color: #285E61;
+}
+
+/* Dark mode — flip backgrounds, keep teal accents. */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #319795;
+  --md-primary-fg-color--light: #38B2AC;
+  --md-primary-fg-color--dark: #2C7A7B;
+  --md-accent-fg-color: #38B2AC;
+  --md-default-bg-color: #1A202C;
+  --md-default-fg-color: #F9FAFB;
+  --md-code-bg-color: #2D3748;
+}
+
+/* Headings — sentence case is enforced by the writing skill, not CSS, but
+ * weight + sizing match the design system. */
+.md-typeset h1 {
+  font-weight: 700;
+  font-size: 1.75rem;   /* text-3xl ≈ 28px */
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  font-size: 1.5rem;    /* text-2xl ≈ 24px */
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  padding-bottom: 0.3rem;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+  font-size: 1.25rem;   /* text-xl ≈ 20px */
+}
+
+/* Code — JetBrains Mono is loaded via the theme.font.code key. */
+.md-typeset code,
+.md-typeset pre,
+.md-typeset kbd {
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Tables — clean borders, header row in muted background. */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 6px;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-code-bg-color);
+  font-weight: 600;
+}
+
+/* Admonitions — tint the "note" variant teal to match brand. */
+.md-typeset .admonition.note,
+.md-typeset details.note {
+  border-color: #319795;
+}
+
+.md-typeset .note > .admonition-title,
+.md-typeset .note > summary {
+  background-color: #E6FFFA;   /* teal-50 */
+}
+
+.md-typeset .note > .admonition-title::before,
+.md-typeset .note > summary::before {
+  background-color: #319795;
+}
+
+/* Links — teal-600 default, teal-500 on hover (matches design tokens). */
+.md-typeset a {
+  color: #2C7A7B;
+}
+
+.md-typeset a:hover {
+  color: #319795;
+}
