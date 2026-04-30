@@ -1,6 +1,6 @@
 # Changelog
 
-Partner-visible changes to the PolicyEngine Household API. For the full commit history and auto-generated release notes, see [GitHub releases](https://github.com/PolicyEngine/policyengine-household-api/releases).
+Partner-visible changes to the PolicyEngine Household API. For the full commit-level changelog (including internal refactors, dependency updates, and infrastructure changes that don't affect the request/response contract), see [`CHANGELOG.md`](https://github.com/PolicyEngine/policyengine-household-api/blob/main/CHANGELOG.md) in the repository.
 
 ## How to read this page
 
