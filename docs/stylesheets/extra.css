@@ -45,6 +45,124 @@
   --md-code-bg-color: #2D3748;
 }
 
+/* Hide the right-side "Table of contents" pane completely. */
+.md-sidebar--secondary {
+  display: none !important;
+}
+
+/* Hide the per-page anchor links that Material inlines under the active
+ * page in the primary nav. Real page links survive because their hrefs
+ * are paths, not anchors. */
+.md-nav--primary .md-nav__link[href^="#"] {
+  display: none;
+}
+
+/* And hide the empty <nav> wrappers those anchor lists used to live in,
+ * so the active page doesn't have a hollow gap below it. */
+.md-nav--primary .md-nav__item--active > nav.md-nav,
+.md-nav--primary .md-nav__item--active > .md-nav__list:has(> li > a[href^="#"]) {
+  display: none;
+}
+
+/* Left sidebar — modest breathing room between items. */
+.md-nav__list .md-nav__item {
+  padding: 0.05rem 0;
+}
+
+.md-nav__link {
+  padding: 0.25rem 0.6rem;
+  margin: 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.md-nav__link:hover {
+  background-color: var(--md-code-bg-color);
+}
+
+/* Active page — light pill background, like the "Intro to Claude"
+ * highlight in the Claude API docs sidebar. */
+.md-nav__link--active {
+  background-color: var(--md-code-bg-color);
+  font-weight: 600;
+}
+
+/* Section titles ("Cookbook", "PolicyEngine Household API"). */
+.md-nav__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--md-default-fg-color);
+  padding: 0.5rem 0.6rem 0.25rem;
+}
+
+/* Material renders a duplicate section title inside expanded sub-navs
+ * for screen-reader navigation. Hide it visually on desktop — the
+ * clickable section link at the top of the sub-nav already labels it. */
+.md-nav--primary .md-nav__item--nested > nav.md-nav > .md-nav__title {
+  display: none;
+}
+
+/* Hide the expand/collapse toggle caret next to nested section links
+ * (e.g. "Cookbook") — the sub-pages are always visible, so the toggle
+ * is redundant. */
+.md-nav--primary .md-nav__item--nested > .md-nav__container > .md-nav__link[for] {
+  display: none;
+}
+
+/* Reclaim the space the toggle used to occupy. */
+.md-nav--primary .md-nav__item--nested > .md-nav__container {
+  display: block;
+}
+
+/* Top-level section dividers — small gap before each new section. */
+.md-nav--primary > .md-nav__list > .md-nav__item--section {
+  margin-top: 0.5rem;
+}
+
+/* Reclaim the space the right TOC was occupying for the content column. */
+.md-main__inner {
+  margin-right: auto;
+}
+
+/* Header bar — taller than the Material default for more breathing room.
+ * Matches the proportions of the Claude API docs top bar. */
+.md-header {
+  height: 4rem;        /* default is ~2.4rem */
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.md-header__inner {
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+.md-header__title {
+  font-size: 1.4rem;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+/* Bump the logo icon to match the larger title. */
+.md-header__button.md-logo {
+  padding: 0.4rem;
+}
+
+.md-header__button.md-logo svg,
+.md-header__button.md-logo img {
+  height: 2rem;
+  width: auto;          /* horizontal wordmark needs aspect-ratio-preserving width */
+  max-width: 11rem;
+}
+
+/* Push the content down to clear the taller header. */
+.md-main {
+  padding-top: 1rem;
+}
+
 /* Headings — sentence case is enforced by the writing skill, not CSS, but
  * weight + sizing match the design system. */
 .md-typeset h1 {
