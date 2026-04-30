@@ -3,7 +3,12 @@ import logging
 from flask import Response, request
 from pydantic import ValidationError
 from uuid import UUID
-from policyengine_household_api.country import COUNTRIES
+from policyengine_household_api.country import (
+    COUNTRIES,
+    detect_period_warnings,
+    validate_period_budgets,
+    validate_period_keys,
+)
 from policyengine_household_api.models.household import (
     HouseholdModelGeneric,
     HouseholdModelUK,
@@ -117,10 +122,14 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     policy_json = payload.get("policy", {})
     enable_ai_explainer = payload.get("enable_ai_explainer", False)
 
+    country = COUNTRIES.get(country_id)
+
     # Validate inbound payload shape before reaching the compute layer.
     try:
         _validate_household_payload(country_id, household_json)
         _validate_axes(household_json)
+        validate_period_keys(household_json, country.tax_benefit_system)
+        validate_period_budgets(household_json, country.tax_benefit_system)
     except ValueError as e:
         return Response(
             json.dumps({"status": "error", "message": str(e)}),
@@ -128,7 +137,12 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
             mimetype="application/json",
         )
 
-    country = COUNTRIES.get(country_id)
+    # Detect partial monthly input + annual output combinations so partners
+    # see a heads-up that some months will read the engine's fallback. v1
+    # has no such warning; this is purely additive diagnostic.
+    period_warnings = detect_period_warnings(
+        household_json, country.tax_benefit_system
+    )
 
     try:
         result: dict
@@ -154,6 +168,11 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         result=result,
         policyengine_bundle=dict(country.policyengine_bundle),
     )
+
+    if period_warnings:
+        # Serialize to strings on the wire; the structured dataclasses
+        # stay available for any future caller that wants the fields.
+        response_body["warnings"] = [w.message for w in period_warnings]
 
     if enable_ai_explainer:
         response_body["computation_tree_uuid"] = str(computation_tree_uuid)
