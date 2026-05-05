@@ -1,1 +1,0 @@
-Migrated the `my_friend_ben` customer-household fixture off the removed `medical_out_of_pocket_expenses` input to `other_medical_expenses`, the load-bearing replacement for non-premium medical spending in policyengine-us 1.673.0+.
