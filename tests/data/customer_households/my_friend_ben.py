@@ -111,7 +111,7 @@ my_friend_ben_household = {
             "real_estate_taxes": {
                 "2025": 0,
             },
-            "medical_out_of_pocket_expenses": {
+            "other_medical_expenses": {
                 "2025": 0,
             },
             "is_snap_ineligible_student": {
