@@ -149,6 +149,80 @@ class TestCalculateEndpoint:
             "reaching the engine."
         )
 
+    def test__deprecated_input__is_dropped_with_warning(self, client):
+        """A removed model variable in the payload must not crash the request.
+
+        `medical_out_of_pocket_expenses` was removed from policyengine-us in
+        1.673.0. Without warn-and-drop, partner traffic carrying it raises
+        `VariableNotFoundError` → HTTP 500 and the partner sees no output
+        at all. With warn-and-drop, the field is stripped before the engine
+        sees it and a structured warning is appended to the response.
+        """
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    "medical_out_of_pocket_expenses": {"2024": 0},
+                }
+            },
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = json.loads(response.data)
+        assert payload["status"] == "ok"
+        # CTC still computes — non-medical outputs are unaffected.
+        assert (
+            payload["result"]["tax_units"]["tax_unit"]["ctc"]["2024"]
+            is not None
+        )
+        # The deprecation warning is surfaced in the response.
+        assert "warnings" in payload
+        assert any(
+            "medical_out_of_pocket_expenses" in w and "deprecated" in w.lower()
+            for w in payload["warnings"]
+        )
+
+    def test__deprecated_axis_name__is_dropped_with_warning(self, client):
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "axes": [
+                [
+                    {
+                        "name": "medical_out_of_pocket_expenses",
+                        "period": "2024",
+                        "min": 0,
+                        "max": 1000,
+                        "count": 2,
+                    }
+                ]
+            ],
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = json.loads(response.data)
+        assert payload["status"] == "ok"
+        assert (
+            payload["result"]["tax_units"]["tax_unit"]["ctc"]["2024"]
+            is not None
+        )
+        assert any(
+            "medical_out_of_pocket_expenses" in w and "axes[0][0].name" in w
+            for w in payload["warnings"]
+        )
+
     def test__given_ai_explainer_tracer_fails__returns_500(self, client):
         with patch(
             "policyengine_household_api.country.generate_computation_tree",
