@@ -1,3 +1,10 @@
+## [0.16.0] - 2026-05-06
+
+### Added
+
+- Added a deprecation registry and warn-and-drop layer for inbound /calculate payloads. Removed model variables (e.g. `medical_out_of_pocket_expenses`, deleted in policyengine-us 1.673.0) are now stripped before the engine runs, and the response includes a structured warning telling partners which variable was ignored and how to migrate. Previously these requests returned HTTP 500 with `VariableNotFoundError`.
+
+
 ## [0.15.2] - 2026-05-05
 
 ### Changed
