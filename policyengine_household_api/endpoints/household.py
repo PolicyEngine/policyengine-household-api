@@ -14,6 +14,9 @@ from policyengine_household_api.models.household import (
     HouseholdModelUK,
     HouseholdModelUS,
 )
+from policyengine_household_api.utils.deprecated_inputs import (
+    drop_deprecated_inputs,
+)
 from policyengine_household_api.utils.validate_country import validate_country
 
 
@@ -124,6 +127,11 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     country = COUNTRIES.get(country_id)
 
+    # Strip deprecated inputs before validation so partners who still pass
+    # removed/renamed variables get a warning + working response instead
+    # of a `VariableNotFoundError` HTTP 500.
+    deprecation_warnings = drop_deprecated_inputs(household_json)
+
     # Validate inbound payload shape before reaching the compute layer.
     try:
         _validate_household_payload(country_id, household_json)
@@ -169,10 +177,13 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         policyengine_bundle=dict(country.policyengine_bundle),
     )
 
-    if period_warnings:
+    warning_messages = [w.message for w in deprecation_warnings] + [
+        w.message for w in period_warnings
+    ]
+    if warning_messages:
         # Serialize to strings on the wire; the structured dataclasses
         # stay available for any future caller that wants the fields.
-        response_body["warnings"] = [w.message for w in period_warnings]
+        response_body["warnings"] = warning_messages
 
     if enable_ai_explainer:
         response_body["computation_tree_uuid"] = str(computation_tree_uuid)
