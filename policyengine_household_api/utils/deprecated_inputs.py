@@ -8,6 +8,7 @@ landing — every other output computes normally; only outputs that
 depended on the deprecated input fall back to defaults.
 """
 
+import copy
 from dataclasses import dataclass
 
 
@@ -43,14 +44,22 @@ class DeprecatedVariableWarning:
         )
 
 
+@dataclass(frozen=True)
+class DeprecatedInputsResult:
+    """A household copy with deprecated inputs removed plus warnings."""
+
+    household: dict
+    warnings: list[DeprecatedVariableWarning]
+
+
 def drop_deprecated_inputs(
     household: dict,
-) -> list[DeprecatedVariableWarning]:
-    """Strip deprecated input keys from ``household`` in place.
+) -> DeprecatedInputsResult:
+    """Return a household copy with deprecated input keys stripped.
 
-    Returns one warning per (entity, deprecated-key) occurrence. Mutates
-    ``household`` so downstream validation and the simulation never see
-    the deprecated keys.
+    Returns one warning per (entity, deprecated-key) occurrence. The
+    caller's ``household`` is never mutated; downstream validation and
+    simulation receive the returned copy.
 
     Non-dict inputs are returned unchanged with no warnings; the
     Pydantic schema check that runs immediately after will reject the
@@ -59,9 +68,11 @@ def drop_deprecated_inputs(
     warnings: list[DeprecatedVariableWarning] = []
 
     if not isinstance(household, dict):
-        return warnings
+        return DeprecatedInputsResult(household=household, warnings=warnings)
 
-    for entity_plural, entity_group in household.items():
+    cleaned_household = copy.deepcopy(household)
+
+    for entity_plural, entity_group in cleaned_household.items():
         if entity_plural == "axes":
             continue
         if not isinstance(entity_group, dict):
@@ -83,9 +94,11 @@ def drop_deprecated_inputs(
                 )
                 del variables[variable_name]
 
-    _drop_deprecated_axes(household, warnings)
+    _drop_deprecated_axes(cleaned_household, warnings)
 
-    return warnings
+    return DeprecatedInputsResult(
+        household=cleaned_household, warnings=warnings
+    )
 
 
 def _drop_deprecated_axes(

@@ -223,6 +223,55 @@ class TestCalculateEndpoint:
             for w in payload["warnings"]
         )
 
+    def test__unknown_input_variable__returns_400_with_errors(self, client):
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    "definitely_not_a_variable": {"2024": 0},
+                }
+            },
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        assert payload["status"] == "error"
+        assert payload["message"] == "Invalid household variables."
+        assert "errors" in payload
+        assert any(
+            "Variable `definitely_not_a_variable`" in error
+            and "PolicyEngine model version" in error
+            for error in payload["errors"]
+        )
+
+    def test__unknown_axis_variable__returns_400_with_errors(self, client):
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "axes": [{"name": "definitely_not_a_variable", "count": 2}],
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        assert payload["status"] == "error"
+        assert any(
+            "Variable `definitely_not_a_variable`" in error
+            and "axes[0].name" in error
+            for error in payload["errors"]
+        )
+
     def test__given_ai_explainer_tracer_fails__returns_500(self, client):
         with patch(
             "policyengine_household_api.country.generate_computation_tree",

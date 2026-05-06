@@ -4,12 +4,14 @@ This is the main Flask app for the PolicyEngine API.
 
 # Python imports
 import os
+from pathlib import Path
 
 # External imports
 from flask_cors import CORS
 import flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import yaml
 from policyengine_household_api.data.analytics_setup import (
     initialize_analytics_db_if_enabled,
 )
@@ -34,6 +36,7 @@ require_auth_if_enabled = create_auth_decorator()
 print("Initialising API...")
 
 app = application = flask.Flask(__name__)
+OPENAPI_SPEC_PATH = Path(__file__).with_name("openapi_spec.yaml")
 
 # Reject absurdly large request bodies before any view runs. 10 MiB is
 # well above the largest legitimate household payload we have seen
@@ -87,6 +90,12 @@ def readiness_check():
     return flask.Response(
         "OK", status=200, headers={"Content-Type": "text/plain"}
     )
+
+
+@app.route("/specification", methods=["GET"])
+def specification():
+    with OPENAPI_SPEC_PATH.open() as spec_file:
+        return flask.jsonify(yaml.safe_load(spec_file))
 
 
 # Note: `/calculate_demo` is intentionally public (documented in
