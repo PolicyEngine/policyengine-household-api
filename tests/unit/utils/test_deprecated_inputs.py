@@ -84,6 +84,68 @@ class TestDropDeprecatedInputs:
             [{"name": "employment_income", "count": 5}]
         ]
 
+    def test__deprecated_axis_name__is_dropped_with_warning(self):
+        household = {
+            "people": {"you": {"age": {"2025": 49}}},
+            "axes": [
+                [
+                    {
+                        "name": "medical_out_of_pocket_expenses",
+                        "period": "2025",
+                        "min": 0,
+                        "max": 100,
+                        "count": 2,
+                    },
+                    {
+                        "name": "employment_income",
+                        "period": "2025",
+                        "min": 0,
+                        "max": 100,
+                        "count": 2,
+                    },
+                ]
+            ],
+        }
+
+        warnings = drop_deprecated_inputs(household)
+
+        assert household["axes"] == [
+            [
+                {
+                    "name": "employment_income",
+                    "period": "2025",
+                    "min": 0,
+                    "max": 100,
+                    "count": 2,
+                }
+            ]
+        ]
+        assert len(warnings) == 1
+        assert warnings[0].entity_plural == "axes"
+        assert warnings[0].entity_id == "0][0"
+        assert "axes[0][0].name" in warnings[0].message
+
+    def test__only_deprecated_axis_names__removes_axes_key(self):
+        household = {
+            "people": {"you": {"age": {"2025": 49}}},
+            "axes": [
+                [
+                    {
+                        "name": "medical_out_of_pocket_expenses",
+                        "period": "2025",
+                        "min": 0,
+                        "max": 100,
+                        "count": 2,
+                    }
+                ]
+            ],
+        }
+
+        warnings = drop_deprecated_inputs(household)
+
+        assert "axes" not in household
+        assert len(warnings) == 1
+
     def test__list_valued_variable__is_not_misinterpreted(self):
         # `members` is a list-valued slot on entity groups; the helper must
         # not try to mutate it.

@@ -34,9 +34,11 @@ class DeprecatedVariableWarning:
 
     @property
     def message(self) -> str:
+        location = f"`{self.entity_plural}/{self.entity_id}`"
+        if self.entity_plural == "axes":
+            location = f"`axes[{self.entity_id}].name`"
         return (
-            f"Input `{self.variable}` on "
-            f"`{self.entity_plural}/{self.entity_id}` is deprecated and was "
+            f"Input `{self.variable}` on {location} is deprecated and was "
             f"ignored for this calculation. {self.hint}"
         )
 
@@ -60,6 +62,8 @@ def drop_deprecated_inputs(
         return warnings
 
     for entity_plural, entity_group in household.items():
+        if entity_plural == "axes":
+            continue
         if not isinstance(entity_group, dict):
             continue
         for entity_id, variables in entity_group.items():
@@ -79,4 +83,65 @@ def drop_deprecated_inputs(
                 )
                 del variables[variable_name]
 
+    _drop_deprecated_axes(household, warnings)
+
     return warnings
+
+
+def _drop_deprecated_axes(
+    household: dict, warnings: list[DeprecatedVariableWarning]
+) -> None:
+    axes = household.get("axes")
+    if not isinstance(axes, list):
+        return
+
+    changed = False
+    retained_entries = []
+
+    for entry_index, entry in enumerate(axes):
+        if isinstance(entry, list):
+            retained_axes = []
+            for axis_index, axis in enumerate(entry):
+                location = f"{entry_index}][{axis_index}"
+                if _is_deprecated_axis(axis, location, warnings):
+                    changed = True
+                    continue
+                retained_axes.append(axis)
+            if retained_axes:
+                retained_entries.append(retained_axes)
+            continue
+
+        location = str(entry_index)
+        if _is_deprecated_axis(entry, location, warnings):
+            changed = True
+            continue
+        retained_entries.append(entry)
+
+    if not changed:
+        return
+    if retained_entries:
+        household["axes"] = retained_entries
+    else:
+        del household["axes"]
+
+
+def _is_deprecated_axis(
+    axis, location: str, warnings: list[DeprecatedVariableWarning]
+) -> bool:
+    if not isinstance(axis, dict):
+        return False
+
+    variable_name = axis.get("name")
+    hint = DEPRECATED_VARIABLES.get(variable_name)
+    if hint is None:
+        return False
+
+    warnings.append(
+        DeprecatedVariableWarning(
+            variable=variable_name,
+            entity_plural="axes",
+            entity_id=location,
+            hint=hint,
+        )
+    )
+    return True
