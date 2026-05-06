@@ -185,8 +185,7 @@ class TestCalculateEndpoint:
         # The deprecation warning is surfaced in the response.
         assert "warnings" in payload
         assert any(
-            "medical_out_of_pocket_expenses" in w
-            and "deprecated" in w.lower()
+            "medical_out_of_pocket_expenses" in w and "deprecated" in w.lower()
             for w in payload["warnings"]
         )
 

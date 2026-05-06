@@ -49,8 +49,15 @@ def drop_deprecated_inputs(
     Returns one warning per (entity, deprecated-key) occurrence. Mutates
     ``household`` so downstream validation and the simulation never see
     the deprecated keys.
+
+    Non-dict inputs are returned unchanged with no warnings; the
+    Pydantic schema check that runs immediately after will reject the
+    bad shape with a 400.
     """
     warnings: list[DeprecatedVariableWarning] = []
+
+    if not isinstance(household, dict):
+        return warnings
 
     for entity_plural, entity_group in household.items():
         if not isinstance(entity_group, dict):

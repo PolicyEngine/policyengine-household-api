@@ -26,7 +26,9 @@ class TestDropDeprecatedInputs:
 
         warnings = drop_deprecated_inputs(household)
 
-        assert "medical_out_of_pocket_expenses" not in household["people"]["you"]
+        assert (
+            "medical_out_of_pocket_expenses" not in household["people"]["you"]
+        )
         assert household["people"]["you"]["age"] == {"2025": 49}
         assert len(warnings) == 1
         assert isinstance(warnings[0], DeprecatedVariableWarning)
