@@ -1,5 +1,0 @@
-Validate household calculate payload variables before simulation, returning
-HTTP 400 with structured `errors` for variables not available in the API's
-PolicyEngine model version while preserving allowlisted deprecated-variable
-warnings. Also expose the OpenAPI specification and document calculate request
-and response schemas.

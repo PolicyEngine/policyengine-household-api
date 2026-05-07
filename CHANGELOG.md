@@ -1,3 +1,14 @@
+## [0.16.1] - 2026-05-07
+
+### Fixed
+
+- Validate household calculate payload variables before simulation, returning
+  HTTP 400 with structured `errors` for variables not available in the API's
+  PolicyEngine model version while preserving allowlisted deprecated-variable
+  warnings. Also expose the OpenAPI specification and document calculate request
+  and response schemas.
+
+
 ## [0.16.0] - 2026-05-06
 
 ### Added
