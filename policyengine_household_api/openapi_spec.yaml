@@ -1,15 +1,17 @@
 openapi: 3.0.0
 info:
-  title: PolicyEngine API
-  description: The PolicyEngine API provides programmatic access to PolicyEngine functionalities, including managing policies and retrieving policy-related information.
-  version: null
+  title: PolicyEngine Household API
+  description: The PolicyEngine Household API calculates policy outcomes for household JSON payloads without storing household data.
+  version: PACKAGE_VERSION
   contact:
     name: PolicyEngine Support
     email: hello@policyengine.org
     url: https://policyengine.org
 servers:
-  - url: https://api.policyengine.org
-    description: Production server
+  - url: https://household.api.policyengine.org
+    description: Hosted household API
+  - url: http://localhost:8080
+    description: Local Docker household API
 paths:
   /:
     get:
@@ -539,6 +541,8 @@ paths:
       summary: Calculate household and policy without storing data
       operationId: get_calculate
       description: Lightweight endpoint for passing in household JSON objects and calculating without storing data. Specify the country ID.
+      security:
+        - bearerAuth: []
       parameters:
         - name: country_id
           in: path
@@ -546,43 +550,131 @@ paths:
           required: true
           schema:
             type: string
+            enum:
+              - us
+              - uk
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                household:
-                  type: object
-                policy:
-                  type: object
+              $ref: "#/components/schemas/CalculateRequest"
+            examples:
+              us_single_adult:
+                summary: US single adult
+                value:
+                  household:
+                    people:
+                      you:
+                        age:
+                          "2025": 30
+                        employment_income:
+                          "2025": 50000
+                    households:
+                      your household:
+                        members:
+                          - you
+                        state_name:
+                          "2025": CA
+                    families:
+                      your family:
+                        members:
+                          - you
+                    tax_units:
+                      your tax unit:
+                        members:
+                          - you
+                    marital_units:
+                      your marital unit:
+                        members:
+                          - you
+                    spm_units:
+                      your spm unit:
+                        members:
+                          - you
+              uk_single_adult:
+                summary: UK single adult
+                value:
+                  household:
+                    people:
+                      person:
+                        age:
+                          "2025": 30
+                        employment_income:
+                          "2025": 30000
+                    benunits:
+                      benunit:
+                        members:
+                          - person
+                    households:
+                      household:
+                        members:
+                          - person
       responses:
         200:
           description: The calculation result.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                    nullable: true
-                  result:
-                    type: object
+                $ref: "#/components/schemas/CalculateSuccessResponse"
+              examples:
+                success:
+                  summary: Successful calculation
+                  value:
+                    status: ok
+                    message: null
+                    result:
+                      people:
+                        you:
+                          age:
+                            "2025": 30
+                          employment_income:
+                            "2025": 50000
+                      households:
+                        your household:
+                          household_net_income:
+                            "2025": 46375.0
+                    policyengine_bundle:
+                      model_version: 1.687.0
+                      data_version: null
+                      dataset: null
+        400:
+          description: Invalid request payload or unsupported household variable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+              examples:
+                unknown_variable:
+                  summary: Variable not available
+                  value:
+                    status: error
+                    message: Invalid household variables.
+                    errors:
+                      - Variable `not_a_variable` on `people/you` is not available in PolicyEngine model version 1.687.0 used by this API. Remove it or migrate to a supported variable.
+                invalid_payload:
+                  summary: Invalid household payload
+                  value:
+                    status: error
+                    message: "'household' must be a JSON object"
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: The bearer token is valid but not authorized for this API.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
         500:
           description: Error calculating household under policy.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
+                $ref: "#/components/schemas/ApiErrorResponse"
         404:
           description: Invalid country ID.
           content:
@@ -876,3 +968,203 @@ paths:
                     type: object
                   servers:
                     type: array
+                  components:
+                    type: object
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Hosted API requests require an Auth0 bearer token. Local Docker requests usually run without authentication.
+  schemas:
+    CalculateRequest:
+      type: object
+      required:
+        - household
+      properties:
+        household:
+          $ref: "#/components/schemas/Household"
+        policy:
+          type: object
+          description: Optional policy reform object passed through to the country model.
+          additionalProperties: true
+        enable_ai_explainer:
+          type: boolean
+          default: false
+          description: When true, the response includes a computation tree UUID that can be passed to the AI analysis endpoint.
+      additionalProperties: false
+    Household:
+      type: object
+      description: A household is a map of entity groups. Each entity group maps entity IDs to variables. Each variable maps periods to values.
+      required:
+        - people
+      properties:
+        people:
+          $ref: "#/components/schemas/EntityGroup"
+        households:
+          $ref: "#/components/schemas/EntityGroup"
+        families:
+          $ref: "#/components/schemas/EntityGroup"
+        tax_units:
+          $ref: "#/components/schemas/EntityGroup"
+        marital_units:
+          $ref: "#/components/schemas/EntityGroup"
+        spm_units:
+          $ref: "#/components/schemas/EntityGroup"
+        benunits:
+          $ref: "#/components/schemas/EntityGroup"
+        axes:
+          type: array
+          description: Optional scan axes. Each axis can vary one variable over a bounded range.
+          items:
+            $ref: "#/components/schemas/AxisEntry"
+      additionalProperties:
+        $ref: "#/components/schemas/EntityGroup"
+    EntityGroup:
+      type: object
+      description: Map of entity IDs to entity payloads.
+      additionalProperties:
+        $ref: "#/components/schemas/Entity"
+      example:
+        you:
+          age:
+            "2025": 30
+          employment_income:
+            "2025": 50000
+    Entity:
+      type: object
+      description: Variables for one entity. The members property links group entities back to people.
+      properties:
+        members:
+          type: array
+          items:
+            type: string
+      additionalProperties:
+        $ref: "#/components/schemas/PeriodValueMap"
+    PeriodValueMap:
+      type: object
+      description: Map from a year, month, or other model period to a value.
+      additionalProperties:
+        $ref: "#/components/schemas/HouseholdValue"
+      example:
+        "2025": 50000
+    HouseholdValue:
+      description: A model input or output value for one period.
+      nullable: true
+      oneOf:
+        - type: number
+        - type: string
+        - type: boolean
+        - type: array
+          items: {}
+        - type: object
+          additionalProperties: true
+    AxisEntry:
+      description: A single axis specification or a crossed list of axis specifications.
+      oneOf:
+        - $ref: "#/components/schemas/Axis"
+        - type: array
+          items:
+            $ref: "#/components/schemas/Axis"
+    Axis:
+      type: object
+      required:
+        - name
+        - min
+        - max
+        - count
+      properties:
+        name:
+          type: string
+          description: Variable name to scan.
+          example: employment_income
+        period:
+          type: string
+          description: Period to scan.
+          example: "2025"
+        min:
+          type: number
+          example: 0
+        max:
+          type: number
+          example: 100000
+        count:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 11
+    CalculateSuccessResponse:
+      type: object
+      required:
+        - status
+        - message
+        - result
+        - policyengine_bundle
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+        message:
+          type: string
+          nullable: true
+        result:
+          $ref: "#/components/schemas/CalculationResult"
+        policyengine_bundle:
+          $ref: "#/components/schemas/PolicyEngineBundle"
+        warnings:
+          type: array
+          description: Non-fatal request warnings, such as deprecated variable inputs or surprising period shapes.
+          items:
+            type: string
+        computation_tree_uuid:
+          type: string
+          format: uuid
+          description: Returned only when enable_ai_explainer is true.
+    CalculationResult:
+      type: object
+      description: Calculated household data, keyed by entity group, entity ID, variable name, and period.
+      additionalProperties:
+        $ref: "#/components/schemas/EntityGroup"
+    PolicyEngineBundle:
+      type: object
+      required:
+        - model_version
+      properties:
+        model_version:
+          type: string
+          description: Version of the country model used for the calculation.
+        data_version:
+          type: string
+          nullable: true
+          description: Version of the input data used by the country model, when available.
+        dataset:
+          type: string
+          nullable: true
+          description: Dataset used by the country model, when available.
+      additionalProperties: true
+    ApiErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum:
+            - error
+        message:
+          type: string
+        errors:
+          type: array
+          description: Field-level or variable-level validation messages.
+          items:
+            type: string
+    AuthErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string

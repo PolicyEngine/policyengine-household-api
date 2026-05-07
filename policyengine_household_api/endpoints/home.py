@@ -12,6 +12,9 @@ def get_home() -> Response:
         "result": {
             "docs_url": "https://www.policyengine.org/us/api",
             "container_image": "ghcr.io/policyengine/policyengine-household-api",
+            "openapi_spec_url": (
+                "https://household.api.policyengine.org/specification"
+            ),
             "hosted_calculate_url_template": (
                 "https://household.api.policyengine.org/{country_id}/calculate"
             ),

@@ -1,13 +1,16 @@
 """Unit tests for the deprecated-input warn-and-drop helper.
 
-`drop_deprecated_inputs` strips removed/renamed model variables from the
-inbound household payload before validation so partners who still pass
+`drop_deprecated_inputs` returns a household copy with removed/renamed
+model variables stripped before validation so partners who still pass
 them get a structured warning + working response instead of a
 `VariableNotFoundError` HTTP 500 from the engine.
 """
 
+import copy
+
 from policyengine_household_api.utils.deprecated_inputs import (
     DEPRECATED_VARIABLES,
+    DeprecatedInputsResult,
     DeprecatedVariableWarning,
     drop_deprecated_inputs,
 )
@@ -23,14 +26,17 @@ class TestDropDeprecatedInputs:
                 }
             }
         }
+        original = copy.deepcopy(household)
 
-        warnings = drop_deprecated_inputs(household)
+        result = drop_deprecated_inputs(household)
+        cleaned = result.household
+        warnings = result.warnings
 
-        assert (
-            "medical_out_of_pocket_expenses" not in household["people"]["you"]
-        )
-        assert household["people"]["you"]["age"] == {"2025": 49}
+        assert "medical_out_of_pocket_expenses" not in cleaned["people"]["you"]
+        assert household == original
+        assert cleaned["people"]["you"]["age"] == {"2025": 49}
         assert len(warnings) == 1
+        assert isinstance(result, DeprecatedInputsResult)
         assert isinstance(warnings[0], DeprecatedVariableWarning)
         assert warnings[0].variable == "medical_out_of_pocket_expenses"
         assert warnings[0].entity_plural == "people"
@@ -42,12 +48,14 @@ class TestDropDeprecatedInputs:
             "people": {"you": {"age": {"2025": 49}}},
             "households": {"household": {"members": ["you"]}},
         }
-        original = {"people": dict(household["people"]["you"])}
+        original = copy.deepcopy(household)
 
-        warnings = drop_deprecated_inputs(household)
+        result = drop_deprecated_inputs(household)
 
-        assert warnings == []
-        assert household["people"]["you"] == original["people"]
+        assert result.warnings == []
+        assert result.household == household
+        assert result.household is not household
+        assert household == original
 
     def test__deprecated_variable_on_multiple_people__warns_each(self):
         household = {
@@ -60,14 +68,17 @@ class TestDropDeprecatedInputs:
                 },
             }
         }
+        original = copy.deepcopy(household)
 
-        warnings = drop_deprecated_inputs(household)
+        result = drop_deprecated_inputs(household)
+        warnings = result.warnings
 
         assert len(warnings) == 2
         ids = {w.entity_id for w in warnings}
         assert ids == {"you", "spouse"}
-        assert household["people"]["you"] == {}
-        assert household["people"]["spouse"] == {}
+        assert result.household["people"]["you"] == {}
+        assert result.household["people"]["spouse"] == {}
+        assert household == original
 
     def test__list_valued_entity_group__is_skipped_safely(self):
         # `axes` is a list at the household level, not an entity dict.
@@ -76,13 +87,15 @@ class TestDropDeprecatedInputs:
             "people": {"you": {"age": {"2025": 49}}},
             "axes": [[{"name": "employment_income", "count": 5}]],
         }
+        original = copy.deepcopy(household)
 
-        warnings = drop_deprecated_inputs(household)
+        result = drop_deprecated_inputs(household)
 
-        assert warnings == []
-        assert household["axes"] == [
+        assert result.warnings == []
+        assert result.household["axes"] == [
             [{"name": "employment_income", "count": 5}]
         ]
+        assert household == original
 
     def test__deprecated_axis_name__is_dropped_with_warning(self):
         household = {
@@ -106,10 +119,12 @@ class TestDropDeprecatedInputs:
                 ]
             ],
         }
+        original = copy.deepcopy(household)
 
-        warnings = drop_deprecated_inputs(household)
+        result = drop_deprecated_inputs(household)
+        warnings = result.warnings
 
-        assert household["axes"] == [
+        assert result.household["axes"] == [
             [
                 {
                     "name": "employment_income",
@@ -124,6 +139,7 @@ class TestDropDeprecatedInputs:
         assert warnings[0].entity_plural == "axes"
         assert warnings[0].entity_id == "0][0"
         assert "axes[0][0].name" in warnings[0].message
+        assert household == original
 
     def test__only_deprecated_axis_names__removes_axes_key(self):
         household = {
@@ -140,11 +156,13 @@ class TestDropDeprecatedInputs:
                 ]
             ],
         }
+        original = copy.deepcopy(household)
 
-        warnings = drop_deprecated_inputs(household)
+        result = drop_deprecated_inputs(household)
 
-        assert "axes" not in household
-        assert len(warnings) == 1
+        assert "axes" not in result.household
+        assert len(result.warnings) == 1
+        assert household == original
 
     def test__list_valued_variable__is_not_misinterpreted(self):
         # `members` is a list-valued slot on entity groups; the helper must
@@ -157,11 +175,13 @@ class TestDropDeprecatedInputs:
                 }
             }
         }
+        original = copy.deepcopy(household)
 
-        warnings = drop_deprecated_inputs(household)
+        result = drop_deprecated_inputs(household)
 
-        assert warnings == []
-        assert household["spm_units"]["spm_unit"]["members"] == ["you"]
+        assert result.warnings == []
+        assert result.household["spm_units"]["spm_unit"]["members"] == ["you"]
+        assert household == original
 
     def test__warning_message_includes_variable_entity_and_hint(self):
         warning = DeprecatedVariableWarning(

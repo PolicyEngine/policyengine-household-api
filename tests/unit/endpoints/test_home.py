@@ -1,5 +1,7 @@
 import json
 
+from policyengine_household_api.api import get_api_version
+
 
 class TestHomeEndpoint:
     def test_returns_json_service_metadata(self, client):
@@ -19,6 +21,10 @@ class TestHomeEndpoint:
             result["container_image"]
             == "ghcr.io/policyengine/policyengine-household-api"
         )
+        assert (
+            result["openapi_spec_url"]
+            == "https://household.api.policyengine.org/specification"
+        )
         assert result["hosted_calculate_url_template"] == (
             "https://household.api.policyengine.org/{country_id}/calculate"
         )
@@ -29,3 +35,21 @@ class TestHomeEndpoint:
             "liveness": "/liveness_check",
             "readiness": "/readiness_check",
         }
+
+    def test_specification_returns_openapi_json(self, client):
+        response = client.get("/specification")
+
+        assert response.status_code == 200
+        assert response.mimetype == "application/json"
+
+        payload = json.loads(response.data)
+        assert payload["openapi"] == "3.0.0"
+        assert payload["info"]["title"] == "PolicyEngine Household API"
+        assert payload["info"]["version"] == get_api_version()
+        assert (
+            payload["paths"]["/{country_id}/calculate"]["post"]["requestBody"][
+                "content"
+            ]["application/json"]["schema"]["$ref"]
+            == "#/components/schemas/CalculateRequest"
+        )
+        assert "bearerAuth" in payload["components"]["securitySchemes"]

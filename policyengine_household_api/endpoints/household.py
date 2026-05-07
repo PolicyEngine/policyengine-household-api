@@ -17,6 +17,9 @@ from policyengine_household_api.models.household import (
 from policyengine_household_api.utils.deprecated_inputs import (
     drop_deprecated_inputs,
 )
+from policyengine_household_api.utils.variable_validation import (
+    validate_household_variables,
+)
 from policyengine_household_api.utils.validate_country import validate_country
 
 
@@ -127,15 +130,44 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     country = COUNTRIES.get(country_id)
 
-    # Strip deprecated inputs before validation so partners who still pass
-    # removed/renamed variables get a warning + working response instead
-    # of a `VariableNotFoundError` HTTP 500.
-    deprecation_warnings = drop_deprecated_inputs(household_json)
-
     # Validate inbound payload shape before reaching the compute layer.
     try:
         _validate_household_payload(country_id, household_json)
         _validate_axes(household_json)
+    except ValueError as e:
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            status=400,
+            mimetype="application/json",
+        )
+
+    variable_errors = validate_household_variables(
+        household=household_json,
+        system=country.tax_benefit_system,
+        model_version=country.policyengine_bundle["model_version"],
+    )
+    if variable_errors:
+        return Response(
+            json.dumps(
+                {
+                    "status": "error",
+                    "message": "Invalid household variables.",
+                    "errors": [error.message for error in variable_errors],
+                }
+            ),
+            status=400,
+            mimetype="application/json",
+        )
+
+    # Strip deprecated inputs from a copy before period validation so
+    # partners who still pass removed/renamed variables get a warning +
+    # working response instead of a `VariableNotFoundError` HTTP 500.
+    deprecated_inputs = drop_deprecated_inputs(household_json)
+    household_json = deprecated_inputs.household
+    deprecation_warnings = deprecated_inputs.warnings
+
+    # Validate inbound period data before reaching the compute layer.
+    try:
         validate_period_keys(household_json, country.tax_benefit_system)
         validate_period_budgets(household_json, country.tax_benefit_system)
     except ValueError as e:
