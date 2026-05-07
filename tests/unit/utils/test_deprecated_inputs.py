@@ -32,10 +32,7 @@ class TestDropDeprecatedInputs:
         cleaned = result.household
         warnings = result.warnings
 
-        assert (
-            "medical_out_of_pocket_expenses"
-            not in cleaned["people"]["you"]
-        )
+        assert "medical_out_of_pocket_expenses" not in cleaned["people"]["you"]
         assert household == original
         assert cleaned["people"]["you"]["age"] == {"2025": 49}
         assert len(warnings) == 1
