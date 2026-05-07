@@ -3,8 +3,12 @@ This is the main Flask app for the PolicyEngine API.
 """
 
 # Python imports
+from functools import lru_cache
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 import os
 from pathlib import Path
+import tomllib
 
 # External imports
 from flask_cors import CORS
@@ -37,6 +41,8 @@ print("Initialising API...")
 
 app = application = flask.Flask(__name__)
 OPENAPI_SPEC_PATH = Path(__file__).with_name("openapi_spec.yaml")
+PACKAGE_NAME = "policyengine-household-api"
+PYPROJECT_PATH = Path(__file__).resolve().parents[1] / "pyproject.toml"
 
 # Reject absurdly large request bodies before any view runs. 10 MiB is
 # well above the largest legitimate household payload we have seen
@@ -94,8 +100,24 @@ def readiness_check():
 
 @app.route("/specification", methods=["GET"])
 def specification():
+    spec = load_openapi_spec()
+    return flask.jsonify(spec)
+
+
+def load_openapi_spec() -> dict:
     with OPENAPI_SPEC_PATH.open() as spec_file:
-        return flask.jsonify(yaml.safe_load(spec_file))
+        spec = yaml.safe_load(spec_file)
+    spec.setdefault("info", {})["version"] = get_api_version()
+    return spec
+
+
+@lru_cache
+def get_api_version() -> str:
+    try:
+        return package_version(PACKAGE_NAME)
+    except PackageNotFoundError:
+        with PYPROJECT_PATH.open("rb") as pyproject_file:
+            return tomllib.load(pyproject_file)["project"]["version"]
 
 
 # Note: `/calculate_demo` is intentionally public (documented in

@@ -1,5 +1,7 @@
 import json
 
+from policyengine_household_api.api import get_api_version
+
 
 class TestHomeEndpoint:
     def test_returns_json_service_metadata(self, client):
@@ -43,6 +45,7 @@ class TestHomeEndpoint:
         payload = json.loads(response.data)
         assert payload["openapi"] == "3.0.0"
         assert payload["info"]["title"] == "PolicyEngine Household API"
+        assert payload["info"]["version"] == get_api_version()
         assert (
             payload["paths"]["/{country_id}/calculate"]["post"]["requestBody"][
                 "content"

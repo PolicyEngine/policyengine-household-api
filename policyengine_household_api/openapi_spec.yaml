@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: PolicyEngine Household API
   description: The PolicyEngine Household API calculates policy outcomes for household JSON payloads without storing household data.
-  version: "1.0.0"
+  version: PACKAGE_VERSION
   contact:
     name: PolicyEngine Support
     email: hello@policyengine.org
