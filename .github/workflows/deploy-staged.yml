@@ -202,8 +202,8 @@ jobs:
           USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
         run: |
           if [ -z "${USER_ANALYTICS_DB_USERNAME}" ] || [ -z "${USER_ANALYTICS_DB_PASSWORD}" ] || [ -z "${USER_ANALYTICS_DB_CONNECTION_NAME}" ]; then
-            echo "Skipping analytics migrations; analytics database secrets are not configured."
-            exit 0
+            echo "::error::Analytics database secrets must be configured before deploying with ANALYTICS__ENABLED=true."
+            exit 1
           fi
           uv run alembic upgrade head
 
@@ -372,8 +372,8 @@ jobs:
           USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
         run: |
           if [ -z "${USER_ANALYTICS_DB_USERNAME}" ] || [ -z "${USER_ANALYTICS_DB_PASSWORD}" ] || [ -z "${USER_ANALYTICS_DB_CONNECTION_NAME}" ]; then
-            echo "Skipping analytics migrations; analytics database secrets are not configured."
-            exit 0
+            echo "::error::Analytics database secrets must be configured before deploying with ANALYTICS__ENABLED=true."
+            exit 1
           fi
           uv run alembic upgrade head
 
