@@ -156,6 +156,7 @@ app:
 # User analytics (opt-in feature)
 analytics:
   enabled: Whether to collect user analytics (default: false)
+  collect_variable_usage: Whether to collect privacy-safe calculate variable usage metadata when analytics are enabled (default: true)
   database:
     connection_name: Google Cloud SQL connection name
     username: Database username
@@ -188,6 +189,7 @@ Analytics can be enabled in three ways:
 # In your config file
 analytics:
   enabled: true
+  collect_variable_usage: true
   database:
     connection_name: your-project:region:instance
     username: analytics_user
@@ -199,6 +201,10 @@ analytics:
 # Enable analytics
 ANALYTICS__ENABLED=true
 
+# Optional: disable calculate variable usage metadata while keeping
+# request-count analytics enabled
+ANALYTICS__COLLECT_VARIABLE_USAGE=false
+
 # Provide database credentials
 USER_ANALYTICS_DB_CONNECTION_NAME=your-connection
 USER_ANALYTICS_DB_USERNAME=your-username
@@ -207,7 +213,7 @@ USER_ANALYTICS_DB_PASSWORD=your-password
 
 ### What Data is Collected
 
-When analytics is enabled, the following public data is collected per API request:
+When analytics is enabled, the following metadata is collected per API request:
 - Client ID (from JWT token)
 - API version
 - Endpoint accessed
@@ -215,13 +221,21 @@ When analytics is enabled, the following public data is collected per API reques
 - Request content length
 - Timestamp
 
-All of these values are public and are used purely to establish usage rates.
+For authenticated `/calculate` requests, the API also records privacy-safe
+variable usage metadata:
+- Variable names
+- The request entity group where each variable appeared
+- Whether the variable was an input, requested output, or axis variable
+- Aggregate counts of entities, periods, and occurrences
+- Country/model/API version and response status
+- Whether the variable was supported, deprecated allowlisted, or unsupported
 
 ### Privacy Considerations
 
 - Analytics is **disabled by default**
 - No request/response bodies are logged
-- Only metadata about API usage is collected
+- Household values, entity IDs, member relationships, axis bounds, and exact period keys are not logged
+- Only metadata about API usage and calculate variable usage is collected
 - Data is stored in a separate analytics database
 
 ## Auth0 Authentication Configuration
