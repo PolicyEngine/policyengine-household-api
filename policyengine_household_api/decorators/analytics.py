@@ -311,9 +311,7 @@ def _build_calculate_request_variable(
     variable.model_version = calculate_request.model_version
     variable.response_status_code = calculate_request.response_status_code
     variable.variable_name = summary.variable_name
-    variable.request_entity_group = summary.request_entity_group
-    variable.model_entity = summary.model_entity
-    variable.model_entity_group = summary.model_entity_group
+    variable.entity_type = summary.entity_type
     variable.source = summary.source
     variable.period_granularity = summary.period_granularity
     variable.entity_count = summary.entity_count

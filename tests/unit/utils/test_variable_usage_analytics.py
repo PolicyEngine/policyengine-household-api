@@ -20,7 +20,12 @@ def fake_system():
             "state_code_str": SimpleNamespace(
                 entity=SimpleNamespace(key="household", plural="households")
             ),
-        }
+        },
+        entities=[
+            SimpleNamespace(key="person", plural="people"),
+            SimpleNamespace(key="tax_unit", plural="tax_units"),
+            SimpleNamespace(key="household", plural="households"),
+        ],
     )
 
 
@@ -29,7 +34,7 @@ def summaries_by_key(household):
     return {
         (
             summary.variable_name,
-            summary.request_entity_group,
+            summary.entity_type,
             summary.source,
         ): summary
         for summary in summaries
@@ -50,7 +55,7 @@ class TestExtractVariableUsage:
         }
 
         summary = summaries_by_key(household)[
-            ("employment_income", "people", "household_input")
+            ("employment_income", "person", "household_input")
         ]
 
         assert summary.entity_count == 2
@@ -58,8 +63,7 @@ class TestExtractVariableUsage:
         assert summary.occurrence_count == 2
         assert summary.period_granularity == "year"
         assert summary.availability_status == "supported"
-        assert summary.model_entity == "person"
-        assert summary.model_entity_group == "people"
+        assert summary.entity_type == "person"
         assert "alice" not in repr(summary)
         assert "bob" not in repr(summary)
         assert "50000" not in repr(summary)
@@ -75,13 +79,13 @@ class TestExtractVariableUsage:
         }
 
         summary = summaries_by_key(household)[
-            ("ctc", "tax_units", "requested_output")
+            ("ctc", "tax_unit", "requested_output")
         ]
 
         assert summary.entity_count == 1
         assert summary.period_count == 1
         assert summary.occurrence_count == 1
-        assert summary.model_entity == "tax_unit"
+        assert summary.entity_type == "tax_unit"
 
     def test__axis_variables__exclude_axis_bounds(self):
         household = {
@@ -98,7 +102,7 @@ class TestExtractVariableUsage:
         }
 
         summary = summaries_by_key(household)[
-            ("employment_income", "axes", "axis")
+            ("employment_income", "person", "axis")
         ]
 
         assert summary.entity_count == 0
@@ -123,7 +127,7 @@ class TestExtractVariableUsage:
             summaries[
                 (
                     "medical_out_of_pocket_expenses",
-                    "people",
+                    "person",
                     "household_input",
                 )
             ].availability_status
@@ -131,7 +135,7 @@ class TestExtractVariableUsage:
         )
         assert (
             summaries[
-                ("definitely_not_a_variable", "people", "household_input")
+                ("definitely_not_a_variable", "person", "household_input")
             ].availability_status
             == "unsupported"
         )
@@ -162,9 +166,27 @@ class TestExtractVariableUsage:
         }
 
         summary = summaries_by_key(household)[
-            ("employment_income", "people", "household_input")
+            ("employment_income", "person", "household_input")
         ]
 
         assert summary.period_granularity == "mixed"
         assert summary.period_count == 2
         assert "2026-01" not in repr(summary)
+
+    def test__unknown_entity_groups__store_unknown_entity_type(self):
+        household = {
+            "caller_supplied_group_name": {
+                "caller_supplied_entity_name": {
+                    "definitely_not_a_variable": {"2026": 1},
+                }
+            }
+        }
+
+        summary = summaries_by_key(household)[
+            ("definitely_not_a_variable", "unknown", "household_input")
+        ]
+
+        assert summary.entity_type == "unknown"
+        assert summary.availability_status == "unsupported"
+        assert "caller_supplied_group_name" not in repr(summary)
+        assert "caller_supplied_entity_name" not in repr(summary)

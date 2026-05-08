@@ -321,7 +321,7 @@ class TestCalculateEndpoint:
         assert calculate_request.response_status_code == 400
         assert calculate_request.unsupported_variable_count == 1
         assert unknown_variable.availability_status == "unsupported"
-        assert unknown_variable.request_entity_group == "people"
+        assert unknown_variable.entity_type == "person"
         assert unknown_variable.source == "household_input"
         assert unknown_variable.period_granularity == "year"
         mock_db.session.commit.assert_called_once()

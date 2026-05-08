@@ -43,9 +43,7 @@ CREATE TABLE IF NOT EXISTS calculate_request_variables (
     model_version VARCHAR(64) NULL,
     response_status_code INT NULL,
     variable_name VARCHAR(255) NOT NULL,
-    request_entity_group VARCHAR(64) NOT NULL,
-    model_entity VARCHAR(64) NULL,
-    model_entity_group VARCHAR(64) NULL,
+    entity_type VARCHAR(64) NOT NULL,
     source VARCHAR(32) NOT NULL,
     period_granularity VARCHAR(16) NOT NULL,
     entity_count INT NOT NULL DEFAULT 0,
@@ -54,8 +52,8 @@ CREATE TABLE IF NOT EXISTS calculate_request_variables (
     availability_status VARCHAR(32) NOT NULL,
     CONSTRAINT fk_calc_vars_request
         FOREIGN KEY (request_id) REFERENCES calculate_requests (id),
-    CONSTRAINT ux_calc_vars_request_variable_group_source
-        UNIQUE (request_id, variable_name, request_entity_group, source)
+    CONSTRAINT ux_calc_vars_request_variable_entity_source
+        UNIQUE (request_id, variable_name, entity_type, source)
 );
 
 CREATE INDEX ix_calc_vars_variable_created

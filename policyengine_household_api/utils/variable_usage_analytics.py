@@ -24,6 +24,7 @@ PeriodGranularity = Literal["year", "month", "day", "mixed", "none", "unknown"]
 YEAR_RE = re.compile(r"^\d{4}$")
 MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+UNKNOWN_ENTITY_TYPE = "unknown"
 
 
 @dataclass(frozen=True)
@@ -31,21 +32,19 @@ class VariableUsageSummary:
     """A grouped, value-free variable usage record for one request."""
 
     variable_name: str
-    request_entity_group: str
+    entity_type: str
     source: VariableSource
     period_granularity: PeriodGranularity
     entity_count: int
     period_count: int
     occurrence_count: int
     availability_status: AvailabilityStatus
-    model_entity: str | None = None
-    model_entity_group: str | None = None
 
 
 @dataclass
 class _VariableUsageAccumulator:
     variable_name: str
-    request_entity_group: str
+    entity_type: str
     source: VariableSource
     entity_ids: set[str] = field(default_factory=set)
     period_keys: set[str] = field(default_factory=set)
@@ -90,12 +89,23 @@ def extract_variable_usage(
     if not isinstance(household, dict):
         return []
 
+    entity_type_by_group = _entity_type_by_group(system)
     accumulators: dict[
         tuple[str, str, VariableSource], _VariableUsageAccumulator
     ] = {}
 
-    _extract_entity_group_variables(household, accumulators)
-    _extract_axis_variables(household, accumulators)
+    _extract_entity_group_variables(
+        household,
+        system,
+        entity_type_by_group,
+        accumulators,
+    )
+    _extract_axis_variables(
+        household,
+        system,
+        entity_type_by_group,
+        accumulators,
+    )
 
     return [
         _to_summary(accumulator, system)
@@ -103,7 +113,7 @@ def extract_variable_usage(
             accumulators.values(),
             key=lambda item: (
                 item.variable_name,
-                item.request_entity_group,
+                item.entity_type,
                 item.source,
             ),
         )
@@ -112,6 +122,8 @@ def extract_variable_usage(
 
 def _extract_entity_group_variables(
     household: dict,
+    system,
+    entity_type_by_group: dict[str, str],
     accumulators: dict[
         tuple[str, str, VariableSource], _VariableUsageAccumulator
     ],
@@ -135,16 +147,24 @@ def _extract_entity_group_variables(
                     else []
                 )
                 granularity = _period_map_granularity(period_keys, period_map)
+                entity_type = _entity_type_for_variable(
+                    variable_name,
+                    entity_group,
+                    system,
+                    entity_type_by_group,
+                )
                 accumulator = _get_accumulator(
-                    accumulators, variable_name, entity_group, source
+                    accumulators, variable_name, entity_type, source
                 )
                 accumulator.add_entity_periods(
-                    str(entity_id), period_keys, granularity
+                    f"{entity_group}\0{entity_id}", period_keys, granularity
                 )
 
 
 def _extract_axis_variables(
     household: dict,
+    system,
+    entity_type_by_group: dict[str, str],
     accumulators: dict[
         tuple[str, str, VariableSource], _VariableUsageAccumulator
     ],
@@ -161,8 +181,14 @@ def _extract_axis_variables(
             variable_name = axis.get("name")
             if not isinstance(variable_name, str) or variable_name == "":
                 continue
+            entity_type = _entity_type_for_variable(
+                variable_name,
+                "axes",
+                system,
+                entity_type_by_group,
+            )
             accumulator = _get_accumulator(
-                accumulators, variable_name, "axes", "axis"
+                accumulators, variable_name, entity_type, "axis"
             )
             accumulator.add_axis_period(axis.get("period"))
 
@@ -172,14 +198,14 @@ def _get_accumulator(
         tuple[str, str, VariableSource], _VariableUsageAccumulator
     ],
     variable_name: str,
-    request_entity_group: str,
+    entity_type: str,
     source: VariableSource,
 ) -> _VariableUsageAccumulator:
-    key = (variable_name, request_entity_group, source)
+    key = (variable_name, entity_type, source)
     if key not in accumulators:
         accumulators[key] = _VariableUsageAccumulator(
             variable_name=variable_name,
-            request_entity_group=request_entity_group,
+            entity_type=entity_type,
             source=source,
         )
     return accumulators[key]
@@ -192,29 +218,58 @@ def _to_summary(
     variable = getattr(system, "variables", {}).get(accumulator.variable_name)
     if variable is not None:
         availability_status: AvailabilityStatus = "supported"
-        model_entity = variable.entity.key
-        model_entity_group = variable.entity.plural
     elif accumulator.variable_name in DEPRECATED_VARIABLES:
         availability_status = "deprecated_allowlisted"
-        model_entity = None
-        model_entity_group = None
     else:
         availability_status = "unsupported"
-        model_entity = None
-        model_entity_group = None
 
     return VariableUsageSummary(
         variable_name=accumulator.variable_name,
-        request_entity_group=accumulator.request_entity_group,
+        entity_type=accumulator.entity_type,
         source=accumulator.source,
         period_granularity=accumulator.period_granularity,
         entity_count=len(accumulator.entity_ids),
         period_count=len(accumulator.period_keys),
         occurrence_count=accumulator.occurrence_count,
         availability_status=availability_status,
-        model_entity=model_entity,
-        model_entity_group=model_entity_group,
     )
+
+
+def _entity_type_for_variable(
+    variable_name: str,
+    request_entity_group: str,
+    system,
+    entity_type_by_group: dict[str, str],
+) -> str:
+    variable = getattr(system, "variables", {}).get(variable_name)
+    if variable is not None:
+        entity_key = getattr(getattr(variable, "entity", None), "key", None)
+        if isinstance(entity_key, str) and entity_key:
+            return entity_key
+
+    return entity_type_by_group.get(request_entity_group, UNKNOWN_ENTITY_TYPE)
+
+
+def _entity_type_by_group(system) -> dict[str, str]:
+    entity_type_by_group: dict[str, str] = {}
+    entities = getattr(system, "entities", []) or []
+    if isinstance(entities, dict):
+        entities = entities.values()
+
+    for entity in entities:
+        entity_key = getattr(entity, "key", None)
+        entity_plural = getattr(entity, "plural", None)
+        if isinstance(entity_key, str) and entity_key:
+            entity_type_by_group[entity_key] = entity_key
+        if (
+            isinstance(entity_plural, str)
+            and entity_plural
+            and isinstance(entity_key, str)
+            and entity_key
+        ):
+            entity_type_by_group[entity_plural] = entity_key
+
+    return entity_type_by_group
 
 
 def _variable_source(period_map: Any) -> VariableSource:

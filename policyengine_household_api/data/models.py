@@ -83,9 +83,7 @@ class CalculateRequestVariable(db.Model):
     model_version = mapped_column(String(64), nullable=True)
     response_status_code = mapped_column(Integer, nullable=True)
     variable_name = mapped_column(String(255), nullable=False)
-    request_entity_group = mapped_column(String(64), nullable=False)
-    model_entity = mapped_column(String(64), nullable=True)
-    model_entity_group = mapped_column(String(64), nullable=True)
+    entity_type = mapped_column(String(64), nullable=False)
     source = mapped_column(String(32), nullable=False)
     period_granularity = mapped_column(String(16), nullable=False)
     entity_count = mapped_column(Integer, nullable=False, default=0)
@@ -114,8 +112,8 @@ class CalculateRequestVariable(db.Model):
         UniqueConstraint(
             "request_id",
             "variable_name",
-            "request_entity_group",
+            "entity_type",
             "source",
-            name="ux_calc_vars_request_variable_group_source",
+            name="ux_calc_vars_request_variable_entity_source",
         ),
     )
