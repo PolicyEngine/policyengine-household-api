@@ -99,7 +99,14 @@ def initialize_analytics_db_if_enabled(app):
     db.init_app(app)
 
     with app.app_context():
-        set_analytics_schema_ready(check_analytics_schema_ready())
+        schema_ready = check_analytics_schema_ready()
+        set_analytics_schema_ready(schema_ready)
+        if not schema_ready:
+            raise RuntimeError(
+                "Analytics is enabled but the analytics database schema is "
+                "not ready. Run `uv run alembic upgrade head` and verify "
+                "database connectivity before starting the API."
+            )
 
 
 def get_local_analytics_database_path() -> Path:

@@ -244,10 +244,12 @@ deploying the App Engine version. Because deployed staging and production run
 with `ANALYTICS__ENABLED=true`, both environments must configure
 `USER_ANALYTICS_DB_CONNECTION_NAME`, `USER_ANALYTICS_DB_USERNAME`, and
 `USER_ANALYTICS_DB_PASSWORD`; the deploy workflow fails before deployment if
-any of those secrets are missing. At runtime, analytics writes are only marked
-ready when the required tables/columns exist and the analytics database is
-stamped at the current Alembic head. When adding a new migration, update the
-runtime Alembic head guard in
+any of those secrets are missing. At runtime, `analytics.enabled=false` skips
+analytics entirely. When `analytics.enabled=true`, analytics is required: API
+startup fails unless the required tables/columns exist and the analytics
+database is stamped at the current Alembic head, and analytics write failures
+propagate like any other required API failure. When adding a new migration,
+update the runtime Alembic head guard in
 `policyengine_household_api/data/analytics_setup.py` in the same PR.
 
 Existing analytics databases that already have the `visits` table but no

@@ -169,7 +169,7 @@ class TestAnalyticsDecorator:
         # Verify client_id preserved as-is
         assert visit_instance.client_id == "test-client"
 
-    def test__given_database_error__decorator_continues_without_failing(
+    def test__given_database_error__decorator_raises(
         self,
         sample_function,
         mock_analytics_enabled,
@@ -180,38 +180,38 @@ class TestAnalyticsDecorator:
         mock_version,
         mock_db_session_with_error,
     ):
-        """Decorator should handle database errors gracefully."""
+        """Enabled analytics should fail the request on database errors."""
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
         decorated = log_analytics_if_enabled(sample_function)
 
-        # Should not raise error, function should still execute
-        result = decorated("arg1", "arg2", kwarg1="test")
-        assert result == "Result: arg1, arg2, test"
+        with pytest.raises(Exception, match="Database error"):
+            decorated("arg1", "arg2", kwarg1="test")
 
-    def test__given_analytics_check_raises_error__decorator_continues_normally(
+        mock_db_session_with_error.rollback.assert_called_once()
+
+    def test__given_analytics_check_raises_error__decorator_raises(
         self, sample_function, mock_analytics_error
     ):
-        """Decorator should handle analytics check errors gracefully."""
+        """Enabled analytics checks are required and should not fail open."""
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
         decorated = log_analytics_if_enabled(sample_function)
 
-        # Should not raise error even if analytics check fails
-        result = decorated("arg1", "arg2", kwarg1="test")
-        assert result == "Result: arg1, arg2, test"
+        with pytest.raises(Exception, match="Error"):
+            decorated("arg1", "arg2", kwarg1="test")
 
-    def test__given_schema_not_ready__decorator_skips_analytics_logging(
+    def test__given_schema_not_ready__decorator_raises(
         self,
         sample_function,
         mock_analytics_enabled,
         mock_db_session,
     ):
-        """Decorator should not attempt writes when migrations are missing."""
+        """Enabled analytics requires a ready schema."""
         from unittest.mock import patch
 
         from policyengine_household_api.decorators.analytics import (
@@ -223,9 +223,9 @@ class TestAnalyticsDecorator:
             "policyengine_household_api.decorators.analytics.is_analytics_schema_ready",
             return_value=False,
         ):
-            result = decorated("arg1", "arg2", kwarg1="test")
+            with pytest.raises(RuntimeError, match="Analytics is enabled"):
+                decorated("arg1", "arg2", kwarg1="test")
 
-        assert result == "Result: arg1, arg2, test"
         mock_db_session.add.assert_not_called()
 
     def test__given_unverified_jwt__decorator_logs_with_null_client_id(

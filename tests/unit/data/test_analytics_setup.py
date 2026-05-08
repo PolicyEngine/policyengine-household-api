@@ -318,7 +318,7 @@ class TestAnalyticsDatabaseInitialization:
         assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite:///:memory:"
         create_all.assert_not_called()
 
-    def test__given_schema_check_fails__analytics_schema_is_not_ready(
+    def test__given_schema_check_fails__initialization_raises(
         self,
         reset_analytics_state,
         monkeypatch,
@@ -343,7 +343,8 @@ class TestAnalyticsDatabaseInitialization:
                 return_value=False,
             ),
         ):
-            initialize_analytics_db_if_enabled(app)
+            with pytest.raises(RuntimeError, match="Analytics is enabled"):
+                initialize_analytics_db_if_enabled(app)
 
         assert is_analytics_schema_ready() is False
 

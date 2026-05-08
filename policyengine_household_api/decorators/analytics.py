@@ -78,26 +78,23 @@ def log_analytics_if_enabled(func):
     """
     Decorator that logs analytics only if analytics is enabled in configuration.
 
-    This decorator:
-    1. Checks if analytics is enabled
-    2. If disabled, passes through without logging
-    3. If enabled, logs the visit to the database
+    If analytics is disabled, this passes through without logging. If
+    analytics is enabled, analytics is required: schema readiness and
+    database write failures propagate like other API failures.
     """
 
     @wraps(func)
     def decorated_function(*args, **kwargs):
-        try:
-            if not is_analytics_enabled() or not is_analytics_schema_ready():
-                return func(*args, **kwargs)
-        except Exception as e:
-            logger.debug(f"Could not determine analytics status: {e}")
+        if not is_analytics_enabled():
             return func(*args, **kwargs)
 
-        try:
-            analytics_context = _build_analytics_context(args, kwargs)
-        except Exception as e:
-            logger.error(f"Failed to prepare analytics context: {e}")
-            analytics_context = None
+        if not is_analytics_schema_ready():
+            raise RuntimeError(
+                "Analytics is enabled but the analytics database schema is "
+                "not ready."
+            )
+
+        analytics_context = _build_analytics_context(args, kwargs)
 
         try:
             response = func(*args, **kwargs)
@@ -136,25 +133,20 @@ def _build_analytics_context(args, kwargs) -> dict:
     if country_id is None or not _collect_variable_usage():
         return context
 
-    try:
-        from policyengine_household_api.country import COUNTRIES
+    from policyengine_household_api.country import COUNTRIES
 
-        country = COUNTRIES.get(country_id)
-        if country is None:
-            return context
-        context["record_calculate_request"] = True
-        context["model_version"] = country.policyengine_bundle.get(
-            "model_version"
-        )
-        if isinstance(payload, dict):
-            household = payload.get("household", {})
-            if isinstance(household, dict):
-                context["variable_summaries"] = extract_variable_usage(
-                    household,
-                    country.tax_benefit_system,
-                )
-    except Exception as e:
-        logger.error(f"Failed to extract calculate variable analytics: {e}")
+    country = COUNTRIES.get(country_id)
+    if country is None:
+        return context
+    context["record_calculate_request"] = True
+    context["model_version"] = country.policyengine_bundle.get("model_version")
+    if isinstance(payload, dict):
+        household = payload.get("household", {})
+        if isinstance(household, dict):
+            context["variable_summaries"] = extract_variable_usage(
+                household,
+                country.tax_benefit_system,
+            )
 
     return context
 
@@ -189,11 +181,7 @@ def _country_id_from_route_args(args, kwargs) -> str | None:
 
 
 def _request_json() -> dict | None:
-    try:
-        return request.get_json(silent=True)
-    except Exception as e:
-        logger.debug(f"Could not read request JSON for analytics: {e}")
-        return None
+    return request.get_json(silent=True)
 
 
 def _collect_variable_usage() -> bool:
@@ -239,6 +227,7 @@ def _record_analytics(
     except Exception as e:
         db.session.rollback()
         logger.error(f"Failed to log analytics: {e}")
+        raise
 
 
 def _build_visit(context: dict) -> Visit:
