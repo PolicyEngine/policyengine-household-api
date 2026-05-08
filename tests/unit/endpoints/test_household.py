@@ -3,6 +3,11 @@ from unittest.mock import patch
 
 import pytest
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
+from policyengine_household_api.data.models import (
+    CalculateRequest,
+    CalculateRequestVariable,
+    Visit,
+)
 from policyengine_household_api.endpoints.household import _validate_axes
 from policyengine_household_api.utils.config_loader import get_config_value
 from tests.fixtures.country import (
@@ -250,6 +255,76 @@ class TestCalculateEndpoint:
             and "PolicyEngine model version" in error
             for error in payload["errors"]
         )
+
+    def test__analytics_enabled__captures_unknown_variable_before_400(
+        self, client
+    ):
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    "definitely_not_a_variable": {"2024": 0},
+                }
+            },
+        }
+
+        with (
+            patch(
+                "policyengine_household_api.decorators.analytics.is_analytics_enabled",
+                return_value=True,
+            ),
+            patch(
+                "policyengine_household_api.decorators.analytics._verified_sub_claim",
+                return_value="test-client@clients",
+            ),
+            patch(
+                "policyengine_household_api.decorators.analytics.db"
+            ) as mock_db,
+        ):
+
+            def assign_ids_on_flush():
+                for added_call in mock_db.session.add.call_args_list:
+                    added_item = added_call.args[0]
+                    if isinstance(added_item, Visit):
+                        added_item.id = 1
+                    if isinstance(added_item, CalculateRequest):
+                        added_item.id = 2
+
+            mock_db.session.flush.side_effect = assign_ids_on_flush
+
+            response = client.post(
+                "/us/calculate",
+                json={"household": household},
+                headers=self.auth_headers,
+            )
+
+        assert response.status_code == 400
+        added = [call.args[0] for call in mock_db.session.add.call_args_list]
+        calculate_request = next(
+            item for item in added if isinstance(item, CalculateRequest)
+        )
+        variable_rows = [
+            item
+            for item in added
+            if isinstance(item, CalculateRequestVariable)
+        ]
+        unknown_variable = next(
+            item
+            for item in variable_rows
+            if item.variable_name == "definitely_not_a_variable"
+        )
+
+        assert calculate_request.client_id == "test-client"
+        assert calculate_request.visit_id is not None
+        assert calculate_request.country_id == "us"
+        assert calculate_request.response_status_code == 400
+        assert calculate_request.unsupported_variable_count == 1
+        assert unknown_variable.availability_status == "unsupported"
+        assert unknown_variable.entity_type == "person"
+        assert unknown_variable.source == "household_input"
+        assert unknown_variable.period_granularity == "year"
+        mock_db.session.commit.assert_called_once()
 
     def test__unknown_axis_variable__returns_400_with_errors(self, client):
         household = {
