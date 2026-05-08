@@ -23,6 +23,8 @@ analytics:
   # Database connection for analytics (only used if enabled=true)
   # These will be overridden by environment variables in production
   database:
+    # Optional full SQLAlchemy URL, primarily for local migration testing
+    url: ""  # Override with ANALYTICS_DATABASE_URL
     # Connection name for Google Cloud SQL
     connection_name: ""  # Override with USER_ANALYTICS_DB_CONNECTION_NAME
     # Database username

@@ -12,6 +12,7 @@ from uuid import uuid4
 from policyengine_household_api.constants import VERSION
 from policyengine_household_api.data.analytics_setup import (
     is_analytics_enabled,
+    is_analytics_schema_ready,
 )
 from policyengine_household_api.data.analytics_setup import db
 from policyengine_household_api.data.models import (
@@ -86,7 +87,7 @@ def log_analytics_if_enabled(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
         try:
-            if not is_analytics_enabled():
+            if not is_analytics_enabled() or not is_analytics_schema_ready():
                 return func(*args, **kwargs)
         except Exception as e:
             logger.debug(f"Could not determine analytics status: {e}")
