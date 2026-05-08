@@ -205,6 +205,29 @@ class TestAnalyticsDecorator:
         result = decorated("arg1", "arg2", kwarg1="test")
         assert result == "Result: arg1, arg2, test"
 
+    def test__given_schema_not_ready__decorator_skips_analytics_logging(
+        self,
+        sample_function,
+        mock_analytics_enabled,
+        mock_db_session,
+    ):
+        """Decorator should not attempt writes when migrations are missing."""
+        from unittest.mock import patch
+
+        from policyengine_household_api.decorators.analytics import (
+            log_analytics_if_enabled,
+        )
+
+        decorated = log_analytics_if_enabled(sample_function)
+        with patch(
+            "policyengine_household_api.decorators.analytics.is_analytics_schema_ready",
+            return_value=False,
+        ):
+            result = decorated("arg1", "arg2", kwarg1="test")
+
+        assert result == "Result: arg1, arg2, test"
+        mock_db_session.add.assert_not_called()
+
     def test__given_unverified_jwt__decorator_logs_with_null_client_id(
         self,
         sample_function,

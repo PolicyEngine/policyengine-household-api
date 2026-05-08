@@ -1,1 +1,1 @@
-Added privacy-safe calculate variable usage analytics.
+Added privacy-safe calculate variable usage analytics and Alembic-managed analytics database migrations.

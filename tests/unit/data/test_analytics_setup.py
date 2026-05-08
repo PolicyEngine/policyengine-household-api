@@ -5,6 +5,7 @@ Tests opt-in/opt-out scenarios and various configuration states.
 
 import pytest
 import os
+from flask import Flask
 from tests.fixtures.data.analytics_setup import (
     analytics_disabled_env,
     analytics_enabled_env,
@@ -282,6 +283,97 @@ class TestGetConnection:
 
         conn = getconn()
         assert conn is None
+
+
+class TestAnalyticsDatabaseInitialization:
+    def test__given_analytics_enabled__initialization_does_not_create_tables(
+        self,
+        reset_analytics_state,
+        monkeypatch,
+    ):
+        from unittest.mock import patch
+
+        from policyengine_household_api.data.analytics_setup import (
+            initialize_analytics_db_if_enabled,
+        )
+
+        monkeypatch.setenv("ANALYTICS_DATABASE_URL", "sqlite:///:memory:")
+        app = Flask(__name__)
+
+        with (
+            patch(
+                "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+                return_value=True,
+            ),
+            patch(
+                "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
+                return_value=True,
+            ),
+            patch(
+                "policyengine_household_api.data.analytics_setup.db.create_all"
+            ) as create_all,
+        ):
+            initialize_analytics_db_if_enabled(app)
+
+        assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite:///:memory:"
+        create_all.assert_not_called()
+
+    def test__given_schema_check_fails__analytics_schema_is_not_ready(
+        self,
+        reset_analytics_state,
+        monkeypatch,
+    ):
+        from unittest.mock import patch
+
+        from policyengine_household_api.data.analytics_setup import (
+            initialize_analytics_db_if_enabled,
+            is_analytics_schema_ready,
+        )
+
+        monkeypatch.setenv("ANALYTICS_DATABASE_URL", "sqlite:///:memory:")
+        app = Flask(__name__)
+
+        with (
+            patch(
+                "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+                return_value=True,
+            ),
+            patch(
+                "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
+                return_value=False,
+            ),
+        ):
+            initialize_analytics_db_if_enabled(app)
+
+        assert is_analytics_schema_ready() is False
+
+    def test__missing_calculate_tables__schema_check_reports_missing_tables(
+        self,
+        reset_analytics_state,
+    ):
+        from policyengine_household_api.data.analytics_setup import (
+            _missing_required_schema,
+        )
+
+        class FakeInspector:
+            def has_table(self, table_name):
+                return table_name == "visits"
+
+            def get_columns(self, table_name):
+                return [
+                    {"name": "id"},
+                    {"name": "client_id"},
+                    {"name": "datetime"},
+                    {"name": "api_version"},
+                    {"name": "endpoint"},
+                    {"name": "method"},
+                    {"name": "content_length_bytes"},
+                ]
+
+        assert list(_missing_required_schema(FakeInspector())) == [
+            "calculate_requests",
+            "calculate_request_variables",
+        ]
 
 
 class TestCleanup:

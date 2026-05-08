@@ -224,11 +224,26 @@ When analytics is enabled, the following metadata is collected per API request:
 For authenticated `/calculate` requests, the API also records privacy-safe
 variable usage metadata:
 - Variable names
-- The request entity group where each variable appeared
+- The entity type where each variable appeared
 - Whether the variable was an input, requested output, or axis variable
 - Aggregate counts of entities, periods, and occurrences
 - Country/model/API version and response status
 - Whether the variable was supported, deprecated allowlisted, or unsupported
+
+Analytics database schema changes are managed with Alembic:
+```bash
+uv run alembic current
+uv run alembic history
+uv run alembic upgrade head
+uv run alembic revision --autogenerate -m "Describe schema change"
+```
+
+Existing analytics databases that already have the `visits` table but no
+`alembic_version` table must be stamped once before running new migrations:
+```bash
+uv run alembic stamp 20260508_0001
+uv run alembic upgrade head
+```
 
 ### Privacy Considerations
 

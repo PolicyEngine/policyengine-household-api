@@ -120,10 +120,12 @@ def reset_analytics_state():
     import policyengine_household_api.data.analytics_setup as analytics
 
     analytics._analytics_enabled = None
+    analytics._analytics_schema_ready = True
     analytics._connector = None
     yield
     # Clean up after test
     analytics._analytics_enabled = None
+    analytics._analytics_schema_ready = True
     analytics._connector = None
 
 
