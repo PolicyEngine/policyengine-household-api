@@ -375,6 +375,90 @@ class TestAnalyticsDatabaseInitialization:
             "calculate_request_variables",
         ]
 
+    def test__missing_alembic_version__schema_check_fails(
+        self,
+        reset_analytics_state,
+    ):
+        from unittest.mock import patch
+
+        from policyengine_household_api.data.analytics_setup import (
+            check_analytics_schema_ready,
+            db,
+        )
+
+        app = Flask(__name__)
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        db.init_app(app)
+
+        with (
+            app.app_context(),
+            patch(
+                "policyengine_household_api.data.analytics_setup._missing_required_schema",
+                return_value=[],
+            ),
+            patch(
+                "policyengine_household_api.data.analytics_setup._alembic_version",
+                return_value=None,
+            ),
+        ):
+            assert check_analytics_schema_ready() is False
+
+    def test__wrong_alembic_version__schema_check_fails(
+        self,
+        reset_analytics_state,
+    ):
+        from unittest.mock import patch
+
+        from policyengine_household_api.data.analytics_setup import (
+            check_analytics_schema_ready,
+            db,
+        )
+
+        app = Flask(__name__)
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        db.init_app(app)
+
+        with (
+            app.app_context(),
+            patch(
+                "policyengine_household_api.data.analytics_setup._missing_required_schema",
+                return_value=[],
+            ),
+            patch(
+                "policyengine_household_api.data.analytics_setup._alembic_version",
+                return_value="20260508_0001",
+            ),
+        ):
+            assert check_analytics_schema_ready() is False
+
+    def test__head_alembic_version__schema_check_passes(
+        self,
+        reset_analytics_state,
+    ):
+        from unittest.mock import patch
+
+        from policyengine_household_api.data.analytics_setup import (
+            check_analytics_schema_ready,
+            db,
+        )
+
+        app = Flask(__name__)
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        db.init_app(app)
+
+        with (
+            app.app_context(),
+            patch(
+                "policyengine_household_api.data.analytics_setup._missing_required_schema",
+                return_value=[],
+            ),
+            patch(
+                "policyengine_household_api.data.analytics_setup._alembic_version",
+                return_value="20260508_0002",
+            ),
+        ):
+            assert check_analytics_schema_ready() is True
+
 
 class TestCleanup:
     """Test the cleanup function."""

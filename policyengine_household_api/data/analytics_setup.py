@@ -22,6 +22,7 @@ _connector = None
 
 ANALYTICS_DATABASE_URL_ENV_VAR = "ANALYTICS_DATABASE_URL"
 ANALYTICS_DATABASE_NAME = "user_analytics"
+ANALYTICS_ALEMBIC_HEAD = "20260508_0002"
 REQUIRED_ANALYTICS_COLUMNS = {
     "visits": {
         "id",
@@ -153,6 +154,20 @@ def check_analytics_schema_ready() -> bool:
         )
         return False
 
+    try:
+        alembic_version = _alembic_version()
+    except Exception as e:
+        logger.error(f"Could not inspect analytics migration version: {e}")
+        return False
+
+    if alembic_version != ANALYTICS_ALEMBIC_HEAD:
+        logger.error(
+            "Analytics database schema is not at Alembic head "
+            f"{ANALYTICS_ALEMBIC_HEAD}; current revision is "
+            f"{alembic_version or 'missing'}. Run `uv run alembic upgrade head`."
+        )
+        return False
+
     return True
 
 
@@ -183,6 +198,17 @@ def _collect_variable_usage_enabled() -> bool:
     if isinstance(value, str):
         return value.lower() not in {"0", "false", "no"}
     return bool(value)
+
+
+def _alembic_version() -> str | None:
+    inspector = inspect(db.engine)
+    if not inspector.has_table("alembic_version"):
+        return None
+
+    with db.engine.connect() as connection:
+        return connection.exec_driver_sql(
+            "SELECT version_num FROM alembic_version"
+        ).scalar()
 
 
 def is_analytics_enabled() -> bool:

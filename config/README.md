@@ -232,18 +232,36 @@ variable usage metadata:
 
 Analytics database schema changes are managed with Alembic:
 ```bash
+ANALYTICS_DATABASE_URL=sqlite:////tmp/policyengine-household-api-analytics.db \
+  uv run alembic upgrade head
 uv run alembic current
 uv run alembic history
-uv run alembic upgrade head
 uv run alembic revision --autogenerate -m "Describe schema change"
 ```
 
+Staging and production deploys run `uv run alembic upgrade head` before
+deploying the App Engine version. Both environments are expected to configure
+`USER_ANALYTICS_DB_CONNECTION_NAME`, `USER_ANALYTICS_DB_USERNAME`, and
+`USER_ANALYTICS_DB_PASSWORD`. At runtime, analytics writes are only marked ready
+when the required tables/columns exist and the analytics database is stamped at
+the current Alembic head. When adding a new migration, update the runtime
+Alembic head guard in `policyengine_household_api/data/analytics_setup.py` in
+the same PR.
+
 Existing analytics databases that already have the `visits` table but no
-`alembic_version` table must be stamped once before running new migrations:
+`alembic_version` table must be stamped exactly once before running new
+migrations. Do this manually before the first deploy that includes Alembic;
+otherwise the deploy workflow's `uv run alembic upgrade head` step will fail
+when Alembic tries to create the existing `visits` table:
 ```bash
 uv run alembic stamp 20260508_0001
 uv run alembic upgrade head
 ```
+
+Run the stamp/upgrade sequence first for staging, verify staging, then repeat
+it for production. For local development, either set `ANALYTICS_DATABASE_URL`
+to a SQLite URL as shown above, or run with `FLASK_DEBUG=1` so Alembic resolves
+the local SQLite analytics database path.
 
 ### Privacy Considerations
 
