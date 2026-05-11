@@ -5,27 +5,6 @@ Tests opt-in/opt-out scenarios and various configuration states.
 
 import pytest
 import os
-from flask import Flask
-from tests.fixtures.data.analytics_setup import (
-    analytics_disabled_env,
-    analytics_enabled_env,
-    analytics_auto_enabled_env,
-    analytics_partial_env,
-    reset_analytics_state,
-    mock_google_connector,
-)
-from tests.fixtures.data.analytics_setup_patches import (
-    patch_get_config_value_returns_false,
-    patch_get_config_value_returns_true,
-    patch_get_config_value_raises_exception,
-    patch_get_config_value_with_full_config,
-    patch_get_config_value_missing_connection_name,
-    patch_get_config_value_missing_username,
-    patch_get_config_value_missing_password,
-    patch_get_config_value_first_call_succeeds_then_fails,
-    patch_google_connector_raises_import_error,
-    patch_google_connector_with_connection_error,
-)
 
 
 class TestAnalyticsEnabled:
@@ -145,27 +124,21 @@ class TestAnalyticsConnector:
         reset_analytics_state,
         analytics_enabled_env,
         patch_get_config_value_returns_true,
+        patch_analytics_connector_class,
     ):
         """Connector should be cached after first initialization."""
         from policyengine_household_api.data.analytics_setup import (
             get_analytics_connector,
         )
-        from unittest.mock import patch, MagicMock
 
-        with patch(
-            "policyengine_household_api.data.analytics_setup.Connector"
-        ) as MockConnector:
-            mock_instance = MagicMock()
-            MockConnector.return_value = mock_instance
+        connector_class, _ = patch_analytics_connector_class
 
-            # First call
-            connector1 = get_analytics_connector()
-            assert MockConnector.call_count == 1
+        connector1 = get_analytics_connector()
+        assert connector_class.call_count == 1
 
-            # Second call should return cached instance
-            connector2 = get_analytics_connector()
-            assert connector1 is connector2
-            assert MockConnector.call_count == 1
+        connector2 = get_analytics_connector()
+        assert connector1 is connector2
+        assert connector_class.call_count == 1
 
     def test__given_google_cloud_sql_library_not_available__connector_returns_none(
         self,
@@ -203,16 +176,15 @@ class TestGetConnection:
         analytics_enabled_env,
         mock_google_connector,
         patch_get_config_value_with_full_config,
+        mock_pymysql_connection,
     ):
         """Connection should succeed with valid configuration."""
         from policyengine_household_api.data.analytics_setup import getconn
-        from unittest.mock import MagicMock
 
-        mock_connection = MagicMock()
-        mock_google_connector.connect.return_value = mock_connection
+        mock_google_connector.connect.return_value = mock_pymysql_connection
 
         conn = getconn()
-        assert conn == mock_connection
+        assert conn == mock_pymysql_connection
         mock_google_connector.connect.assert_called_once()
 
     def test__given_missing_connection_name__connection_returns_none(
@@ -289,62 +261,34 @@ class TestAnalyticsDatabaseInitialization:
     def test__given_analytics_enabled__initialization_does_not_create_tables(
         self,
         reset_analytics_state,
-        monkeypatch,
+        analytics_flask_app,
+        patch_analytics_initialization_ready,
     ):
-        from unittest.mock import patch
-
         from policyengine_household_api.data.analytics_setup import (
             initialize_analytics_db_if_enabled,
         )
 
-        monkeypatch.setenv("ANALYTICS_DATABASE_URL", "sqlite:///:memory:")
-        app = Flask(__name__)
+        initialize_analytics_db_if_enabled(analytics_flask_app)
 
-        with (
-            patch(
-                "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
-                return_value=True,
-            ),
-            patch(
-                "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
-                return_value=True,
-            ),
-            patch(
-                "policyengine_household_api.data.analytics_setup.db.create_all"
-            ) as create_all,
-        ):
-            initialize_analytics_db_if_enabled(app)
-
-        assert app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite:///:memory:"
-        create_all.assert_not_called()
+        assert (
+            analytics_flask_app.config["SQLALCHEMY_DATABASE_URI"]
+            == "sqlite:///:memory:"
+        )
+        patch_analytics_initialization_ready.assert_not_called()
 
     def test__given_schema_check_fails__initialization_raises(
         self,
         reset_analytics_state,
-        monkeypatch,
+        analytics_flask_app,
+        patch_analytics_initialization_schema_not_ready,
     ):
-        from unittest.mock import patch
-
         from policyengine_household_api.data.analytics_setup import (
             initialize_analytics_db_if_enabled,
             is_analytics_schema_ready,
         )
 
-        monkeypatch.setenv("ANALYTICS_DATABASE_URL", "sqlite:///:memory:")
-        app = Flask(__name__)
-
-        with (
-            patch(
-                "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
-                return_value=True,
-            ),
-            patch(
-                "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
-                return_value=False,
-            ),
-        ):
-            with pytest.raises(RuntimeError, match="Analytics is enabled"):
-                initialize_analytics_db_if_enabled(app)
+        with pytest.raises(RuntimeError, match="Analytics is enabled"):
+            initialize_analytics_db_if_enabled(analytics_flask_app)
 
         assert is_analytics_schema_ready() is False
 
@@ -379,85 +323,40 @@ class TestAnalyticsDatabaseInitialization:
     def test__missing_alembic_version__schema_check_fails(
         self,
         reset_analytics_state,
+        initialized_analytics_flask_app,
+        patch_schema_check_missing_alembic_version,
     ):
-        from unittest.mock import patch
-
         from policyengine_household_api.data.analytics_setup import (
             check_analytics_schema_ready,
-            db,
         )
 
-        app = Flask(__name__)
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-        db.init_app(app)
-
-        with (
-            app.app_context(),
-            patch(
-                "policyengine_household_api.data.analytics_setup._missing_required_schema",
-                return_value=[],
-            ),
-            patch(
-                "policyengine_household_api.data.analytics_setup._alembic_version",
-                return_value=None,
-            ),
-        ):
+        with initialized_analytics_flask_app.app_context():
             assert check_analytics_schema_ready() is False
 
     def test__wrong_alembic_version__schema_check_fails(
         self,
         reset_analytics_state,
+        initialized_analytics_flask_app,
+        patch_schema_check_wrong_alembic_version,
     ):
-        from unittest.mock import patch
-
         from policyengine_household_api.data.analytics_setup import (
             check_analytics_schema_ready,
-            db,
         )
 
-        app = Flask(__name__)
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-        db.init_app(app)
-
-        with (
-            app.app_context(),
-            patch(
-                "policyengine_household_api.data.analytics_setup._missing_required_schema",
-                return_value=[],
-            ),
-            patch(
-                "policyengine_household_api.data.analytics_setup._alembic_version",
-                return_value="20260508_0001",
-            ),
-        ):
+        with initialized_analytics_flask_app.app_context():
             assert check_analytics_schema_ready() is False
 
     def test__head_alembic_version__schema_check_passes(
         self,
         reset_analytics_state,
+        initialized_analytics_flask_app,
+        patch_schema_check_head_alembic_version,
     ):
-        from unittest.mock import patch
-
         from policyengine_household_api.data.analytics_setup import (
             check_analytics_schema_ready,
-            db,
         )
 
-        app = Flask(__name__)
-        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-        db.init_app(app)
-
-        with (
-            app.app_context(),
-            patch(
-                "policyengine_household_api.data.analytics_setup._missing_required_schema",
-                return_value=[],
-            ),
-            patch(
-                "policyengine_household_api.data.analytics_setup._alembic_version",
-                return_value="20260508_0002",
-            ),
-        ):
+        with initialized_analytics_flask_app.app_context():
             assert check_analytics_schema_ready() is True
 
 
@@ -465,19 +364,17 @@ class TestCleanup:
     """Test the cleanup function."""
 
     def test__given_connector_exists__cleanup_closes_connector(
-        self, reset_analytics_state
+        self, reset_analytics_state, mock_closeable_connector
     ):
         """Cleanup should close the connector if it exists."""
         from policyengine_household_api.data.analytics_setup import cleanup
         import policyengine_household_api.data.analytics_setup as analytics
-        from unittest.mock import MagicMock
 
-        mock_connector = MagicMock()
-        analytics._connector = mock_connector
+        analytics._connector = mock_closeable_connector
 
         cleanup()
 
-        mock_connector.close.assert_called_once()
+        mock_closeable_connector.close.assert_called_once()
         assert analytics._connector is None
 
     def test__given_no_connector__cleanup_handles_gracefully(
@@ -490,16 +387,14 @@ class TestCleanup:
         cleanup()
 
     def test__given_close_raises_error__cleanup_still_clears_connector(
-        self, reset_analytics_state
+        self, reset_analytics_state, mock_closeable_connector
     ):
         """Cleanup should handle errors when closing connector."""
         from policyengine_household_api.data.analytics_setup import cleanup
         import policyengine_household_api.data.analytics_setup as analytics
-        from unittest.mock import MagicMock
 
-        mock_connector = MagicMock()
-        mock_connector.close.side_effect = Exception("Close failed")
-        analytics._connector = mock_connector
+        mock_closeable_connector.close.side_effect = Exception("Close failed")
+        analytics._connector = mock_closeable_connector
 
         # Should not raise error
         cleanup()

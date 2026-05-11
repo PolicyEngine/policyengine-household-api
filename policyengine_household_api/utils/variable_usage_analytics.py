@@ -128,37 +128,65 @@ def _extract_entity_group_variables(
         tuple[str, str, VariableSource], _VariableUsageAccumulator
     ],
 ) -> None:
+    for entity_group, entities in _iter_household_entity_groups(household):
+        for entity_id, variable_name, period_map in _iter_entity_variables(
+            entities
+        ):
+            _add_entity_variable_usage(
+                accumulators,
+                variable_name,
+                entity_group,
+                entity_id,
+                period_map,
+                system,
+                entity_type_by_group,
+            )
+
+
+def _iter_household_entity_groups(household: dict):
     for entity_group, entities in household.items():
-        if entity_group == "axes" or not isinstance(entities, dict):
+        if entity_group != "axes" and isinstance(entities, dict):
+            yield entity_group, entities
+
+
+def _iter_entity_variables(entities: dict):
+    for entity_id, variables in entities.items():
+        if not isinstance(variables, dict):
             continue
 
-        for entity_id, variables in entities.items():
-            if not isinstance(variables, dict):
-                continue
+        for variable_name, period_map in variables.items():
+            if variable_name not in VARIABLE_BLACKLIST:
+                yield entity_id, variable_name, period_map
 
-            for variable_name, period_map in variables.items():
-                if variable_name in VARIABLE_BLACKLIST:
-                    continue
 
-                source = _variable_source(period_map)
-                period_keys = (
-                    list(period_map.keys())
-                    if isinstance(period_map, dict)
-                    else []
-                )
-                granularity = _period_map_granularity(period_keys, period_map)
-                entity_type = _entity_type_for_variable(
-                    variable_name,
-                    entity_group,
-                    system,
-                    entity_type_by_group,
-                )
-                accumulator = _get_accumulator(
-                    accumulators, variable_name, entity_type, source
-                )
-                accumulator.add_entity_periods(
-                    f"{entity_group}\0{entity_id}", period_keys, granularity
-                )
+def _add_entity_variable_usage(
+    accumulators: dict[
+        tuple[str, str, VariableSource], _VariableUsageAccumulator
+    ],
+    variable_name: str,
+    entity_group: str,
+    entity_id: str,
+    period_map: Any,
+    system,
+    entity_type_by_group: dict[str, str],
+) -> None:
+    source = _variable_source(period_map)
+    period_keys = (
+        list(period_map.keys()) if isinstance(period_map, dict) else []
+    )
+    granularity = _period_map_granularity(period_keys, period_map)
+    entity_type = _entity_type_for_variable(
+        variable_name,
+        entity_group,
+        system,
+        entity_type_by_group,
+    )
+    accumulator = _get_accumulator(
+        accumulators, variable_name, entity_type, source
+    )
+    accumulator.add_entity_periods(
+        f"{entity_group}\0{entity_id}", period_keys, granularity
+    )
 
 
 def _extract_axis_variables(

@@ -4,27 +4,6 @@ Tests conditional analytics logging based on opt-in/opt-out configuration.
 """
 
 import pytest
-from datetime import datetime
-from tests.fixtures.decorators.analytics import sample_function
-from tests.fixtures.data.analytics_setup import reset_analytics_state
-from tests.fixtures.decorators.analytics_patches import (
-    mock_analytics_enabled,
-    mock_analytics_disabled,
-    mock_analytics_error,
-    mock_visit_instance,
-    mock_visit_class,
-    mock_request_with_auth,
-    mock_request_without_auth,
-    mock_jwt_valid_with_suffix,
-    mock_jwt_valid_without_suffix,
-    mock_jwt_invalid,
-    mock_jwt_unverified,
-    mock_datetime_fixed,
-    mock_version,
-    mock_db_session,
-    mock_db_session_with_error,
-    setup_analytics_decorator_test,
-)
 
 
 class TestAnalyticsDecorator:
@@ -209,22 +188,17 @@ class TestAnalyticsDecorator:
         self,
         sample_function,
         mock_analytics_enabled,
+        mock_analytics_schema_not_ready,
         mock_db_session,
     ):
         """Enabled analytics requires a ready schema."""
-        from unittest.mock import patch
-
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
         decorated = log_analytics_if_enabled(sample_function)
-        with patch(
-            "policyengine_household_api.decorators.analytics.is_analytics_schema_ready",
-            return_value=False,
-        ):
-            with pytest.raises(RuntimeError, match="Analytics is enabled"):
-                decorated("arg1", "arg2", kwarg1="test")
+        with pytest.raises(RuntimeError, match="Analytics is enabled"):
+            decorated("arg1", "arg2", kwarg1="test")
 
         mock_db_session.add.assert_not_called()
 
