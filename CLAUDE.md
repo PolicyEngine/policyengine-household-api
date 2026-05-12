@@ -13,5 +13,11 @@ architecture rules here.
 
 ## Required Skill Lookup
 
+Before opening, replacing, or sharing a PR, read
+`docs/engineering/skills/github-prs.md`.
+
 When changing analytics database models or Alembic migrations, read
 `docs/engineering/skills/database-migrations.md`.
+
+When adding, moving, or reviewing tests, read
+`docs/engineering/skills/testing.md`.
