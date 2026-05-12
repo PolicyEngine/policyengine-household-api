@@ -356,6 +356,48 @@ class TestCalculateEndpoint:
         assert len(truncated_row.variable_name) == 253
         assert truncated_row.availability_status == "unsupported"
 
+    def test__analytics_enabled__keeps_duplicate_truncated_variable_rows(
+        self, client, calculate_analytics_capture
+    ):
+        shared_prefix = "x" * 250
+        first_variable_name = shared_prefix + "a"
+        second_variable_name = shared_prefix + "b"
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    first_variable_name: {"2024": 0},
+                    second_variable_name: {"2024": 1},
+                }
+            },
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        truncated_rows = [
+            row
+            for row in calculate_analytics_capture.variable_rows
+            if row.variable_name_truncated
+        ]
+        assert len(truncated_rows) == 2
+        assert {row.variable_name for row in truncated_rows} == {
+            shared_prefix + "..."
+        }
+        assert all(
+            row.availability_status == "unsupported"
+            for row in truncated_rows
+        )
+        assert (
+            calculate_analytics_capture.calculate_request.unsupported_variable_count
+            == 2
+        )
+
     def test__given_ai_explainer_tracer_fails__returns_500(
         self, client, ai_explainer_tracer_failure
     ):

@@ -4,21 +4,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import re
-from typing import Any, Literal
+from typing import Any
 
+from policyengine_household_api.models.analytics import (
+    AvailabilityStatus,
+    PeriodGranularity,
+    VariableSource,
+    VariableUsageSummary,
+)
 from policyengine_household_api.utils.deprecated_inputs import (
     DEPRECATED_VARIABLES,
 )
 from policyengine_household_api.utils.household import VARIABLE_BLACKLIST
-
-
-VariableSource = Literal[
-    "household_input", "requested_output", "mixed", "axis"
-]
-AvailabilityStatus = Literal[
-    "supported", "deprecated_allowlisted", "unsupported"
-]
-PeriodGranularity = Literal["year", "month", "day", "mixed", "none", "unknown"]
 
 
 YEAR_RE = re.compile(r"^\d{4}$")
@@ -27,20 +24,6 @@ DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 UNKNOWN_ENTITY_TYPE = "unknown"
 MAX_STORED_VARIABLE_NAME_LENGTH = 250
 TRUNCATED_VARIABLE_NAME_SUFFIX = "..."
-
-
-@dataclass(frozen=True)
-class VariableUsageSummary:
-    """A grouped, value-free variable usage record for one request."""
-
-    variable_name: str
-    entity_type: str
-    source: VariableSource
-    period_granularity: PeriodGranularity
-    entity_count: int
-    period_count: int
-    occurrence_count: int
-    availability_status: AvailabilityStatus
 
 
 def stored_variable_name(variable_name: str) -> tuple[str, bool]:
@@ -65,7 +48,10 @@ class _VariableUsageAccumulator:
     occurrence_count: int = 0
 
     def add_entity_periods(
-        self, entity_id: str, period_keys: list[Any], granularity: str
+        self,
+        entity_id: str,
+        period_keys: list[Any],
+        granularity: str | PeriodGranularity,
     ) -> None:
         self.entity_ids.add(entity_id)
         self.granularities.add(_coerce_granularity(granularity))
@@ -75,7 +61,7 @@ class _VariableUsageAccumulator:
 
     def add_axis_period(self, period_key: Any | None) -> None:
         if period_key is None:
-            self.granularities.add("none")
+            self.granularities.add(PeriodGranularity.NONE)
         else:
             self.period_keys.add(str(period_key))
             self.granularities.add(_period_granularity(period_key))
@@ -83,9 +69,11 @@ class _VariableUsageAccumulator:
 
     @property
     def period_granularity(self) -> PeriodGranularity:
-        granularities = self.granularities or {"none"}
+        granularities = self.granularities or {PeriodGranularity.NONE}
         return (
-            next(iter(granularities)) if len(granularities) == 1 else "mixed"
+            next(iter(granularities))
+            if len(granularities) == 1
+            else PeriodGranularity.MIXED
         )
 
 
@@ -229,7 +217,10 @@ def _extract_axis_variables(
                 entity_type_by_group,
             )
             accumulator = _get_accumulator(
-                accumulators, variable_name, entity_type, "axis"
+                accumulators,
+                variable_name,
+                entity_type,
+                VariableSource.AXIS,
             )
             accumulator.add_axis_period(axis.get("period"))
 
@@ -258,11 +249,11 @@ def _to_summary(
 ) -> VariableUsageSummary:
     variable = getattr(system, "variables", {}).get(accumulator.variable_name)
     if variable is not None:
-        availability_status: AvailabilityStatus = "supported"
+        availability_status = AvailabilityStatus.SUPPORTED
     elif accumulator.variable_name in DEPRECATED_VARIABLES:
-        availability_status = "deprecated_allowlisted"
+        availability_status = AvailabilityStatus.DEPRECATED_ALLOWLISTED
     else:
-        availability_status = "unsupported"
+        availability_status = AvailabilityStatus.UNSUPPORTED
 
     return VariableUsageSummary(
         variable_name=accumulator.variable_name,
@@ -315,45 +306,60 @@ def _entity_type_by_group(system) -> dict[str, str]:
 
 def _variable_source(period_map: Any) -> VariableSource:
     if not isinstance(period_map, dict):
-        return "requested_output" if period_map is None else "household_input"
+        return (
+            VariableSource.REQUESTED_OUTPUT
+            if period_map is None
+            else VariableSource.HOUSEHOLD_INPUT
+        )
 
     values = list(period_map.values())
     if not values:
-        return "requested_output"
+        return VariableSource.REQUESTED_OUTPUT
 
     has_null = any(value is None for value in values)
     has_non_null = any(value is not None for value in values)
     if has_null and has_non_null:
-        return "mixed"
-    return "requested_output" if has_null else "household_input"
+        return VariableSource.MIXED
+    return (
+        VariableSource.REQUESTED_OUTPUT
+        if has_null
+        else VariableSource.HOUSEHOLD_INPUT
+    )
 
 
 def _period_map_granularity(
     period_keys: list[Any], period_map: Any
 ) -> PeriodGranularity:
     if not isinstance(period_map, dict):
-        return "unknown"
+        return PeriodGranularity.UNKNOWN
     if not period_keys:
-        return "none"
+        return PeriodGranularity.NONE
 
     granularities = {
         _period_granularity(period_key) for period_key in period_keys
     }
-    return next(iter(granularities)) if len(granularities) == 1 else "mixed"
+    return (
+        next(iter(granularities))
+        if len(granularities) == 1
+        else PeriodGranularity.MIXED
+    )
 
 
 def _period_granularity(period_key: Any) -> PeriodGranularity:
     period = str(period_key)
     if YEAR_RE.match(period):
-        return "year"
+        return PeriodGranularity.YEAR
     if MONTH_RE.match(period):
-        return "month"
+        return PeriodGranularity.MONTH
     if DAY_RE.match(period):
-        return "day"
-    return "unknown"
+        return PeriodGranularity.DAY
+    return PeriodGranularity.UNKNOWN
 
 
-def _coerce_granularity(granularity: str) -> PeriodGranularity:
-    if granularity in {"year", "month", "day", "mixed", "none"}:
-        return granularity
-    return "unknown"
+def _coerce_granularity(
+    granularity: str | PeriodGranularity,
+) -> PeriodGranularity:
+    try:
+        return PeriodGranularity(granularity)
+    except ValueError:
+        return PeriodGranularity.UNKNOWN

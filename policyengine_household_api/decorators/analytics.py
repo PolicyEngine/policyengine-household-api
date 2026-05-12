@@ -20,8 +20,11 @@ from policyengine_household_api.data.models import (
     CalculateRequestVariable,
     Visit,
 )
-from policyengine_household_api.utils.variable_usage_analytics import (
+from policyengine_household_api.models.analytics import (
+    AnalyticsContext,
     VariableUsageSummary,
+)
+from policyengine_household_api.utils.variable_usage_analytics import (
     extract_variable_usage,
     stored_variable_name,
 )
@@ -112,24 +115,21 @@ def log_analytics_if_enabled(func):
     return decorated_function
 
 
-def _build_analytics_context(args, kwargs) -> dict:
+def _build_analytics_context(args, kwargs) -> AnalyticsContext:
     now = datetime.now(timezone.utc)
     client_id = _client_id_from_request()
     country_id = _country_id_from_route_args(args, kwargs)
     payload = _request_json()
 
-    context = {
-        "client_id": client_id,
-        "api_version": VERSION,
-        "endpoint": request.endpoint,
-        "method": request.method,
-        "content_length_bytes": request.content_length,
-        "created_at": now,
-        "country_id": country_id,
-        "model_version": None,
-        "variable_summaries": [],
-        "record_calculate_request": False,
-    }
+    context = AnalyticsContext(
+        client_id=client_id,
+        api_version=VERSION,
+        endpoint=request.endpoint,
+        method=request.method,
+        content_length_bytes=request.content_length,
+        created_at=now,
+        country_id=country_id,
+    )
 
     if country_id is None or not _collect_variable_usage():
         return context
@@ -139,17 +139,24 @@ def _build_analytics_context(args, kwargs) -> dict:
     country = COUNTRIES.get(country_id)
     if country is None:
         return context
-    context["record_calculate_request"] = True
-    context["model_version"] = country.policyengine_bundle.get("model_version")
+    variable_summaries: tuple[VariableUsageSummary, ...] = ()
     if isinstance(payload, dict):
         household = payload.get("household", {})
         if isinstance(household, dict):
-            context["variable_summaries"] = extract_variable_usage(
-                household,
-                country.tax_benefit_system,
+            variable_summaries = tuple(
+                extract_variable_usage(
+                    household,
+                    country.tax_benefit_system,
+                )
             )
 
-    return context
+    return context.model_copy(
+        update={
+            "record_calculate_request": True,
+            "model_version": country.policyengine_bundle.get("model_version"),
+            "variable_summaries": variable_summaries,
+        },
+    )
 
 
 def _client_id_from_request() -> str | None:
@@ -193,7 +200,7 @@ def _collect_variable_usage() -> bool:
 
 
 def _record_analytics(
-    context: dict | None,
+    context: AnalyticsContext | None,
     response_status_code: int | None,
 ) -> None:
     if context is None:
@@ -205,7 +212,7 @@ def _record_analytics(
         db.session.flush()
         visit_id = getattr(visit, "id", None)
 
-        variable_summaries = context["variable_summaries"]
+        variable_summaries = context.variable_summaries
         calculate_request = _build_calculate_request(
             context,
             response_status_code,
@@ -231,24 +238,24 @@ def _record_analytics(
         raise
 
 
-def _build_visit(context: dict) -> Visit:
+def _build_visit(context: AnalyticsContext) -> Visit:
     visit = Visit()
-    visit.client_id = context["client_id"]
-    visit.api_version = context["api_version"]
-    visit.endpoint = context["endpoint"]
-    visit.method = context["method"]
-    visit.content_length_bytes = context["content_length_bytes"]
-    visit.datetime = context["created_at"]
+    visit.client_id = context.client_id
+    visit.api_version = context.api_version
+    visit.endpoint = context.endpoint
+    visit.method = context.method.value
+    visit.content_length_bytes = context.content_length_bytes
+    visit.datetime = context.created_at
     return visit
 
 
 def _build_calculate_request(
-    context: dict,
+    context: AnalyticsContext,
     response_status_code: int | None,
-    variable_summaries: list[VariableUsageSummary],
+    variable_summaries: tuple[VariableUsageSummary, ...],
     visit_id: int | None,
 ) -> CalculateRequest | None:
-    if not context["record_calculate_request"]:
+    if not context.record_calculate_request:
         return None
     if visit_id is None:
         raise ValueError("Visit ID is required for calculate analytics")
@@ -270,13 +277,13 @@ def _build_calculate_request(
     calculate_request = CalculateRequest()
     calculate_request.visit_id = visit_id
     calculate_request.request_uuid = str(uuid4())
-    calculate_request.client_id = context["client_id"]
-    calculate_request.api_version = context["api_version"]
-    calculate_request.country_id = context["country_id"]
-    calculate_request.model_version = context["model_version"]
-    calculate_request.endpoint = context["endpoint"]
-    calculate_request.method = context["method"]
-    calculate_request.content_length_bytes = context["content_length_bytes"]
+    calculate_request.client_id = context.client_id
+    calculate_request.api_version = context.api_version
+    calculate_request.country_id = context.country_id
+    calculate_request.model_version = context.model_version
+    calculate_request.endpoint = context.endpoint
+    calculate_request.method = context.method.value
+    calculate_request.content_length_bytes = context.content_length_bytes
     calculate_request.response_status_code = response_status_code
     calculate_request.distinct_variable_count = len(distinct_variable_names)
     calculate_request.unsupported_variable_count = len(
@@ -285,7 +292,7 @@ def _build_calculate_request(
     calculate_request.deprecated_allowlisted_variable_count = len(
         deprecated_allowlisted_variable_names
     )
-    calculate_request.created_at = context["created_at"]
+    calculate_request.created_at = context.created_at
     return calculate_request
 
 
@@ -306,10 +313,10 @@ def _build_calculate_request_variable(
         variable.variable_name_truncated,
     ) = stored_variable_name(summary.variable_name)
     variable.entity_type = summary.entity_type
-    variable.source = summary.source
-    variable.period_granularity = summary.period_granularity
+    variable.source = summary.source.value
+    variable.period_granularity = summary.period_granularity.value
     variable.entity_count = summary.entity_count
     variable.period_count = summary.period_count
     variable.occurrence_count = summary.occurrence_count
-    variable.availability_status = summary.availability_status
+    variable.availability_status = summary.availability_status.value
     return variable

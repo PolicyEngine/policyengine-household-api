@@ -1,4 +1,10 @@
 from policyengine_household_api.data.analytics_setup import db
+from policyengine_household_api.models.analytics import (
+    AnalyticsHttpMethod,
+    AvailabilityStatus,
+    PeriodGranularity,
+    VariableSource,
+)
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -10,6 +16,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import mapped_column
 
 
+def _enum_values(enum_type) -> tuple[str, ...]:
+    return tuple(member.value for member in enum_type)
+
+
 class Visit(db.Model):
     # Note that the model represents one visit,
     # while the table name is plural
@@ -19,7 +29,10 @@ class Visit(db.Model):
     datetime = mapped_column(DateTime)
     api_version = mapped_column(String(32))
     endpoint = mapped_column(String(64))
-    method = mapped_column(String(32))
+    method = mapped_column(
+        String(32),
+        info={"options": _enum_values(AnalyticsHttpMethod)},
+    )
     content_length_bytes = mapped_column(Integer)
 
 
@@ -40,7 +53,11 @@ class CalculateRequest(db.Model):
     country_id = mapped_column(String(16), nullable=False)
     model_version = mapped_column(String(64), nullable=True)
     endpoint = mapped_column(String(64), nullable=True)
-    method = mapped_column(String(16), nullable=False)
+    method = mapped_column(
+        String(16),
+        nullable=False,
+        info={"options": _enum_values(AnalyticsHttpMethod)},
+    )
     content_length_bytes = mapped_column(Integer, nullable=True)
     response_status_code = mapped_column(Integer, nullable=True)
     distinct_variable_count = mapped_column(Integer, nullable=False, default=0)
@@ -89,12 +106,24 @@ class CalculateRequestVariable(db.Model):
         default=False,
     )
     entity_type = mapped_column(String(64), nullable=False)
-    source = mapped_column(String(32), nullable=False)
-    period_granularity = mapped_column(String(16), nullable=False)
+    source = mapped_column(
+        String(32),
+        nullable=False,
+        info={"options": _enum_values(VariableSource)},
+    )
+    period_granularity = mapped_column(
+        String(16),
+        nullable=False,
+        info={"options": _enum_values(PeriodGranularity)},
+    )
     entity_count = mapped_column(Integer, nullable=False, default=0)
     period_count = mapped_column(Integer, nullable=False, default=0)
     occurrence_count = mapped_column(Integer, nullable=False, default=0)
-    availability_status = mapped_column(String(32), nullable=False)
+    availability_status = mapped_column(
+        String(32),
+        nullable=False,
+        info={"options": _enum_values(AvailabilityStatus)},
+    )
 
     # Do not make request_id + variable_name unique: overlong variable names
     # are intentionally capped before persistence, so different originals can
