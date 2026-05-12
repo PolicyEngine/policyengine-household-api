@@ -1,5 +1,4 @@
 import json
-from unittest.mock import patch
 
 import pytest
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
@@ -251,6 +250,42 @@ class TestCalculateEndpoint:
             for error in payload["errors"]
         )
 
+    def test__analytics_enabled__captures_unknown_variable_before_400(
+        self, client, calculate_analytics_capture
+    ):
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    "definitely_not_a_variable": {"2024": 0},
+                }
+            },
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        calculate_request = calculate_analytics_capture.calculate_request
+        unknown_variable = calculate_analytics_capture.variable_row(
+            "definitely_not_a_variable"
+        )
+
+        assert calculate_request.client_id == "test-client"
+        assert calculate_request.visit_id is not None
+        assert calculate_request.country_id == "us"
+        assert calculate_request.response_status_code == 400
+        assert calculate_request.unsupported_variable_count == 1
+        assert unknown_variable.availability_status == "unsupported"
+        assert unknown_variable.entity_type == "person"
+        assert unknown_variable.source == "household_input"
+        assert unknown_variable.period_granularity == "year"
+        calculate_analytics_capture.db.session.commit.assert_called_once()
+
     def test__unknown_axis_variable__returns_400_with_errors(self, client):
         household = {
             **valid_household_requesting_ctc_calculation,
@@ -272,19 +307,107 @@ class TestCalculateEndpoint:
             for error in payload["errors"]
         )
 
-    def test__given_ai_explainer_tracer_fails__returns_500(self, client):
-        with patch(
-            "policyengine_household_api.country.generate_computation_tree",
-            side_effect=RuntimeError("tracer down"),
-        ):
-            response = client.post(
-                "/us/calculate",
-                json={
-                    "household": valid_household_requesting_ctc_calculation,
-                    "enable_ai_explainer": True,
-                },
-                headers=self.auth_headers,
-            )
+    def test__given_invalid_axis_name_type__returns_400(self, client):
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "axes": [{"name": ["not", "a", "string"], "count": 2}],
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        assert payload["status"] == "error"
+        assert (
+            "'axes[0].name' must be a non-empty string" in payload["message"]
+        )
+
+    def test__analytics_enabled__truncates_overlong_variable_names(
+        self, client, calculate_analytics_capture
+    ):
+        long_variable_name = "very_long_" + ("x" * 251)
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    long_variable_name: {"2024": 0},
+                }
+            },
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        truncated_row = next(
+            row
+            for row in calculate_analytics_capture.variable_rows
+            if row.variable_name_truncated
+        )
+        assert truncated_row.variable_name == long_variable_name[:250] + "..."
+        assert len(truncated_row.variable_name) == 253
+        assert truncated_row.availability_status == "unsupported"
+
+    def test__analytics_enabled__keeps_duplicate_truncated_variable_rows(
+        self, client, calculate_analytics_capture
+    ):
+        shared_prefix = "x" * 250
+        first_variable_name = shared_prefix + "a"
+        second_variable_name = shared_prefix + "b"
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    first_variable_name: {"2024": 0},
+                    second_variable_name: {"2024": 1},
+                }
+            },
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        truncated_rows = [
+            row
+            for row in calculate_analytics_capture.variable_rows
+            if row.variable_name_truncated
+        ]
+        assert len(truncated_rows) == 2
+        assert {row.variable_name for row in truncated_rows} == {
+            shared_prefix + "..."
+        }
+        assert all(
+            row.availability_status == "unsupported" for row in truncated_rows
+        )
+        assert (
+            calculate_analytics_capture.calculate_request.unsupported_variable_count
+            == 2
+        )
+
+    def test__given_ai_explainer_tracer_fails__returns_500(
+        self, client, ai_explainer_tracer_failure
+    ):
+        response = client.post(
+            "/us/calculate",
+            json={
+                "household": valid_household_requesting_ctc_calculation,
+                "enable_ai_explainer": True,
+            },
+            headers=self.auth_headers,
+        )
 
         assert response.status_code == 500
         payload = json.loads(response.data)
@@ -301,6 +424,10 @@ class TestAxesValidation:
             (
                 {"axes": [{"name": "employment_income", "count": "many"}]},
                 "'axes[0].count' must be an integer",
+            ),
+            (
+                {"axes": [{"name": ["employment_income"], "count": 2}]},
+                "'axes[0].name' must be a non-empty string",
             ),
             (
                 {"axes": [{"name": "employment_income", "count": 0}]},

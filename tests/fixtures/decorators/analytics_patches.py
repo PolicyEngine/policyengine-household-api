@@ -38,6 +38,16 @@ def mock_analytics_error():
 
 
 @pytest.fixture
+def mock_analytics_schema_not_ready():
+    """Mock analytics schema readiness as failed."""
+    with patch(
+        "policyengine_household_api.decorators.analytics.is_analytics_schema_ready",
+        return_value=False,
+    ):
+        yield
+
+
+@pytest.fixture
 def mock_visit_instance():
     """Create a mock Visit instance that properly tracks attribute assignments."""
 

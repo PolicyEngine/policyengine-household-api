@@ -156,6 +156,7 @@ app:
 # User analytics (opt-in feature)
 analytics:
   enabled: Whether to collect user analytics (default: false)
+  collect_variable_usage: Whether to collect privacy-safe calculate variable usage metadata when analytics are enabled (default: true)
   database:
     connection_name: Google Cloud SQL connection name
     username: Database username
@@ -188,6 +189,7 @@ Analytics can be enabled in three ways:
 # In your config file
 analytics:
   enabled: true
+  collect_variable_usage: true
   database:
     connection_name: your-project:region:instance
     username: analytics_user
@@ -199,6 +201,10 @@ analytics:
 # Enable analytics
 ANALYTICS__ENABLED=true
 
+# Optional: disable calculate variable usage metadata while keeping
+# request-count analytics enabled
+ANALYTICS__COLLECT_VARIABLE_USAGE=false
+
 # Provide database credentials
 USER_ANALYTICS_DB_CONNECTION_NAME=your-connection
 USER_ANALYTICS_DB_USERNAME=your-username
@@ -207,7 +213,7 @@ USER_ANALYTICS_DB_PASSWORD=your-password
 
 ### What Data is Collected
 
-When analytics is enabled, the following public data is collected per API request:
+When analytics is enabled, the following metadata is collected per API request:
 - Client ID (from JWT token)
 - API version
 - Endpoint accessed
@@ -215,13 +221,58 @@ When analytics is enabled, the following public data is collected per API reques
 - Request content length
 - Timestamp
 
-All of these values are public and are used purely to establish usage rates.
+For authenticated `/calculate` requests, the API also records privacy-safe
+variable usage metadata:
+- Variable names
+- The entity type where each variable appeared
+- Whether the variable was an input, requested output, or axis variable
+- Aggregate counts of entities, periods, and occurrences
+- Country/model/API version and response status
+- Whether the variable was supported, deprecated allowlisted, or unsupported
+
+Analytics database schema changes are managed with Alembic:
+```bash
+ANALYTICS_DATABASE_URL=sqlite:////tmp/policyengine-household-api-analytics.db \
+  uv run alembic upgrade head
+uv run alembic current
+uv run alembic history
+uv run alembic revision --autogenerate -m "Describe schema change"
+```
+
+Staging and production deploys run `uv run alembic upgrade head` before
+deploying the App Engine version. Because deployed staging and production run
+with `ANALYTICS__ENABLED=true`, both environments must configure
+`USER_ANALYTICS_DB_CONNECTION_NAME`, `USER_ANALYTICS_DB_USERNAME`, and
+`USER_ANALYTICS_DB_PASSWORD`; the deploy workflow fails before deployment if
+any of those secrets are missing. At runtime, `analytics.enabled=false` skips
+analytics entirely. When `analytics.enabled=true`, analytics is required: API
+startup fails unless the required tables/columns exist and the analytics
+database is stamped at the current Alembic head, and analytics write failures
+propagate like any other required API failure. When adding a new migration,
+update the runtime Alembic head guard in
+`policyengine_household_api/data/analytics_setup.py` in the same PR.
+
+Existing analytics databases that already have the `visits` table but no
+`alembic_version` table must be stamped exactly once before running new
+migrations. Do this manually before the first deploy that includes Alembic;
+otherwise the deploy workflow's `uv run alembic upgrade head` step will fail
+when Alembic tries to create the existing `visits` table:
+```bash
+uv run alembic stamp 20260508_0001
+uv run alembic upgrade head
+```
+
+Run the stamp/upgrade sequence first for staging, verify staging, then repeat
+it for production. For local development, either set `ANALYTICS_DATABASE_URL`
+to a SQLite URL as shown above, or run with `FLASK_DEBUG=1` so Alembic resolves
+the local SQLite analytics database path.
 
 ### Privacy Considerations
 
 - Analytics is **disabled by default**
 - No request/response bodies are logged
-- Only metadata about API usage is collected
+- Household values, entity IDs, member relationships, axis bounds, and exact period keys are not logged
+- Only metadata about API usage and calculate variable usage is collected
 - Data is stored in a separate analytics database
 
 ## Auth0 Authentication Configuration

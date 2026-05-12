@@ -108,7 +108,7 @@ def _walk_axis_variable_names(household: dict):
                 if not isinstance(axis, dict):
                     continue
                 variable_name = axis.get("name")
-                if variable_name is None:
+                if not isinstance(variable_name, str) or variable_name == "":
                     continue
                 yield f"{entry_index}][{axis_index}", variable_name
             continue
@@ -116,6 +116,6 @@ def _walk_axis_variable_names(household: dict):
         if not isinstance(entry, dict):
             continue
         variable_name = entry.get("name")
-        if variable_name is None:
+        if not isinstance(variable_name, str) or variable_name == "":
             continue
         yield str(entry_index), variable_name

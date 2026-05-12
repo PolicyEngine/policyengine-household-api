@@ -45,6 +45,7 @@ class ConfigLoader:
         "USER_ANALYTICS_DB_CONNECTION_NAME": "analytics.database.connection_name",
         "USER_ANALYTICS_DB_USERNAME": "analytics.database.username",
         "USER_ANALYTICS_DB_PASSWORD": "analytics.database.password",
+        "ANALYTICS_DATABASE_URL": "analytics.database.url",
         # Auth0 settings
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.auth0.address",
         "AUTH0_AUDIENCE_NO_DOMAIN": "auth.auth0.audience",

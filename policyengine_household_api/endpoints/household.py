@@ -77,6 +77,7 @@ def _validate_axes(household_json: dict) -> None:
 
     for i, entry in enumerate(axes):
         for axis in _axes_entry_specs(entry, i):
+            _validate_axis_name(axis, i)
             _validate_axis_count(axis, i)
 
 
@@ -103,6 +104,12 @@ def _validate_axis_count(axis: dict, index: int) -> None:
             f"'axes[{index}].count' must be between 1 and "
             f"{MAX_AXES_COUNT}; got {count_int}"
         )
+
+
+def _validate_axis_name(axis: dict, index: int) -> None:
+    name = axis.get("name")
+    if not isinstance(name, str) or name == "":
+        raise ValueError(f"'axes[{index}].name' must be a non-empty string")
 
 
 def _parse_axis_count(count, index: int) -> int:

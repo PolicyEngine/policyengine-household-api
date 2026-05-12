@@ -3,8 +3,8 @@ Fixtures for analytics_setup unit tests.
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-import os
+from unittest.mock import MagicMock, patch
+from flask import Flask
 
 # Mock database connection values
 MOCK_CONNECTION_NAME = "test-project:us-central1:test-instance"
@@ -114,16 +114,46 @@ def analytics_partial_env(monkeypatch):
 
 
 @pytest.fixture
+def analytics_memory_database_url(monkeypatch):
+    return _set_analytics_memory_database_url(monkeypatch)
+
+
+def _set_analytics_memory_database_url(monkeypatch):
+    database_url = "sqlite:///:memory:"
+    monkeypatch.setenv("ANALYTICS_DATABASE_URL", database_url)
+    return database_url
+
+
+@pytest.fixture
+def analytics_flask_app(monkeypatch):
+    _set_analytics_memory_database_url(monkeypatch)
+    return Flask(__name__)
+
+
+@pytest.fixture
+def initialized_analytics_flask_app(monkeypatch):
+    from policyengine_household_api.data.analytics_setup import db
+
+    database_url = _set_analytics_memory_database_url(monkeypatch)
+    app = Flask(__name__)
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    db.init_app(app)
+    return app
+
+
+@pytest.fixture
 def reset_analytics_state():
     """Reset global analytics state before each test."""
     # This fixture ensures tests don't affect each other
     import policyengine_household_api.data.analytics_setup as analytics
 
     analytics._analytics_enabled = None
+    analytics._analytics_schema_ready = True
     analytics._connector = None
     yield
     # Clean up after test
     analytics._analytics_enabled = None
+    analytics._analytics_schema_ready = True
     analytics._connector = None
 
 
@@ -161,3 +191,10 @@ def mock_pymysql_connection():
     connection.commit = MagicMock()
     connection.rollback = MagicMock()
     return connection
+
+
+@pytest.fixture
+def mock_closeable_connector():
+    connector = MagicMock()
+    connector.close = MagicMock()
+    return connector

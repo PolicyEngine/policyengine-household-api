@@ -8,12 +8,26 @@ from flask import request
 from datetime import datetime, timezone
 import jwt
 import logging
+from uuid import uuid4
 from policyengine_household_api.constants import VERSION
 from policyengine_household_api.data.analytics_setup import (
     is_analytics_enabled,
+    is_analytics_schema_ready,
 )
 from policyengine_household_api.data.analytics_setup import db
-from policyengine_household_api.data.models import Visit
+from policyengine_household_api.data.models import (
+    CalculateRequest,
+    CalculateRequestVariable,
+    Visit,
+)
+from policyengine_household_api.models.analytics import (
+    AnalyticsContext,
+    VariableUsageSummary,
+)
+from policyengine_household_api.utils.variable_usage_analytics import (
+    extract_variable_usage,
+    stored_variable_name,
+)
 from policyengine_household_api.utils.config_loader import get_config_value
 
 logger = logging.getLogger(__name__)
@@ -68,81 +82,241 @@ def log_analytics_if_enabled(func):
     """
     Decorator that logs analytics only if analytics is enabled in configuration.
 
-    This decorator:
-    1. Checks if analytics is enabled
-    2. If disabled, passes through without logging
-    3. If enabled, logs the visit to the database
+    If analytics is disabled, this passes through without logging. If
+    analytics is enabled, analytics is required: schema readiness and
+    database write failures propagate like other API failures.
     """
 
     @wraps(func)
     def decorated_function(*args, **kwargs):
-        # Check if analytics is enabled
-        try:
-            if not is_analytics_enabled():
-                # Analytics disabled, just execute the function
-                return func(*args, **kwargs)
-        except Exception as e:
-            logger.debug(f"Could not determine analytics status: {e}")
-            # If we can't determine status, proceed without analytics
+        if not is_analytics_enabled():
             return func(*args, **kwargs)
 
-        # Analytics is enabled, proceed with logging
+        if not is_analytics_schema_ready():
+            raise RuntimeError(
+                "Analytics is enabled but the analytics database schema is "
+                "not ready."
+            )
+
+        analytics_context = _build_analytics_context(args, kwargs)
+
         try:
-            # Create a record that will be emitted to the db
-            new_visit = Visit()
+            response = func(*args, **kwargs)
+        except Exception:
+            _record_analytics(analytics_context, 500)
+            raise
 
-            # Pull client_id from JWT. We only trust the `sub` claim
-            # when the token signature has been verified against the
-            # Auth0 JWKS. If verification fails (bad signature, JWKS
-            # unreachable, etc.) we still record the visit but drop
-            # the client_id so that attackers cannot spoof analytics
-            # identities simply by crafting an unsigned JWT.
-            try:
-                auth_header = str(request.authorization)
-                token = auth_header.split(" ")[1]
-                client_id = _verified_sub_claim(token)
-
-                if client_id is None:
-                    new_visit.client_id = None
-                else:
-                    suffix_to_slice = "@clients"
-                    if (
-                        len(client_id) >= len(suffix_to_slice)
-                        and client_id[-len(suffix_to_slice) :]
-                        == suffix_to_slice
-                    ):
-                        client_id = client_id[: -len(suffix_to_slice)]
-                    new_visit.client_id = client_id
-            except Exception as e:
-                logger.debug(f"Could not extract client_id from JWT: {e}")
-                # Match the verified-fail path: a missing/unparseable
-                # header must also be stored as NULL, never as a
-                # sentinel string we'd have to filter out downstream.
-                new_visit.client_id = None
-
-            # Set API version
-            new_visit.api_version = VERSION
-
-            # Set endpoint and method
-            new_visit.endpoint = request.endpoint
-            new_visit.method = request.method
-
-            # Set content_length_bytes
-            new_visit.content_length_bytes = request.content_length
-
-            # Set the date and time (timezone-aware; utcnow() is
-            # deprecated in Python 3.12+)
-            now = datetime.now(timezone.utc)
-            new_visit.datetime = now
-
-            # Emit the new record to the db
-            db.session.add(new_visit)
-            db.session.commit()
-
-        except Exception as e:
-            # Log the error but don't fail the request
-            logger.error(f"Failed to log analytics: {e}")
-
-        return func(*args, **kwargs)
+        _record_analytics(
+            analytics_context,
+            getattr(response, "status_code", None),
+        )
+        return response
 
     return decorated_function
+
+
+def _build_analytics_context(args, kwargs) -> AnalyticsContext:
+    now = datetime.now(timezone.utc)
+    client_id = _client_id_from_request()
+    country_id = _country_id_from_route_args(args, kwargs)
+    payload = _request_json()
+
+    context = AnalyticsContext(
+        client_id=client_id,
+        api_version=VERSION,
+        endpoint=request.endpoint,
+        method=request.method,
+        content_length_bytes=request.content_length,
+        created_at=now,
+        country_id=country_id,
+    )
+
+    if country_id is None or not _collect_variable_usage():
+        return context
+
+    from policyengine_household_api.country import COUNTRIES
+
+    country = COUNTRIES.get(country_id)
+    if country is None:
+        return context
+    variable_summaries: tuple[VariableUsageSummary, ...] = ()
+    if isinstance(payload, dict):
+        household = payload.get("household", {})
+        if isinstance(household, dict):
+            variable_summaries = tuple(
+                extract_variable_usage(
+                    household,
+                    country.tax_benefit_system,
+                )
+            )
+
+    return context.model_copy(
+        update={
+            "record_calculate_request": True,
+            "model_version": country.policyengine_bundle.get("model_version"),
+            "variable_summaries": variable_summaries,
+        },
+    )
+
+
+def _client_id_from_request() -> str | None:
+    # Pull client_id from JWT. We only trust the `sub` claim when the token
+    # signature has been verified against Auth0 JWKS. If verification fails,
+    # store NULL so callers cannot spoof analytics identities.
+    try:
+        auth_header = str(request.authorization)
+        token = auth_header.split(" ")[1]
+        client_id = _verified_sub_claim(token)
+        if client_id is None:
+            return None
+
+        suffix_to_slice = "@clients"
+        if client_id.endswith(suffix_to_slice):
+            return client_id[: -len(suffix_to_slice)]
+        return client_id
+    except Exception as e:
+        logger.debug(f"Could not extract client_id from JWT: {e}")
+        return None
+
+
+def _country_id_from_route_args(args, kwargs) -> str | None:
+    country_id = kwargs.get("country_id")
+    if isinstance(country_id, str):
+        return country_id
+    if args and isinstance(args[0], str):
+        return args[0]
+    return None
+
+
+def _request_json() -> dict | None:
+    return request.get_json(silent=True)
+
+
+def _collect_variable_usage() -> bool:
+    value = get_config_value("analytics.collect_variable_usage", True)
+    if isinstance(value, str):
+        return value.lower() not in {"0", "false", "no"}
+    return bool(value)
+
+
+def _record_analytics(
+    context: AnalyticsContext | None,
+    response_status_code: int | None,
+) -> None:
+    if context is None:
+        return
+
+    try:
+        visit = _build_visit(context)
+        db.session.add(visit)
+        db.session.flush()
+        visit_id = getattr(visit, "id", None)
+
+        variable_summaries = context.variable_summaries
+        calculate_request = _build_calculate_request(
+            context,
+            response_status_code,
+            variable_summaries,
+            visit_id,
+        )
+
+        if calculate_request is not None:
+            db.session.add(calculate_request)
+            db.session.flush()
+            for summary in variable_summaries:
+                db.session.add(
+                    _build_calculate_request_variable(
+                        calculate_request,
+                        summary,
+                    )
+                )
+
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to log analytics: {e}")
+        raise
+
+
+def _build_visit(context: AnalyticsContext) -> Visit:
+    visit = Visit()
+    visit.client_id = context.client_id
+    visit.api_version = context.api_version
+    visit.endpoint = context.endpoint
+    visit.method = context.method.value
+    visit.content_length_bytes = context.content_length_bytes
+    visit.datetime = context.created_at
+    return visit
+
+
+def _build_calculate_request(
+    context: AnalyticsContext,
+    response_status_code: int | None,
+    variable_summaries: tuple[VariableUsageSummary, ...],
+    visit_id: int | None,
+) -> CalculateRequest | None:
+    if not context.record_calculate_request:
+        return None
+    if visit_id is None:
+        raise ValueError("Visit ID is required for calculate analytics")
+
+    distinct_variable_names = {
+        summary.variable_name for summary in variable_summaries
+    }
+    unsupported_variable_names = {
+        summary.variable_name
+        for summary in variable_summaries
+        if summary.availability_status == "unsupported"
+    }
+    deprecated_allowlisted_variable_names = {
+        summary.variable_name
+        for summary in variable_summaries
+        if summary.availability_status == "deprecated_allowlisted"
+    }
+
+    calculate_request = CalculateRequest()
+    calculate_request.visit_id = visit_id
+    calculate_request.request_uuid = str(uuid4())
+    calculate_request.client_id = context.client_id
+    calculate_request.api_version = context.api_version
+    calculate_request.country_id = context.country_id
+    calculate_request.model_version = context.model_version
+    calculate_request.endpoint = context.endpoint
+    calculate_request.method = context.method.value
+    calculate_request.content_length_bytes = context.content_length_bytes
+    calculate_request.response_status_code = response_status_code
+    calculate_request.distinct_variable_count = len(distinct_variable_names)
+    calculate_request.unsupported_variable_count = len(
+        unsupported_variable_names
+    )
+    calculate_request.deprecated_allowlisted_variable_count = len(
+        deprecated_allowlisted_variable_names
+    )
+    calculate_request.created_at = context.created_at
+    return calculate_request
+
+
+def _build_calculate_request_variable(
+    calculate_request: CalculateRequest,
+    summary: VariableUsageSummary,
+) -> CalculateRequestVariable:
+    variable = CalculateRequestVariable()
+    variable.request_id = calculate_request.id
+    variable.client_id = calculate_request.client_id
+    variable.created_at = calculate_request.created_at
+    variable.country_id = calculate_request.country_id
+    variable.api_version = calculate_request.api_version
+    variable.model_version = calculate_request.model_version
+    variable.response_status_code = calculate_request.response_status_code
+    (
+        variable.variable_name,
+        variable.variable_name_truncated,
+    ) = stored_variable_name(summary.variable_name)
+    variable.entity_type = summary.entity_type
+    variable.source = summary.source.value
+    variable.period_granularity = summary.period_granularity.value
+    variable.entity_count = summary.entity_count
+    variable.period_count = summary.period_count
+    variable.occurrence_count = summary.occurrence_count
+    variable.availability_status = summary.availability_status.value
+    return variable

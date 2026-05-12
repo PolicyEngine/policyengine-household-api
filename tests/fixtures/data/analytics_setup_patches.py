@@ -146,3 +146,97 @@ def patch_google_connector_with_connection_error():
         mock_instance.connect.side_effect = Exception("Connection failed")
         MockConnector.return_value = mock_instance
         yield mock_instance
+
+
+@pytest.fixture
+def patch_analytics_connector_class():
+    """Patch the analytics Connector class and expose the mock class."""
+    with patch(
+        "policyengine_household_api.data.analytics_setup.Connector"
+    ) as connector_class:
+        mock_instance = MagicMock()
+        connector_class.return_value = mock_instance
+        yield connector_class, mock_instance
+
+
+@pytest.fixture
+def patch_analytics_initialization_ready():
+    """Patch analytics initialization dependencies for a ready schema."""
+    with (
+        patch(
+            "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+            return_value=True,
+        ),
+        patch(
+            "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
+            return_value=True,
+        ),
+        patch(
+            "policyengine_household_api.data.analytics_setup.db.create_all"
+        ) as create_all,
+    ):
+        yield create_all
+
+
+@pytest.fixture
+def patch_analytics_initialization_schema_not_ready():
+    """Patch analytics initialization dependencies for a failed schema check."""
+    with (
+        patch(
+            "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+            return_value=True,
+        ),
+        patch(
+            "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
+            return_value=False,
+        ),
+    ):
+        yield
+
+
+@pytest.fixture
+def patch_schema_check_missing_alembic_version():
+    """Patch schema inspection to report no missing columns but no revision."""
+    with (
+        patch(
+            "policyengine_household_api.data.analytics_setup._missing_required_schema",
+            return_value=[],
+        ),
+        patch(
+            "policyengine_household_api.data.analytics_setup._alembic_version",
+            return_value=None,
+        ),
+    ):
+        yield
+
+
+@pytest.fixture
+def patch_schema_check_wrong_alembic_version():
+    """Patch schema inspection to report an out-of-date Alembic revision."""
+    with (
+        patch(
+            "policyengine_household_api.data.analytics_setup._missing_required_schema",
+            return_value=[],
+        ),
+        patch(
+            "policyengine_household_api.data.analytics_setup._alembic_version",
+            return_value="20260508_0001",
+        ),
+    ):
+        yield
+
+
+@pytest.fixture
+def patch_schema_check_head_alembic_version():
+    """Patch schema inspection to report the configured Alembic head."""
+    with (
+        patch(
+            "policyengine_household_api.data.analytics_setup._missing_required_schema",
+            return_value=[],
+        ),
+        patch(
+            "policyengine_household_api.data.analytics_setup._alembic_version",
+            return_value="20260512_0003",
+        ),
+    ):
+        yield

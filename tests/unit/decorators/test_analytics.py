@@ -4,27 +4,6 @@ Tests conditional analytics logging based on opt-in/opt-out configuration.
 """
 
 import pytest
-from datetime import datetime
-from tests.fixtures.decorators.analytics import sample_function
-from tests.fixtures.data.analytics_setup import reset_analytics_state
-from tests.fixtures.decorators.analytics_patches import (
-    mock_analytics_enabled,
-    mock_analytics_disabled,
-    mock_analytics_error,
-    mock_visit_instance,
-    mock_visit_class,
-    mock_request_with_auth,
-    mock_request_without_auth,
-    mock_jwt_valid_with_suffix,
-    mock_jwt_valid_without_suffix,
-    mock_jwt_invalid,
-    mock_jwt_unverified,
-    mock_datetime_fixed,
-    mock_version,
-    mock_db_session,
-    mock_db_session_with_error,
-    setup_analytics_decorator_test,
-)
 
 
 class TestAnalyticsDecorator:
@@ -169,7 +148,7 @@ class TestAnalyticsDecorator:
         # Verify client_id preserved as-is
         assert visit_instance.client_id == "test-client"
 
-    def test__given_database_error__decorator_continues_without_failing(
+    def test__given_database_error__decorator_raises(
         self,
         sample_function,
         mock_analytics_enabled,
@@ -180,30 +159,48 @@ class TestAnalyticsDecorator:
         mock_version,
         mock_db_session_with_error,
     ):
-        """Decorator should handle database errors gracefully."""
+        """Enabled analytics should fail the request on database errors."""
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
         decorated = log_analytics_if_enabled(sample_function)
 
-        # Should not raise error, function should still execute
-        result = decorated("arg1", "arg2", kwarg1="test")
-        assert result == "Result: arg1, arg2, test"
+        with pytest.raises(Exception, match="Database error"):
+            decorated("arg1", "arg2", kwarg1="test")
 
-    def test__given_analytics_check_raises_error__decorator_continues_normally(
+        mock_db_session_with_error.rollback.assert_called_once()
+
+    def test__given_analytics_check_raises_error__decorator_raises(
         self, sample_function, mock_analytics_error
     ):
-        """Decorator should handle analytics check errors gracefully."""
+        """Enabled analytics checks are required and should not fail open."""
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
         decorated = log_analytics_if_enabled(sample_function)
 
-        # Should not raise error even if analytics check fails
-        result = decorated("arg1", "arg2", kwarg1="test")
-        assert result == "Result: arg1, arg2, test"
+        with pytest.raises(Exception, match="Error"):
+            decorated("arg1", "arg2", kwarg1="test")
+
+    def test__given_schema_not_ready__decorator_raises(
+        self,
+        sample_function,
+        mock_analytics_enabled,
+        mock_analytics_schema_not_ready,
+        mock_db_session,
+    ):
+        """Enabled analytics requires a ready schema."""
+        from policyengine_household_api.decorators.analytics import (
+            log_analytics_if_enabled,
+        )
+
+        decorated = log_analytics_if_enabled(sample_function)
+        with pytest.raises(RuntimeError, match="Analytics is enabled"):
+            decorated("arg1", "arg2", kwarg1="test")
+
+        mock_db_session.add.assert_not_called()
 
     def test__given_unverified_jwt__decorator_logs_with_null_client_id(
         self,
