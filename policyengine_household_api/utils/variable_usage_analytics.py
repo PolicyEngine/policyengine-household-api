@@ -77,6 +77,12 @@ class _VariableUsageAccumulator:
         )
 
 
+_VariableUsageKey = tuple[str, str, VariableSource]
+_VariableUsageAccumulators = dict[
+    _VariableUsageKey, _VariableUsageAccumulator
+]
+
+
 def extract_variable_usage(
     household: dict,
     system,
@@ -91,9 +97,7 @@ def extract_variable_usage(
         return []
 
     entity_type_by_group = _entity_type_by_group(system)
-    accumulators: dict[
-        tuple[str, str, VariableSource], _VariableUsageAccumulator
-    ] = {}
+    accumulators: _VariableUsageAccumulators = {}
 
     _extract_entity_group_variables(
         household,
@@ -125,9 +129,7 @@ def _extract_entity_group_variables(
     household: dict,
     system,
     entity_type_by_group: dict[str, str],
-    accumulators: dict[
-        tuple[str, str, VariableSource], _VariableUsageAccumulator
-    ],
+    accumulators: _VariableUsageAccumulators,
 ) -> None:
     for entity_group, entities in _iter_household_entity_groups(household):
         for entity_id, variable_name, period_map in _iter_entity_variables(
@@ -161,9 +163,7 @@ def _iter_entity_variables(entities: dict):
 
 
 def _add_entity_variable_usage(
-    accumulators: dict[
-        tuple[str, str, VariableSource], _VariableUsageAccumulator
-    ],
+    accumulators: _VariableUsageAccumulators,
     variable_name: str,
     entity_group: str,
     entity_id: str,
@@ -194,9 +194,7 @@ def _extract_axis_variables(
     household: dict,
     system,
     entity_type_by_group: dict[str, str],
-    accumulators: dict[
-        tuple[str, str, VariableSource], _VariableUsageAccumulator
-    ],
+    accumulators: _VariableUsageAccumulators,
 ) -> None:
     axes = household.get("axes")
     if not isinstance(axes, list):
@@ -226,14 +224,12 @@ def _extract_axis_variables(
 
 
 def _get_accumulator(
-    accumulators: dict[
-        tuple[str, str, VariableSource], _VariableUsageAccumulator
-    ],
+    accumulators: _VariableUsageAccumulators,
     variable_name: str,
     entity_type: str,
     source: VariableSource,
 ) -> _VariableUsageAccumulator:
-    key = (variable_name, entity_type, source)
+    key: _VariableUsageKey = (variable_name, entity_type, source)
     if key not in accumulators:
         accumulators[key] = _VariableUsageAccumulator(
             variable_name=variable_name,
