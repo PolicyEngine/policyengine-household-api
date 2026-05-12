@@ -390,8 +390,7 @@ class TestCalculateEndpoint:
             shared_prefix + "..."
         }
         assert all(
-            row.availability_status == "unsupported"
-            for row in truncated_rows
+            row.availability_status == "unsupported" for row in truncated_rows
         )
         assert (
             calculate_analytics_capture.calculate_request.unsupported_variable_count

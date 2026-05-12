@@ -50,21 +50,15 @@ def test__analytics_sqlalchemy_rows__define_fixed_options():
     assert CalculateRequest.__table__.c.method.info["options"] == tuple(
         method.value for method in AnalyticsHttpMethod
     )
-    assert CalculateRequestVariable.__table__.c.source.info["options"] == tuple(
-        source.value for source in VariableSource
-    )
-    assert (
-        CalculateRequestVariable.__table__.c.period_granularity.info[
-            "options"
-        ]
-        == tuple(granularity.value for granularity in PeriodGranularity)
-    )
-    assert (
-        CalculateRequestVariable.__table__.c.availability_status.info[
-            "options"
-        ]
-        == tuple(status.value for status in AvailabilityStatus)
-    )
+    assert CalculateRequestVariable.__table__.c.source.info[
+        "options"
+    ] == tuple(source.value for source in VariableSource)
+    assert CalculateRequestVariable.__table__.c.period_granularity.info[
+        "options"
+    ] == tuple(granularity.value for granularity in PeriodGranularity)
+    assert CalculateRequestVariable.__table__.c.availability_status.info[
+        "options"
+    ] == tuple(status.value for status in AvailabilityStatus)
 
 
 def test__variable_usage_summary__defines_fixed_row_options():

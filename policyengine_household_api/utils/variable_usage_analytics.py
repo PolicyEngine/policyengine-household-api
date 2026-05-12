@@ -78,9 +78,7 @@ class _VariableUsageAccumulator:
 
 
 _VariableUsageKey = tuple[str, str, VariableSource]
-_VariableUsageAccumulators = dict[
-    _VariableUsageKey, _VariableUsageAccumulator
-]
+_VariableUsageAccumulators = dict[_VariableUsageKey, _VariableUsageAccumulator]
 
 
 def extract_variable_usage(
