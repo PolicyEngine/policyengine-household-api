@@ -1,0 +1,137 @@
+name: Modal release
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  MODAL_ENVIRONMENT: main
+  MODAL_WORKSPACE: policyengine
+  PYTHON_VERSION: "3.12"
+
+concurrency:
+  group: household-api-modal-release
+  cancel-in-progress: false
+
+jobs:
+  resolve-config:
+    name: Resolve Modal release config
+    runs-on: ubuntu-latest
+    if: github.repository == 'PolicyEngine/policyengine-household-api'
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      should_deploy: ${{ steps.resolve.outputs.should_deploy }}
+      source: ${{ steps.resolve.outputs.source }}
+      new_app_target: ${{ steps.resolve.outputs.new_app_target }}
+      promote_existing_frontier: ${{ steps.resolve.outputs.promote_existing_frontier }}
+      cleanup_target: ${{ steps.resolve.outputs.cleanup_target }}
+      config_json: ${{ steps.resolve.outputs.config_json }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.5"
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Resolve release config
+        id: resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          uv run python .github/scripts/resolve_modal_release_config.py \
+            --output-json modal-release-config.json
+
+  deploy:
+    name: Deploy Modal release
+    runs-on: ubuntu-latest
+    needs: resolve-config
+    if: needs.resolve-config.outputs.should_deploy == 'true'
+    environment: production
+    permissions:
+      contents: read
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.5"
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Extract package versions
+        id: versions
+        run: |
+          uv run python .github/scripts/modal_extract_versions.py \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Sync Modal secrets
+        env:
+          APP__ENVIRONMENT: production
+          AUTH__ENABLED: "true"
+          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          ANALYTICS__ENABLED: "true"
+          USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+          USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+          USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+          AI__ENABLED: "true"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
+          HOUSEHOLD_MODAL_GATEWAY_SECRET: ${{ secrets.HOUSEHOLD_MODAL_GATEWAY_SECRET }}
+        run: bash .github/scripts/modal-sync-secrets.sh
+
+      - name: Deploy versioned worker
+        if: needs.resolve-config.outputs.new_app_target != 'none'
+        env:
+          HOUSEHOLD_MODAL_WORKER_APP_NAME: ${{ steps.versions.outputs.worker_app_name }}
+        run: |
+          uv run modal deploy \
+            --env "${MODAL_ENVIRONMENT}" \
+            -m policyengine_household_api.modal_release.worker_app
+
+      - name: Update Modal manifest
+        run: |
+          uv run python -m policyengine_household_api.modal_release.update_manifest \
+            --config-json '${{ needs.resolve-config.outputs.config_json }}' \
+            --new-app-name "${{ steps.versions.outputs.worker_app_name }}" \
+            --source-commit "${GITHUB_SHA}" \
+            --modal-environment "${MODAL_ENVIRONMENT}" \
+            --cleanup-output modal-cleanup.json \
+            --manifest-output modal-manifest.json
+
+      - name: Deploy gateway
+        run: |
+          uv run modal deploy \
+            --env "${MODAL_ENVIRONMENT}" \
+            -m policyengine_household_api.modal_release.gateway_app
+
+      - name: Clean up retired apps
+        if: needs.resolve-config.outputs.cleanup_target == 'retired'
+        run: bash .github/scripts/modal-cleanup-apps.sh modal-cleanup.json
+
+      - name: Smoke test gateway
+        run: |
+          gateway_url="$(bash .github/scripts/modal-get-url.sh)"
+          curl -fsS "${gateway_url}/liveness_check"

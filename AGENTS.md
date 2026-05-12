@@ -11,6 +11,9 @@ Codex, Claude, Copilot, and other AI tools.
 When changing analytics database models or Alembic migrations, read
 `docs/engineering/skills/database-migrations.md`.
 
+When changing Modal current/frontier release behavior, PR release settings, or
+deployment workflows, read `docs/engineering/skills/modal-release-prs.md`.
+
 When adding, moving, or reviewing tests, read
 `docs/engineering/skills/testing.md`.
 
