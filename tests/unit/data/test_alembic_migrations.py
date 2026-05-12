@@ -42,9 +42,20 @@ def test__alembic_upgrade_head__creates_expected_analytics_schema(
         for column in inspector.get_columns("calculate_request_variables")
     }
     assert "entity_type" in variable_columns
+    assert "variable_name_truncated" in variable_columns
     assert "request_entity_group" not in variable_columns
     assert "model_entity" not in variable_columns
     assert "model_entity_group" not in variable_columns
+
+    unique_constraints = {
+        constraint["name"]
+        for constraint in inspector.get_unique_constraints(
+            "calculate_request_variables"
+        )
+    }
+    assert (
+        "ux_calc_vars_request_variable_entity_source" not in unique_constraints
+    )
 
 
 def test__alembic_downgrade_to_baseline__handles_null_visit_client_ids(

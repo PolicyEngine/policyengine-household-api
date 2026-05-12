@@ -236,7 +236,7 @@ def patch_schema_check_head_alembic_version():
         ),
         patch(
             "policyengine_household_api.data.analytics_setup._alembic_version",
-            return_value="20260508_0002",
+            return_value="20260512_0003",
         ),
     ):
         yield

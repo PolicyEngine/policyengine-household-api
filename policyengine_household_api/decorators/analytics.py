@@ -23,6 +23,7 @@ from policyengine_household_api.data.models import (
 from policyengine_household_api.utils.variable_usage_analytics import (
     VariableUsageSummary,
     extract_variable_usage,
+    stored_variable_name,
 )
 from policyengine_household_api.utils.config_loader import get_config_value
 
@@ -300,7 +301,10 @@ def _build_calculate_request_variable(
     variable.api_version = calculate_request.api_version
     variable.model_version = calculate_request.model_version
     variable.response_status_code = calculate_request.response_status_code
-    variable.variable_name = summary.variable_name
+    (
+        variable.variable_name,
+        variable.variable_name_truncated,
+    ) = stored_variable_name(summary.variable_name)
     variable.entity_type = summary.entity_type
     variable.source = summary.source
     variable.period_granularity = summary.period_granularity

@@ -22,7 +22,7 @@ _connector = None
 
 ANALYTICS_DATABASE_URL_ENV_VAR = "ANALYTICS_DATABASE_URL"
 ANALYTICS_DATABASE_NAME = "user_analytics"
-ANALYTICS_ALEMBIC_HEAD = "20260508_0002"
+ANALYTICS_ALEMBIC_HEAD = "20260512_0003"
 REQUIRED_ANALYTICS_COLUMNS = {
     "visits": {
         "id",
@@ -60,6 +60,7 @@ REQUIRED_ANALYTICS_COLUMNS = {
         "model_version",
         "response_status_code",
         "variable_name",
+        "variable_name_truncated",
         "entity_type",
         "source",
         "period_granularity",

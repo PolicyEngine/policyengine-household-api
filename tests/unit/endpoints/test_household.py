@@ -307,6 +307,55 @@ class TestCalculateEndpoint:
             for error in payload["errors"]
         )
 
+    def test__given_invalid_axis_name_type__returns_400(self, client):
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "axes": [{"name": ["not", "a", "string"], "count": 2}],
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        assert payload["status"] == "error"
+        assert (
+            "'axes[0].name' must be a non-empty string" in payload["message"]
+        )
+
+    def test__analytics_enabled__truncates_overlong_variable_names(
+        self, client, calculate_analytics_capture
+    ):
+        long_variable_name = "very_long_" + ("x" * 251)
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    long_variable_name: {"2024": 0},
+                }
+            },
+        }
+
+        response = client.post(
+            "/us/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 400
+        truncated_row = next(
+            row
+            for row in calculate_analytics_capture.variable_rows
+            if row.variable_name_truncated
+        )
+        assert truncated_row.variable_name == long_variable_name[:250] + "..."
+        assert len(truncated_row.variable_name) == 253
+        assert truncated_row.availability_status == "unsupported"
+
     def test__given_ai_explainer_tracer_fails__returns_500(
         self, client, ai_explainer_tracer_failure
     ):
@@ -334,6 +383,10 @@ class TestAxesValidation:
             (
                 {"axes": [{"name": "employment_income", "count": "many"}]},
                 "'axes[0].count' must be an integer",
+            ),
+            (
+                {"axes": [{"name": ["employment_income"], "count": 2}]},
+                "'axes[0].name' must be a non-empty string",
             ),
             (
                 {"axes": [{"name": "employment_income", "count": 0}]},

@@ -1,11 +1,11 @@
 from policyengine_household_api.data.analytics_setup import db
 from sqlalchemy import (
+    Boolean,
     DateTime,
     ForeignKey,
     Index,
     Integer,
     String,
-    UniqueConstraint,
 )
 from sqlalchemy.orm import mapped_column
 
@@ -83,6 +83,11 @@ class CalculateRequestVariable(db.Model):
     model_version = mapped_column(String(64), nullable=True)
     response_status_code = mapped_column(Integer, nullable=True)
     variable_name = mapped_column(String(255), nullable=False)
+    variable_name_truncated = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
     entity_type = mapped_column(String(64), nullable=False)
     source = mapped_column(String(32), nullable=False)
     period_granularity = mapped_column(String(16), nullable=False)
@@ -91,6 +96,9 @@ class CalculateRequestVariable(db.Model):
     occurrence_count = mapped_column(Integer, nullable=False, default=0)
     availability_status = mapped_column(String(32), nullable=False)
 
+    # Do not make request_id + variable_name unique: overlong variable names
+    # are intentionally capped before persistence, so different originals can
+    # share one stored representation.
     __table_args__ = (
         Index(
             "ix_calc_vars_variable_created",
@@ -108,12 +116,5 @@ class CalculateRequestVariable(db.Model):
             "country_id",
             "model_version",
             "variable_name",
-        ),
-        UniqueConstraint(
-            "request_id",
-            "variable_name",
-            "entity_type",
-            "source",
-            name="ux_calc_vars_request_variable_entity_source",
         ),
     )

@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from policyengine_household_api.utils.variable_usage_analytics import (
     extract_variable_usage,
+    stored_variable_name,
 )
 
 
@@ -42,6 +43,21 @@ def summaries_by_key(household):
 
 
 class TestExtractVariableUsage:
+    def test__stored_variable_name__caps_overlong_names(self):
+        variable_name = "x" * 251
+
+        stored_name, was_truncated = stored_variable_name(variable_name)
+
+        assert stored_name == ("x" * 250) + "..."
+        assert len(stored_name) == 253
+        assert was_truncated is True
+
+    def test__stored_variable_name__keeps_short_names(self):
+        stored_name, was_truncated = stored_variable_name("employment_income")
+
+        assert stored_name == "employment_income"
+        assert was_truncated is False
+
     def test__household_inputs__are_grouped_without_values_or_entity_ids(self):
         household = {
             "people": {

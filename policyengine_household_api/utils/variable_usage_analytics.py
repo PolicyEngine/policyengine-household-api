@@ -25,6 +25,8 @@ YEAR_RE = re.compile(r"^\d{4}$")
 MONTH_RE = re.compile(r"^\d{4}-\d{2}$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 UNKNOWN_ENTITY_TYPE = "unknown"
+MAX_STORED_VARIABLE_NAME_LENGTH = 250
+TRUNCATED_VARIABLE_NAME_SUFFIX = "..."
 
 
 @dataclass(frozen=True)
@@ -39,6 +41,17 @@ class VariableUsageSummary:
     period_count: int
     occurrence_count: int
     availability_status: AvailabilityStatus
+
+
+def stored_variable_name(variable_name: str) -> tuple[str, bool]:
+    """Return the bounded variable name stored by analytics."""
+    if len(variable_name) <= MAX_STORED_VARIABLE_NAME_LENGTH:
+        return variable_name, False
+    return (
+        variable_name[:MAX_STORED_VARIABLE_NAME_LENGTH]
+        + TRUNCATED_VARIABLE_NAME_SUFFIX,
+        True,
+    )
 
 
 @dataclass
