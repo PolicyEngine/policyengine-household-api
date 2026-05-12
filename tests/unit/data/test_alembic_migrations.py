@@ -65,6 +65,11 @@ def test__alembic_upgrade_head__creates_expected_analytics_schema(
     assert (
         "ux_calc_vars_request_variable_entity_source" not in unique_constraints
     )
+    variable_indexes = {
+        index["name"]
+        for index in inspector.get_indexes("calculate_request_variables")
+    }
+    assert "ix_calc_vars_request_id" in variable_indexes
 
 
 def test__migrated_schema__stores_truncated_variable_name_with_orm(

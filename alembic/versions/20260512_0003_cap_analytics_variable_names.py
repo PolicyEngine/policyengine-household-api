@@ -34,6 +34,15 @@ def upgrade() -> None:
                 nullable=False,
             )
         )
+        batch_op.create_index(
+            "ix_calc_vars_request_id",
+            ["request_id"],
+            unique=False,
+        )
+
+    with op.batch_alter_table(
+        "calculate_request_variables", schema=None
+    ) as batch_op:
         batch_op.drop_constraint(
             batch_op.f("ux_calc_vars_request_variable_entity_source"),
             type_="unique",
@@ -61,6 +70,7 @@ def downgrade() -> None:
             batch_op.f("ux_calc_vars_request_variable_entity_source"),
             ["request_id", "variable_name", "entity_type", "source"],
         )
+        batch_op.drop_index("ix_calc_vars_request_id")
         batch_op.drop_column("variable_name_truncated")
 
     # ### end Alembic commands ###

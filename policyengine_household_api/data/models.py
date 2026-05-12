@@ -129,6 +129,7 @@ class CalculateRequestVariable(db.Model):
     # are intentionally capped before persistence, so different originals can
     # share one stored representation.
     __table_args__ = (
+        Index("ix_calc_vars_request_id", "request_id"),
         Index(
             "ix_calc_vars_variable_created",
             "variable_name",
