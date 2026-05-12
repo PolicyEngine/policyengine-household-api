@@ -1,3 +1,10 @@
+## [0.17.0] - 2026-05-12
+
+### Added
+
+- Added privacy-safe calculate variable usage analytics and Alembic-managed analytics database migrations.
+
+
 ## [0.16.2] - 2026-05-12
 
 ### Changed
