@@ -24,34 +24,44 @@ def _manifest():
     }
 
 
-def _client_with_proxy():
-    proxied_requests = []
+def _client_with_dispatch():
+    worker_requests = []
+    local_requests = []
 
-    def proxy(app_name, body):
-        proxied_requests.append((app_name, body))
+    def worker_request(app_name, payload):
+        worker_requests.append((app_name, payload))
         return Response(
             json.dumps({"status": "ok", "app_name": app_name}),
             mimetype="application/json",
         )
 
+    def local_request(path, body):
+        local_requests.append((path, body))
+        return Response(
+            json.dumps({"status": "local", "path": path}),
+            mimetype="application/json",
+        )
+
     app = create_gateway_app(
         manifest_loader=_manifest,
-        proxy_request=proxy,
+        worker_request=worker_request,
+        local_request=local_request,
     )
-    return app.test_client(), proxied_requests
+    return app.test_client(), worker_requests, local_requests
 
 
 def test_calculate_defaults_to_current():
-    client, proxied_requests = _client_with_proxy()
+    client, worker_requests, local_requests = _client_with_dispatch()
 
     response = client.post("/us/calculate", json={"household": {}})
 
     assert response.status_code == 200
-    assert proxied_requests[0][0] == "current-app"
+    assert worker_requests[0][0] == "current-app"
+    assert not local_requests
 
 
 def test_calculate_routes_frontier_and_strips_version():
-    client, proxied_requests = _client_with_proxy()
+    client, worker_requests, _ = _client_with_dispatch()
 
     response = client.post(
         "/us/calculate",
@@ -59,13 +69,13 @@ def test_calculate_routes_frontier_and_strips_version():
     )
 
     assert response.status_code == 200
-    app_name, body = proxied_requests[0]
+    app_name, payload = worker_requests[0]
     assert app_name == "frontier-app"
-    assert "version" not in json.loads(body)
+    assert "version" not in json.loads(payload["body"])
 
 
 def test_calculate_routes_exact_active_country_package_version():
-    client, proxied_requests = _client_with_proxy()
+    client, worker_requests, _ = _client_with_dispatch()
 
     response = client.post(
         "/us/calculate",
@@ -73,11 +83,11 @@ def test_calculate_routes_exact_active_country_package_version():
     )
 
     assert response.status_code == 200
-    assert proxied_requests[0][0] == "frontier-app"
+    assert worker_requests[0][0] == "frontier-app"
 
 
 def test_calculate_rejects_unknown_version():
-    client, proxied_requests = _client_with_proxy()
+    client, worker_requests, local_requests = _client_with_dispatch()
 
     response = client.post(
         "/us/calculate",
@@ -85,5 +95,46 @@ def test_calculate_rejects_unknown_version():
     )
 
     assert response.status_code == 400
-    assert not proxied_requests
+    assert not worker_requests
+    assert not local_requests
     assert "9.9.9" in response.get_json()["message"]
+
+
+def test_calculate_forwards_request_metadata_to_worker():
+    client, worker_requests, _ = _client_with_dispatch()
+
+    response = client.post(
+        "/us/calculate?trace=true",
+        json={"household": {}},
+        headers={"Authorization": "Bearer token"},
+    )
+
+    assert response.status_code == 200
+    _, payload = worker_requests[0]
+    assert payload["method"] == "POST"
+    assert payload["path"] == "us/calculate"
+    assert payload["query_string"] == "trace=true"
+    assert payload["headers"]["Authorization"] == "Bearer token"
+
+
+def test_ai_analysis_is_served_by_gateway_local_api():
+    client, worker_requests, local_requests = _client_with_dispatch()
+
+    response = client.post(
+        "/us/ai-analysis",
+        json={"version": "frontier", "household": {}},
+    )
+
+    assert response.status_code == 200
+    assert not worker_requests
+    assert local_requests[0][0] == "us/ai-analysis"
+
+
+def test_non_country_route_is_served_by_gateway_local_api():
+    client, worker_requests, local_requests = _client_with_dispatch()
+
+    response = client.get("/specification")
+
+    assert response.status_code == 200
+    assert not worker_requests
+    assert local_requests[0] == ("specification", b"")

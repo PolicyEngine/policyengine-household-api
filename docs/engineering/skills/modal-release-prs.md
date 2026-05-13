@@ -1,8 +1,9 @@
 # Modal Release PRs
 
 The household API Modal deployment uses a stable gateway app and versioned
-worker apps. The gateway routes requests to the active `current` or `frontier`
-worker based on the request's top-level `version` value.
+worker apps. For calculation endpoints, the gateway routes requests to the
+active `current` or `frontier` worker based on the request's top-level
+`version` value.
 
 ## PR Body Configuration
 
@@ -44,6 +45,9 @@ explicitly configured.
 
 Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
+The release workflow deploys from the finalized
+`Update PolicyEngine Household API` versioning commit; ordinary push events do
+not deploy Modal apps.
 
 ## Analytics Migrations
 
@@ -67,9 +71,9 @@ revision and the database revision observed after the release migration step.
 
 ## Request Routing
 
-For `/calculate`, `/calculate_demo`, and `/ai-analysis`, the Modal gateway reads
-the top-level request field `version` and removes it before proxying to the
-worker. Accepted values are:
+For `/calculate` and `/calculate_demo`, the Modal gateway reads the top-level
+request field `version` and removes it before dispatching to the worker's
+`handle_household_request` Modal function. Accepted values are:
 
 - omitted or `current`: route to the current worker
 - `frontier`: route to the frontier worker
@@ -77,6 +81,10 @@ worker. Accepted values are:
   worker for that country
 
 Unknown versions return a 400 from the gateway.
+
+Other endpoints are served by the gateway's local Flask app and do not use
+current/frontier version routing. Worker apps are internal Modal function apps,
+not public WSGI web endpoints.
 
 ## Testing Expectations
 

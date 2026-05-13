@@ -79,30 +79,30 @@ def resolve_release_from_event(
     if "head_commit" not in event:
         return ResolvedModalRelease(False, "unsupported-event")
 
+    message = (event.get("head_commit") or {}).get("message")
+    if message != WEEKLY_UPDATE_COMMIT_MESSAGE:
+        return ResolvedModalRelease(False, "push-not-release-commit")
+
     repository = (event.get("repository") or {}).get("full_name")
-    sha = event.get("after")
+    source_sha = event.get("before") or event.get("after")
     body = (
-        fetch_pr_body_for_commit(repository, sha)
-        if repository and sha
+        fetch_pr_body_for_commit(repository, source_sha)
+        if repository and source_sha
         else None
     )
     resolved = resolve_release_from_body(
         body,
-        source="merged_pull_request",
+        source="versioning-parent-pull-request",
         deploy_when_missing=False,
     )
     if resolved.should_deploy:
         return resolved
 
-    message = (event.get("head_commit") or {}).get("message")
-    if message == WEEKLY_UPDATE_COMMIT_MESSAGE:
-        return ResolvedModalRelease(
-            True,
-            "weekly-default",
-            default_weekly_config(),
-        )
-
-    return resolved
+    return ResolvedModalRelease(
+        True,
+        "weekly-default",
+        default_weekly_config(),
+    )
 
 
 def resolve_release_from_body(

@@ -2,22 +2,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-import os
 from typing import Any, Callable
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 from flask import Flask, Response, jsonify, request
 
 from policyengine_household_api.constants import COUNTRIES
+from policyengine_household_api.modal_release.google_credentials import (
+    configure_google_credentials,
+)
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
     normalize_manifest,
 )
+from policyengine_household_api.modal_release.worker_dispatch import (
+    dispatch_to_flask_app,
+)
 
 
-VERSIONED_ENDPOINTS = {"calculate", "calculate_demo", "ai-analysis"}
+VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
 
 
 @dataclass(frozen=True)
@@ -34,11 +37,13 @@ class GatewayResolutionError(ValueError):
 def create_gateway_app(
     *,
     manifest_loader: Callable[[], dict[str, Any]] | None = None,
-    proxy_request: Callable[[str, bytes], Response] | None = None,
+    worker_request: Callable[[str, dict[str, Any]], Response] | None = None,
+    local_request: Callable[[str, bytes], Response] | None = None,
 ) -> Flask:
     app = Flask(__name__)
     load_manifest = manifest_loader or load_modal_manifest
-    proxy = proxy_request or proxy_to_worker
+    route_to_worker_function = worker_request or call_worker_function
+    route_to_local_api = local_request or dispatch_to_local_api
 
     @app.get("/liveness_check")
     def liveness_check() -> Response:
@@ -85,29 +90,27 @@ def create_gateway_app(
         "/<path:path>",
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
-    def route_to_worker(path: str) -> Response:
-        manifest = normalize_manifest(load_manifest())
+    def route_request(path: str) -> Response:
         country_id, endpoint = _country_and_endpoint(path)
         body = request.get_data()
 
         try:
             if country_id and endpoint in VERSIONED_ENDPOINTS:
+                manifest = normalize_manifest(load_manifest())
                 body, requested_version = _extract_requested_version(body)
                 resolved_app = resolve_app_for_request(
                     manifest,
                     country_id=country_id,
                     requested_version=requested_version,
                 )
-            else:
-                resolved_app = resolve_app_for_request(
-                    manifest,
-                    country_id=country_id,
-                    requested_version="current",
+                return route_to_worker_function(
+                    resolved_app.app_name,
+                    _request_payload(path, body),
                 )
+            else:
+                return route_to_local_api(path, body)
         except GatewayResolutionError as e:
             return _json_error(str(e), 400)
-
-        return proxy(resolved_app.app_name, body)
 
     return app
 
@@ -165,22 +168,23 @@ def resolve_app_for_request(
     )
 
 
-def proxy_to_worker(app_name: str, body: bytes) -> Response:
-    worker_url = _worker_url(app_name)
-    upstream_request = Request(
-        f"{worker_url}{request.full_path}",
-        data=body if request.method != "GET" else None,
-        method=request.method,
-        headers=_worker_headers(),
-    )
+def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
+    import modal
 
-    try:
-        with urlopen(upstream_request, timeout=120) as upstream_response:
-            return _response_from_upstream(upstream_response)
-    except HTTPError as e:
-        return _response_from_upstream(e)
-    except URLError as e:
-        return _json_error(f"Unable to reach household API worker: {e}", 502)
+    worker_function = modal.Function.from_name(
+        app_name,
+        "handle_household_request",
+    )
+    return _response_from_dispatch_result(worker_function.remote(payload))
+
+
+def dispatch_to_local_api(path: str, body: bytes) -> Response:
+    configure_google_credentials()
+    from policyengine_household_api.api import app as flask_app
+
+    return _response_from_dispatch_result(
+        dispatch_to_flask_app(flask_app, _request_payload(path, body))
+    )
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:
@@ -209,47 +213,35 @@ def _country_and_endpoint(path: str) -> tuple[str | None, str | None]:
     return parts[0], parts[1]
 
 
-def _worker_headers() -> dict[str, str]:
-    headers = {
+def _request_payload(path: str, body: bytes) -> dict[str, Any]:
+    return {
+        "method": request.method,
+        "path": path,
+        "query_string": request.query_string.decode("utf-8"),
+        "headers": _forward_headers(),
+        "body": body,
+    }
+
+
+def _forward_headers() -> dict[str, str]:
+    forwarded_headers = {
         key: value
         for key, value in request.headers.items()
         if key.lower() not in {"host", "content-length"}
     }
-    gateway_secret = os.getenv("HOUSEHOLD_MODAL_GATEWAY_SECRET")
-    if gateway_secret:
-        headers["X-Household-Modal-Gateway-Secret"] = gateway_secret
     if request.content_type:
-        headers["Content-Type"] = request.content_type
-    return headers
+        forwarded_headers["Content-Type"] = request.content_type
+    return forwarded_headers
 
 
-def _worker_url(app_name: str) -> str:
-    workspace = os.getenv("MODAL_WORKSPACE", "policyengine")
-    environment = os.getenv("MODAL_ENVIRONMENT", "main")
-    if environment == "main":
-        host = f"{workspace}--{app_name}-web-app.modal.run"
-    else:
-        host = f"{workspace}-{environment}--{app_name}-web-app.modal.run"
-    return f"https://{host}"
-
-
-def _response_from_upstream(upstream_response) -> Response:
-    content = upstream_response.read()
-    headers = [
-        (key, value)
-        for key, value in upstream_response.headers.items()
-        if key.lower()
-        not in {
-            "content-encoding",
-            "content-length",
-            "connection",
-            "transfer-encoding",
-        }
-    ]
+def _response_from_dispatch_result(result: dict[str, Any]) -> Response:
+    body = result.get("body", b"")
+    if isinstance(body, str):
+        body = body.encode("utf-8")
     return Response(
-        content,
-        status=upstream_response.status,
-        headers=headers,
+        body,
+        status=int(result["status_code"]),
+        headers=list(result.get("headers") or []),
     )
 
 

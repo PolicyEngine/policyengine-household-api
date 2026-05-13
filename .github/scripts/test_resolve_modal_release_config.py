@@ -24,7 +24,9 @@ def test_resolve_release_from_pull_request_body():
     assert resolved.config is not None
 
 
-def test_resolve_release_skips_push_without_config_or_weekly_message():
+def test_resolve_release_skips_regular_push_even_with_pr_config():
+    fetched = []
+
     resolved = resolve_release_from_event(
         {
             "repository": {
@@ -33,10 +35,37 @@ def test_resolve_release_skips_push_without_config_or_weekly_message():
             "after": "abc123",
             "head_commit": {"message": "Regular merge"},
         },
-        fetch_pr_body_for_commit=lambda _repository, _sha: None,
+        fetch_pr_body_for_commit=lambda repository, sha: (
+            fetched.append((repository, sha)) or VALID_BODY
+        ),
     )
 
     assert resolved.should_deploy is False
+    assert resolved.source == "push-not-release-commit"
+    assert fetched == []
+
+
+def test_resolve_release_uses_versioning_parent_pr_body():
+    def fetch_pr_body(repository, sha):
+        assert repository == "PolicyEngine/policyengine-household-api"
+        assert sha == "merge-sha"
+        return VALID_BODY
+
+    resolved = resolve_release_from_event(
+        {
+            "repository": {
+                "full_name": "PolicyEngine/policyengine-household-api"
+            },
+            "before": "merge-sha",
+            "after": "versioning-sha",
+            "head_commit": {"message": WEEKLY_UPDATE_COMMIT_MESSAGE},
+        },
+        fetch_pr_body_for_commit=fetch_pr_body,
+    )
+
+    assert resolved.should_deploy is True
+    assert resolved.source == "versioning-parent-pull-request"
+    assert resolved.config is not None
 
 
 def test_resolve_release_uses_weekly_default_when_no_pr_body_exists():
@@ -45,6 +74,7 @@ def test_resolve_release_uses_weekly_default_when_no_pr_body_exists():
             "repository": {
                 "full_name": "PolicyEngine/policyengine-household-api"
             },
+            "before": "merge-sha",
             "after": "abc123",
             "head_commit": {"message": WEEKLY_UPDATE_COMMIT_MESSAGE},
         },
