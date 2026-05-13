@@ -36,6 +36,7 @@ def main() -> None:
         new_app = build_app_reference(
             app_name=args.new_app_name,
             source_commit=args.source_commit,
+            analytics_database_revision=args.analytics_database_revision,
         )
 
     updated_manifest = apply_release_config(
@@ -68,6 +69,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--config-json", required=True)
     parser.add_argument("--new-app-name")
     parser.add_argument("--source-commit")
+    parser.add_argument("--analytics-database-revision")
     parser.add_argument("--modal-environment")
     parser.add_argument("--cleanup-output")
     parser.add_argument("--manifest-output")

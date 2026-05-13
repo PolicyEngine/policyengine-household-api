@@ -32,6 +32,14 @@ Do not hand-author schema-change migrations. If a custom data migration is
 needed, create the revision through Alembic first and then add the data operation
 explicitly.
 
+### Modal Current/Frontier Compatibility
+
+Normal Modal release PRs run against one shared analytics database while
+`current` and `frontier` workers may both be active. Schema migrations must
+therefore be backward-compatible with the previously active worker. Use
+expand/contract sequencing and keep table or column drops out of normal Modal
+release PRs.
+
 ### 2. Baseline Exception
 
 A baseline migration may be hand-authored only when it describes schema that

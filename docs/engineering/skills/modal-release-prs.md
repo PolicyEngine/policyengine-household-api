@@ -45,6 +45,26 @@ explicitly configured.
 Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
 
+## Analytics Migrations
+
+Modal releases use the same shared analytics database for `current` and
+`frontier`. The release workflow runs `uv run alembic upgrade head` before
+deploying a worker or updating the manifest.
+
+Analytics migrations in normal Modal release PRs must be backward-compatible
+with both active workers. Use expand/contract sequencing: add compatible schema
+first, deploy through `frontier` and `current`, then remove obsolete schema only
+after no active worker depends on it. Do not include table or column drops in a
+normal Modal release PR.
+
+Workers must validate that the database is at or after their minimum required
+Alembic revision, not exactly equal to their bundled head. This lets an older
+`current` worker keep running after a compatible `frontier` migration advances
+the shared database.
+
+Each manifest app reference records the worker's minimum required analytics
+revision and the database revision observed after the release migration step.
+
 ## Request Routing
 
 For `/calculate`, `/calculate_demo`, and `/ai-analysis`, the Modal gateway reads
@@ -67,4 +87,4 @@ When changing this system, include focused tests for:
 - manifest transitions across current, frontier, and retired apps
 - gateway routing for current, frontier, exact package versions, and unknown
   versions
-
+- analytics migration compatibility checks and destructive-migration rejection

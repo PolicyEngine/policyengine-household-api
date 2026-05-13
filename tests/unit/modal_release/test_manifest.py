@@ -2,6 +2,7 @@ import pytest
 
 from policyengine_household_api.modal_release.manifest import (
     apply_release_config,
+    build_app_reference,
     cleanup_app_names_for_target,
 )
 from policyengine_household_api.modal_release.release_config import (
@@ -97,3 +98,15 @@ def test_active_cleanup_is_refused():
 
     with pytest.raises(ValueError, match="Refusing"):
         cleanup_app_names_for_target(manifest, CleanupTarget.CURRENT)
+
+
+def test_app_reference_includes_analytics_migration_metadata():
+    app = build_app_reference(
+        app_name="worker-app",
+        package_versions={"us": "1.0.0"},
+        deployed_at="2026-01-01T00:00:00+00:00",
+        analytics_database_revision="20260512_0003",
+    )
+
+    assert app["analytics_migration_minimum_revision"] == "20260512_0003"
+    assert app["analytics_database_revision"] == "20260512_0003"

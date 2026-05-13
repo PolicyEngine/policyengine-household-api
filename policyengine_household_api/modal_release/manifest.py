@@ -10,6 +10,9 @@ from policyengine_household_api.constants import (
     COUNTRIES,
     COUNTRY_PACKAGE_VERSIONS,
 )
+from policyengine_household_api.data.analytics_setup import (
+    ANALYTICS_ALEMBIC_MINIMUM_REVISION,
+)
 from policyengine_household_api.modal_release.release_config import (
     CleanupTarget,
     ModalReleaseConfig,
@@ -29,6 +32,8 @@ class AppReference:
     package_versions: dict[str, str]
     deployed_at: str
     source_commit: str | None = None
+    analytics_migration_minimum_revision: str | None = None
+    analytics_database_revision: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -38,6 +43,14 @@ class AppReference:
         }
         if self.source_commit:
             data["source_commit"] = self.source_commit
+        if self.analytics_migration_minimum_revision:
+            data["analytics_migration_minimum_revision"] = (
+                self.analytics_migration_minimum_revision
+            )
+        if self.analytics_database_revision:
+            data["analytics_database_revision"] = (
+                self.analytics_database_revision
+            )
         return data
 
 
@@ -67,6 +80,7 @@ def build_app_reference(
     package_versions: Mapping[str, str] | None = None,
     source_commit: str | None = None,
     deployed_at: str | None = None,
+    analytics_database_revision: str | None = None,
 ) -> dict[str, Any]:
     versions = dict(package_versions or current_package_versions())
     reference = AppReference(
@@ -74,6 +88,10 @@ def build_app_reference(
         package_versions=versions,
         deployed_at=deployed_at or current_timestamp(),
         source_commit=source_commit,
+        analytics_migration_minimum_revision=(
+            ANALYTICS_ALEMBIC_MINIMUM_REVISION
+        ),
+        analytics_database_revision=analytics_database_revision,
     )
     return reference.to_dict()
 

@@ -48,3 +48,46 @@ modal_release:
 """,
             ["README.md"],
         )
+
+
+def test_validate_pr_body_rejects_destructive_alembic_upgrade(tmp_path):
+    migration = tmp_path / "alembic" / "versions" / "20260520_0004_bad.py"
+    migration.parent.mkdir(parents=True)
+    migration.write_text(
+        """
+def upgrade() -> None:
+    op.drop_column("calculate_request_variables", "variable_name")
+
+
+def downgrade() -> None:
+    pass
+"""
+    )
+
+    with pytest.raises(ModalReleaseConfigError, match="destructive"):
+        validate_pr_body(
+            VALID_BODY,
+            ["alembic/versions/20260520_0004_bad.py"],
+            repo_root=tmp_path,
+        )
+
+
+def test_validate_pr_body_allows_destructive_alembic_downgrade(tmp_path):
+    migration = tmp_path / "alembic" / "versions" / "20260520_0004_good.py"
+    migration.parent.mkdir(parents=True)
+    migration.write_text(
+        """
+def upgrade() -> None:
+    op.add_column("visits", sa.Column("region", sa.String()))
+
+
+def downgrade() -> None:
+    op.drop_column("visits", "region")
+"""
+    )
+
+    validate_pr_body(
+        VALID_BODY,
+        ["alembic/versions/20260520_0004_good.py"],
+        repo_root=tmp_path,
+    )

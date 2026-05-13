@@ -64,9 +64,18 @@ jobs:
     env:
       MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
       MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - uses: actions/setup-python@v5
         with:
@@ -80,6 +89,21 @@ jobs:
       - name: Sync dependencies
         run: uv sync --extra dev
 
+      - name: Run analytics database migrations
+        id: migrations
+        run: |
+          if [ -z "${USER_ANALYTICS_DB_USERNAME}" ] || [ -z "${USER_ANALYTICS_DB_PASSWORD}" ] || [ -z "${USER_ANALYTICS_DB_CONNECTION_NAME}" ]; then
+            echo "::error::Analytics database secrets must be configured before Modal deployment."
+            exit 1
+          fi
+          uv run alembic upgrade head
+          revision="$(uv run python -m policyengine_household_api.modal_release.analytics_revision)"
+          if [ -z "${revision}" ]; then
+            echo "::error::Could not determine analytics database Alembic revision after upgrade."
+            exit 1
+          fi
+          echo "analytics_database_revision=${revision}" >> "$GITHUB_OUTPUT"
+
       - name: Extract package versions
         id: versions
         run: |
@@ -92,10 +116,6 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          ANALYTICS__ENABLED: "true"
-          USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
-          USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
-          USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
           AI__ENABLED: "true"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
@@ -117,6 +137,7 @@ jobs:
             --config-json '${{ needs.resolve-config.outputs.config_json }}' \
             --new-app-name "${{ steps.versions.outputs.worker_app_name }}" \
             --source-commit "${GITHUB_SHA}" \
+            --analytics-database-revision "${{ steps.migrations.outputs.analytics_database_revision }}" \
             --modal-environment "${MODAL_ENVIRONMENT}" \
             --cleanup-output modal-cleanup.json \
             --manifest-output modal-manifest.json
