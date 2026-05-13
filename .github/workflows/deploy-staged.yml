@@ -14,6 +14,8 @@ on:
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  MODAL_ENVIRONMENT: main
+  MODAL_WORKSPACE: policyengine
   PROJECT_ID: policyengine-household-api
   REGION: us-central1
   IMAGE_NAME: us-central1-docker.pkg.dev/policyengine-household-api/policyengine-household-api/policyengine-household-api
@@ -157,6 +159,44 @@ jobs:
       - name: Record image reference
         id: image
         run: echo "image_ref=${IMAGE_NAME}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+  resolve-modal-release-config:
+    name: Resolve Modal release config
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.head_commit.message == 'Update PolicyEngine Household API'
+      )
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      should_deploy: ${{ steps.resolve.outputs.should_deploy }}
+      source: ${{ steps.resolve.outputs.source }}
+      new_app_target: ${{ steps.resolve.outputs.new_app_target }}
+      promote_existing_frontier: ${{ steps.resolve.outputs.promote_existing_frontier }}
+      cleanup_target: ${{ steps.resolve.outputs.cleanup_target }}
+      config_json: ${{ steps.resolve.outputs.config_json }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Resolve Modal release config
+        id: resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python .github/scripts/resolve_modal_release_config.py \
+            --output-json modal-release-config.json
 
   deploy-staging:
     name: Deploy to App Engine staging
@@ -402,6 +442,107 @@ jobs:
       - name: Verify production health
         run: bash .github/scripts/health-check.sh "${{ steps.deploy.outputs.version_url }}"
 
+  deploy-modal-release:
+    name: Deploy Modal release
+    runs-on: ubuntu-latest
+    needs: [resolve-modal-release-config, deploy-production]
+    if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
+    environment: production
+    permissions:
+      contents: read
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Run analytics database migrations
+        id: migrations
+        run: |
+          if [ -z "${USER_ANALYTICS_DB_USERNAME}" ] || [ -z "${USER_ANALYTICS_DB_PASSWORD}" ] || [ -z "${USER_ANALYTICS_DB_CONNECTION_NAME}" ]; then
+            echo "::error::Analytics database secrets must be configured before Modal deployment."
+            exit 1
+          fi
+          uv run alembic upgrade head
+          revision="$(uv run python -m policyengine_household_api.modal_release.analytics_revision)"
+          if [ -z "${revision}" ]; then
+            echo "::error::Could not determine analytics database Alembic revision after upgrade."
+            exit 1
+          fi
+          echo "analytics_database_revision=${revision}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract package versions
+        id: versions
+        run: |
+          uv run python .github/scripts/modal_extract_versions.py \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Sync Modal secrets
+        env:
+          APP__ENVIRONMENT: production
+          AUTH__ENABLED: "true"
+          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          AI__ENABLED: "true"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
+        run: bash .github/scripts/modal-sync-secrets.sh
+
+      - name: Deploy versioned worker
+        if: needs.resolve-modal-release-config.outputs.new_app_target != 'none'
+        env:
+          HOUSEHOLD_MODAL_WORKER_APP_NAME: ${{ steps.versions.outputs.worker_app_name }}
+        run: |
+          uv run modal deploy \
+            --env "${MODAL_ENVIRONMENT}" \
+            -m policyengine_household_api.modal_release.worker_app
+
+      - name: Update Modal manifest
+        run: |
+          uv run python -m policyengine_household_api.modal_release.update_manifest \
+            --config-json '${{ needs.resolve-modal-release-config.outputs.config_json }}' \
+            --new-app-name "${{ steps.versions.outputs.worker_app_name }}" \
+            --source-commit "${GITHUB_SHA}" \
+            --analytics-database-revision "${{ steps.migrations.outputs.analytics_database_revision }}" \
+            --modal-environment "${MODAL_ENVIRONMENT}" \
+            --cleanup-output modal-cleanup.json \
+            --manifest-output modal-manifest.json
+
+      - name: Deploy gateway
+        run: |
+          uv run modal deploy \
+            --env "${MODAL_ENVIRONMENT}" \
+            -m policyengine_household_api.modal_release.gateway_app
+
+      - name: Clean up retired apps
+        if: needs.resolve-modal-release-config.outputs.cleanup_target == 'retired'
+        run: bash .github/scripts/modal-cleanup-apps.sh modal-cleanup.json
+
+      - name: Smoke test gateway
+        run: |
+          gateway_url="$(bash .github/scripts/modal-get-url.sh)"
+          curl -fsS "${gateway_url}/liveness_check"
+
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
@@ -409,7 +550,7 @@ jobs:
       github.repository == 'PolicyEngine/policyengine-household-api' &&
       github.event_name == 'push' &&
       github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [deploy-production]
+    needs: [deploy-production, deploy-modal-release]
     environment:
       name: pypi
       url: https://pypi.org/p/policyengine-household-api

@@ -77,5 +77,11 @@ def test_changed_files_require_config_for_modal_release_paths():
     )
 
 
+def test_changed_files_require_config_for_staged_deploy_workflow():
+    assert changed_files_require_modal_release_config(
+        [".github/workflows/deploy-staged.yml"]
+    )
+
+
 def test_changed_files_do_not_require_config_for_unrelated_paths():
     assert not changed_files_require_modal_release_config(["README.md"])

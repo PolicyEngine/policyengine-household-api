@@ -18,7 +18,7 @@ MODAL_RELEASE_PATH_PREFIXES = (
     ".github/scripts/modal",
     ".github/scripts/check_modal_release_",
     ".github/scripts/resolve_modal_release_config.py",
-    ".github/workflows/modal-release.yml",
+    ".github/workflows/deploy-staged.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
     "docs/engineering/skills/modal-release-prs.md",
     "policyengine_household_api/modal_release/",
