@@ -1,3 +1,11 @@
+## [0.18.0] - 2026-05-13
+
+### Added
+
+- Added an authenticated, scoped calculate analytics endpoint for value-free
+  request and unique variable-key queries.
+
+
 ## [0.17.0] - 2026-05-12
 
 ### Added
