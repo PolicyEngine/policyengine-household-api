@@ -620,9 +620,7 @@ class TestEnvironmentVariableSubstitution:
         clean_env.setenv("AUTH0_ADDRESS_NO_DOMAIN", "test.auth0.com")
         clean_env.setenv("AUTH0_AUDIENCE_NO_DOMAIN", "https://test-api")
         clean_env.setenv("AUTH0_TEST_TOKEN_NO_DOMAIN", "test-jwt-token")
-        clean_env.setenv(
-            "AUTH0_TEST_TOKEN_SCOPES", "read:calculate-analytics"
-        )
+        clean_env.setenv("AUTH0_TEST_TOKEN_SCOPES", "read:calculate-analytics")
 
         config_data = {
             "auth": {
