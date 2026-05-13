@@ -10,14 +10,16 @@ import urllib.request
 
 def main() -> int:
     url = f"https://{os.environ['AUTH0_DOMAIN']}/oauth/token"
-    payload = json.dumps(
-        {
-            "client_id": os.environ["AUTH0_CLIENT_ID"],
-            "client_secret": os.environ["AUTH0_CLIENT_SECRET"],
-            "audience": os.environ["AUTH0_AUDIENCE"],
-            "grant_type": "client_credentials",
-        }
-    ).encode("utf-8")
+    token_request = {
+        "client_id": os.environ["AUTH0_CLIENT_ID"],
+        "client_secret": os.environ["AUTH0_CLIENT_SECRET"],
+        "audience": os.environ["AUTH0_AUDIENCE"],
+        "grant_type": "client_credentials",
+    }
+    scope = os.environ.get("AUTH0_TEST_TOKEN_SCOPES")
+    if scope:
+        token_request["scope"] = scope
+    payload = json.dumps(token_request).encode("utf-8")
 
     request = urllib.request.Request(
         url,

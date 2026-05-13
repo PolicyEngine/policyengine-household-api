@@ -21,7 +21,7 @@ from policyengine_household_api.data.analytics_setup import (
 )
 
 # Internal imports
-from .decorators.auth import create_auth_decorator
+from .decorators.auth import ANALYTICS_READ_SCOPE, create_auth_decorator
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
@@ -29,6 +29,7 @@ from policyengine_household_api.decorators.analytics import (
 # Endpoints
 from .endpoints import (
     get_home,
+    get_calculate_analytics_requests,
     get_calculate,
     generate_ai_explainer,
 )
@@ -76,6 +77,13 @@ app.route("/", methods=["GET"])(get_home)
 @log_analytics_if_enabled
 def calculate(country_id):
     return get_calculate(country_id)
+
+
+@app.route("/analytics/calculate/requests", methods=["GET"])
+@require_auth_if_enabled([ANALYTICS_READ_SCOPE])
+@limiter.limit("60 per minute")
+def calculate_analytics_requests():
+    return get_calculate_analytics_requests()
 
 
 @app.route("/<country_id>/ai-analysis", methods=["POST"])

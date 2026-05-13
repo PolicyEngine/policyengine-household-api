@@ -50,6 +50,7 @@ class ConfigLoader:
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.auth0.address",
         "AUTH0_AUDIENCE_NO_DOMAIN": "auth.auth0.audience",
         "AUTH0_TEST_TOKEN_NO_DOMAIN": "auth.auth0.test_token",
+        "AUTH0_TEST_TOKEN_SCOPES": "auth.auth0.test_token_scopes",
         # AI settings
         "ANTHROPIC_API_KEY": "ai.anthropic.api_key",
         # Server settings

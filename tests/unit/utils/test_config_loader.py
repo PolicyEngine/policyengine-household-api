@@ -202,6 +202,10 @@ class TestEnvironmentVariableOverrides:
             == ENV_VAR_TEST_DATA["AUTH0_AUDIENCE_NO_DOMAIN"]
         )
         assert (
+            config["auth"]["auth0"]["test_token_scopes"]
+            == ENV_VAR_TEST_DATA["AUTH0_TEST_TOKEN_SCOPES"]
+        )
+        assert (
             config["ai"]["anthropic"]["api_key"]
             == ENV_VAR_TEST_DATA["ANTHROPIC_API_KEY"]
         )
@@ -616,6 +620,7 @@ class TestEnvironmentVariableSubstitution:
         clean_env.setenv("AUTH0_ADDRESS_NO_DOMAIN", "test.auth0.com")
         clean_env.setenv("AUTH0_AUDIENCE_NO_DOMAIN", "https://test-api")
         clean_env.setenv("AUTH0_TEST_TOKEN_NO_DOMAIN", "test-jwt-token")
+        clean_env.setenv("AUTH0_TEST_TOKEN_SCOPES", "read:calculate-analytics")
 
         config_data = {
             "auth": {
@@ -624,6 +629,7 @@ class TestEnvironmentVariableSubstitution:
                     "address": "${AUTH0_ADDRESS_NO_DOMAIN}",
                     "audience": "${AUTH0_AUDIENCE_NO_DOMAIN}",
                     "test_token": "${AUTH0_TEST_TOKEN_NO_DOMAIN}",
+                    "test_token_scopes": "${AUTH0_TEST_TOKEN_SCOPES}",
                 },
             }
         }
@@ -638,6 +644,10 @@ class TestEnvironmentVariableSubstitution:
         assert config["auth"]["auth0"]["address"] == "test.auth0.com"
         assert config["auth"]["auth0"]["audience"] == "https://test-api"
         assert config["auth"]["auth0"]["test_token"] == "test-jwt-token"
+        assert (
+            config["auth"]["auth0"]["test_token_scopes"]
+            == "read:calculate-analytics"
+        )
 
     def test__given_external_config_with_env_vars__substitution_occurs(
         self, tmp_path, clean_env
@@ -955,6 +965,10 @@ class TestConfigValueSettings:
             == "https://household.api.policyengine.org"
         )
         assert config["auth"]["auth0"]["test_token"] == "test-jwt-token"
+        assert (
+            config["auth"]["auth0"]["test_token_scopes"]
+            == "read:calculate-analytics"
+        )
         assert (
             config["analytics"]["database"]["connection_name"]
             == "project:region:instance"

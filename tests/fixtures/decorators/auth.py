@@ -3,8 +3,10 @@ Fixtures for conditional decorator unit tests.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any
+from typing import Any
+from unittest.mock import Mock, patch
+
+from policyengine_household_api.decorators.auth import ANALYTICS_READ_SCOPE
 
 # Sample Auth0 configuration data
 AUTH0_CONFIG_DATA = {
@@ -29,6 +31,7 @@ AUTH_TEST_ENVIRONMENT_CONFIG = {
         "auth0": {
             **AUTH0_CONFIG_DATA,
             "test_token": "test-jwt-token",
+            "test_token_scopes": ANALYTICS_READ_SCOPE,
         },
     },
 }
@@ -126,6 +129,7 @@ def auth_test_environment():
                 "auth.auth0.address": AUTH0_CONFIG_DATA["address"],
                 "auth.auth0.audience": AUTH0_CONFIG_DATA["audience"],
                 "auth.auth0.test_token": "test-jwt-token",
+                "auth.auth0.test_token_scopes": ANALYTICS_READ_SCOPE,
             }
             return config_map.get(path, default)
 

@@ -47,6 +47,8 @@ auth:
     audience: ""  # Override with AUTH0_AUDIENCE_NO_DOMAIN
     # Test JWT token used only for GitHub Actions tests pre-deployment
     test_token: "" # Override with AUTH0_TEST_TOKEN_NO_DOMAIN
+    # Space-delimited OAuth scopes for the static test token
+    test_token_scopes: "" # Override with AUTH0_TEST_TOKEN_SCOPES
 
 # AI services configuration
 ai:

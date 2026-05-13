@@ -168,6 +168,7 @@ auth:
     address: Auth0 domain (without https:// or trailing slash)
     audience: Auth0 audience/API identifier
     test_token: JWT token used only for pre-deployment GitHub Actions tests
+    test_token_scopes: Space-delimited OAuth scopes for the static test token
 
 ai:
   enabled: Whether AI features are enabled (true/false) (these features are only used in the alpha-mode AI explainer endpoint)
@@ -308,6 +309,7 @@ AUTH0_AUDIENCE_NO_DOMAIN=https://your-api-identifier
 When Auth0 is enabled, the following endpoints require valid JWT tokens:
 - `/<country_id>/calculate` - Main calculation endpoint
 - `/<country_id>/ai-analysis` - AI analysis endpoint (remains in alpha)
+- `/analytics/calculate/requests` - Calculate analytics endpoint; additionally requires the `read:calculate-analytics` scope
 
 The following endpoints remain unprotected:
 - `/` - Home endpoint
@@ -341,6 +343,7 @@ AUTH__ENABLED=true  # Enable Auth0 authentication
 AUTH0_ADDRESS_NO_DOMAIN=${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
 AUTH0_AUDIENCE_NO_DOMAIN=${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
 AUTH0_TEST_TOKEN_NO_DOMAIN=${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }} # Used for local testing purposes
+AUTH0_TEST_TOKEN_SCOPES=read:calculate-analytics # Used for scoped local testing
 
 # Analytics configuration (opt-in)
 ANALYTICS__ENABLED=true  # Enable user analytics
@@ -390,7 +393,8 @@ auth:
   auth0:
     address: ${AUTH0_DOMAIN}
     audience: ${AUTH0_AUDIENCE}
-    test_bearer_token: ${AUTH0_TOKEN}
+    test_token: ${AUTH0_TOKEN}
+    test_token_scopes: ${AUTH0_TOKEN_SCOPES}
 
 ai:
   enabled: true
