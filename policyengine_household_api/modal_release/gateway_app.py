@@ -5,11 +5,8 @@ import os
 import modal
 
 from policyengine_household_api.modal_release.gateway import create_gateway_app
-from policyengine_household_api.modal_release.google_credentials import (
-    configure_google_credentials,
-)
 from policyengine_household_api.modal_release.images import (
-    household_api_image,
+    household_api_gateway_image,
     household_api_secret,
 )
 
@@ -19,15 +16,15 @@ GATEWAY_APP_NAME = os.getenv(
     "policyengine-household-api-gateway",
 )
 
-app = modal.App(GATEWAY_APP_NAME, image=household_api_image())
+app = modal.App(GATEWAY_APP_NAME)
 
 
 @app.function(
+    image=household_api_gateway_image(),
     secrets=[household_api_secret()],
     timeout=180,
     scaledown_window=300,
 )
 @modal.wsgi_app()
 def web_app():
-    configure_google_credentials()
     return create_gateway_app()

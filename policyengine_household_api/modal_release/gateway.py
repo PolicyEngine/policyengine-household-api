@@ -7,16 +7,10 @@ from typing import Any, Callable
 from flask import Flask, Response, jsonify, request
 
 from policyengine_household_api.constants import COUNTRIES
-from policyengine_household_api.modal_release.google_credentials import (
-    configure_google_credentials,
-)
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
     normalize_manifest,
-)
-from policyengine_household_api.modal_release.worker_dispatch import (
-    dispatch_to_flask_app,
 )
 
 
@@ -38,12 +32,10 @@ def create_gateway_app(
     *,
     manifest_loader: Callable[[], dict[str, Any]] | None = None,
     worker_request: Callable[[str, dict[str, Any]], Response] | None = None,
-    local_request: Callable[[str, bytes], Response] | None = None,
 ) -> Flask:
     app = Flask(__name__)
     load_manifest = manifest_loader or load_modal_manifest
     route_to_worker_function = worker_request or call_worker_function
-    route_to_local_api = local_request or dispatch_to_local_api
 
     @app.get("/liveness_check")
     def liveness_check() -> Response:
@@ -95,20 +87,20 @@ def create_gateway_app(
         body = request.get_data()
 
         try:
+            manifest = normalize_manifest(load_manifest())
             if country_id and endpoint in VERSIONED_ENDPOINTS:
-                manifest = normalize_manifest(load_manifest())
                 body, requested_version = _extract_requested_version(body)
-                resolved_app = resolve_app_for_request(
-                    manifest,
-                    country_id=country_id,
-                    requested_version=requested_version,
-                )
-                return route_to_worker_function(
-                    resolved_app.app_name,
-                    _request_payload(path, body),
-                )
             else:
-                return route_to_local_api(path, body)
+                requested_version = "current"
+            resolved_app = resolve_app_for_request(
+                manifest,
+                country_id=country_id,
+                requested_version=requested_version,
+            )
+            return route_to_worker_function(
+                resolved_app.app_name,
+                _request_payload(path, body),
+            )
         except GatewayResolutionError as e:
             return _json_error(str(e), 400)
 
@@ -176,15 +168,6 @@ def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
         "handle_household_request",
     )
     return _response_from_dispatch_result(worker_function.remote(payload))
-
-
-def dispatch_to_local_api(path: str, body: bytes) -> Response:
-    configure_google_credentials()
-    from policyengine_household_api.api import app as flask_app
-
-    return _response_from_dispatch_result(
-        dispatch_to_flask_app(flask_app, _request_payload(path, body))
-    )
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:

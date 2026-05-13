@@ -9,8 +9,8 @@ from policyengine_household_api.modal_release.google_credentials import (
     configure_google_credentials,
 )
 from policyengine_household_api.modal_release.images import (
-    household_api_image,
     household_api_secret,
+    household_api_worker_image,
 )
 from policyengine_household_api.modal_release.manifest import build_app_name
 from policyengine_household_api.modal_release.worker_dispatch import (
@@ -20,11 +20,11 @@ from policyengine_household_api.modal_release.worker_dispatch import (
 
 app = modal.App(
     os.getenv("HOUSEHOLD_MODAL_WORKER_APP_NAME", build_app_name()),
-    image=household_api_image(),
 )
 
 
 @app.function(
+    image=household_api_worker_image(),
     secrets=[household_api_secret()],
     timeout=180,
     scaledown_window=300,

@@ -10,7 +10,7 @@ from policyengine_household_api.constants import (
     COUNTRIES,
     COUNTRY_PACKAGE_VERSIONS,
 )
-from policyengine_household_api.data.analytics_setup import (
+from policyengine_household_api.data.analytics_migration import (
     ANALYTICS_ALEMBIC_MINIMUM_REVISION,
 )
 from policyengine_household_api.modal_release.release_config import (

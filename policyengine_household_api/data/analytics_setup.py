@@ -8,6 +8,9 @@ import logging
 import re
 from functools import cache
 from policyengine_household_api.utils import get_config_value
+from policyengine_household_api.data.analytics_migration import (
+    ANALYTICS_ALEMBIC_MINIMUM_REVISION,
+)
 from google.cloud.sql.connector import Connector
 from google.cloud.sql.connector import IPTypes
 from pathlib import Path
@@ -24,7 +27,6 @@ _connector = None
 
 ANALYTICS_DATABASE_URL_ENV_VAR = "ANALYTICS_DATABASE_URL"
 ANALYTICS_DATABASE_NAME = "user_analytics"
-ANALYTICS_ALEMBIC_MINIMUM_REVISION = "20260512_0003"
 ALEMBIC_REVISION_ID_PATTERN = re.compile(r"^\d{8}_\d{4}$")
 REQUIRED_ANALYTICS_COLUMNS = {
     "visits": {

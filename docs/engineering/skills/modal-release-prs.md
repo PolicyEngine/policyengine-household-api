@@ -5,6 +5,11 @@ worker apps. For calculation endpoints, the gateway routes requests to the
 active `current` or `frontier` worker based on the request's top-level
 `version` value.
 
+The gateway image must stay lightweight: install only the dependencies needed
+to accept HTTP requests, read the Modal manifest, and dispatch to worker Modal
+functions. The worker image owns the full household API dependency set and must
+preload country tax-benefit systems at image build time.
+
 ## PR Body Configuration
 
 Configure Modal release behavior in the pull request body with a fenced YAML
@@ -82,9 +87,9 @@ request field `version` and removes it before dispatching to the worker's
 
 Unknown versions return a 400 from the gateway.
 
-Other endpoints are served by the gateway's local Flask app and do not use
-current/frontier version routing. Worker apps are internal Modal function apps,
-not public WSGI web endpoints.
+Other endpoints are routed to the current worker and do not use
+current/frontier version selection. Worker apps are internal Modal function
+apps, not public WSGI web endpoints.
 
 ## Testing Expectations
 
