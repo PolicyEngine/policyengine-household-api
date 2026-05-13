@@ -1,6 +1,8 @@
 from datetime import datetime
 import json
 
+import pytest
+
 from policyengine_household_api.decorators.auth import ANALYTICS_READ_SCOPE
 from policyengine_household_api.endpoints.analytics import (
     get_calculate_analytics_requests,
@@ -194,10 +196,72 @@ def test__calculate_analytics_requests_route__token_without_scope_returns_403(
     assert response.status_code == 403
 
 
+@pytest.mark.parametrize(
+    "authorization_header",
+    [
+        f"Bearer {TEST_AUTH_TOKEN}-wrong",
+        "Bearer not-a-valid-token",
+        f"Basic {TEST_AUTH_TOKEN}",
+        "Bearer",
+    ],
+)
+def test__calculate_analytics_requests_route__malformed_or_wrong_token_returns_401(
+    scoped_analytics_client_factory,
+    authorization_header,
+):
+    client = scoped_analytics_client_factory(ANALYTICS_READ_SCOPE)
+
+    response = client.get(
+        "/analytics/calculate/requests",
+        headers={"Authorization": authorization_header},
+    )
+
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "scopes",
+    [
+        "read:calculate-analytics-extra",
+        "prefix:read:calculate-analytics",
+        "read:calculate",
+    ],
+)
+def test__calculate_analytics_requests_route__deceptive_scope_returns_403(
+    scoped_analytics_client_factory,
+    scopes,
+):
+    client = scoped_analytics_client_factory(scopes)
+
+    response = client.get(
+        "/analytics/calculate/requests",
+        headers={"Authorization": f"Bearer {TEST_AUTH_TOKEN}"},
+    )
+
+    assert response.status_code == 403
+
+
 def test__calculate_analytics_requests_route__token_with_scope_returns_200(
     scoped_analytics_client_factory,
 ):
     client = scoped_analytics_client_factory(ANALYTICS_READ_SCOPE)
+
+    response = client.get(
+        "/analytics/calculate/requests",
+        headers={"Authorization": f"Bearer {TEST_AUTH_TOKEN}"},
+    )
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert payload["requests"] == []
+
+
+def test__calculate_analytics_requests_route__token_with_scope_among_others_returns_200(
+    scoped_analytics_client_factory,
+):
+    client = scoped_analytics_client_factory(
+        f"openid profile {ANALYTICS_READ_SCOPE}"
+    )
 
     response = client.get(
         "/analytics/calculate/requests",
