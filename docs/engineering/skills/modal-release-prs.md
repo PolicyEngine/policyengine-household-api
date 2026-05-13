@@ -96,6 +96,8 @@ apps, not public WSGI web endpoints.
 When changing this system, include focused tests for:
 
 - PR-body release config parsing and validation
+- the separate PR checks for Modal release body config and Alembic migration
+  compatibility
 - changed-file detection for requiring the PR-body block
 - manifest transitions across current, frontier, and retired apps
 - gateway routing for current, frontier, exact package versions, and unknown

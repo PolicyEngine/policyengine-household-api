@@ -3,6 +3,7 @@ import pytest
 from policyengine_household_api.modal_release.release_config import (
     ModalReleaseConfigError,
     NewAppTarget,
+    body_contains_modal_release_config,
     changed_files_require_modal_release_config,
     parse_modal_release_config_from_body,
 )
@@ -30,6 +31,16 @@ def test_parse_modal_release_config_from_fenced_yaml():
 def test_parse_rejects_missing_config():
     with pytest.raises(ModalReleaseConfigError, match="modal_release"):
         parse_modal_release_config_from_body("## Summary\n")
+
+
+def test_body_contains_config_ignores_template_guidance_without_yaml_block():
+    assert not body_contains_modal_release_config(
+        "A PR may mention `modal_release` in guidance text."
+    )
+
+
+def test_body_contains_config_accepts_fenced_yaml_block():
+    assert body_contains_modal_release_config(VALID_BODY)
 
 
 def test_parse_rejects_invalid_promotion_combination():

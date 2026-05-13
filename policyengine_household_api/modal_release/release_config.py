@@ -16,7 +16,7 @@ REQUIRED_CONFIG_KEYS = {
 }
 MODAL_RELEASE_PATH_PREFIXES = (
     ".github/scripts/modal",
-    ".github/scripts/check_modal_release_config.py",
+    ".github/scripts/check_modal_release_",
     ".github/scripts/resolve_modal_release_config.py",
     ".github/workflows/modal-release.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
@@ -126,6 +126,13 @@ def parse_modal_release_config_from_body(
     )
 
 
+def body_contains_modal_release_config(body: str | None) -> bool:
+    return bool(
+        body
+        and any(CONFIG_KEY in block for block in _candidate_yaml_blocks(body))
+    )
+
+
 def extract_modal_release_config(body: str | None) -> dict[str, Any]:
     if not body:
         raise ModalReleaseConfigError(
@@ -187,7 +194,10 @@ def _candidate_yaml_blocks(body: str) -> list[str]:
             flags=re.DOTALL | re.IGNORECASE,
         )
     ]
-    return fenced_blocks + [body]
+    stripped_body = body.strip()
+    if stripped_body.startswith(f"{CONFIG_KEY}:"):
+        return fenced_blocks + [body]
+    return fenced_blocks
 
 
 def _validate_config_keys(config: dict[str, Any]) -> None:

@@ -10,9 +10,9 @@ from typing import Any, Callable
 from urllib.request import Request, urlopen
 
 from policyengine_household_api.modal_release.release_config import (
-    CONFIG_KEY,
     ModalReleaseConfig,
     ModalReleaseConfigError,
+    body_contains_modal_release_config,
     default_weekly_config,
     parse_modal_release_config_from_body,
     release_config_to_dict,
@@ -111,7 +111,7 @@ def resolve_release_from_body(
     source: str,
     deploy_when_missing: bool,
 ) -> ResolvedModalRelease:
-    if not body or CONFIG_KEY not in body:
+    if not body_contains_modal_release_config(body):
         return ResolvedModalRelease(deploy_when_missing, f"{source}-missing")
 
     config = parse_modal_release_config_from_body(body)

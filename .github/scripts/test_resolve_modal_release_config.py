@@ -24,6 +24,20 @@ def test_resolve_release_from_pull_request_body():
     assert resolved.config is not None
 
 
+def test_resolve_release_ignores_template_guidance_without_config_block():
+    resolved = resolve_release_from_event(
+        {
+            "pull_request": {
+                "body": "Most PRs do not need `modal_release` config."
+            }
+        },
+        fetch_pr_body_for_commit=lambda _repository, _sha: None,
+    )
+
+    assert resolved.should_deploy is False
+    assert resolved.source == "pull_request-missing"
+
+
 def test_resolve_release_skips_regular_push_even_with_pr_config():
     fetched = []
 
