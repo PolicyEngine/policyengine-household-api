@@ -38,6 +38,18 @@ def test_resolve_release_ignores_template_guidance_without_config_block():
     assert resolved.source == "pull_request-missing"
 
 
+def test_resolve_release_uses_weekly_default_for_workflow_dispatch():
+    resolved = resolve_release_from_event(
+        {"inputs": {}},
+        fetch_pr_body_for_commit=lambda _repository, _sha: None,
+        event_name="workflow_dispatch",
+    )
+
+    assert resolved.should_deploy is True
+    assert resolved.source == "workflow-dispatch-default"
+    assert resolved.config is not None
+
+
 def test_resolve_release_skips_regular_push_even_with_pr_config():
     fetched = []
 

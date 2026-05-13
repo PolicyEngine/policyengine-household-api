@@ -47,6 +47,7 @@ def main() -> int:
         resolved = resolve_release_from_event(
             event,
             fetch_pr_body_for_commit=fetch_pr_body_for_commit,
+            event_name=os.getenv("GITHUB_EVENT_NAME"),
         )
     except ModalReleaseConfigError as e:
         print(f"::error::{e}")
@@ -68,12 +69,20 @@ def resolve_release_from_event(
     event: dict[str, Any],
     *,
     fetch_pr_body_for_commit: Callable[[str, str], str | None],
+    event_name: str | None = None,
 ) -> ResolvedModalRelease:
     if "pull_request" in event:
         return resolve_release_from_body(
             (event["pull_request"] or {}).get("body"),
             source="pull_request",
             deploy_when_missing=False,
+        )
+
+    if event_name == "workflow_dispatch":
+        return ResolvedModalRelease(
+            True,
+            "workflow-dispatch-default",
+            default_weekly_config(),
         )
 
     if "head_commit" not in event:

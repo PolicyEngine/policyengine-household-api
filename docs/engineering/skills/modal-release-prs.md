@@ -52,7 +52,14 @@ Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
 The release workflow deploys from the finalized
 `Update PolicyEngine Household API` versioning commit; ordinary push events do
-not deploy Modal apps.
+not deploy Modal apps. Manual `workflow_dispatch` runs use the default weekly
+release shape.
+
+The household API deploy pipeline is Modal-only. Do not add App Engine, GCP
+Artifact Registry, Docker image, or GCP traffic-promotion deployment steps to
+the release workflow. Google credentials in the release workflow are only for
+Cloud SQL analytics database access and for syncing the Modal worker secret
+needed to reach that database.
 
 ## Analytics Migrations
 
