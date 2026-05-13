@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -93,15 +94,38 @@ def _is_alembic_version_file(filename: str) -> bool:
 
 def _destructive_upgrade_operations(migration_text: str) -> set[str]:
     upgrade_text = _upgrade_function_text(migration_text)
-    patterns = {
-        "drop_column": r"\bdrop_column\s*\(",
-        "drop_table": r"\bdrop_table\s*\(",
-    }
-    return {
-        operation
-        for operation, pattern in patterns.items()
-        if re.search(pattern, upgrade_text)
-    }
+    try:
+        parsed = ast.parse(upgrade_text)
+    except SyntaxError:
+        return {"unparseable_upgrade"}
+
+    destructive_operations = set()
+    for node in ast.walk(parsed):
+        if not isinstance(node, ast.Call):
+            continue
+
+        call_name = _call_name(node.func)
+        if call_name in {
+            "drop_column",
+            "drop_constraint",
+            "drop_index",
+            "drop_table",
+        }:
+            destructive_operations.add(call_name)
+        if call_name in {
+            "create_check_constraint",
+            "create_unique_constraint",
+        }:
+            destructive_operations.add(call_name)
+        if call_name == "alter_column" and _sets_nullable_false(node):
+            destructive_operations.add("alter_column_nullable_false")
+        if call_name in {
+            "execute",
+            "exec_driver_sql",
+        } and _contains_raw_drop_sql(node):
+            destructive_operations.add("raw_drop_sql")
+
+    return destructive_operations
 
 
 def _upgrade_function_text(migration_text: str) -> str:
@@ -111,6 +135,34 @@ def _upgrade_function_text(migration_text: str) -> str:
         flags=re.DOTALL | re.MULTILINE,
     )
     return match.group(0) if match else ""
+
+
+def _call_name(func: ast.expr) -> str | None:
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    if isinstance(func, ast.Name):
+        return func.id
+    return None
+
+
+def _sets_nullable_false(call: ast.Call) -> bool:
+    for keyword in call.keywords:
+        if keyword.arg == "nullable" and isinstance(
+            keyword.value, ast.Constant
+        ):
+            return keyword.value.value is False
+    return False
+
+
+def _contains_raw_drop_sql(call: ast.Call) -> bool:
+    for node in [*call.args, *(keyword.value for keyword in call.keywords)]:
+        for child in ast.walk(node):
+            if isinstance(child, ast.Constant) and isinstance(
+                child.value, str
+            ):
+                if re.search(r"\bDROP\s+", child.value, flags=re.IGNORECASE):
+                    return True
+    return False
 
 
 def get_changed_files(base_ref: str | None) -> list[str]:

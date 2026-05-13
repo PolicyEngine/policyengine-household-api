@@ -72,6 +72,62 @@ def downgrade() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("operation", "expected"),
+    [
+        (
+            'op.execute("DROP TABLE visits")',
+            "raw_drop_sql",
+        ),
+        (
+            'op.execute(sa.text("DROP INDEX old_index"))',
+            "raw_drop_sql",
+        ),
+        (
+            'batch_op.drop_constraint("old_constraint")',
+            "drop_constraint",
+        ),
+        (
+            'batch_op.drop_index("old_index")',
+            "drop_index",
+        ),
+        (
+            'batch_op.alter_column("client_id", nullable=False)',
+            "alter_column_nullable_false",
+        ),
+        (
+            'batch_op.create_unique_constraint("uq_client", ["client_id"])',
+            "create_unique_constraint",
+        ),
+    ],
+)
+def test_validate_pr_body_rejects_other_incompatible_alembic_upgrades(
+    tmp_path,
+    operation,
+    expected,
+):
+    migration = tmp_path / "alembic" / "versions" / "20260520_0004_bad.py"
+    migration.parent.mkdir(parents=True)
+    migration.write_text(
+        f"""
+def upgrade() -> None:
+    with op.batch_alter_table("visits") as batch_op:
+        {operation}
+
+
+def downgrade() -> None:
+    pass
+"""
+    )
+
+    with pytest.raises(ModalReleaseConfigError, match=expected):
+        validate_pr_body(
+            VALID_BODY,
+            ["alembic/versions/20260520_0004_bad.py"],
+            repo_root=tmp_path,
+        )
+
+
 def test_validate_pr_body_allows_destructive_alembic_downgrade(tmp_path):
     migration = tmp_path / "alembic" / "versions" / "20260520_0004_good.py"
     migration.parent.mkdir(parents=True)
