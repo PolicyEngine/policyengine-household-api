@@ -24,6 +24,10 @@ optional = [
     "USER_ANALYTICS_DB_USERNAME",
     "USER_ANALYTICS_DB_PASSWORD",
 ]
+if os.getenv("AI__ENABLED", "true").lower() not in {"0", "false", "no"}:
+    required.append("ANTHROPIC_API_KEY")
+    optional = [key for key in optional if key != "ANTHROPIC_API_KEY"]
+
 if os.getenv("ANALYTICS__ENABLED", "true").lower() not in {"0", "false", "no"}:
     required.extend(
         [
