@@ -23,6 +23,7 @@ auth:
     address: ${AUTH0_ADDRESS_NO_DOMAIN}  # From env var
     audience: ${AUTH0_AUDIENCE_NO_DOMAIN}  # From env var
     test_token: "" # Used only for executing pre-deploy integration tests
+    test_token_scopes: "" # Used only for executing pre-deploy integration tests
 
 ai:
   enabled: true

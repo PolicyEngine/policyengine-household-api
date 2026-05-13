@@ -4,6 +4,7 @@ Unit tests for the conditional authentication decorator.
 
 from unittest.mock import Mock
 from policyengine_household_api.decorators.auth import (
+    ANALYTICS_READ_SCOPE,
     NoOpDecorator,
     ConditionalAuthDecorator,
     create_auth_decorator,
@@ -11,16 +12,6 @@ from policyengine_household_api.decorators.auth import (
 )
 from tests.fixtures.decorators.auth import (
     AUTH0_CONFIG_DATA,
-    auth_enabled_environment,
-    auth_test_environment,
-    auth_disabled_environment,
-    auth_enabled_missing_config_environment,
-    auth_backward_compat_environment,
-    auth_partial_config_environment,
-    mock_resource_protector,
-    mock_auth0_validator,
-    mock_flask_app,
-    sample_view_function,
 )
 
 
@@ -85,11 +76,15 @@ class TestConditionalAuthDecoratorWithAuthEnabled:
         )
         assert isinstance(registered_validator, StaticBearerTokenValidator)
         assert registered_validator.expected_token == "test-jwt-token"
+        assert registered_validator.scopes == ANALYTICS_READ_SCOPE
         assert decorator.get_decorator() is mock_protector_instance
         assert decorator.is_enabled is True
 
         auth_test_environment.assert_any_call("app.environment", "")
         auth_test_environment.assert_any_call("auth.auth0.test_token", "")
+        auth_test_environment.assert_any_call(
+            "auth.auth0.test_token_scopes", ""
+        )
 
     def test__given_auth_enabled_with_valid_config__auth0_is_configured(
         self,
@@ -207,3 +202,23 @@ class TestCreateAuthDecorator:
         decorator = create_auth_decorator()
 
         assert isinstance(decorator, NoOpDecorator)
+
+
+class TestStaticBearerTokenValidator:
+    def test__given_static_token_without_scopes__token_has_empty_scope(self):
+        validator = StaticBearerTokenValidator("test-jwt-token")
+
+        token = validator.authenticate_token("test-jwt-token")
+
+        assert token is not None
+        assert token.get_scope() == ""
+
+    def test__given_static_token_with_scopes__token_exposes_scopes(self):
+        validator = StaticBearerTokenValidator(
+            "test-jwt-token", ANALYTICS_READ_SCOPE
+        )
+
+        token = validator.authenticate_token("test-jwt-token")
+
+        assert token is not None
+        assert token.get_scope() == ANALYTICS_READ_SCOPE

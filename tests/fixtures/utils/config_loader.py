@@ -48,6 +48,7 @@ ENV_VAR_TEST_DATA = {
     "USER_ANALYTICS_DB_PASSWORD": "test-password",
     "AUTH0_ADDRESS_NO_DOMAIN": "test-auth0-address",
     "AUTH0_AUDIENCE_NO_DOMAIN": "test-auth0-audience",
+    "AUTH0_TEST_TOKEN_SCOPES": "read:calculate-analytics",
     "ANTHROPIC_API_KEY": "sk-ant-test-key",
     "PORT": "9090",
 }
@@ -459,6 +460,7 @@ def temp_realistic_values_file():
             "AUTH0_AUDIENCE_NO_DOMAIN=https://household.api.policyengine.org\n"
         )
         f.write("AUTH0_TEST_TOKEN_NO_DOMAIN=test-jwt-token\n")
+        f.write("AUTH0_TEST_TOKEN_SCOPES=read:calculate-analytics\n")
         f.write("USER_ANALYTICS_DB_CONNECTION_NAME=project:region:instance\n")
         f.write("USER_ANALYTICS_DB_USERNAME=analytics_user\n")
         f.write("USER_ANALYTICS_DB_PASSWORD=analytics_pass\n")
@@ -489,6 +491,7 @@ auth:
     address: ${AUTH0_ADDRESS_NO_DOMAIN}
     audience: ${AUTH0_AUDIENCE_NO_DOMAIN}
     test_token: ${AUTH0_TEST_TOKEN_NO_DOMAIN}
+    test_token_scopes: ${AUTH0_TEST_TOKEN_SCOPES}
 
 analytics:
   enabled: true

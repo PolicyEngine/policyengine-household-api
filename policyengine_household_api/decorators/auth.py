@@ -10,7 +10,9 @@ from typing import Optional, Any, Callable
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from ..auth.validation import Auth0JWTBearerTokenValidator
-from ..utils.config_loader import get_config, get_config_value
+from ..utils.config_loader import get_config_value
+
+ANALYTICS_READ_SCOPE = "read:calculate-analytics"
 
 
 class StaticBearerToken:
@@ -33,15 +35,16 @@ class StaticBearerToken:
 class StaticBearerTokenValidator(BearerTokenValidator):
     """Accept a single configured bearer token for test environments."""
 
-    def __init__(self, expected_token: str):
+    def __init__(self, expected_token: str, scopes: str | None = ""):
         super().__init__()
         self.expected_token = expected_token
+        self.scopes = scopes or ""
 
     def authenticate_token(
         self, token_string: Optional[str]
     ) -> Optional[StaticBearerToken]:
         if token_string == self.expected_token:
-            return StaticBearerToken(token_string)
+            return StaticBearerToken(token_string, scope=self.scopes)
         return None
 
 
@@ -98,6 +101,9 @@ class ConditionalAuthDecorator:
         self._auth_enabled = get_config_value("auth.enabled", False)
         app_environment = get_config_value("app.environment", "")
         auth0_test_token = get_config_value("auth.auth0.test_token", "")
+        auth0_test_token_scopes = get_config_value(
+            "auth.auth0.test_token_scopes", ""
+        )
 
         # Get Auth0 configuration values
         auth0_address = get_config_value("auth.auth0.address", "")
@@ -108,7 +114,9 @@ class ConditionalAuthDecorator:
             if app_environment == "test_with_auth" and auth0_test_token:
                 resource_protector = ResourceProtector()
                 resource_protector.register_token_validator(
-                    StaticBearerTokenValidator(auth0_test_token)
+                    StaticBearerTokenValidator(
+                        auth0_test_token, auth0_test_token_scopes
+                    )
                 )
                 self._decorator = resource_protector
             elif auth0_address and auth0_audience:
