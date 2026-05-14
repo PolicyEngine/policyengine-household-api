@@ -1,0 +1,1 @@
+Added two staff-only admin endpoints powering the developer portal's master view: `GET /admin/partners` lists every partner client_id with last activity and test-case count; `GET /admin/activity` returns recent test_case_audits rows. Both gated by the `policyengine-staff` scope.

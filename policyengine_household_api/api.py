@@ -35,6 +35,8 @@ from .endpoints import (
     get_calculate_analytics_requests,
     get_home,
     get_test_case,
+    list_activity,
+    list_partners,
     list_test_cases,
     update_test_case,
 )
@@ -129,6 +131,27 @@ def test_cases_update(test_case_id: int):
 @limiter.limit("60 per minute")
 def test_cases_delete(test_case_id: int):
     return delete_test_case(test_case_id)
+
+
+# ---------------------------------------------------------------------------
+# Admin endpoints — staff-only via the policyengine-staff scope check
+# inside the handlers (so non-staff get our domain 403 message rather
+# than authlib's generic one).
+# ---------------------------------------------------------------------------
+
+
+@app.route("/admin/partners", methods=["GET"])
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def admin_partners():
+    return list_partners()
+
+
+@app.route("/admin/activity", methods=["GET"])
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def admin_activity():
+    return list_activity()
 
 
 @app.route("/<country_id>/ai-analysis", methods=["POST"])

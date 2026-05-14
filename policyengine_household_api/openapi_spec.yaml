@@ -1041,6 +1041,92 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+  /admin/partners:
+    get:
+      summary: List partner client_ids and their test-case activity
+      operationId: list_partners
+      description: Returns one row per partner client_id seen in the test_cases table, with last activity timestamp and test-case count. Requires the `policyengine-staff` scope.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Aggregated partner activity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPartnersResponse"
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: Caller does not have the `policyengine-staff` scope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        503:
+          description: Test-case storage is disabled or not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /admin/activity:
+    get:
+      summary: Recent test-case audit events
+      operationId: list_activity
+      description: Returns recent rows from the `test_case_audits` table, newest first. Optionally filter by `client_id`. Requires the `policyengine-staff` scope.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: client_id
+          in: query
+          required: false
+          description: When set, only return events for the named partner client_id.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of events to return.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+      responses:
+        200:
+          description: Recent audit events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminActivityResponse"
+        400:
+          description: Invalid query parameter.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: Caller does not have the `policyengine-staff` scope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        503:
+          description: Test-case storage is disabled or not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /{country_id}/economy/{policy_id}/over/{baseline_policy_id}:
     get:
       summary: Calculate the economic impact of a policy
@@ -1742,3 +1828,75 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TestCase"
+    AdminPartnersResponse:
+      type: object
+      required:
+        - status
+        - message
+        - partners
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        message:
+          type: string
+          nullable: true
+        partners:
+          type: array
+          items:
+            type: object
+            required:
+              - client_id
+              - test_case_count
+              - last_activity
+            properties:
+              client_id:
+                type: string
+              test_case_count:
+                type: integer
+              last_activity:
+                type: string
+                format: date-time
+                nullable: true
+    AdminActivityResponse:
+      type: object
+      required:
+        - status
+        - message
+        - events
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        message:
+          type: string
+          nullable: true
+        events:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - test_case_id
+              - client_id
+              - actor_client_id
+              - action
+              - occurred_at
+            properties:
+              id:
+                type: integer
+              test_case_id:
+                type: integer
+              client_id:
+                type: string
+              actor_client_id:
+                type: string
+              action:
+                type: string
+                enum: [created, updated, deleted]
+              name_snapshot:
+                type: string
+                nullable: true
+              occurred_at:
+                type: string
+                format: date-time

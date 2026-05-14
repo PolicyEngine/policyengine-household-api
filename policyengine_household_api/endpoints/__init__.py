@@ -13,3 +13,7 @@ from .test_cases import (
     list_test_cases as list_test_cases,
     update_test_case as update_test_case,
 )
+from .admin import (
+    list_activity as list_activity,
+    list_partners as list_partners,
+)
