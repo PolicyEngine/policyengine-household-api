@@ -28,6 +28,7 @@ class TestCustomerInputs:
         deployed_api,
         auth_token,
         request_version,
+        route_mode,
         household,
     ):
         self.us_household_runner(
@@ -35,6 +36,7 @@ class TestCustomerInputs:
             auth_token,
             household,
             request_version,
+            route_mode,
         )
 
     @pytest.mark.parametrize(
@@ -49,6 +51,7 @@ class TestCustomerInputs:
         deployed_api,
         auth_token,
         request_version,
+        route_mode,
         household,
     ):
         self.us_household_runner(
@@ -56,6 +59,7 @@ class TestCustomerInputs:
             auth_token,
             household,
             request_version,
+            route_mode,
         )
 
     @pytest.mark.parametrize(
@@ -69,6 +73,7 @@ class TestCustomerInputs:
         deployed_api,
         auth_token,
         request_version,
+        route_mode,
         household,
     ):
         self.us_household_runner(
@@ -76,6 +81,7 @@ class TestCustomerInputs:
             auth_token,
             household,
             request_version,
+            route_mode,
         )
 
     def us_household_runner(
@@ -84,6 +90,7 @@ class TestCustomerInputs:
         auth_token,
         household,
         request_version,
+        route_mode,
     ):
         household_model = HouseholdModelUS(**household)
         variables_to_calc, input_variables = self._prepare_variables(
@@ -102,7 +109,10 @@ class TestCustomerInputs:
         )
 
         self._verify_calculation_response(
-            response, input_variables, variables_to_calc
+            response,
+            input_variables,
+            variables_to_calc,
+            route_mode,
         )
 
     def _prepare_variables(
@@ -127,12 +137,16 @@ class TestCustomerInputs:
         return variables_to_calc, input_variables
 
     def _verify_calculation_response(
-        self, response, input_variables, variables_to_calc
+        self,
+        response,
+        input_variables,
+        variables_to_calc,
+        route_mode,
     ):
         assert response.status_code == 200
 
         result = response.json()
-        self._verify_response_schema(result)
+        self._verify_response_schema(result, route_mode)
 
         response_vars = self._extract_response_variables(result)
         self._verify_input_variables_unchanged(input_variables, response_vars)
@@ -140,9 +154,15 @@ class TestCustomerInputs:
             variables_to_calc, response_vars
         )
 
-    def _verify_response_schema(self, result: dict[str, Any]):
+    def _verify_response_schema(
+        self,
+        result: dict[str, Any],
+        route_mode,
+    ):
         assert result["status"] == "ok"
         assert result["message"] is None
+        if route_mode == "exact":
+            assert result["result"]
 
     def _extract_response_variables(
         self, result: dict[str, Any]

@@ -58,11 +58,13 @@ release shape.
 The household API deploy pipeline is Modal-only. Do not add App Engine, GCP
 Artifact Registry, Docker image, or GCP traffic-promotion deployment steps to
 the release workflow. The release workflow deploys the full Modal app set to
-the `staging` Modal environment, runs deployed integration tests against active
-`current` and `frontier` channels, then deploys the same release config to the
-`main` Modal environment. Google credentials in the release workflow are only
-for Cloud SQL analytics database access and for syncing the Modal worker secret
-needed to reach that database.
+the `staging` Modal environment, runs the same deployed integration test suite
+as separate matrix jobs for both `current` and `frontier`, then deploys the
+same release config to the `main` Modal environment after all staging jobs pass.
+Each channel is tested by channel name and by the exact US package version from
+`/versions/us`. Google credentials in the release workflow are only for Cloud
+SQL analytics database access and for syncing the Modal worker secret needed to
+reach that database.
 
 Manual workflow dispatch exposes the same `new_app_target`,
 `promote_existing_frontier`, and `cleanup_target` settings as the PR-body YAML

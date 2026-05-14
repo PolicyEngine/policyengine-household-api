@@ -73,7 +73,9 @@ def test_calculate_routes_exact_active_country_package_version():
     )
 
     assert response.status_code == 200
-    assert worker_requests[0][0] == "frontier-app"
+    app_name, payload = worker_requests[0]
+    assert app_name == "frontier-app"
+    assert "version" not in json.loads(payload["body"])
 
 
 def test_calculate_rejects_unknown_version():

@@ -171,10 +171,15 @@ jobs:
             '${{ needs.resolve-modal-release-config.outputs.config_json }}'
 
   integration-tests-staging:
-    name: Integration tests against Modal staging
+    name: Integration tests against Modal staging (${{ matrix.channel }}, ${{ matrix.route_mode }})
     runs-on: ubuntu-latest
     needs: [deploy-modal-staging]
     environment: staging
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [current, frontier]
+        route_mode: [channel, exact]
 
     steps:
       - name: Checkout code
@@ -200,10 +205,13 @@ jobs:
           AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
         run: python .github/scripts/fetch_auth0_test_token.py
 
-      - name: Run deployed integration tests across active channels
+      - name: Run deployed integration tests for route
         env:
           HOUSEHOLD_API_BASE_URL: ${{ needs.deploy-modal-staging.outputs.gateway_url }}
-        run: bash .github/scripts/run-deployed-tests-for-modal-channels.sh
+        run: |
+          bash .github/scripts/run-deployed-tests-for-modal-route.sh \
+            "${{ matrix.channel }}" \
+            "${{ matrix.route_mode }}"
 
   deploy-modal-production:
     name: Deploy Modal release to production
