@@ -805,6 +805,180 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
+  /test-cases:
+    get:
+      summary: List test cases owned by the caller
+      operationId: list_test_cases
+      description: Returns every saved test case belonging to the authenticated client_id, most recently updated first.
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Test cases owned by the caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCaseListResponse"
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        503:
+          description: Test-case storage is disabled or not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    post:
+      summary: Create a test case
+      operationId: create_test_case
+      description: Persist a new household payload owned by the authenticated client_id.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestCaseWriteRequest"
+      responses:
+        201:
+          description: The created test case.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCaseResponse"
+        400:
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        503:
+          description: Test-case storage is disabled or not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /test-cases/{test_case_id}:
+    get:
+      summary: Get a single test case owned by the caller
+      operationId: get_test_case
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: test_case_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: The requested test case.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCaseResponse"
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        404:
+          description: No test case with that id is owned by the caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    put:
+      summary: Update a test case owned by the caller
+      operationId: update_test_case
+      description: Partial update — fields omitted from the body are left unchanged.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: test_case_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestCaseWriteRequest"
+      responses:
+        200:
+          description: The updated test case.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestCaseResponse"
+        400:
+          description: Invalid request payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        404:
+          description: No test case with that id is owned by the caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      summary: Delete a test case owned by the caller
+      operationId: delete_test_case
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: test_case_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: The test case was deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  message:
+                    type: string
+                    nullable: true
+        401:
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        404:
+          description: No test case with that id is owned by the caller.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /{country_id}/economy/{policy_id}/over/{baseline_policy_id}:
     get:
       summary: Calculate the economic impact of a policy
@@ -1432,3 +1606,77 @@ components:
         - mixed
         - none
         - unknown
+    TestCase:
+      type: object
+      required:
+        - id
+        - name
+        - payload
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Server-assigned identifier.
+        name:
+          type: string
+          maxLength: 255
+          description: Short label shown in the partner UI.
+        description:
+          type: string
+          nullable: true
+          maxLength: 4096
+          description: Optional longer-form context for the test case.
+        payload:
+          $ref: "#/components/schemas/Household"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TestCaseWriteRequest:
+      type: object
+      description: Request body for create/update. Update is partial — only fields present are changed.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+          maxLength: 4096
+        payload:
+          $ref: "#/components/schemas/Household"
+    TestCaseResponse:
+      type: object
+      required:
+        - status
+        - message
+        - test_case
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        message:
+          type: string
+          nullable: true
+        test_case:
+          $ref: "#/components/schemas/TestCase"
+    TestCaseListResponse:
+      type: object
+      required:
+        - status
+        - message
+        - test_cases
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        message:
+          type: string
+          nullable: true
+        test_cases:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestCase"

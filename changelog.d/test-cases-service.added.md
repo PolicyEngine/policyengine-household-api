@@ -1,0 +1,1 @@
+Added per-partner test-case CRUD endpoints (`/test-cases`) backed by a new `test_cases` table. Each partner client_id owns a library of saved household payloads; an append-only `test_case_audits` table records every mutation for the upcoming staff activity feed.

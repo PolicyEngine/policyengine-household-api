@@ -28,10 +28,15 @@ from policyengine_household_api.decorators.analytics import (
 
 # Endpoints
 from .endpoints import (
-    get_home,
-    get_calculate_analytics_requests,
-    get_calculate,
+    create_test_case,
+    delete_test_case,
     generate_ai_explainer,
+    get_calculate,
+    get_calculate_analytics_requests,
+    get_home,
+    get_test_case,
+    list_test_cases,
+    update_test_case,
 )
 
 # Create the authentication decorator (will be either Auth0 or no-op based on config)
@@ -84,6 +89,46 @@ def calculate(country_id):
 @limiter.limit("60 per minute")
 def calculate_analytics_requests():
     return get_calculate_analytics_requests()
+
+
+# ---------------------------------------------------------------------------
+# Test cases (per-partner saved household payloads, scoped by client_id)
+# ---------------------------------------------------------------------------
+
+
+@app.route("/test-cases", methods=["GET"])
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def test_cases_list():
+    return list_test_cases()
+
+
+@app.route("/test-cases", methods=["POST"])
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def test_cases_create():
+    return create_test_case()
+
+
+@app.route("/test-cases/<int:test_case_id>", methods=["GET"])
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def test_cases_get(test_case_id: int):
+    return get_test_case(test_case_id)
+
+
+@app.route("/test-cases/<int:test_case_id>", methods=["PUT"])
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def test_cases_update(test_case_id: int):
+    return update_test_case(test_case_id)
+
+
+@app.route("/test-cases/<int:test_case_id>", methods=["DELETE"])
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def test_cases_delete(test_case_id: int):
+    return delete_test_case(test_case_id)
 
 
 @app.route("/<country_id>/ai-analysis", methods=["POST"])

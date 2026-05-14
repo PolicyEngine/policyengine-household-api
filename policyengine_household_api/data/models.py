@@ -6,12 +6,14 @@ from policyengine_household_api.models.analytics import (
     VariableSource,
 )
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     ForeignKey,
     Index,
     Integer,
     String,
+    Text,
 )
 from sqlalchemy.orm import mapped_column
 
@@ -147,4 +149,64 @@ class CalculateRequestVariable(db.Model):
             "model_version",
             "variable_name",
         ),
+    )
+
+
+class TestCase(db.Model):
+    """A saved household payload partners run against the API for migration
+    validation. Owned by the partner client_id that created it; staff
+    callers can read across all client_ids via the as_client_id query
+    param (Phase 2)."""
+
+    # Pytest auto-collects classes named ``Test*``; this is a SQLAlchemy
+    # model, not a test class.
+    __test__ = False
+
+    __tablename__ = "test_cases"
+
+    id = mapped_column(Integer, primary_key=True)
+    client_id = mapped_column(String(255), nullable=False)
+    name = mapped_column(String(255), nullable=False)
+    description = mapped_column(Text, nullable=True)
+    payload = mapped_column(JSON, nullable=False)
+    created_at = mapped_column(DateTime, nullable=False)
+    updated_at = mapped_column(DateTime, nullable=False)
+
+    __table_args__ = (
+        Index("ix_test_cases_client_id", "client_id"),
+        Index("ix_test_cases_client_updated", "client_id", "updated_at"),
+    )
+
+
+class TestCaseAudit(db.Model):
+    """Append-only log of test-case mutations. Powers the staff activity
+    feed and provides forensic history independent of the test_cases
+    row's current state (deletions still leave a trail)."""
+
+    # Pytest auto-collects classes named ``Test*``; this is a SQLAlchemy
+    # model, not a test class.
+    __test__ = False
+
+    __tablename__ = "test_case_audits"
+
+    id = mapped_column(Integer, primary_key=True)
+    # Not a ForeignKey so deletes don't cascade-wipe the audit history.
+    test_case_id = mapped_column(Integer, nullable=False)
+    # The owning partner client_id — used for activity-feed scoping.
+    client_id = mapped_column(String(255), nullable=False)
+    # The client_id that performed the action — equals client_id for
+    # partner self-service, differs when staff edit on a partner's
+    # behalf (Phase 2+).
+    actor_client_id = mapped_column(String(255), nullable=False)
+    action = mapped_column(
+        String(16),
+        nullable=False,
+        info={"options": ("created", "updated", "deleted")},
+    )
+    name_snapshot = mapped_column(String(255), nullable=True)
+    occurred_at = mapped_column(DateTime, nullable=False)
+
+    __table_args__ = (
+        Index("ix_test_case_audits_client_occurred", "client_id", "occurred_at"),
+        Index("ix_test_case_audits_test_case_id", "test_case_id"),
     )
