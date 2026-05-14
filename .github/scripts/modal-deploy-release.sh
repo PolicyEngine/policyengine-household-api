@@ -91,5 +91,4 @@ if [ "${cleanup_target}" != "none" ]; then
 fi
 
 gateway_url="$(bash .github/scripts/modal-get-url.sh)"
-github_output "gateway_url" "${gateway_url}"
 curl -fsS "${gateway_url}/liveness_check"
