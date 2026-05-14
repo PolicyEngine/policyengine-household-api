@@ -15,6 +15,7 @@ GATEWAY_APP_NAME = os.getenv(
     "HOUSEHOLD_MODAL_GATEWAY_APP_NAME",
     "policyengine-household-api-gateway",
 )
+GATEWAY_WEB_ENDPOINT_LABEL = f"{GATEWAY_APP_NAME}-web-app"
 
 app = modal.App(GATEWAY_APP_NAME)
 
@@ -25,6 +26,6 @@ app = modal.App(GATEWAY_APP_NAME)
     timeout=180,
     scaledown_window=300,
 )
-@modal.wsgi_app(label=f"{GATEWAY_APP_NAME}-web-app")
+@modal.wsgi_app(label=GATEWAY_WEB_ENDPOINT_LABEL)
 def web_app():
     return create_gateway_app()
