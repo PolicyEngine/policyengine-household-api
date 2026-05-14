@@ -1,3 +1,10 @@
+## [0.19.1] - 2026-05-14
+
+### Fixed
+
+- Fix Modal release app naming and manifest metadata so only US and UK package versions are release-significant, and invoke the Modal CLI through the project environment in deployment helpers.
+
+
 ## [0.19.0] - 2026-05-14
 
 ### Added
