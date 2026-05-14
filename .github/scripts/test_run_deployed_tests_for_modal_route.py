@@ -16,19 +16,17 @@ def test_run_deployed_tests_resolves_and_exports_modal_gateway_url(tmp_path):
     modal_get_url_script.chmod(0o755)
 
     fake_python.write_text(
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        "echo current\n"
+        "#!/usr/bin/env bash\nset -euo pipefail\necho current\n"
     )
     fake_python.chmod(0o755)
 
     deployed_tests_script.write_text(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
-        "printf '%s\\n' \"$HOUSEHOLD_API_BASE_URL\" > \"$ENV_FILE\"\n"
-        "printf '%s\\n' \"$HOUSEHOLD_API_REQUEST_VERSION\" >> \"$ENV_FILE\"\n"
-        "printf '%s\\n' \"$HOUSEHOLD_API_EXPECTED_CHANNEL\" >> \"$ENV_FILE\"\n"
-        "printf '%s\\n' \"$HOUSEHOLD_API_ROUTE_MODE\" >> \"$ENV_FILE\"\n"
+        'printf \'%s\\n\' "$HOUSEHOLD_API_BASE_URL" > "$ENV_FILE"\n'
+        'printf \'%s\\n\' "$HOUSEHOLD_API_REQUEST_VERSION" >> "$ENV_FILE"\n'
+        'printf \'%s\\n\' "$HOUSEHOLD_API_EXPECTED_CHANNEL" >> "$ENV_FILE"\n'
+        'printf \'%s\\n\' "$HOUSEHOLD_API_ROUTE_MODE" >> "$ENV_FILE"\n'
     )
     deployed_tests_script.chmod(0o755)
 
