@@ -1,3 +1,10 @@
+## [0.19.3] - 2026-05-14
+
+### Fixed
+
+- Fix Modal gateway URL lookup to use Modal's deployed web URL instead of reconstructing overlong hostnames.
+
+
 ## [0.19.2] - 2026-05-14
 
 ### Fixed
