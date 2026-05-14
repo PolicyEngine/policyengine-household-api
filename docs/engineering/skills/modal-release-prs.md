@@ -66,6 +66,12 @@ Each channel is tested by channel name and by the exact US package version from
 SQL analytics database access and for syncing the Modal worker secret needed to
 reach that database.
 
+Only the US and UK package versions are release-significant. Do not include
+Canada, Nigeria, or Israel package versions in Modal worker app names, manifest
+package version references, or release validation. Those countries may still be
+served by the worker, but their package versions must not control a Modal
+release.
+
 Manual workflow dispatch exposes the same `new_app_target`,
 `promote_existing_frontier`, and `cleanup_target` settings as the PR-body YAML
 block. The deploy workflow and Modal images use Python 3.13.

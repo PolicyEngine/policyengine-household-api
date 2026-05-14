@@ -6,10 +6,7 @@ from datetime import datetime, timezone
 import re
 from typing import Any, Mapping
 
-from policyengine_household_api.constants import (
-    COUNTRIES,
-    COUNTRY_PACKAGE_VERSIONS,
-)
+from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.data.analytics_migration import (
     ANALYTICS_ALEMBIC_MINIMUM_REVISION,
 )
@@ -24,6 +21,7 @@ MANIFEST_SCHEMA_VERSION = 1
 MANIFEST_DICT_NAME = "household-api-release-manifest"
 MANIFEST_DICT_KEY = "manifest"
 APP_NAME_PREFIX = "policyengine-household-api"
+RELEASE_PACKAGE_VERSION_COUNTRIES = ("uk", "us")
 
 
 @dataclass(frozen=True)
@@ -59,7 +57,7 @@ def current_timestamp() -> str:
 
 
 def current_package_versions() -> dict[str, str]:
-    return dict(COUNTRY_PACKAGE_VERSIONS)
+    return _release_package_versions(COUNTRY_PACKAGE_VERSIONS)
 
 
 def build_app_name(
@@ -68,7 +66,7 @@ def build_app_name(
     versions = package_versions or current_package_versions()
     version_slug = "-".join(
         f"{country}{_slugify_version(versions[country])}"
-        for country in COUNTRIES
+        for country in RELEASE_PACKAGE_VERSION_COUNTRIES
         if country in versions
     )
     return f"{APP_NAME_PREFIX}-{version_slug}"
@@ -82,7 +80,9 @@ def build_app_reference(
     deployed_at: str | None = None,
     analytics_database_revision: str | None = None,
 ) -> dict[str, Any]:
-    versions = dict(package_versions or current_package_versions())
+    versions = _release_package_versions(
+        package_versions or current_package_versions()
+    )
     reference = AppReference(
         app_name=app_name or build_app_name(versions),
         package_versions=versions,
@@ -262,3 +262,13 @@ def _retire_entry(
 def _slugify_version(version: str) -> str:
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", version).strip("-").lower()
     return slug or "unknown"
+
+
+def _release_package_versions(
+    package_versions: Mapping[str, str],
+) -> dict[str, str]:
+    return {
+        country: package_versions[country]
+        for country in RELEASE_PACKAGE_VERSION_COUNTRIES
+        if country in package_versions
+    }
