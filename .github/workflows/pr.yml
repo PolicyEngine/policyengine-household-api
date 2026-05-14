@@ -8,8 +8,8 @@ env:
   PYTHON_VERSION: "3.12"
 
 concurrency:
-  group: household-api-pr
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
