@@ -20,6 +20,7 @@ dependencies = [
     "gunicorn",
     "inflect",
     "joserfc>=1.6.0",
+    "policyengine-core==3.26.2",
     "policyengine_canada==0.96.3",
     "policyengine-ng==0.5.1",
     "policyengine-il==0.1.0",

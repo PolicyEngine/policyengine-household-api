@@ -1,9 +1,9 @@
-name: Release via staging
+name: Release GCP maintenance branch
 
 on:
   push:
     branches:
-      - main
+      - gcp-maintenance/post-1502
   workflow_dispatch:
     inputs:
       deploy_production:
@@ -20,7 +20,7 @@ env:
   PYTHON_VERSION: "3.12"
 
 concurrency:
-  group: household-api-staged-deploy
+  group: household-api-gcp-maintenance-deploy
   cancel-in-progress: false
 
 jobs:
@@ -29,10 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      (
-        github.event_name == 'workflow_dispatch' ||
-        github.event.head_commit.message == 'Update PolicyEngine Household API'
-      )
+      github.ref == 'refs/heads/gcp-maintenance/post-1502'
 
     steps:
       - name: Checkout code
@@ -76,10 +73,7 @@ jobs:
       packages: write
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      (
-        github.event_name == 'workflow_dispatch' ||
-        github.event.head_commit.message == 'Update PolicyEngine Household API'
-      )
+      github.ref == 'refs/heads/gcp-maintenance/post-1502'
     outputs:
       image_ref: ${{ steps.image.outputs.image_ref }}
 
@@ -163,10 +157,7 @@ jobs:
     needs: build-docker
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      (
-        github.event_name == 'workflow_dispatch' ||
-        github.event.head_commit.message == 'Update PolicyEngine Household API'
-      )
+      github.ref == 'refs/heads/gcp-maintenance/post-1502'
     environment: staging
     outputs:
       staging_url: ${{ steps.deploy.outputs.version_url }}
@@ -235,10 +226,7 @@ jobs:
     needs: deploy-staging
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      (
-        github.event_name == 'workflow_dispatch' ||
-        github.event.head_commit.message == 'Update PolicyEngine Household API'
-      )
+      github.ref == 'refs/heads/gcp-maintenance/post-1502'
     environment: staging
 
     steps:
@@ -278,10 +266,7 @@ jobs:
     needs: [deploy-staging, integration-tests-staging]
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      (
-        github.event_name == 'workflow_dispatch' ||
-        github.event.head_commit.message == 'Update PolicyEngine Household API'
-      )
+      github.ref == 'refs/heads/gcp-maintenance/post-1502'
     environment: staging
 
     steps:
@@ -306,6 +291,7 @@ jobs:
     if: |
       always() &&
       github.repository == 'PolicyEngine/policyengine-household-api' &&
+      github.ref == 'refs/heads/gcp-maintenance/post-1502' &&
       needs.deploy-staging.outputs.staging_version_id != '' &&
       (
         needs.deploy-staging.result == 'failure' ||
@@ -334,9 +320,9 @@ jobs:
     needs: [build-docker, promote-staging]
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
+      github.ref == 'refs/heads/gcp-maintenance/post-1502' &&
       (
-        (github.event_name == 'push' &&
-         github.event.head_commit.message == 'Update PolicyEngine Household API') ||
+        github.event_name == 'push' ||
         (github.event_name == 'workflow_dispatch' && inputs.deploy_production)
       )
     environment: production
@@ -400,63 +386,3 @@ jobs:
 
       - name: Verify production health
         run: bash .github/scripts/health-check.sh "${{ steps.deploy.outputs.version_url }}"
-
-  publish:
-    name: Publish to PyPI
-    runs-on: ubuntu-latest
-    if: |
-      github.repository == 'PolicyEngine/policyengine-household-api' &&
-      github.event_name == 'push' &&
-      github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [deploy-production]
-    environment:
-      name: pypi
-      url: https://pypi.org/p/policyengine-household-api
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          version: "0.8.5"
-
-      - name: Build package
-        run: uv build
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-
-  tag-release:
-    name: Publish git tag
-    runs-on: ubuntu-latest
-    if: |
-      github.repository == 'PolicyEngine/policyengine-household-api' &&
-      github.event_name == 'push' &&
-      github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [publish]
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Publish Git tag
-        run: bash .github/publish-git-tag.sh
