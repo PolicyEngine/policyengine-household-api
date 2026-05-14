@@ -183,6 +183,8 @@ def apply_release_config(
 def cleanup_app_names_for_target(
     manifest: Mapping[str, Any],
     target: CleanupTarget,
+    *,
+    previous_manifest: Mapping[str, Any] | None = None,
 ) -> list[str]:
     normalized = normalize_manifest(manifest)
     active_app_names = {
@@ -203,6 +205,19 @@ def cleanup_app_names_for_target(
             if isinstance(app, dict) and app.get("app_name")
         ]
         return [name for name in names if name not in active_app_names]
+
+    if previous_manifest is not None:
+        previous = normalize_manifest(previous_manifest)
+        previous_channel = previous.get(target.value)
+        if not previous_channel:
+            return []
+        app_name = previous_channel.get("app_name")
+        if app_name in active_app_names:
+            raise ValueError(
+                f"Refusing to clean up active `{target.value}` app "
+                f"`{app_name}`"
+            )
+        return [app_name] if app_name else []
 
     channel = normalized.get(target.value)
     if not channel:

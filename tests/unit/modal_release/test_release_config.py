@@ -83,5 +83,11 @@ def test_changed_files_require_config_for_staged_deploy_workflow():
     )
 
 
+def test_changed_files_require_config_for_modal_channel_test_script():
+    assert changed_files_require_modal_release_config(
+        [".github/scripts/run-deployed-tests-for-modal-channels.sh"]
+    )
+
+
 def test_changed_files_do_not_require_config_for_unrelated_paths():
     assert not changed_files_require_modal_release_config(["README.md"])

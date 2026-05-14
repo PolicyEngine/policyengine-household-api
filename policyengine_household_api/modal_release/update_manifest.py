@@ -22,7 +22,10 @@ from policyengine_household_api.modal_release.release_config import (
 
 def main() -> None:
     args = _parse_args()
-    config = ModalReleaseConfig.from_mapping(json.loads(args.config_json))
+    config = ModalReleaseConfig.from_mapping(
+        json.loads(args.config_json),
+        allow_active_cleanup=True,
+    )
 
     manifest_dict = modal.Dict.from_name(
         MANIFEST_DICT_NAME,
@@ -47,6 +50,7 @@ def main() -> None:
     cleanup_app_names = cleanup_app_names_for_target(
         updated_manifest,
         config.cleanup_target,
+        previous_manifest=current_manifest,
     )
 
     manifest_dict[MANIFEST_DICT_KEY] = updated_manifest
@@ -75,7 +79,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest-output")
     args = parser.parse_args()
 
-    config = ModalReleaseConfig.from_mapping(json.loads(args.config_json))
+    config = ModalReleaseConfig.from_mapping(
+        json.loads(args.config_json),
+        allow_active_cleanup=True,
+    )
     if config.deploys_new_app and not args.new_app_name:
         parser.error("--new-app-name is required when deploying a new app")
     return args

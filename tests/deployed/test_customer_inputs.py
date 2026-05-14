@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import pytest
@@ -24,8 +23,19 @@ class TestCustomerInputs:
             my_friend_ben_household,
         ],
     )
-    def test_my_friend_ben(self, deployed_api, auth_token, household):
-        self.us_household_runner(deployed_api, auth_token, household)
+    def test_my_friend_ben(
+        self,
+        deployed_api,
+        auth_token,
+        request_version,
+        household,
+    ):
+        self.us_household_runner(
+            deployed_api,
+            auth_token,
+            household,
+            request_version,
+        )
 
     @pytest.mark.parametrize(
         "household",
@@ -34,8 +44,19 @@ class TestCustomerInputs:
             amplifi_household_2025,
         ],
     )
-    def test_amplifi(self, deployed_api, auth_token, household):
-        self.us_household_runner(deployed_api, auth_token, household)
+    def test_amplifi(
+        self,
+        deployed_api,
+        auth_token,
+        request_version,
+        household,
+    ):
+        self.us_household_runner(
+            deployed_api,
+            auth_token,
+            household,
+            request_version,
+        )
 
     @pytest.mark.parametrize(
         "household",
@@ -43,22 +64,41 @@ class TestCustomerInputs:
             impactica_household,
         ],
     )
-    def test_impactica(self, deployed_api, auth_token, household):
-        self.us_household_runner(deployed_api, auth_token, household)
+    def test_impactica(
+        self,
+        deployed_api,
+        auth_token,
+        request_version,
+        household,
+    ):
+        self.us_household_runner(
+            deployed_api,
+            auth_token,
+            household,
+            request_version,
+        )
 
-    def us_household_runner(self, deployed_api, auth_token, household):
+    def us_household_runner(
+        self,
+        deployed_api,
+        auth_token,
+        household,
+        request_version,
+    ):
         household_model = HouseholdModelUS(**household)
         variables_to_calc, input_variables = self._prepare_variables(
             household_model
         )
+        request_body = {"household": household_model.model_dump()}
+        if request_version:
+            request_body["version"] = request_version
+
         response = deployed_api.post(
             "/us/calculate",
             headers={
                 "Authorization": f"Bearer {auth_token}",
             },
-            json_body={
-                "household": household_model.model_dump(),
-            },
+            json_body=request_body,
         )
 
         self._verify_calculation_response(

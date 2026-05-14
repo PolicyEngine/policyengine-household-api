@@ -81,8 +81,8 @@ def resolve_release_from_event(
     if event_name == "workflow_dispatch":
         return ResolvedModalRelease(
             True,
-            "workflow-dispatch-default",
-            default_weekly_config(),
+            "workflow-dispatch-inputs",
+            workflow_dispatch_config_from_inputs(event.get("inputs") or {}),
         )
 
     if "head_commit" not in event:
@@ -125,6 +125,45 @@ def resolve_release_from_body(
 
     config = parse_modal_release_config_from_body(body)
     return ResolvedModalRelease(True, source, config)
+
+
+def workflow_dispatch_config_from_inputs(
+    inputs: dict[str, Any],
+) -> ModalReleaseConfig:
+    default_config = release_config_to_dict(default_weekly_config())
+    return ModalReleaseConfig.from_mapping(
+        {
+            "new_app_target": inputs.get(
+                "new_app_target",
+                default_config["new_app_target"],
+            ),
+            "promote_existing_frontier": _bool_input(
+                inputs.get(
+                    "promote_existing_frontier",
+                    default_config["promote_existing_frontier"],
+                )
+            ),
+            "cleanup_target": inputs.get(
+                "cleanup_target",
+                default_config["cleanup_target"],
+            ),
+        },
+        allow_active_cleanup=True,
+    )
+
+
+def _bool_input(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+    raise ModalReleaseConfigError(
+        "`promote_existing_frontier` must be true or false"
+    )
 
 
 def fetch_pr_body_for_commit(

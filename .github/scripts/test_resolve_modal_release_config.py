@@ -38,7 +38,28 @@ def test_resolve_release_ignores_template_guidance_without_config_block():
     assert resolved.source == "pull_request-missing"
 
 
-def test_resolve_release_uses_weekly_default_for_workflow_dispatch():
+def test_resolve_release_uses_workflow_dispatch_inputs():
+    resolved = resolve_release_from_event(
+        {
+            "inputs": {
+                "new_app_target": "current",
+                "promote_existing_frontier": "false",
+                "cleanup_target": "frontier",
+            }
+        },
+        fetch_pr_body_for_commit=lambda _repository, _sha: None,
+        event_name="workflow_dispatch",
+    )
+
+    assert resolved.should_deploy is True
+    assert resolved.source == "workflow-dispatch-inputs"
+    assert resolved.config is not None
+    assert resolved.config.new_app_target == "current"
+    assert resolved.config.promote_existing_frontier is False
+    assert resolved.config.cleanup_target == "frontier"
+
+
+def test_resolve_release_uses_weekly_default_for_empty_workflow_dispatch():
     resolved = resolve_release_from_event(
         {"inputs": {}},
         fetch_pr_body_for_commit=lambda _repository, _sha: None,
@@ -46,7 +67,7 @@ def test_resolve_release_uses_weekly_default_for_workflow_dispatch():
     )
 
     assert resolved.should_deploy is True
-    assert resolved.source == "workflow-dispatch-default"
+    assert resolved.source == "workflow-dispatch-inputs"
     assert resolved.config is not None
 
 

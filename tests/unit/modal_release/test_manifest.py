@@ -100,6 +100,49 @@ def test_active_cleanup_is_refused():
         cleanup_app_names_for_target(manifest, CleanupTarget.CURRENT)
 
 
+def test_replaced_active_cleanup_uses_previous_channel_app():
+    previous = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app"),
+        "retired": [],
+    }
+    updated = {
+        "schema_version": 1,
+        "current": _app("new-current-app"),
+        "frontier": None,
+        "retired": [_app("current-app"), _app("frontier-app")],
+    }
+
+    assert cleanup_app_names_for_target(
+        updated,
+        CleanupTarget.FRONTIER,
+        previous_manifest=previous,
+    ) == ["frontier-app"]
+
+
+def test_previous_active_cleanup_refuses_still_active_app():
+    previous = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app"),
+        "retired": [],
+    }
+    updated = {
+        "schema_version": 1,
+        "current": _app("frontier-app"),
+        "frontier": _app("new-frontier-app"),
+        "retired": [_app("current-app")],
+    }
+
+    with pytest.raises(ValueError, match="Refusing"):
+        cleanup_app_names_for_target(
+            updated,
+            CleanupTarget.FRONTIER,
+            previous_manifest=previous,
+        )
+
+
 def test_app_reference_includes_analytics_migration_metadata():
     app = build_app_reference(
         app_name="worker-app",
