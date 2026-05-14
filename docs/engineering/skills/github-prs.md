@@ -20,9 +20,12 @@ Before creating or sharing a PR:
 4. Add a Towncrier changelog fragment under `changelog.d/` using the issue
    number or a clear slug and the appropriate configured type, for example
    `changelog.d/ISSUE_NUMBER.added.md`.
-5. Run the relevant local checks where practical:
-   `make format-check`, `make test`, and, when Auth0 test configuration is
-   available, `make test-with-auth`.
+5. Run repository-wide local checks where practical, not only checks scoped to
+   files the PR author or AI agent changed. At minimum, run the configured
+   whole-repository lint/format check with `make format-check`; do not
+   substitute targeted commands like `ruff check path/to/changed_file.py`.
+   Also run `make test`, and, when Auth0 test configuration is available,
+   `make test-with-auth`.
 6. Push the current branch to the canonical repository:
    `git push origin HEAD`.
 7. Create the PR as a draft from that same repository:
