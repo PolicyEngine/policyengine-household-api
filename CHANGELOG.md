@@ -1,3 +1,10 @@
+## [0.19.5] - 2026-05-14
+
+### Changed
+
+- Add the production household API custom domain to the Modal gateway app.
+
+
 ## [0.19.4] - 2026-05-14
 
 ### Fixed
