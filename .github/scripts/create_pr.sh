@@ -23,18 +23,30 @@ fi
 
 PR_SUMMARY=$(cat pr_summary.md)
 
-PR_BODY="## Summary
+PR_BODY=$(cat <<EOF
+## Summary
 
 Automated weekly update of policyengine-us.
 
 Related to #1178
+
+## Modal Version Release
+
+\`\`\`yaml
+modal_release:
+  new_app_target: frontier
+  promote_existing_frontier: true
+  cleanup_target: none
+\`\`\`
 
 ## Version Updates
 
 ${PR_SUMMARY}
 
 ---
-Generated automatically by GitHub Actions"
+Generated automatically by GitHub Actions
+EOF
+)
 
 # Check if PR already exists
 EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' 2>/dev/null || echo "")

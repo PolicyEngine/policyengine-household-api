@@ -12,5 +12,7 @@ Current skills:
 - `database-migrations.md`: Alembic and analytics database migration rules.
 - `github-prs.md`: same-repository PR workflow, PR head verification, changelog
   expectations, and title conventions.
+- `modal-release-prs.md`: current/frontier Modal deployment behavior and PR
+  body release configuration.
 - `testing.md`: test layout, fixture scope, reusable mock/patch placement, and
   verification expectations.

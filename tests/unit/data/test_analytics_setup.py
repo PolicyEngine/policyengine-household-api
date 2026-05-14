@@ -360,6 +360,49 @@ class TestAnalyticsDatabaseInitialization:
             assert check_analytics_schema_ready() is True
 
 
+class TestAlembicRevisionCompatibility:
+    def test__exact_minimum_revision__is_compatible(self):
+        from policyengine_household_api.data.analytics_setup import (
+            ANALYTICS_ALEMBIC_MINIMUM_REVISION,
+            _alembic_revision_is_compatible,
+        )
+
+        assert _alembic_revision_is_compatible(
+            ANALYTICS_ALEMBIC_MINIMUM_REVISION
+        )
+
+    def test__known_descendant_revision__is_compatible(self):
+        from policyengine_household_api.data.analytics_setup import (
+            _alembic_revision_is_compatible,
+        )
+
+        assert _alembic_revision_is_compatible(
+            "20260512_0003",
+            minimum_revision="20260508_0001",
+        )
+
+    def test__older_known_revision__is_not_compatible(self):
+        from policyengine_household_api.data.analytics_setup import (
+            _alembic_revision_is_compatible,
+        )
+
+        assert not _alembic_revision_is_compatible("20260508_0001")
+
+    def test__future_timestamp_revision__is_compatible(self):
+        from policyengine_household_api.data.analytics_setup import (
+            _alembic_revision_is_compatible,
+        )
+
+        assert _alembic_revision_is_compatible("20990101_0001")
+
+    def test__unknown_unordered_revision__is_not_compatible(self):
+        from policyengine_household_api.data.analytics_setup import (
+            _alembic_revision_is_compatible,
+        )
+
+        assert not _alembic_revision_is_compatible("not_a_real_revision")
+
+
 class TestCleanup:
     """Test the cleanup function."""
 

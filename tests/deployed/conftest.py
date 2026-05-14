@@ -2,13 +2,16 @@ import json
 import os
 from dataclasses import dataclass
 from typing import Any
-from urllib import error, parse, request
+from urllib import error, request
 
 import pytest
 
 
 BASE_URL_ENV_VAR = "HOUSEHOLD_API_BASE_URL"
 AUTH_TOKEN_ENV_VAR = "HOUSEHOLD_API_AUTH_TOKEN"
+REQUEST_VERSION_ENV_VAR = "HOUSEHOLD_API_REQUEST_VERSION"
+EXPECTED_CHANNEL_ENV_VAR = "HOUSEHOLD_API_EXPECTED_CHANNEL"
+ROUTE_MODE_ENV_VAR = "HOUSEHOLD_API_ROUTE_MODE"
 DEFAULT_TIMEOUT_SECONDS = 30
 
 
@@ -99,6 +102,21 @@ def base_url() -> str:
 @pytest.fixture(scope="session")
 def auth_token() -> str:
     return _get_required_env_var(AUTH_TOKEN_ENV_VAR)
+
+
+@pytest.fixture(scope="session")
+def request_version() -> str | None:
+    return os.getenv(REQUEST_VERSION_ENV_VAR, "").strip() or None
+
+
+@pytest.fixture(scope="session")
+def expected_channel() -> str | None:
+    return os.getenv(EXPECTED_CHANNEL_ENV_VAR, "").strip() or None
+
+
+@pytest.fixture(scope="session")
+def route_mode() -> str | None:
+    return os.getenv(ROUTE_MODE_ENV_VAR, "").strip() or None
 
 
 @pytest.fixture(scope="session")

@@ -5,7 +5,12 @@ This module provides conditional analytics database connectivity based on config
 
 import os
 import logging
+import re
+from functools import cache
 from policyengine_household_api.utils import get_config_value
+from policyengine_household_api.data.analytics_migration import (
+    ANALYTICS_ALEMBIC_MINIMUM_REVISION,
+)
 from google.cloud.sql.connector import Connector
 from google.cloud.sql.connector import IPTypes
 from pathlib import Path
@@ -22,7 +27,7 @@ _connector = None
 
 ANALYTICS_DATABASE_URL_ENV_VAR = "ANALYTICS_DATABASE_URL"
 ANALYTICS_DATABASE_NAME = "user_analytics"
-ANALYTICS_ALEMBIC_HEAD = "20260512_0003"
+ALEMBIC_REVISION_ID_PATTERN = re.compile(r"^\d{8}_\d{4}$")
 REQUIRED_ANALYTICS_COLUMNS = {
     "visits": {
         "id",
@@ -168,10 +173,11 @@ def check_analytics_schema_ready() -> bool:
         logger.error(f"Could not inspect analytics migration version: {e}")
         return False
 
-    if alembic_version != ANALYTICS_ALEMBIC_HEAD:
+    if not _alembic_revision_is_compatible(alembic_version):
         logger.error(
-            "Analytics database schema is not at Alembic head "
-            f"{ANALYTICS_ALEMBIC_HEAD}; current revision is "
+            "Analytics database schema is not at or after required Alembic "
+            f"revision {ANALYTICS_ALEMBIC_MINIMUM_REVISION}; current "
+            "revision is "
             f"{alembic_version or 'missing'}. Run `uv run alembic upgrade head`."
         )
         return False
@@ -217,6 +223,90 @@ def _alembic_version() -> str | None:
         return connection.exec_driver_sql(
             "SELECT version_num FROM alembic_version"
         ).scalar()
+
+
+def _alembic_revision_is_compatible(
+    current_revision: str | None,
+    minimum_revision: str = ANALYTICS_ALEMBIC_MINIMUM_REVISION,
+) -> bool:
+    if not current_revision:
+        return False
+    if current_revision == minimum_revision:
+        return True
+    if _known_revision_descends_from(current_revision, minimum_revision):
+        return True
+    return _revision_id_is_later_than(current_revision, minimum_revision)
+
+
+def _known_revision_descends_from(
+    current_revision: str,
+    minimum_revision: str,
+) -> bool:
+    try:
+        script = _alembic_script_directory()
+        current = script.get_revision(current_revision)
+        minimum = script.get_revision(minimum_revision)
+    except Exception as e:
+        logger.debug(f"Could not resolve Alembic revision locally: {e}")
+        return False
+
+    if current is None or minimum is None:
+        return False
+
+    pending = [current]
+    seen = set()
+    while pending:
+        revision = pending.pop()
+        if revision.revision == minimum.revision:
+            return True
+        if revision.revision in seen:
+            continue
+        seen.add(revision.revision)
+        for down_revision in _down_revisions(revision.down_revision):
+            try:
+                parent = script.get_revision(down_revision)
+            except Exception as e:
+                logger.debug(
+                    "Could not resolve Alembic parent revision "
+                    f"{down_revision}: {e}"
+                )
+                return False
+            if parent is not None:
+                pending.append(parent)
+    return False
+
+
+@cache
+def _alembic_script_directory():
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    repo_root = Path(__file__).resolve().parents[2]
+    alembic_config = Config(str(repo_root / "alembic.ini"))
+    alembic_config.set_main_option(
+        "script_location",
+        str(repo_root / "alembic"),
+    )
+    return ScriptDirectory.from_config(alembic_config)
+
+
+def _down_revisions(down_revision):
+    if down_revision is None:
+        return ()
+    if isinstance(down_revision, str):
+        return (down_revision,)
+    return tuple(down_revision)
+
+
+def _revision_id_is_later_than(
+    current_revision: str,
+    minimum_revision: str,
+) -> bool:
+    return (
+        bool(ALEMBIC_REVISION_ID_PATTERN.fullmatch(current_revision))
+        and bool(ALEMBIC_REVISION_ID_PATTERN.fullmatch(minimum_revision))
+        and current_revision > minimum_revision
+    )
 
 
 def is_analytics_enabled() -> bool:

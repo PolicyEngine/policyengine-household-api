@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import pytest
@@ -24,8 +23,21 @@ class TestCustomerInputs:
             my_friend_ben_household,
         ],
     )
-    def test_my_friend_ben(self, deployed_api, auth_token, household):
-        self.us_household_runner(deployed_api, auth_token, household)
+    def test_my_friend_ben(
+        self,
+        deployed_api,
+        auth_token,
+        request_version,
+        route_mode,
+        household,
+    ):
+        self.us_household_runner(
+            deployed_api,
+            auth_token,
+            household,
+            request_version,
+            route_mode,
+        )
 
     @pytest.mark.parametrize(
         "household",
@@ -34,8 +46,21 @@ class TestCustomerInputs:
             amplifi_household_2025,
         ],
     )
-    def test_amplifi(self, deployed_api, auth_token, household):
-        self.us_household_runner(deployed_api, auth_token, household)
+    def test_amplifi(
+        self,
+        deployed_api,
+        auth_token,
+        request_version,
+        route_mode,
+        household,
+    ):
+        self.us_household_runner(
+            deployed_api,
+            auth_token,
+            household,
+            request_version,
+            route_mode,
+        )
 
     @pytest.mark.parametrize(
         "household",
@@ -43,26 +68,51 @@ class TestCustomerInputs:
             impactica_household,
         ],
     )
-    def test_impactica(self, deployed_api, auth_token, household):
-        self.us_household_runner(deployed_api, auth_token, household)
+    def test_impactica(
+        self,
+        deployed_api,
+        auth_token,
+        request_version,
+        route_mode,
+        household,
+    ):
+        self.us_household_runner(
+            deployed_api,
+            auth_token,
+            household,
+            request_version,
+            route_mode,
+        )
 
-    def us_household_runner(self, deployed_api, auth_token, household):
+    def us_household_runner(
+        self,
+        deployed_api,
+        auth_token,
+        household,
+        request_version,
+        route_mode,
+    ):
         household_model = HouseholdModelUS(**household)
         variables_to_calc, input_variables = self._prepare_variables(
             household_model
         )
+        request_body = {"household": household_model.model_dump()}
+        if request_version:
+            request_body["version"] = request_version
+
         response = deployed_api.post(
             "/us/calculate",
             headers={
                 "Authorization": f"Bearer {auth_token}",
             },
-            json_body={
-                "household": household_model.model_dump(),
-            },
+            json_body=request_body,
         )
 
         self._verify_calculation_response(
-            response, input_variables, variables_to_calc
+            response,
+            input_variables,
+            variables_to_calc,
+            route_mode,
         )
 
     def _prepare_variables(
@@ -87,12 +137,16 @@ class TestCustomerInputs:
         return variables_to_calc, input_variables
 
     def _verify_calculation_response(
-        self, response, input_variables, variables_to_calc
+        self,
+        response,
+        input_variables,
+        variables_to_calc,
+        route_mode,
     ):
         assert response.status_code == 200
 
         result = response.json()
-        self._verify_response_schema(result)
+        self._verify_response_schema(result, route_mode)
 
         response_vars = self._extract_response_variables(result)
         self._verify_input_variables_unchanged(input_variables, response_vars)
@@ -100,9 +154,15 @@ class TestCustomerInputs:
             variables_to_calc, response_vars
         )
 
-    def _verify_response_schema(self, result: dict[str, Any]):
+    def _verify_response_schema(
+        self,
+        result: dict[str, Any],
+        route_mode,
+    ):
         assert result["status"] == "ok"
         assert result["message"] is None
+        if route_mode == "exact":
+            assert result["result"]
 
     def _extract_response_variables(
         self, result: dict[str, Any]

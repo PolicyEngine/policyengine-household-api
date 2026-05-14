@@ -1,6 +1,8 @@
 name: Pull request
 
-on: pull_request
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
@@ -12,6 +14,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check-modal-release-body:
+    name: Check Modal release body
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install -e .
+      - name: Check Modal release body
+        run: python .github/scripts/check_modal_release_body.py
+
+  check-modal-release-alembic:
+    name: Check Modal release Alembic compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install -e .
+      - name: Check Modal release Alembic compatibility
+        run: python .github/scripts/check_modal_release_alembic.py
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -62,3 +94,4 @@ jobs:
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
           AUTH0_TEST_TOKEN_NO_DOMAIN: ${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }}
+          AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
