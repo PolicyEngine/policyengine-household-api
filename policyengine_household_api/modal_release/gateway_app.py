@@ -25,6 +25,6 @@ app = modal.App(GATEWAY_APP_NAME)
     timeout=180,
     scaledown_window=300,
 )
-@modal.wsgi_app()
+@modal.wsgi_app(label=f"{GATEWAY_APP_NAME}-web-app")
 def web_app():
     return create_gateway_app()
