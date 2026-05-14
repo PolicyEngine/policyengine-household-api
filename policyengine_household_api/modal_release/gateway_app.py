@@ -15,7 +15,10 @@ GATEWAY_APP_NAME = os.getenv(
     "HOUSEHOLD_MODAL_GATEWAY_APP_NAME",
     "policyengine-household-api-gateway",
 )
-GATEWAY_WEB_ENDPOINT_LABEL = f"{GATEWAY_APP_NAME}-web-app"
+GATEWAY_WEB_ENDPOINT_LABEL = os.getenv(
+    "HOUSEHOLD_MODAL_GATEWAY_WEB_ENDPOINT_LABEL",
+    "household-api-gateway",
+)
 
 app = modal.App(GATEWAY_APP_NAME)
 
