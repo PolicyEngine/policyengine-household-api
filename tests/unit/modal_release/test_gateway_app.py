@@ -8,17 +8,42 @@ from policyengine_household_api.modal_release.gateway_app import (
 )
 
 
-def test_gateway_web_endpoint_label_matches_app_name():
-    assert GATEWAY_WEB_ENDPOINT_LABEL == f"{GATEWAY_APP_NAME}-web-app"
+def test_gateway_web_endpoint_label_is_short_and_stable():
+    assert GATEWAY_WEB_ENDPOINT_LABEL == "household-api-gateway"
 
 
-def test_modal_get_url_matches_gateway_web_endpoint_label():
+def test_gateway_web_endpoint_label_fits_modal_hostname_limit():
+    for environment in ("main", "staging", "testing"):
+        source = _modal_source(environment)
+        subdomain = f"{source}--{GATEWAY_WEB_ENDPOINT_LABEL}"
+
+        assert len(subdomain) <= 63
+
+
+def test_modal_get_url_uses_deployed_modal_function_url(tmp_path):
     script = Path(".github/scripts/modal-get-url.sh")
+    fake_uv = tmp_path / "uv"
+    args_file = tmp_path / "uv-args.txt"
+    fake_uv.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                'printf "%s %s %s\\n" "$4" "$5" "$6" > "$UV_ARGS_FILE"',
+                "cat >/dev/null",
+                "echo https://policyengine-testing--household-api-gateway.modal.run",
+            ]
+        )
+        + "\n"
+    )
+    fake_uv.chmod(0o755)
+
     env = {
         **os.environ,
-        "MODAL_WORKSPACE": "policyengine",
-        "MODAL_ENVIRONMENT": "staging",
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "MODAL_ENVIRONMENT": "testing",
         "HOUSEHOLD_MODAL_GATEWAY_APP_NAME": GATEWAY_APP_NAME,
+        "UV_ARGS_FILE": str(args_file),
     }
 
     result = subprocess.run(
@@ -29,28 +54,14 @@ def test_modal_get_url_matches_gateway_web_endpoint_label():
         text=True,
     )
 
-    assert result.stdout.strip() == (
-        f"https://policyengine-staging--{GATEWAY_WEB_ENDPOINT_LABEL}.modal.run"
+    assert (
+        result.stdout.strip()
+        == "https://policyengine-testing--household-api-gateway.modal.run"
     )
+    assert args_file.read_text() == f"{GATEWAY_APP_NAME} web_app testing\n"
 
 
-def test_modal_get_url_matches_main_gateway_web_endpoint_label():
-    script = Path(".github/scripts/modal-get-url.sh")
-    env = {
-        **os.environ,
-        "MODAL_WORKSPACE": "policyengine",
-        "MODAL_ENVIRONMENT": "main",
-        "HOUSEHOLD_MODAL_GATEWAY_APP_NAME": GATEWAY_APP_NAME,
-    }
-
-    result = subprocess.run(
-        ["bash", str(script)],
-        check=True,
-        capture_output=True,
-        env=env,
-        text=True,
-    )
-
-    assert result.stdout.strip() == (
-        f"https://policyengine--{GATEWAY_WEB_ENDPOINT_LABEL}.modal.run"
-    )
+def _modal_source(environment: str) -> str:
+    if environment == "main":
+        return "policyengine"
+    return f"policyengine-{environment}"

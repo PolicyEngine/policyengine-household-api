@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-workspace="${MODAL_WORKSPACE:-policyengine}"
 environment="${MODAL_ENVIRONMENT:-main}"
 app_name="${HOUSEHOLD_MODAL_GATEWAY_APP_NAME:-policyengine-household-api-gateway}"
+function_name="${HOUSEHOLD_MODAL_GATEWAY_FUNCTION_NAME:-web_app}"
 
-if [[ "${environment}" == "main" ]]; then
-  echo "https://${workspace}--${app_name}-web-app.modal.run"
-else
-  echo "https://${workspace}-${environment}--${app_name}-web-app.modal.run"
-fi
+uv run python - "${app_name}" "${function_name}" "${environment}" <<'PY'
+from __future__ import annotations
 
+import sys
+
+import modal
+
+
+app_name, function_name, environment = sys.argv[1:4]
+function = modal.Function.from_name(
+    app_name,
+    function_name,
+    environment_name=environment,
+)
+url = function.get_web_url()
+if not url:
+    raise SystemExit(
+        f"Modal function `{app_name}.{function_name}` has no web URL"
+    )
+print(url)
+PY
