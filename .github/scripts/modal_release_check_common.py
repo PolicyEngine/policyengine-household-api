@@ -36,6 +36,28 @@ def get_changed_files(base_ref: str | None) -> list[str]:
     raise RuntimeError(f"Unable to determine changed files from {base_ref}")
 
 
+def get_file_at_ref(path: str, base_ref: str | None) -> str:
+    base_ref = base_ref or os.getenv("GITHUB_BASE_REF") or "main"
+    commands = [
+        ["git", "show", f"origin/{base_ref}:{path}"],
+        ["git", "show", f"{base_ref}:{path}"],
+    ]
+
+    for command in commands:
+        try:
+            result = subprocess.run(
+                command,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError:
+            continue
+        return result.stdout
+
+    raise RuntimeError(f"Unable to read {path} from {base_ref}")
+
+
 def parse_changed_files_args(description: str) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--base-ref")

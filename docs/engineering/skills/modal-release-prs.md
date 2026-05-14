@@ -50,6 +50,11 @@ explicitly configured.
 
 Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
+The PR-body YAML block is required only when the PR changes a release-significant
+country package version, meaning `policyengine_us` or `policyengine_uk` in
+`pyproject.toml`. Code-only changes, including changes to Modal release code,
+must not require a `modal_release` block unless those US or UK package versions
+also change.
 The release workflow deploys from the finalized
 `Update PolicyEngine Household API` versioning commit; ordinary push events do
 not deploy Modal apps. Manual `workflow_dispatch` runs use the default weekly

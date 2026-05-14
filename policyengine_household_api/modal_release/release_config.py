@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 import re
+import tomllib
 from typing import Any
 
 import yaml
@@ -13,6 +14,10 @@ REQUIRED_CONFIG_KEYS = {
     "new_app_target",
     "promote_existing_frontier",
     "cleanup_target",
+}
+RELEASE_PACKAGE_DEPENDENCIES = {
+    "policyengine-uk",
+    "policyengine-us",
 }
 MODAL_RELEASE_PATH_PREFIXES = (
     ".github/scripts/modal",
@@ -186,6 +191,15 @@ def changed_files_require_modal_release_config(
     )
 
 
+def release_package_versions_changed(
+    base_pyproject: str,
+    head_pyproject: str,
+) -> bool:
+    return _release_package_versions_from_pyproject(
+        base_pyproject
+    ) != _release_package_versions_from_pyproject(head_pyproject)
+
+
 def _candidate_yaml_blocks(body: str) -> list[str]:
     fenced_blocks = [
         match.group("body")
@@ -233,3 +247,26 @@ def _enum_value(
         raise ModalReleaseConfigError(
             f"`{key}` must be one of: {valid_values}"
         ) from e
+
+
+def _release_package_versions_from_pyproject(
+    pyproject_text: str,
+) -> dict[str, str]:
+    try:
+        dependencies = tomllib.loads(pyproject_text)["project"]["dependencies"]
+    except (KeyError, tomllib.TOMLDecodeError) as e:
+        raise ModalReleaseConfigError(
+            "Could not read project dependencies from pyproject.toml"
+        ) from e
+
+    versions: dict[str, str] = {}
+    for dependency in dependencies:
+        if not isinstance(dependency, str):
+            continue
+        match = re.match(r"^\s*([A-Za-z0-9_.-]+)\s*==\s*([^;\s]+)", dependency)
+        if not match:
+            continue
+        package_name = match.group(1).replace("_", "-").lower()
+        if package_name in RELEASE_PACKAGE_DEPENDENCIES:
+            versions[package_name] = match.group(2)
+    return versions
