@@ -1,3 +1,11 @@
+## [0.19.0] - 2026-05-14
+
+### Added
+
+- Added Modal current/frontier release configuration, gateway routing, and
+  manifest management for versioned household API deployments.
+
+
 ## [0.18.0] - 2026-05-13
 
 ### Added
