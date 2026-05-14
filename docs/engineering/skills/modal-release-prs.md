@@ -50,6 +50,11 @@ explicitly configured.
 
 Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
+The PR-body YAML block is required only when the PR changes a release-significant
+country package version, meaning `policyengine_us` or `policyengine_uk` in
+`pyproject.toml`. Code-only changes, including changes to Modal release code,
+must not require a `modal_release` block unless those US or UK package versions
+also change.
 The release workflow deploys from the finalized
 `Update PolicyEngine Household API` versioning commit; ordinary push events do
 not deploy Modal apps. Manual `workflow_dispatch` runs use the default weekly
@@ -65,6 +70,12 @@ Each channel is tested by channel name and by the exact US package version from
 `/versions/us`. Google credentials in the release workflow are only for Cloud
 SQL analytics database access and for syncing the Modal worker secret needed to
 reach that database.
+
+Only the US and UK package versions are release-significant. Do not include
+Canada, Nigeria, or Israel package versions in Modal worker app names, manifest
+package version references, or release validation. Those countries may still be
+served by the worker, but their package versions must not control a Modal
+release.
 
 Manual workflow dispatch exposes the same `new_app_target`,
 `promote_existing_frontier`, and `cleanup_target` settings as the PR-body YAML

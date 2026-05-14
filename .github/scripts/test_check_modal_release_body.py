@@ -16,22 +16,22 @@ modal_release:
 """
 
 
-def test_validate_release_body_allows_missing_config_for_unrelated_files():
-    validate_release_body_config(None, ["README.md"])
+def test_validate_release_body_allows_missing_config_without_package_change():
+    validate_release_body_config(None, package_versions_changed=False)
 
 
-def test_validate_release_body_requires_config_for_modal_release_files():
+def test_validate_release_body_requires_config_for_release_package_change():
     with pytest.raises(ModalReleaseConfigError, match="must include"):
         validate_release_body_config(
             None,
-            ["policyengine_household_api/modal_release/gateway.py"],
+            package_versions_changed=True,
         )
 
 
-def test_validate_release_body_accepts_config_for_modal_release_files():
+def test_validate_release_body_accepts_config_for_release_package_change():
     validate_release_body_config(
         VALID_BODY,
-        ["policyengine_household_api/modal_release/gateway.py"],
+        package_versions_changed=True,
     )
 
 
@@ -46,12 +46,12 @@ modal_release:
   cleanup_target: none
 ```
 """,
-            ["README.md"],
+            package_versions_changed=False,
         )
 
 
 def test_validate_release_body_allows_template_guidance_without_config_block():
     validate_release_body_config(
         "Modal release guidance may mention current/frontier workers.",
-        ["README.md"],
+        package_versions_changed=False,
     )

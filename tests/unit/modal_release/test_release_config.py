@@ -6,6 +6,7 @@ from policyengine_household_api.modal_release.release_config import (
     body_contains_modal_release_config,
     changed_files_require_modal_release_config,
     parse_modal_release_config_from_body,
+    release_package_versions_changed,
 )
 
 
@@ -91,3 +92,43 @@ def test_changed_files_require_config_for_modal_channel_test_script():
 
 def test_changed_files_do_not_require_config_for_unrelated_paths():
     assert not changed_files_require_modal_release_config(["README.md"])
+
+
+def test_release_package_versions_changed_detects_us_updates():
+    base = """
+[project]
+dependencies = [
+    "policyengine_uk==2.31.0",
+    "policyengine_us==1.691.1",
+]
+"""
+    head = """
+[project]
+dependencies = [
+    "policyengine_uk==2.31.0",
+    "policyengine_us==1.692.0",
+]
+"""
+
+    assert release_package_versions_changed(base, head)
+
+
+def test_release_package_versions_changed_ignores_other_country_updates():
+    base = """
+[project]
+dependencies = [
+    "policyengine_uk==2.31.0",
+    "policyengine_us==1.691.1",
+    "policyengine_canada==0.96.3",
+]
+"""
+    head = """
+[project]
+dependencies = [
+    "policyengine_uk==2.31.0",
+    "policyengine_us==1.691.1",
+    "policyengine_canada==0.97.0",
+]
+"""
+
+    assert not release_package_versions_changed(base, head)

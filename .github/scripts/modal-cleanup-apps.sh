@@ -16,5 +16,5 @@ for app_name in payload.get("app_names", []):
   if [[ -z "${app_name}" ]]; then
     continue
   fi
-  modal app stop --env "${environment}" "${app_name}"
+  uv run modal app stop --env "${environment}" "${app_name}"
 done

@@ -3,7 +3,12 @@ import pytest
 from policyengine_household_api.modal_release.manifest import (
     apply_release_config,
     build_app_reference,
+    build_app_name,
     cleanup_app_names_for_target,
+    current_package_versions,
+)
+from policyengine_household_api.modal_release import (
+    manifest as manifest_module,
 )
 from policyengine_household_api.modal_release.release_config import (
     CleanupTarget,
@@ -153,3 +158,49 @@ def test_app_reference_includes_analytics_migration_metadata():
 
     assert app["analytics_migration_minimum_revision"] == "20260512_0003"
     assert app["analytics_database_revision"] == "20260512_0003"
+
+
+def test_app_reference_only_records_release_package_versions():
+    app = build_app_reference(
+        app_name="worker-app",
+        package_versions={
+            "uk": "2.31.0",
+            "us": "1.691.1",
+            "ca": "0.96.3",
+            "ng": "0.5.1",
+            "il": "0.1.0",
+        },
+        deployed_at="2026-01-01T00:00:00+00:00",
+    )
+
+    assert app["package_versions"] == {"uk": "2.31.0", "us": "1.691.1"}
+
+
+def test_app_name_only_includes_us_and_uk_package_versions():
+    app_name = build_app_name(
+        {
+            "uk": "2.31.0",
+            "us": "1.691.1",
+            "ca": "0.96.3",
+            "ng": "0.5.1",
+            "il": "0.1.0",
+        }
+    )
+
+    assert app_name == "policyengine-household-api-uk2-31-0-us1-691-1"
+
+
+def test_current_package_versions_only_includes_us_and_uk(monkeypatch):
+    monkeypatch.setattr(
+        manifest_module,
+        "COUNTRY_PACKAGE_VERSIONS",
+        {
+            "uk": "2.31.0",
+            "us": "1.691.1",
+            "ca": "0.96.3",
+            "ng": "0.5.1",
+            "il": "0.1.0",
+        },
+    )
+
+    assert current_package_versions() == {"uk": "2.31.0", "us": "1.691.1"}

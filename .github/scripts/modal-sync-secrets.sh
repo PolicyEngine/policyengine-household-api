@@ -67,7 +67,7 @@ for key in required + optional:
 Path(sys.argv[1]).write_text(json.dumps(settings))
 ' "${secret_file}"
 
-modal secret create "${secret_name}" \
+uv run modal secret create "${secret_name}" \
   --env "${environment}" \
   --from-json "${secret_file}" \
   --force
