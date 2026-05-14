@@ -1,3 +1,10 @@
+## [0.19.2] - 2026-05-14
+
+### Fixed
+
+- Fix the Modal gateway web endpoint label so release smoke checks use a stable URL, and scope PR workflow concurrency per pull request so stale runs do not block newer commits.
+
+
 ## [0.19.1] - 2026-05-14
 
 ### Fixed
