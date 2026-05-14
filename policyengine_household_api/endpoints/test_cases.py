@@ -2,17 +2,20 @@
 Per-partner saved test-case storage.
 
 Each partner client_id owns a library of household payloads. CRUD is
-scoped to the caller's authenticated client_id. Phase 2 will add an
-``as_client_id`` query param honored only for callers carrying the
-``policyengine-staff`` scope.
+scoped to the caller's authenticated client_id. PolicyEngine-staff
+tokens (those carrying the ``policyengine-staff`` scope) can act on
+any partner's behalf via the ``as_client_id`` query parameter.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import logging
 from typing import Any
 
+import jwt
 from flask import Response, request
 
 from policyengine_household_api.data.analytics_setup import (
@@ -22,8 +25,13 @@ from policyengine_household_api.data.analytics_setup import (
 )
 from policyengine_household_api.data.models import TestCase, TestCaseAudit
 from policyengine_household_api.decorators.analytics import (
-    _verified_sub_claim,
+    _get_jwks_client,
 )
+from policyengine_household_api.decorators.auth import STAFF_SCOPE
+from policyengine_household_api.utils.config_loader import get_config_value
+
+
+logger = logging.getLogger(__name__)
 
 
 MAX_NAME_LENGTH = 255
@@ -39,13 +47,13 @@ def list_test_cases() -> Response:
     if storage_error is not None:
         return storage_error
 
-    client_id = _resolve_caller_client_id()
-    if client_id is None:
-        return _auth_error()
+    target = _resolve_target_client_id()
+    if target.error is not None:
+        return target.error
 
     rows = (
         db.session.query(TestCase)
-        .filter(TestCase.client_id == client_id)
+        .filter(TestCase.client_id == target.client_id)
         .order_by(TestCase.updated_at.desc())
         .all()
     )
@@ -63,9 +71,11 @@ def get_test_case(test_case_id: int) -> Response:
     if storage_error is not None:
         return storage_error
 
-    client_id = _resolve_caller_client_id()
-    if client_id is None:
-        return _auth_error()
+    target = _resolve_target_client_id()
+    if target.error is not None:
+        return target.error
+    client_id = target.client_id
+    actor_client_id = target.actor_client_id
 
     row = db.session.get(TestCase, test_case_id)
     if row is None or row.client_id != client_id:
@@ -81,9 +91,11 @@ def create_test_case() -> Response:
     if storage_error is not None:
         return storage_error
 
-    client_id = _resolve_caller_client_id()
-    if client_id is None:
-        return _auth_error()
+    target = _resolve_target_client_id()
+    if target.error is not None:
+        return target.error
+    client_id = target.client_id
+    actor_client_id = target.actor_client_id
 
     try:
         body = _parse_body(request.get_data())
@@ -112,7 +124,7 @@ def create_test_case() -> Response:
     _record_audit(
         test_case_id=row.id,
         client_id=client_id,
-        actor_client_id=client_id,
+        actor_client_id=actor_client_id,
         action="created",
         name_snapshot=name,
         occurred_at=now,
@@ -130,9 +142,11 @@ def update_test_case(test_case_id: int) -> Response:
     if storage_error is not None:
         return storage_error
 
-    client_id = _resolve_caller_client_id()
-    if client_id is None:
-        return _auth_error()
+    target = _resolve_target_client_id()
+    if target.error is not None:
+        return target.error
+    client_id = target.client_id
+    actor_client_id = target.actor_client_id
 
     row = db.session.get(TestCase, test_case_id)
     if row is None or row.client_id != client_id:
@@ -170,7 +184,7 @@ def update_test_case(test_case_id: int) -> Response:
     _record_audit(
         test_case_id=row.id,
         client_id=client_id,
-        actor_client_id=client_id,
+        actor_client_id=actor_client_id,
         action="updated",
         name_snapshot=row.name,
         occurred_at=now,
@@ -187,9 +201,11 @@ def delete_test_case(test_case_id: int) -> Response:
     if storage_error is not None:
         return storage_error
 
-    client_id = _resolve_caller_client_id()
-    if client_id is None:
-        return _auth_error()
+    target = _resolve_target_client_id()
+    if target.error is not None:
+        return target.error
+    client_id = target.client_id
+    actor_client_id = target.actor_client_id
 
     row = db.session.get(TestCase, test_case_id)
     if row is None or row.client_id != client_id:
@@ -200,7 +216,7 @@ def delete_test_case(test_case_id: int) -> Response:
     _record_audit(
         test_case_id=test_case_id,
         client_id=client_id,
-        actor_client_id=client_id,
+        actor_client_id=actor_client_id,
         action="deleted",
         name_snapshot=name_snapshot,
         occurred_at=datetime.now(timezone.utc),
@@ -235,19 +251,113 @@ def _storage_error_response() -> Response | None:
     return None
 
 
-def _resolve_caller_client_id() -> str | None:
-    """Extract and verify the bearer-token sub claim, normalize the
-    Auth0 ``@clients`` suffix, and return the resulting client_id."""
+@dataclass(frozen=True)
+class _ResolvedTarget:
+    """Result of resolving who a request is operating *as*.
+
+    ``client_id`` is the partner whose data the request reads or writes.
+    ``actor_client_id`` is the authenticated caller — the same as
+    ``client_id`` for partner self-service, different when staff act on
+    a partner's behalf via ``?as_client_id=…``. ``error`` is set when
+    the caller can't be authenticated or the staff override is invalid.
+    """
+
+    client_id: str
+    actor_client_id: str
+    error: Response | None
+
+
+def _resolve_target_client_id() -> _ResolvedTarget:
+    claims = _verified_token_claims(_bearer_token_from_header())
+    if claims is None:
+        return _ResolvedTarget("", "", _auth_error())
+
+    sub = claims.get("sub")
+    if not isinstance(sub, str):
+        return _ResolvedTarget("", "", _auth_error())
+    actor = _strip_clients_suffix(sub)
+
+    requested = request.args.get("as_client_id")
+    if not requested:
+        return _ResolvedTarget(
+            client_id=actor, actor_client_id=actor, error=None
+        )
+
+    if not _has_scope(claims, STAFF_SCOPE):
+        return _ResolvedTarget(
+            "",
+            "",
+            _json_response(
+                {
+                    "status": "error",
+                    "message": (
+                        "`as_client_id` requires the policyengine-staff scope."
+                    ),
+                },
+                status=403,
+            ),
+        )
+
+    return _ResolvedTarget(
+        client_id=requested, actor_client_id=actor, error=None
+    )
+
+
+def _bearer_token_from_header() -> str | None:
+    auth_header = request.headers.get("Authorization", "")
+    parts = auth_header.split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return None
+    return parts[1].strip() or None
+
+
+def _verified_token_claims(token: str | None) -> dict[str, Any] | None:
+    """Decode the bearer token against the configured Auth0 JWKS and
+    return its full claims dict on success. Mirrors the verification
+    discipline used by ``decorators.analytics._verified_sub_claim`` —
+    if Auth0 isn't configured the token can't be trusted and we return
+    ``None`` so the caller falls back to the auth-error path.
+    """
+    if not token:
+        return None
+    auth0_address = get_config_value("auth.auth0.address", "")
+    auth0_audience = get_config_value("auth.auth0.audience", "")
+    if not auth0_address or not auth0_audience:
+        return None
     try:
-        auth_header = str(request.authorization)
-        token = auth_header.split(" ")[1]
-    except Exception:
+        signing_key = _get_jwks_client(auth0_address).get_signing_key_from_jwt(
+            token
+        )
+        claims = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=auth0_audience,
+            issuer=f"https://{auth0_address}/",
+            options={"verify_signature": True},
+        )
+    except Exception as e:
+        logger.debug(f"JWT signature verification failed: {e}")
         return None
-    sub = _verified_sub_claim(token)
-    if sub is None:
-        return None
+    return claims
+
+
+def _strip_clients_suffix(sub: str) -> str:
     suffix = "@clients"
     return sub[: -len(suffix)] if sub.endswith(suffix) else sub
+
+
+def _has_scope(claims: dict[str, Any], scope: str) -> bool:
+    """Return True if the JWT carries the named scope. Auth0 issues
+    scopes as a space-separated string in the ``scope`` claim and (on
+    M2M tokens) sometimes as a list under ``scopes``."""
+    scope_value = claims.get("scope")
+    if isinstance(scope_value, str):
+        return scope in scope_value.split()
+    scopes_value = claims.get("scopes")
+    if isinstance(scopes_value, (list, tuple)):
+        return scope in scopes_value
+    return False
 
 
 def _record_audit(

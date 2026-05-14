@@ -809,12 +809,19 @@ paths:
     get:
       summary: List test cases owned by the caller
       operationId: list_test_cases
-      description: Returns every saved test case belonging to the authenticated client_id, most recently updated first.
+      description: Returns every saved test case belonging to the authenticated client_id (or the partner identified by `as_client_id` when the caller carries the `policyengine-staff` scope), most recently updated first.
       security:
         - bearerAuth: []
+      parameters:
+        - name: as_client_id
+          in: query
+          required: false
+          description: When set, return test cases owned by this partner client_id instead of the caller's. Requires the `policyengine-staff` scope; otherwise returns 403.
+          schema:
+            type: string
       responses:
         200:
-          description: Test cases owned by the caller.
+          description: Test cases owned by the target client_id.
           content:
             application/json:
               schema:
@@ -825,6 +832,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: The bearer token does not include the `policyengine-staff` scope required to use `as_client_id`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
         503:
           description: Test-case storage is disabled or not ready.
           content:
@@ -834,9 +847,16 @@ paths:
     post:
       summary: Create a test case
       operationId: create_test_case
-      description: Persist a new household payload owned by the authenticated client_id.
+      description: Persist a new household payload owned by the authenticated client_id (or by the partner identified by `as_client_id` when the caller is staff).
       security:
         - bearerAuth: []
+      parameters:
+        - name: as_client_id
+          in: query
+          required: false
+          description: When set, the new test case is owned by this partner client_id instead of the caller's. Requires the `policyengine-staff` scope.
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -862,6 +882,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: The bearer token does not include the `policyengine-staff` scope required to use `as_client_id`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
         503:
           description: Test-case storage is disabled or not ready.
           content:
@@ -880,6 +906,12 @@ paths:
           required: true
           schema:
             type: integer
+        - name: as_client_id
+          in: query
+          required: false
+          description: Read against this partner's library instead of the caller's. Requires the `policyengine-staff` scope.
+          schema:
+            type: string
       responses:
         200:
           description: The requested test case.
@@ -893,8 +925,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: The bearer token does not include the `policyengine-staff` scope required to use `as_client_id`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
         404:
-          description: No test case with that id is owned by the caller.
+          description: No test case with that id is owned by the target client_id.
           content:
             application/json:
               schema:
@@ -911,6 +949,12 @@ paths:
           required: true
           schema:
             type: integer
+        - name: as_client_id
+          in: query
+          required: false
+          description: Update against this partner's library instead of the caller's. Requires the `policyengine-staff` scope.
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -936,8 +980,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: The bearer token does not include the `policyengine-staff` scope required to use `as_client_id`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
         404:
-          description: No test case with that id is owned by the caller.
+          description: No test case with that id is owned by the target client_id.
           content:
             application/json:
               schema:
@@ -953,6 +1003,12 @@ paths:
           required: true
           schema:
             type: integer
+        - name: as_client_id
+          in: query
+          required: false
+          description: Delete against this partner's library instead of the caller's. Requires the `policyengine-staff` scope.
+          schema:
+            type: string
       responses:
         200:
           description: The test case was deleted.
@@ -973,8 +1029,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
+        403:
+          description: The bearer token does not include the `policyengine-staff` scope required to use `as_client_id`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
         404:
-          description: No test case with that id is owned by the caller.
+          description: No test case with that id is owned by the target client_id.
           content:
             application/json:
               schema:

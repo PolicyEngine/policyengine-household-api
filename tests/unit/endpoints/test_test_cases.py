@@ -56,14 +56,19 @@ def test_cases_app(tmp_path, monkeypatch):
 
 @pytest.fixture
 def call_as(monkeypatch):
-    """Returns a context manager that pretends a request arrived from
-    the given client_id. Stubs the bearer-token sub-claim verification
-    so handlers see ``client_id`` without going through Auth0."""
+    """Returns a function that stubs the bearer-token claim verification
+    so handlers see the given ``client_id`` (and optional scopes) without
+    going through Auth0."""
 
-    def _stub(client_id: str | None):
+    def _stub(client_id: str | None, scopes: str = ""):
+        def fake_verify(token):
+            if client_id is None:
+                return None
+            return {"sub": f"{client_id}@clients", "scope": scopes}
+
         monkeypatch.setattr(
-            "policyengine_household_api.endpoints.test_cases._verified_sub_claim",
-            lambda token: f"{client_id}@clients" if client_id else None,
+            "policyengine_household_api.endpoints.test_cases._verified_token_claims",
+            fake_verify,
         )
 
     return _stub
@@ -308,3 +313,78 @@ def test__delete__rejects_other_clients_case(test_cases_app, call_as):
         response = delete_test_case(created["id"])
     assert response.status_code == 404
     assert db.session.get(TestCase, created["id"]) is not None
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: as_client_id staff overlay
+# ---------------------------------------------------------------------------
+
+
+def _request_context_with_query(app, *, method: str, query: str):
+    return app.test_request_context(
+        path=f"/test-cases?{query}",
+        method=method,
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+
+def test__as_client_id__rejected_without_staff_scope(
+    test_cases_app, call_as
+):
+    # acme (a partner with no staff scope) tries to read impactica's data.
+    call_as("acme")
+    with _request_context_with_query(
+        test_cases_app, method="GET", query="as_client_id=impactica"
+    ):
+        response = list_test_cases()
+    assert response.status_code == 403
+    assert "policyengine-staff" in json.loads(response.data)["message"]
+
+
+def test__as_client_id__honored_for_staff_callers(test_cases_app, call_as):
+    # Partner acme creates a case as themselves.
+    call_as("acme")
+    with _request_context(
+        test_cases_app,
+        method="POST",
+        body={"name": "acme case", "payload": _payload()},
+    ):
+        create_test_case()
+
+    # Staff caller lists with as_client_id=acme — sees acme's case.
+    call_as("staff-user", scopes="policyengine-staff")
+    with _request_context_with_query(
+        test_cases_app, method="GET", query="as_client_id=acme"
+    ):
+        response = list_test_cases()
+    body = json.loads(response.data)
+    assert response.status_code == 200
+    assert {c["name"] for c in body["test_cases"]} == {"acme case"}
+
+    # Same staff caller with no as_client_id sees their own (empty) list.
+    with _request_context(test_cases_app, method="GET"):
+        response = list_test_cases()
+    assert json.loads(response.data)["test_cases"] == []
+
+
+def test__as_client_id__staff_create_records_actor_separately(
+    test_cases_app, call_as
+):
+    # Staff creates a case on acme's behalf.
+    call_as("staff-user", scopes="policyengine-staff")
+    with test_cases_app.test_request_context(
+        path="/test-cases?as_client_id=acme",
+        method="POST",
+        json={"name": "by staff", "payload": _payload()},
+        headers={"Authorization": "Bearer test-token"},
+    ):
+        response = create_test_case()
+    assert response.status_code == 201
+
+    # The case is owned by acme; the audit captures staff as the actor.
+    cases = db.session.query(TestCase).all()
+    assert [c.client_id for c in cases] == ["acme"]
+    audit = db.session.query(TestCaseAudit).one()
+    assert audit.client_id == "acme"
+    assert audit.actor_client_id == "staff-user"
+    assert audit.action == "created"

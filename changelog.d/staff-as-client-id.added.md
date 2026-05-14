@@ -1,0 +1,1 @@
+Added the `as_client_id` query parameter to all `/test-cases` endpoints. Honored only for callers carrying the new `policyengine-staff` JWT scope; lets PolicyEngine staff read or mutate any partner's test cases on their behalf. Audit rows record the staff actor's client_id separately from the partner whose data was changed.

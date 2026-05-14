@@ -14,6 +14,11 @@ from ..utils.config_loader import get_config_value
 
 ANALYTICS_READ_SCOPE = "read:calculate-analytics"
 
+# JWT scope that grants PolicyEngine-staff access — read across any
+# partner's resources, plus the ability to act on a partner's behalf
+# via the ``as_client_id`` query parameter on supported endpoints.
+STAFF_SCOPE = "policyengine-staff"
+
 
 class StaticBearerToken:
     """Minimal token object for test-only bearer token validation."""
