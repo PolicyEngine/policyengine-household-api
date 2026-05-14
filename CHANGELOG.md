@@ -1,3 +1,10 @@
+## [0.19.4] - 2026-05-14
+
+### Fixed
+
+- Fix Modal staging integration tests to resolve the deployed gateway URL inside each matrix job instead of relying on a cross-job URL output.
+
+
 ## [0.19.3] - 2026-05-14
 
 ### Fixed

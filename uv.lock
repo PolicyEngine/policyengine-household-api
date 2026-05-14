@@ -2300,7 +2300,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-household-api"
-version = "0.19.2"
+version = "0.19.3"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
