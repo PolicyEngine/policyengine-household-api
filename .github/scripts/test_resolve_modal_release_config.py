@@ -21,6 +21,7 @@ def test_resolve_release_from_pull_request_body():
     )
 
     assert resolved.should_deploy is True
+    assert resolved.deploy_mode == "release"
     assert resolved.config is not None
 
 
@@ -36,6 +37,7 @@ def test_resolve_release_ignores_template_guidance_without_config_block():
 
     assert resolved.should_deploy is False
     assert resolved.source == "pull_request-missing"
+    assert resolved.deploy_mode == "none"
 
 
 def test_resolve_release_uses_workflow_dispatch_inputs():
@@ -53,6 +55,7 @@ def test_resolve_release_uses_workflow_dispatch_inputs():
 
     assert resolved.should_deploy is True
     assert resolved.source == "workflow-dispatch-inputs"
+    assert resolved.deploy_mode == "release"
     assert resolved.config is not None
     assert resolved.config.new_app_target == "current"
     assert resolved.config.promote_existing_frontier is False
@@ -68,6 +71,7 @@ def test_resolve_release_uses_weekly_default_for_empty_workflow_dispatch():
 
     assert resolved.should_deploy is True
     assert resolved.source == "workflow-dispatch-inputs"
+    assert resolved.deploy_mode == "release"
     assert resolved.config is not None
     assert resolved.config.cleanup_target == "retired"
 
@@ -90,6 +94,7 @@ def test_resolve_release_skips_regular_push_even_with_pr_config():
 
     assert resolved.should_deploy is False
     assert resolved.source == "push-not-release-commit"
+    assert resolved.deploy_mode == "none"
     assert fetched == []
 
 
@@ -113,10 +118,11 @@ def test_resolve_release_uses_versioning_parent_pr_body():
 
     assert resolved.should_deploy is True
     assert resolved.source == "versioning-parent-pull-request"
+    assert resolved.deploy_mode == "release"
     assert resolved.config is not None
 
 
-def test_resolve_release_uses_weekly_default_when_no_pr_body_exists():
+def test_resolve_release_uses_code_deploy_when_no_pr_body_exists():
     resolved = resolve_release_from_event(
         {
             "repository": {
@@ -130,6 +136,6 @@ def test_resolve_release_uses_weekly_default_when_no_pr_body_exists():
     )
 
     assert resolved.should_deploy is True
-    assert resolved.source == "weekly-default"
-    assert resolved.config is not None
-    assert resolved.config.cleanup_target == "retired"
+    assert resolved.source == "code-only"
+    assert resolved.deploy_mode == "code"
+    assert resolved.config is None

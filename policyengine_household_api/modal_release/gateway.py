@@ -10,7 +10,8 @@ from policyengine_household_api.constants import COUNTRIES
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
-    normalize_manifest,
+    empty_manifest,
+    validate_manifest,
 )
 
 
@@ -44,7 +45,7 @@ def create_gateway_app(
     @app.get("/readiness_check")
     def readiness_check() -> Response:
         manifest = load_manifest()
-        if not normalize_manifest(manifest).get("current"):
+        if not validate_manifest(manifest).get("current"):
             return jsonify(
                 {
                     "status": "error",
@@ -55,14 +56,14 @@ def create_gateway_app(
 
     @app.get("/versions")
     def versions() -> Response:
-        return jsonify(normalize_manifest(load_manifest()))
+        return jsonify(validate_manifest(load_manifest()))
 
     @app.get("/versions/<country_id>")
     def country_versions(country_id: str) -> Response:
         if country_id not in COUNTRIES:
             return _json_error(f"Unsupported country `{country_id}`", 404)
 
-        manifest = normalize_manifest(load_manifest())
+        manifest = validate_manifest(load_manifest())
         country_versions = {}
         for channel in ("current", "frontier"):
             app_reference = manifest.get(channel)
@@ -87,7 +88,7 @@ def create_gateway_app(
         body = request.get_data()
 
         try:
-            manifest = normalize_manifest(load_manifest())
+            manifest = validate_manifest(load_manifest())
             if country_id and endpoint in VERSIONED_ENDPOINTS:
                 body, requested_version = _extract_requested_version(body)
             else:
@@ -109,12 +110,16 @@ def create_gateway_app(
 
 def load_modal_manifest() -> dict[str, Any]:
     import modal
+    from modal.exception import NotFoundError
 
-    manifest_dict = modal.Dict.from_name(
-        MANIFEST_DICT_NAME,
-        create_if_missing=True,
-    )
-    return normalize_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
+    try:
+        manifest_dict = modal.Dict.from_name(
+            MANIFEST_DICT_NAME,
+            create_if_missing=False,
+        )
+    except NotFoundError:
+        return empty_manifest()
+    return validate_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
 
 
 def resolve_app_for_request(

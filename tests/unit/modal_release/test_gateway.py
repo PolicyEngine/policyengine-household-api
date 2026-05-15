@@ -1,9 +1,15 @@
 import json
 
 from flask import Response
+import modal
+import pytest
 
 from policyengine_household_api.modal_release.gateway import (
     create_gateway_app,
+    load_modal_manifest,
+)
+from policyengine_household_api.modal_release.manifest import (
+    MANIFEST_SCHEMA_VERSION,
 )
 
 
@@ -12,12 +18,12 @@ def _manifest():
         "schema_version": 1,
         "current": {
             "app_name": "current-app",
-            "package_versions": {"us": "1.0.0"},
+            "package_versions": {"uk": "2.31.0", "us": "1.0.0"},
             "deployed_at": "2026-01-01T00:00:00+00:00",
         },
         "frontier": {
             "app_name": "frontier-app",
-            "package_versions": {"us": "2.0.0"},
+            "package_versions": {"uk": "2.31.0", "us": "2.0.0"},
             "deployed_at": "2026-01-02T00:00:00+00:00",
         },
         "retired": [],
@@ -231,3 +237,33 @@ def test_country_versions_rejects_unsupported_country():
     assert response.status_code == 404
     assert not worker_requests
     assert response.get_json()["message"] == "Unsupported country `zz`"
+
+
+def test_load_modal_manifest_does_not_create_missing_dict(monkeypatch):
+    calls = []
+
+    def from_name(name, *, create_if_missing):
+        calls.append((name, create_if_missing))
+        raise modal.exception.NotFoundError("not found")
+
+    monkeypatch.setattr(modal.Dict, "from_name", from_name)
+
+    manifest = load_modal_manifest()
+
+    assert calls == [("household-api-release-manifest", False)]
+    assert manifest == {
+        "schema_version": MANIFEST_SCHEMA_VERSION,
+        "current": None,
+        "frontier": None,
+        "retired": [],
+    }
+
+
+def test_load_modal_manifest_preserves_unexpected_modal_errors(monkeypatch):
+    def from_name(name, *, create_if_missing):
+        raise modal.exception.AuthError("auth failed")
+
+    monkeypatch.setattr(modal.Dict, "from_name", from_name)
+
+    with pytest.raises(modal.exception.AuthError):
+        load_modal_manifest()
