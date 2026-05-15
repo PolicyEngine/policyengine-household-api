@@ -23,7 +23,7 @@ on:
       cleanup_target:
         description: "Modal app group to stop after updating the manifest"
         required: true
-        default: none
+        default: retired
         type: choice
         options:
           - none

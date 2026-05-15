@@ -2,7 +2,6 @@
 set -euo pipefail
 
 config_json="${1:?Usage: modal-deploy-release.sh CONFIG_JSON}"
-modal_environment="${MODAL_ENVIRONMENT:-main}"
 output_file="${GITHUB_OUTPUT:-}"
 
 require_env() {
@@ -36,9 +35,12 @@ github_output() {
 }
 
 require_env \
+  MODAL_ENVIRONMENT \
   USER_ANALYTICS_DB_USERNAME \
   USER_ANALYTICS_DB_PASSWORD \
   USER_ANALYTICS_DB_CONNECTION_NAME
+
+modal_environment="${MODAL_ENVIRONMENT}"
 
 uv run alembic upgrade head
 analytics_database_revision="$(
@@ -67,6 +69,7 @@ bash .github/scripts/modal-sync-secrets.sh
 new_app_target="$(config_value new_app_target)"
 if [ "${new_app_target}" != "none" ]; then
   HOUSEHOLD_MODAL_WORKER_APP_NAME="${worker_app_name}" \
+    MODAL_ENVIRONMENT="${modal_environment}" \
     uv run modal deploy \
       --env "${modal_environment}" \
       -m policyengine_household_api.modal_release.worker_app

@@ -69,6 +69,7 @@ def test_resolve_release_uses_weekly_default_for_empty_workflow_dispatch():
     assert resolved.should_deploy is True
     assert resolved.source == "workflow-dispatch-inputs"
     assert resolved.config is not None
+    assert resolved.config.cleanup_target == "retired"
 
 
 def test_resolve_release_skips_regular_push_even_with_pr_config():
@@ -130,3 +131,5 @@ def test_resolve_release_uses_weekly_default_when_no_pr_body_exists():
 
     assert resolved.should_deploy is True
     assert resolved.source == "weekly-default"
+    assert resolved.config is not None
+    assert resolved.config.cleanup_target == "retired"

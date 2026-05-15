@@ -116,7 +116,7 @@ def default_weekly_config() -> ModalReleaseConfig:
     return ModalReleaseConfig(
         new_app_target=NewAppTarget.FRONTIER,
         promote_existing_frontier=True,
-        cleanup_target=CleanupTarget.NONE,
+        cleanup_target=CleanupTarget.RETIRED,
     )
 
 
