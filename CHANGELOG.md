@@ -1,3 +1,10 @@
+## [0.19.6] - 2026-05-15
+
+### Changed
+
+- Remove Modal gateway custom-domain registration and pin `policyengine-core` to version 3.26.5 or newer.
+
+
 ## [0.19.5] - 2026-05-14
 
 ### Changed
