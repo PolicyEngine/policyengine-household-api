@@ -17,12 +17,33 @@ from policyengine_household_api.modal_release.release_config import (
 )
 
 
-MANIFEST_SCHEMA_VERSION = 2
-SUPPORTED_MANIFEST_SCHEMA_VERSIONS = {1, MANIFEST_SCHEMA_VERSION}
+MANIFEST_SCHEMA_VERSION = 1
 MANIFEST_DICT_NAME = "household-api-release-manifest"
 MANIFEST_DICT_KEY = "manifest"
 APP_NAME_PREFIX = "policyengine-household-api"
 RELEASE_PACKAGE_VERSION_COUNTRIES = ("uk", "us")
+APP_REFERENCE_KEYS = {
+    "app_name",
+    "package_versions",
+    "deployed_at",
+    "analytics_migration_minimum_revision",
+    "analytics_database_revision",
+}
+RETIRED_APP_REFERENCE_KEYS = APP_REFERENCE_KEYS | {
+    "retired_at",
+    "retirement_reason",
+}
+APP_REFERENCE_REQUIRED_KEYS = {
+    "app_name",
+    "package_versions",
+    "deployed_at",
+}
+MANIFEST_KEYS = {
+    "schema_version",
+    "current",
+    "frontier",
+    "retired",
+}
 
 
 @dataclass(frozen=True)
@@ -55,17 +76,20 @@ def current_timestamp() -> str:
 
 
 def current_package_versions() -> dict[str, str]:
-    return _release_package_versions(COUNTRY_PACKAGE_VERSIONS)
+    return _release_package_versions_from_mapping(COUNTRY_PACKAGE_VERSIONS)
 
 
 def build_app_name(
     package_versions: Mapping[str, str] | None = None,
 ) -> str:
-    versions = package_versions or current_package_versions()
+    versions = (
+        _canonical_release_package_versions(package_versions)
+        if package_versions is not None
+        else _canonical_release_package_versions(current_package_versions())
+    )
     version_slug = "-".join(
         f"{country}{_slugify_version(versions[country])}"
         for country in RELEASE_PACKAGE_VERSION_COUNTRIES
-        if country in versions
     )
     return f"{APP_NAME_PREFIX}-{version_slug}"
 
@@ -77,8 +101,10 @@ def build_app_reference(
     deployed_at: str | None = None,
     analytics_database_revision: str | None = None,
 ) -> dict[str, Any]:
-    versions = _release_package_versions(
-        package_versions or current_package_versions()
+    versions = _canonical_release_package_versions(
+        package_versions
+        if package_versions is not None
+        else current_package_versions()
     )
     reference = AppReference(
         app_name=app_name or build_app_name(versions),
@@ -101,38 +127,36 @@ def empty_manifest() -> dict[str, Any]:
     }
 
 
-def normalize_manifest(manifest: Mapping[str, Any] | None) -> dict[str, Any]:
-    if not manifest:
+def validate_manifest(manifest: Mapping[str, Any] | None) -> dict[str, Any]:
+    if manifest is None:
         return empty_manifest()
+    if not isinstance(manifest, Mapping):
+        raise ValueError("Modal manifest must be a mapping")
 
-    normalized = deepcopy(dict(manifest))
-    normalized.setdefault("schema_version", MANIFEST_SCHEMA_VERSION)
-    normalized.setdefault("current", None)
-    normalized.setdefault("frontier", None)
-    normalized.setdefault("retired", [])
+    validated = deepcopy(dict(manifest))
+    _validate_manifest_keys(validated)
 
-    if normalized["schema_version"] not in SUPPORTED_MANIFEST_SCHEMA_VERSIONS:
+    if validated.get("schema_version") != MANIFEST_SCHEMA_VERSION:
         raise ValueError(
             "Unsupported household API Modal manifest schema version: "
-            f"{normalized['schema_version']}"
+            f"{validated.get('schema_version')}"
         )
-    normalized["schema_version"] = MANIFEST_SCHEMA_VERSION
 
-    normalized["current"] = _normalize_app_reference(normalized.get("current"))
-    normalized["frontier"] = _normalize_app_reference(
-        normalized.get("frontier")
-    )
-    if normalized["retired"] is None:
-        normalized["retired"] = []
-    if not isinstance(normalized["retired"], list):
+    validated["current"] = _validate_app_reference(validated["current"])
+    validated["frontier"] = _validate_app_reference(validated["frontier"])
+    if not isinstance(validated["retired"], list):
         raise ValueError("Modal manifest `retired` field must be a list")
-    normalized["retired"] = [
-        normalized_entry
-        for app in normalized["retired"]
-        if (normalized_entry := _normalize_app_reference(app)) is not None
-    ]
+    retired = []
+    for app in validated["retired"]:
+        validated_entry = _validate_app_reference(
+            app,
+            allow_retirement_metadata=True,
+        )
+        if validated_entry is not None:
+            retired.append(validated_entry)
+    validated["retired"] = retired
 
-    return normalized
+    return validated
 
 
 def apply_release_config(
@@ -142,7 +166,7 @@ def apply_release_config(
     new_app: Mapping[str, Any] | None = None,
     timestamp: str | None = None,
 ) -> dict[str, Any]:
-    next_manifest = normalize_manifest(manifest)
+    next_manifest = validate_manifest(manifest)
     retired = list(next_manifest["retired"])
     retired_at = timestamp or current_timestamp()
 
@@ -184,7 +208,7 @@ def apply_release_config(
         next_manifest["frontier"] = None
 
     next_manifest["retired"] = retired
-    return next_manifest
+    return validate_manifest(next_manifest)
 
 
 def cleanup_app_names_for_target(
@@ -193,12 +217,12 @@ def cleanup_app_names_for_target(
     *,
     previous_manifest: Mapping[str, Any] | None = None,
 ) -> list[str]:
-    normalized = normalize_manifest(manifest)
+    validated = validate_manifest(manifest)
     active_app_names = {
         app["app_name"]
         for app in (
-            normalized.get("current"),
-            normalized.get("frontier"),
+            validated.get("current"),
+            validated.get("frontier"),
         )
         if isinstance(app, dict) and app.get("app_name")
     }
@@ -208,7 +232,7 @@ def cleanup_app_names_for_target(
     if target == CleanupTarget.RETIRED:
         names = [
             app["app_name"]
-            for app in normalized.get("retired", [])
+            for app in validated.get("retired", [])
             if isinstance(app, dict) and app.get("app_name")
         ]
         return _unique_app_names(
@@ -216,7 +240,7 @@ def cleanup_app_names_for_target(
         )
 
     if previous_manifest is not None:
-        previous = normalize_manifest(previous_manifest)
+        previous = validate_manifest(previous_manifest)
         previous_channel = previous.get(target.value)
         if not previous_channel:
             return []
@@ -228,7 +252,7 @@ def cleanup_app_names_for_target(
             )
         return [app_name] if app_name else []
 
-    channel = normalized.get(target.value)
+    channel = validated.get(target.value)
     if not channel:
         return []
     app_name = channel.get("app_name")
@@ -242,11 +266,11 @@ def cleanup_app_names_for_target(
 def active_app_deployments(
     manifest: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    normalized = normalize_manifest(manifest)
+    validated = validate_manifest(manifest)
     deployments_by_name: dict[str, dict[str, str]] = {}
 
     for channel in ("current", "frontier"):
-        app_reference = normalized.get(channel)
+        app_reference = validated.get(channel)
         if not app_reference:
             continue
         app_name = app_reference.get("app_name")
@@ -283,41 +307,30 @@ def prune_cleaned_retired_apps(
     manifest: Mapping[str, Any],
     app_names: set[str],
 ) -> dict[str, Any]:
-    normalized = normalize_manifest(manifest)
-    normalized["retired"] = [
+    validated = validate_manifest(manifest)
+    validated["retired"] = [
         app
-        for app in normalized["retired"]
+        for app in validated["retired"]
         if not isinstance(app, dict) or app.get("app_name") not in app_names
     ]
-    return normalized
+    return validated
 
 
 def rewrite_manifest_for_storage(
     manifest: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    normalized = normalize_manifest(manifest)
-    active_app_names = {
-        app["app_name"]
-        for app in (
-            normalized.get("current"),
-            normalized.get("frontier"),
-        )
-        if isinstance(app, dict) and app.get("app_name")
+    if manifest is None:
+        return empty_manifest()
+    if not isinstance(manifest, Mapping):
+        raise ValueError("Modal manifest must be a mapping")
+
+    rewritten = {
+        "schema_version": MANIFEST_SCHEMA_VERSION,
+        "current": _rewrite_legacy_app_reference(manifest.get("current")),
+        "frontier": _rewrite_legacy_app_reference(manifest.get("frontier")),
+        "retired": [],
     }
-    seen_retired_app_names: set[str] = set()
-    retired = []
-
-    for app in normalized["retired"]:
-        app_name = app.get("app_name") if isinstance(app, dict) else None
-        if not app_name or app_name in active_app_names:
-            continue
-        if app_name in seen_retired_app_names:
-            continue
-        seen_retired_app_names.add(app_name)
-        retired.append(app)
-
-    normalized["retired"] = retired
-    return normalized
+    return validate_manifest(rewritten)
 
 
 def rewrite_existing_manifest_for_storage(
@@ -354,18 +367,52 @@ def _retire_entry(
     return retired + [retired_entry]
 
 
-def _normalize_app_reference(entry: Any) -> dict[str, Any] | None:
-    if not entry:
+def _validate_app_reference(
+    entry: Any,
+    *,
+    allow_retirement_metadata: bool = False,
+) -> dict[str, Any] | None:
+    if entry is None:
         return None
     if not isinstance(entry, Mapping):
         raise ValueError("Modal manifest app references must be mappings")
 
-    normalized = deepcopy(dict(entry))
-    normalized.pop("source_commit", None)
-    normalized["package_versions"] = _release_package_versions(
-        normalized.get("package_versions", {})
+    validated = deepcopy(dict(entry))
+    _validate_app_reference_keys(
+        validated,
+        allow_retirement_metadata=allow_retirement_metadata,
     )
-    return normalized
+    _validate_required_string(validated, "app_name")
+    _validate_required_string(validated, "deployed_at")
+    validated["package_versions"] = _canonical_release_package_versions(
+        validated["package_versions"]
+    )
+    return validated
+
+
+def _rewrite_legacy_app_reference(entry: Any) -> dict[str, Any] | None:
+    if entry is None:
+        return None
+    if not isinstance(entry, Mapping):
+        raise ValueError("Modal manifest app references must be mappings")
+
+    package_versions = _release_package_versions_from_mapping(
+        entry.get("package_versions", {})
+    )
+    rewritten = {
+        "app_name": entry.get("app_name"),
+        "package_versions": _canonical_release_package_versions(
+            package_versions
+        ),
+        "deployed_at": entry.get("deployed_at"),
+    }
+    for key in (
+        "analytics_migration_minimum_revision",
+        "analytics_database_revision",
+    ):
+        if entry.get(key):
+            rewritten[key] = entry[key]
+    return _validate_app_reference(rewritten)
 
 
 def _unique_app_names(app_names) -> list[str]:
@@ -384,7 +431,7 @@ def _slugify_version(version: str) -> str:
     return slug or "unknown"
 
 
-def _release_package_versions(
+def _release_package_versions_from_mapping(
     package_versions: Mapping[str, str],
 ) -> dict[str, str]:
     if not isinstance(package_versions, Mapping):
@@ -398,13 +445,21 @@ def _release_package_versions(
     }
 
 
-def _required_release_package_versions(
+def _canonical_release_package_versions(
     package_versions: Mapping[str, str],
-    *,
-    app_name: str,
-    channel: str,
 ) -> dict[str, str]:
-    versions = _release_package_versions(package_versions)
+    versions = _release_package_versions_from_mapping(package_versions)
+    unexpected_countries = [
+        country
+        for country in package_versions
+        if country not in RELEASE_PACKAGE_VERSION_COUNTRIES
+    ]
+    if unexpected_countries:
+        unexpected = ", ".join(sorted(unexpected_countries))
+        raise ValueError(
+            "Modal manifest `package_versions` contains unsupported "
+            f"country key(s): {unexpected}"
+        )
     missing_countries = [
         country
         for country in RELEASE_PACKAGE_VERSION_COUNTRIES
@@ -413,7 +468,66 @@ def _required_release_package_versions(
     if missing_countries:
         missing = ", ".join(missing_countries)
         raise ValueError(
-            f"Active Modal app `{app_name}` in `{channel}` must declare "
-            f"release package version(s): {missing}"
+            "Modal manifest `package_versions` must declare release "
+            f"package version(s): {missing}"
         )
     return versions
+
+
+def _required_release_package_versions(
+    package_versions: Mapping[str, str],
+    *,
+    app_name: str,
+    channel: str,
+) -> dict[str, str]:
+    try:
+        return _canonical_release_package_versions(package_versions)
+    except ValueError as e:
+        raise ValueError(
+            f"Active Modal app `{app_name}` in `{channel}` must declare "
+            "canonical release package versions"
+        ) from e
+
+
+def _validate_manifest_keys(manifest: Mapping[str, Any]) -> None:
+    missing_keys = sorted(MANIFEST_KEYS - set(manifest))
+    if missing_keys:
+        keys = ", ".join(missing_keys)
+        raise ValueError(f"Modal manifest is missing required key(s): {keys}")
+
+    unsupported_keys = sorted(set(manifest) - MANIFEST_KEYS)
+    if unsupported_keys:
+        keys = ", ".join(unsupported_keys)
+        raise ValueError(f"Modal manifest contains unsupported key(s): {keys}")
+
+
+def _validate_app_reference_keys(
+    entry: Mapping[str, Any],
+    *,
+    allow_retirement_metadata: bool,
+) -> None:
+    allowed_keys = (
+        RETIRED_APP_REFERENCE_KEYS
+        if allow_retirement_metadata
+        else APP_REFERENCE_KEYS
+    )
+    unsupported_keys = sorted(set(entry) - allowed_keys)
+    if unsupported_keys:
+        keys = ", ".join(unsupported_keys)
+        raise ValueError(
+            f"Modal manifest app reference contains unsupported key(s): {keys}"
+        )
+
+    missing_keys = sorted(APP_REFERENCE_REQUIRED_KEYS - set(entry))
+    if missing_keys:
+        keys = ", ".join(missing_keys)
+        raise ValueError(
+            f"Modal manifest app reference is missing required key(s): {keys}"
+        )
+
+
+def _validate_required_string(entry: Mapping[str, Any], key: str) -> None:
+    if not isinstance(entry.get(key), str) or not entry[key]:
+        raise ValueError(
+            f"Modal manifest app reference `{key}` must be a non-empty string"
+        )

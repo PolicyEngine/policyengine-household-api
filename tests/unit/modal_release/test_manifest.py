@@ -8,9 +8,9 @@ from policyengine_household_api.modal_release.manifest import (
     build_app_name,
     cleanup_app_names_for_target,
     current_package_versions,
-    normalize_manifest,
     rewrite_existing_manifest_for_storage,
     rewrite_manifest_for_storage,
+    validate_manifest,
 )
 from policyengine_household_api.modal_release import (
     manifest as manifest_module,
@@ -22,10 +22,10 @@ from policyengine_household_api.modal_release.release_config import (
 )
 
 
-def _app(name):
+def _app(name, *, uk="2.31.0", us="1.691.1"):
     return {
         "app_name": name,
-        "package_versions": {"us": "1.0.0"},
+        "package_versions": {"uk": uk, "us": us},
         "deployed_at": "2026-01-01T00:00:00+00:00",
     }
 
@@ -156,7 +156,7 @@ def test_previous_active_cleanup_refuses_still_active_app():
 def test_app_reference_includes_analytics_migration_metadata():
     app = build_app_reference(
         app_name="worker-app",
-        package_versions={"us": "1.0.0"},
+        package_versions={"uk": "2.31.0", "us": "1.691.1"},
         deployed_at="2026-01-01T00:00:00+00:00",
         analytics_database_revision="20260512_0003",
     )
@@ -166,20 +166,17 @@ def test_app_reference_includes_analytics_migration_metadata():
     assert "source_commit" not in app
 
 
-def test_app_reference_only_records_release_package_versions():
-    app = build_app_reference(
-        app_name="worker-app",
-        package_versions={
-            "uk": "2.31.0",
-            "us": "1.691.1",
-            "ca": "0.96.3",
-            "ng": "0.5.1",
-            "il": "0.1.0",
-        },
-        deployed_at="2026-01-01T00:00:00+00:00",
-    )
-
-    assert app["package_versions"] == {"uk": "2.31.0", "us": "1.691.1"}
+def test_app_reference_rejects_unsupported_package_version_keys():
+    with pytest.raises(ValueError, match="unsupported country key"):
+        build_app_reference(
+            app_name="worker-app",
+            package_versions={
+                "uk": "2.31.0",
+                "us": "1.691.1",
+                "ca": "0.96.3",
+            },
+            deployed_at="2026-01-01T00:00:00+00:00",
+        )
 
 
 def test_app_name_only_includes_us_and_uk_package_versions():
@@ -187,13 +184,21 @@ def test_app_name_only_includes_us_and_uk_package_versions():
         {
             "uk": "2.31.0",
             "us": "1.691.1",
-            "ca": "0.96.3",
-            "ng": "0.5.1",
-            "il": "0.1.0",
         }
     )
 
     assert app_name == "policyengine-household-api-uk2-31-0-us1-691-1"
+
+
+def test_app_name_rejects_unsupported_package_version_keys():
+    with pytest.raises(ValueError, match="unsupported country key"):
+        build_app_name(
+            {
+                "uk": "2.31.0",
+                "us": "1.691.1",
+                "ca": "0.96.3",
+            }
+        )
 
 
 def test_current_package_versions_only_includes_us_and_uk(monkeypatch):
@@ -212,12 +217,26 @@ def test_current_package_versions_only_includes_us_and_uk(monkeypatch):
     assert current_package_versions() == {"uk": "2.31.0", "us": "1.691.1"}
 
 
-def test_normalize_manifest_upgrades_legacy_manifest_and_removes_source_commit():
+def test_validate_manifest_rejects_legacy_app_reference_fields():
     manifest = {
         "schema_version": 1,
         "current": {
             **_app("current-app"),
             "source_commit": "abc123",
+        },
+        "frontier": None,
+        "retired": [],
+    }
+
+    with pytest.raises(ValueError, match="unsupported key"):
+        validate_manifest(manifest)
+
+
+def test_validate_manifest_rejects_unsupported_package_version_keys():
+    manifest = {
+        "schema_version": 1,
+        "current": {
+            **_app("current-app"),
             "package_versions": {
                 "uk": "2.31.0",
                 "us": "1.691.1",
@@ -225,37 +244,46 @@ def test_normalize_manifest_upgrades_legacy_manifest_and_removes_source_commit()
             },
         },
         "frontier": None,
-        "retired": [
-            {
-                **_app("old-app"),
-                "source_commit": "def456",
-                "package_versions": {
-                    "uk": "2.31.0",
-                    "us": "1.690.0",
-                    "ng": "0.5.1",
-                },
-            }
-        ],
+        "retired": [],
     }
 
-    normalized = normalize_manifest(manifest)
+    with pytest.raises(ValueError, match="unsupported country key"):
+        validate_manifest(manifest)
 
-    assert normalized["schema_version"] == MANIFEST_SCHEMA_VERSION
-    assert "source_commit" not in normalized["current"]
-    assert normalized["current"]["package_versions"] == {
-        "uk": "2.31.0",
-        "us": "1.691.1",
+
+def test_validate_manifest_rejects_unsupported_schema_version():
+    manifest = {
+        "schema_version": 2,
+        "current": _app("current-app"),
+        "frontier": None,
+        "retired": [],
     }
-    assert "source_commit" not in normalized["retired"][0]
-    assert normalized["retired"][0]["package_versions"] == {
-        "uk": "2.31.0",
-        "us": "1.690.0",
+
+    with pytest.raises(ValueError, match="Unsupported"):
+        validate_manifest(manifest)
+
+
+def test_validate_manifest_rejects_missing_top_level_keys():
+    with pytest.raises(ValueError, match="missing required key"):
+        validate_manifest({"schema_version": 1})
+
+
+def test_validate_manifest_rejects_unsupported_top_level_keys():
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": None,
+        "retired": [],
+        "source_commit": "abc123",
     }
+
+    with pytest.raises(ValueError, match="unsupported key"):
+        validate_manifest(manifest)
 
 
 def test_active_app_deployments_deduplicates_matching_active_app_names():
     manifest = {
-        "schema_version": 2,
+        "schema_version": 1,
         "current": {
             **_app("shared-app"),
             "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
@@ -277,7 +305,7 @@ def test_active_app_deployments_deduplicates_matching_active_app_names():
 
 def test_active_app_deployments_rejects_conflicting_active_app_versions():
     manifest = {
-        "schema_version": 2,
+        "schema_version": 1,
         "current": {
             **_app("shared-app"),
             "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
@@ -295,7 +323,7 @@ def test_active_app_deployments_rejects_conflicting_active_app_versions():
 
 def test_active_app_deployments_requires_release_package_versions():
     manifest = {
-        "schema_version": 2,
+        "schema_version": 1,
         "current": {
             **_app("current-app"),
             "package_versions": {"us": "1.691.1"},
@@ -308,26 +336,40 @@ def test_active_app_deployments_requires_release_package_versions():
         active_app_deployments(manifest)
 
 
-def test_rewrite_manifest_removes_active_and_duplicate_retired_apps():
+def test_rewrite_manifest_uses_legacy_current_and_frontier_values():
     manifest = {
         "schema_version": 1,
-        "current": _app("current-app"),
-        "frontier": _app("frontier-app"),
+        "current": {
+            **_app("current-app"),
+            "source_commit": "abc123",
+            "package_versions": {
+                "uk": "2.31.0",
+                "us": "1.691.1",
+                "ca": "0.96.3",
+            },
+        },
+        "frontier": {
+            **_app("frontier-app", us="1.692.0"),
+            "package_versions": {
+                "uk": "2.31.0",
+                "us": "1.692.0",
+                "ng": "0.5.1",
+            },
+        },
         "retired": [
             _app("current-app"),
             _app("old-app"),
-            _app("old-app"),
-            _app("older-app"),
         ],
     }
 
     rewritten = rewrite_manifest_for_storage(manifest)
 
-    assert rewritten["schema_version"] == MANIFEST_SCHEMA_VERSION
-    assert [app["app_name"] for app in rewritten["retired"]] == [
-        "old-app",
-        "older-app",
-    ]
+    assert rewritten == {
+        "schema_version": MANIFEST_SCHEMA_VERSION,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app", us="1.692.0"),
+        "retired": [],
+    }
 
 
 def test_rewrite_existing_manifest_rejects_missing_manifest():

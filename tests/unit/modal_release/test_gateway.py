@@ -18,12 +18,12 @@ def _manifest():
         "schema_version": 1,
         "current": {
             "app_name": "current-app",
-            "package_versions": {"us": "1.0.0"},
+            "package_versions": {"uk": "2.31.0", "us": "1.0.0"},
             "deployed_at": "2026-01-01T00:00:00+00:00",
         },
         "frontier": {
             "app_name": "frontier-app",
-            "package_versions": {"us": "2.0.0"},
+            "package_versions": {"uk": "2.31.0", "us": "2.0.0"},
             "deployed_at": "2026-01-02T00:00:00+00:00",
         },
         "retired": [],

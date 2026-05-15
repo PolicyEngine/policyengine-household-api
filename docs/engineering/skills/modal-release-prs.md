@@ -84,6 +84,13 @@ package version references, or release validation. Those countries may still be
 served by the worker, but their package versions must not control a Modal
 release.
 
+The canonical manifest schema version is `1`. Runtime code should validate that
+stored manifests already match this schema; do not add legacy normalization to
+the gateway, release updater, or active-app discovery paths. The manifest
+rewrite command is the only bridge from older stored shapes: it copies the old
+`current` and `frontier` app references into canonical schema version `1`,
+drops retired history, and removes non-release package keys.
+
 Manual workflow dispatch exposes the same `new_app_target`,
 `promote_existing_frontier`, and `cleanup_target` settings as the PR-body YAML
 block. The deploy workflow and Modal images use Python 3.13.

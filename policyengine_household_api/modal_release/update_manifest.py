@@ -13,7 +13,7 @@ from policyengine_household_api.modal_release.manifest import (
     apply_release_config,
     build_app_reference,
     cleanup_app_names_for_target,
-    normalize_manifest,
+    validate_manifest,
 )
 from policyengine_household_api.modal_release.release_config import (
     ModalReleaseConfig,
@@ -32,7 +32,7 @@ def main() -> None:
         create_if_missing=True,
         environment_name=args.modal_environment,
     )
-    current_manifest = normalize_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
+    current_manifest = validate_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
 
     new_app = None
     if config.deploys_new_app:
