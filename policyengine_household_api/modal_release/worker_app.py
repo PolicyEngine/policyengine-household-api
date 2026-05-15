@@ -66,6 +66,14 @@ class HouseholdWorker:
 
     @modal.enter(snap=True)
     def load_flask_app(self) -> None:
+        # Importing `policyengine_household_api.api` runs
+        # `initialize_analytics_db_if_enabled` at module level, which opens a
+        # Cloud SQL connection in environments where analytics is enabled.
+        # That connection needs GOOGLE_APPLICATION_CREDENTIALS, set by
+        # `configure_google_credentials()`. Configure credentials first so the
+        # snapshot-time import can succeed even before any request method runs.
+        configure_google_credentials()
+
         from policyengine_household_api.api import app as flask_app
 
         self.flask_app = flask_app
@@ -74,5 +82,9 @@ class HouseholdWorker:
     def handle_household_request(
         self, payload: dict[str, Any]
     ) -> dict[str, Any]:
+        # Idempotent: if env var is already set (snapshot-restored or fresh
+        # container that ran the snap hook), this is a no-op. Kept here so
+        # filesystem-only credential state is re-established on restored
+        # containers if Modal does not preserve /tmp across snapshots.
         configure_google_credentials()
         return dispatch_to_flask_app(self.flask_app, payload)
