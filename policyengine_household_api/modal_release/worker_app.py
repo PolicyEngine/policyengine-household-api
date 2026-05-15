@@ -78,13 +78,41 @@ class HouseholdWorker:
 
         self.flask_app = flask_app
 
+    @modal.enter(snap=False)
+    def reset_post_snapshot_state(self) -> None:
+        # Runs on every container start AFTER snapshot restore. Memory
+        # snapshots preserve Python object state but not live network
+        # connections; the SQLAlchemy pool and the Cloud SQL Connector
+        # captured in the snapshot hold sockets that closed at snapshot
+        # time. Reset them so the first request opens fresh connections.
+        #
+        # Also re-runs `configure_google_credentials()` in case Modal did
+        # not preserve `/tmp` across snapshots and the credentials file is
+        # missing on the restored filesystem.
+        # See: https://modal.com/docs/guide/memory-snapshot
+        configure_google_credentials()
+
+        from policyengine_household_api.data import analytics_setup
+
+        if not analytics_setup.is_analytics_enabled():
+            return
+
+        analytics_setup.cleanup()
+
+        try:
+            with self.flask_app.app_context():
+                analytics_setup.db.engine.dispose()
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Failed to dispose analytics DB engine after snapshot "
+                "restore; subsequent queries may reconnect lazily: %s",
+                exc,
+            )
+
     @modal.method()
     def handle_household_request(
         self, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        # Idempotent: if env var is already set (snapshot-restored or fresh
-        # container that ran the snap hook), this is a no-op. Kept here so
-        # filesystem-only credential state is re-established on restored
-        # containers if Modal does not preserve /tmp across snapshots.
-        configure_google_credentials()
         return dispatch_to_flask_app(self.flask_app, payload)

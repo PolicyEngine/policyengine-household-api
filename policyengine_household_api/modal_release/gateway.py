@@ -163,13 +163,22 @@ def resolve_app_for_request(
 def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
     import modal
 
-    worker_cls = modal.Cls.from_name(
-        app_name,
-        "HouseholdWorker",
-    )
-    return _response_from_dispatch_result(
-        worker_cls().handle_household_request.remote(payload)
-    )
+    # Prefer the class-based worker (post #1528). During the release
+    # transition the existing frontier is promoted to current without a
+    # redeploy, so for one release cycle the current worker may still expose
+    # the pre-#1528 top-level `handle_household_request` function. Fall back
+    # to that shape if the class is not present.
+    try:
+        worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
+        return _response_from_dispatch_result(
+            worker_cls().handle_household_request.remote(payload)
+        )
+    except modal.exception.NotFoundError:
+        worker_function = modal.Function.from_name(
+            app_name,
+            "handle_household_request",
+        )
+        return _response_from_dispatch_result(worker_function.remote(payload))
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:

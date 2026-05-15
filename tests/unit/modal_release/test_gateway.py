@@ -231,3 +231,101 @@ def test_country_versions_rejects_unsupported_country():
     assert response.status_code == 404
     assert not worker_requests
     assert response.get_json()["message"] == "Unsupported country `zz`"
+
+
+def test_call_worker_function_uses_class_when_available(monkeypatch):
+    """When the worker exposes the new ``HouseholdWorker`` class, the
+    gateway should dispatch through ``modal.Cls.from_name``."""
+    import modal
+
+    from policyengine_household_api.modal_release import gateway
+
+    captured = {}
+
+    class _StubMethod:
+        def remote(self, payload):
+            captured["dispatched_via"] = "class"
+            captured["payload"] = payload
+            return {"status_code": 200, "body": b'{"status":"ok"}'}
+
+    class _StubInstance:
+        handle_household_request = _StubMethod()
+
+    class _StubCls:
+        def __call__(self):
+            return _StubInstance()
+
+    def fake_cls_from_name(app_name, class_name):
+        captured["cls_app_name"] = app_name
+        captured["class_name"] = class_name
+        return _StubCls()
+
+    def fake_function_from_name(app_name, function_name):
+        captured["fallback_invoked"] = True
+        raise AssertionError("Function fallback must not be invoked")
+
+    monkeypatch.setattr(
+        modal.Cls, "from_name", staticmethod(fake_cls_from_name)
+    )
+    monkeypatch.setattr(
+        modal.Function, "from_name", staticmethod(fake_function_from_name)
+    )
+
+    response = gateway.call_worker_function(
+        "frontier-app", {"household": {"foo": "bar"}}
+    )
+
+    assert response.status_code == 200
+    assert captured["dispatched_via"] == "class"
+    assert captured["cls_app_name"] == "frontier-app"
+    assert captured["class_name"] == "HouseholdWorker"
+    assert captured["payload"] == {"household": {"foo": "bar"}}
+    assert "fallback_invoked" not in captured
+
+
+def test_call_worker_function_falls_back_to_function_for_legacy_workers(
+    monkeypatch,
+):
+    """During a release transition, the existing frontier worker gets
+    promoted to current without a redeploy, so the current worker may
+    still expose the pre-class ``handle_household_request`` function.
+    The gateway must fall back to ``modal.Function.from_name`` when the
+    class cannot be found."""
+    import modal
+
+    from policyengine_household_api.modal_release import gateway
+
+    captured = {}
+
+    def fake_cls_from_name(app_name, class_name):
+        raise modal.exception.NotFoundError(
+            f"No class named `{class_name}` in app `{app_name}`"
+        )
+
+    class _StubFunction:
+        def remote(self, payload):
+            captured["dispatched_via"] = "function"
+            captured["payload"] = payload
+            return {"status_code": 200, "body": b'{"status":"ok"}'}
+
+    def fake_function_from_name(app_name, function_name):
+        captured["fn_app_name"] = app_name
+        captured["function_name"] = function_name
+        return _StubFunction()
+
+    monkeypatch.setattr(
+        modal.Cls, "from_name", staticmethod(fake_cls_from_name)
+    )
+    monkeypatch.setattr(
+        modal.Function, "from_name", staticmethod(fake_function_from_name)
+    )
+
+    response = gateway.call_worker_function(
+        "current-app", {"household": {"foo": "bar"}}
+    )
+
+    assert response.status_code == 200
+    assert captured["dispatched_via"] == "function"
+    assert captured["fn_app_name"] == "current-app"
+    assert captured["function_name"] == "handle_household_request"
+    assert captured["payload"] == {"household": {"foo": "bar"}}
