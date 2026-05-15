@@ -1,6 +1,59 @@
 from policyengine_household_api.modal_release import _image_setup
 
 
+def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
+    from policyengine_household_api.modal_release import images
+
+    calls = []
+
+    class FakeImage:
+        def uv_sync(self, *args, **kwargs):
+            calls.append(("uv_sync", args, kwargs))
+            return self
+
+        def uv_pip_install(self, *packages):
+            calls.append(("uv_pip_install", packages, {}))
+            return self
+
+        def pip_install(self, *packages):
+            raise AssertionError(
+                f"worker image should use uv_pip_install, got {packages}"
+            )
+
+        def add_local_python_source(self, *args, **kwargs):
+            calls.append(("add_local_python_source", args, kwargs))
+            return self
+
+        def add_local_dir(self, *args, **kwargs):
+            calls.append(("add_local_dir", args, kwargs))
+            return self
+
+        def run_function(self, *args, **kwargs):
+            calls.append(("run_function", args, kwargs))
+            return self
+
+    def debian_slim(*args, **kwargs):
+        calls.append(("debian_slim", args, kwargs))
+        return FakeImage()
+
+    monkeypatch.setenv(
+        images.PACKAGE_VERSIONS_ENV,
+        '{"uk":"2.31.0","us":"1.691.1"}',
+    )
+    monkeypatch.setattr(images.modal.Image, "debian_slim", debian_slim)
+
+    images.household_api_worker_image()
+
+    assert (
+        "uv_pip_install",
+        (
+            "policyengine_uk==2.31.0",
+            "policyengine_us==1.691.1",
+        ),
+        {},
+    ) in calls
+
+
 def test_snapshot_tax_benefit_systems_preloads_all_country_packages(
     monkeypatch,
 ):
