@@ -23,7 +23,7 @@ def household_api_worker_image() -> modal.Image:
     )
     package_specs = country_package_install_specs()
     if package_specs:
-        image = image.pip_install(*package_specs)
+        image = image.uv_pip_install(*package_specs)
     return (
         image.add_local_python_source("policyengine_household_api", copy=True)
         .add_local_dir("config", remote_path="/app/config", copy=True)
