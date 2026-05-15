@@ -1,3 +1,10 @@
+## [0.19.7] - 2026-05-15
+
+### Changed
+
+- Keep a small warm Modal worker pool for the production environment and clean up retired Modal worker apps by default.
+
+
 ## [0.19.6] - 2026-05-15
 
 ### Changed
