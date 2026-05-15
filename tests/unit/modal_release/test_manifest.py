@@ -1,11 +1,15 @@
 import pytest
 
 from policyengine_household_api.modal_release.manifest import (
+    MANIFEST_SCHEMA_VERSION,
+    active_app_deployments,
     apply_release_config,
     build_app_reference,
     build_app_name,
     cleanup_app_names_for_target,
     current_package_versions,
+    normalize_manifest,
+    rewrite_manifest_for_storage,
 )
 from policyengine_household_api.modal_release import (
     manifest as manifest_module,
@@ -158,6 +162,7 @@ def test_app_reference_includes_analytics_migration_metadata():
 
     assert app["analytics_migration_minimum_revision"] == "20260512_0003"
     assert app["analytics_database_revision"] == "20260512_0003"
+    assert "source_commit" not in app
 
 
 def test_app_reference_only_records_release_package_versions():
@@ -204,3 +209,106 @@ def test_current_package_versions_only_includes_us_and_uk(monkeypatch):
     )
 
     assert current_package_versions() == {"uk": "2.31.0", "us": "1.691.1"}
+
+
+def test_normalize_manifest_upgrades_legacy_manifest_and_removes_source_commit():
+    manifest = {
+        "schema_version": 1,
+        "current": {
+            **_app("current-app"),
+            "source_commit": "abc123",
+            "package_versions": {
+                "uk": "2.31.0",
+                "us": "1.691.1",
+                "ca": "0.96.3",
+            },
+        },
+        "frontier": None,
+        "retired": [
+            {
+                **_app("old-app"),
+                "source_commit": "def456",
+                "package_versions": {
+                    "uk": "2.31.0",
+                    "us": "1.690.0",
+                    "ng": "0.5.1",
+                },
+            }
+        ],
+    }
+
+    normalized = normalize_manifest(manifest)
+
+    assert normalized["schema_version"] == MANIFEST_SCHEMA_VERSION
+    assert "source_commit" not in normalized["current"]
+    assert normalized["current"]["package_versions"] == {
+        "uk": "2.31.0",
+        "us": "1.691.1",
+    }
+    assert "source_commit" not in normalized["retired"][0]
+    assert normalized["retired"][0]["package_versions"] == {
+        "uk": "2.31.0",
+        "us": "1.690.0",
+    }
+
+
+def test_active_app_deployments_deduplicates_matching_active_app_names():
+    manifest = {
+        "schema_version": 2,
+        "current": {
+            **_app("shared-app"),
+            "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+        },
+        "frontier": {
+            **_app("shared-app"),
+            "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+        },
+        "retired": [],
+    }
+
+    assert active_app_deployments(manifest) == [
+        {
+            "app_name": "shared-app",
+            "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+        }
+    ]
+
+
+def test_active_app_deployments_rejects_conflicting_active_app_versions():
+    manifest = {
+        "schema_version": 2,
+        "current": {
+            **_app("shared-app"),
+            "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
+        },
+        "frontier": {
+            **_app("shared-app"),
+            "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+        },
+        "retired": [],
+    }
+
+    with pytest.raises(ValueError, match="conflicting package versions"):
+        active_app_deployments(manifest)
+
+
+def test_rewrite_manifest_removes_active_and_duplicate_retired_apps():
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app"),
+        "retired": [
+            _app("current-app"),
+            _app("old-app"),
+            _app("old-app"),
+            _app("older-app"),
+        ],
+    }
+
+    rewritten = rewrite_manifest_for_storage(manifest)
+
+    assert rewritten["schema_version"] == MANIFEST_SCHEMA_VERSION
+    assert [app["app_name"] for app in rewritten["retired"]] == [
+        "old-app",
+        "older-app",
+    ]

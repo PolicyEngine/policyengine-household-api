@@ -26,12 +26,14 @@ WEEKLY_UPDATE_COMMIT_MESSAGE = "Update PolicyEngine Household API"
 class ResolvedModalRelease:
     should_deploy: bool
     source: str
+    deploy_mode: str
     config: ModalReleaseConfig | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = {
             "should_deploy": self.should_deploy,
             "source": self.source,
+            "deploy_mode": self.deploy_mode,
             "config": None,
         }
         if self.config:
@@ -82,15 +84,16 @@ def resolve_release_from_event(
         return ResolvedModalRelease(
             True,
             "workflow-dispatch-inputs",
+            "release",
             workflow_dispatch_config_from_inputs(event.get("inputs") or {}),
         )
 
     if "head_commit" not in event:
-        return ResolvedModalRelease(False, "unsupported-event")
+        return ResolvedModalRelease(False, "unsupported-event", "none")
 
     message = (event.get("head_commit") or {}).get("message")
     if message != WEEKLY_UPDATE_COMMIT_MESSAGE:
-        return ResolvedModalRelease(False, "push-not-release-commit")
+        return ResolvedModalRelease(False, "push-not-release-commit", "none")
 
     repository = (event.get("repository") or {}).get("full_name")
     source_sha = event.get("before") or event.get("after")
@@ -109,8 +112,8 @@ def resolve_release_from_event(
 
     return ResolvedModalRelease(
         True,
-        "weekly-default",
-        default_weekly_config(),
+        "code-only",
+        "code",
     )
 
 
@@ -121,10 +124,15 @@ def resolve_release_from_body(
     deploy_when_missing: bool,
 ) -> ResolvedModalRelease:
     if not body_contains_modal_release_config(body):
-        return ResolvedModalRelease(deploy_when_missing, f"{source}-missing")
+        deploy_mode = "code" if deploy_when_missing else "none"
+        return ResolvedModalRelease(
+            deploy_when_missing,
+            f"{source}-missing",
+            deploy_mode,
+        )
 
     config = parse_modal_release_config_from_body(body)
-    return ResolvedModalRelease(True, source, config)
+    return ResolvedModalRelease(True, source, "release", config)
 
 
 def workflow_dispatch_config_from_inputs(
@@ -200,6 +208,7 @@ def write_github_outputs(
     outputs = {
         "should_deploy": str(result["should_deploy"]).lower(),
         "source": result["source"],
+        "deploy_mode": result["deploy_mode"],
         "new_app_target": config.get("new_app_target", "none"),
         "promote_existing_frontier": str(
             config.get("promote_existing_frontier", False)

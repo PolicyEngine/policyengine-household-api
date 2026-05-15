@@ -17,7 +17,8 @@ from policyengine_household_api.modal_release.release_config import (
 )
 
 
-MANIFEST_SCHEMA_VERSION = 1
+MANIFEST_SCHEMA_VERSION = 2
+SUPPORTED_MANIFEST_SCHEMA_VERSIONS = {1, MANIFEST_SCHEMA_VERSION}
 MANIFEST_DICT_NAME = "household-api-release-manifest"
 MANIFEST_DICT_KEY = "manifest"
 APP_NAME_PREFIX = "policyengine-household-api"
@@ -29,7 +30,6 @@ class AppReference:
     app_name: str
     package_versions: dict[str, str]
     deployed_at: str
-    source_commit: str | None = None
     analytics_migration_minimum_revision: str | None = None
     analytics_database_revision: str | None = None
 
@@ -39,8 +39,6 @@ class AppReference:
             "package_versions": dict(self.package_versions),
             "deployed_at": self.deployed_at,
         }
-        if self.source_commit:
-            data["source_commit"] = self.source_commit
         if self.analytics_migration_minimum_revision:
             data["analytics_migration_minimum_revision"] = (
                 self.analytics_migration_minimum_revision
@@ -76,7 +74,6 @@ def build_app_reference(
     *,
     app_name: str | None = None,
     package_versions: Mapping[str, str] | None = None,
-    source_commit: str | None = None,
     deployed_at: str | None = None,
     analytics_database_revision: str | None = None,
 ) -> dict[str, Any]:
@@ -87,7 +84,6 @@ def build_app_reference(
         app_name=app_name or build_app_name(versions),
         package_versions=versions,
         deployed_at=deployed_at or current_timestamp(),
-        source_commit=source_commit,
         analytics_migration_minimum_revision=(
             ANALYTICS_ALEMBIC_MINIMUM_REVISION
         ),
@@ -115,15 +111,26 @@ def normalize_manifest(manifest: Mapping[str, Any] | None) -> dict[str, Any]:
     normalized.setdefault("frontier", None)
     normalized.setdefault("retired", [])
 
-    if normalized["schema_version"] != MANIFEST_SCHEMA_VERSION:
+    if normalized["schema_version"] not in SUPPORTED_MANIFEST_SCHEMA_VERSIONS:
         raise ValueError(
             "Unsupported household API Modal manifest schema version: "
             f"{normalized['schema_version']}"
         )
+    normalized["schema_version"] = MANIFEST_SCHEMA_VERSION
+
+    normalized["current"] = _normalize_app_reference(normalized.get("current"))
+    normalized["frontier"] = _normalize_app_reference(
+        normalized.get("frontier")
+    )
     if normalized["retired"] is None:
         normalized["retired"] = []
     if not isinstance(normalized["retired"], list):
         raise ValueError("Modal manifest `retired` field must be a list")
+    normalized["retired"] = [
+        normalized_entry
+        for app in normalized["retired"]
+        if (normalized_entry := _normalize_app_reference(app)) is not None
+    ]
 
     return normalized
 
@@ -204,7 +211,9 @@ def cleanup_app_names_for_target(
             for app in normalized.get("retired", [])
             if isinstance(app, dict) and app.get("app_name")
         ]
-        return [name for name in names if name not in active_app_names]
+        return _unique_app_names(
+            name for name in names if name not in active_app_names
+        )
 
     if previous_manifest is not None:
         previous = normalize_manifest(previous_manifest)
@@ -230,6 +239,44 @@ def cleanup_app_names_for_target(
     return [app_name] if app_name else []
 
 
+def active_app_deployments(
+    manifest: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    normalized = normalize_manifest(manifest)
+    deployments_by_name: dict[str, dict[str, str]] = {}
+
+    for channel in ("current", "frontier"):
+        app_reference = normalized.get(channel)
+        if not app_reference:
+            continue
+        app_name = app_reference.get("app_name")
+        if not app_name:
+            continue
+        package_versions = _release_package_versions(
+            app_reference.get("package_versions", {})
+        )
+        if (
+            app_name in deployments_by_name
+            and deployments_by_name[app_name] != package_versions
+        ):
+            raise ValueError(
+                f"Active Modal app `{app_name}` has conflicting package "
+                "versions in current/frontier manifest entries"
+            )
+        deployments_by_name[app_name] = package_versions
+
+    if not deployments_by_name:
+        raise ValueError("No active Modal household API apps are configured")
+
+    return [
+        {
+            "app_name": app_name,
+            "package_versions": package_versions,
+        }
+        for app_name, package_versions in deployments_by_name.items()
+    ]
+
+
 def prune_cleaned_retired_apps(
     manifest: Mapping[str, Any],
     app_names: set[str],
@@ -240,6 +287,34 @@ def prune_cleaned_retired_apps(
         for app in normalized["retired"]
         if not isinstance(app, dict) or app.get("app_name") not in app_names
     ]
+    return normalized
+
+
+def rewrite_manifest_for_storage(
+    manifest: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    normalized = normalize_manifest(manifest)
+    active_app_names = {
+        app["app_name"]
+        for app in (
+            normalized.get("current"),
+            normalized.get("frontier"),
+        )
+        if isinstance(app, dict) and app.get("app_name")
+    }
+    seen_retired_app_names: set[str] = set()
+    retired = []
+
+    for app in normalized["retired"]:
+        app_name = app.get("app_name") if isinstance(app, dict) else None
+        if not app_name or app_name in active_app_names:
+            continue
+        if app_name in seen_retired_app_names:
+            continue
+        seen_retired_app_names.add(app_name)
+        retired.append(app)
+
+    normalized["retired"] = retired
     return normalized
 
 
@@ -257,6 +332,31 @@ def _retire_entry(
     retired_entry["retired_at"] = retired_at
     retired_entry["retirement_reason"] = reason
     return retired + [retired_entry]
+
+
+def _normalize_app_reference(entry: Any) -> dict[str, Any] | None:
+    if not entry:
+        return None
+    if not isinstance(entry, Mapping):
+        raise ValueError("Modal manifest app references must be mappings")
+
+    normalized = deepcopy(dict(entry))
+    normalized.pop("source_commit", None)
+    normalized["package_versions"] = _release_package_versions(
+        normalized.get("package_versions", {})
+    )
+    return normalized
+
+
+def _unique_app_names(app_names) -> list[str]:
+    seen = set()
+    unique_names = []
+    for app_name in app_names:
+        if app_name in seen:
+            continue
+        seen.add(app_name)
+        unique_names.append(app_name)
+    return unique_names
 
 
 def _slugify_version(version: str) -> str:

@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-config_json="${1:?Usage: modal-deploy-release.sh CONFIG_JSON}"
+config_json="${1:?Usage: modal-deploy-release.sh CONFIG_JSON [DEPLOY_MODE]}"
+deploy_mode="${2:-release}"
 output_file="${GITHUB_OUTPUT:-}"
+modal_extract_versions_script="${MODAL_EXTRACT_VERSIONS_SCRIPT:-.github/scripts/modal_extract_versions.py}"
+modal_sync_secrets_script="${MODAL_SYNC_SECRETS_SCRIPT:-.github/scripts/modal-sync-secrets.sh}"
+modal_active_worker_apps_script="${MODAL_ACTIVE_WORKER_APPS_SCRIPT:-.github/scripts/modal_active_worker_apps.py}"
+modal_cleanup_apps_script="${MODAL_CLEANUP_APPS_SCRIPT:-.github/scripts/modal-cleanup-apps.sh}"
+modal_get_url_script="${MODAL_GET_URL_SCRIPT:-.github/scripts/modal-get-url.sh}"
 
 require_env() {
   local missing=()
@@ -34,6 +40,18 @@ github_output() {
   fi
 }
 
+deploy_worker_app() {
+  local app_name="${1:?app name is required}"
+  local package_versions_json="${2:-}"
+
+  HOUSEHOLD_MODAL_WORKER_APP_NAME="${app_name}" \
+    HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON="${package_versions_json}" \
+    MODAL_ENVIRONMENT="${modal_environment}" \
+    uv run modal deploy \
+      --env "${modal_environment}" \
+      -m policyengine_household_api.modal_release.worker_app
+}
+
 require_env \
   MODAL_ENVIRONMENT \
   USER_ANALYTICS_DB_USERNAME \
@@ -41,6 +59,15 @@ require_env \
   USER_ANALYTICS_DB_CONNECTION_NAME
 
 modal_environment="${MODAL_ENVIRONMENT}"
+
+case "${deploy_mode}" in
+  code|release)
+    ;;
+  *)
+    echo "::error::Unsupported Modal deploy mode: ${deploy_mode}"
+    exit 1
+    ;;
+esac
 
 uv run alembic upgrade head
 analytics_database_revision="$(
@@ -54,7 +81,7 @@ github_output "analytics_database_revision" "${analytics_database_revision}"
 
 versions_output="$(mktemp)"
 trap 'rm -f "${versions_output}"' EXIT
-uv run python .github/scripts/modal_extract_versions.py \
+uv run python "${modal_extract_versions_script}" \
   --github-output "${versions_output}"
 if [ -n "${output_file}" ]; then
   cat "${versions_output}" >> "${output_file}"
@@ -64,34 +91,47 @@ worker_app_name="$(
     "${versions_output}"
 )"
 
-bash .github/scripts/modal-sync-secrets.sh
+bash "${modal_sync_secrets_script}"
 
-new_app_target="$(config_value new_app_target)"
-if [ "${new_app_target}" != "none" ]; then
-  HOUSEHOLD_MODAL_WORKER_APP_NAME="${worker_app_name}" \
-    MODAL_ENVIRONMENT="${modal_environment}" \
-    uv run modal deploy \
-      --env "${modal_environment}" \
-      -m policyengine_household_api.modal_release.worker_app
+if [ "${deploy_mode}" = "code" ]; then
+  active_apps_tsv="$(mktemp)"
+  trap 'rm -f "${versions_output}" "${active_apps_tsv}"' EXIT
+
+  uv run python "${modal_active_worker_apps_script}" \
+    --modal-environment "${modal_environment}" \
+    --output-tsv "${active_apps_tsv}"
+
+  while IFS=$'\t' read -r active_app_name package_versions_json; do
+    if [ -z "${active_app_name}" ]; then
+      continue
+    fi
+    deploy_worker_app "${active_app_name}" "${package_versions_json}"
+  done < "${active_apps_tsv}"
+else
+  new_app_target="$(config_value new_app_target)"
+  if [ "${new_app_target}" != "none" ]; then
+    deploy_worker_app "${worker_app_name}" ""
+  fi
+
+  uv run python -m policyengine_household_api.modal_release.update_manifest \
+    --config-json "${config_json}" \
+    --new-app-name "${worker_app_name}" \
+    --analytics-database-revision "${analytics_database_revision}" \
+    --modal-environment "${modal_environment}" \
+    --cleanup-output modal-cleanup.json \
+    --manifest-output modal-manifest.json
 fi
-
-uv run python -m policyengine_household_api.modal_release.update_manifest \
-  --config-json "${config_json}" \
-  --new-app-name "${worker_app_name}" \
-  --source-commit "${GITHUB_SHA}" \
-  --analytics-database-revision "${analytics_database_revision}" \
-  --modal-environment "${modal_environment}" \
-  --cleanup-output modal-cleanup.json \
-  --manifest-output modal-manifest.json
 
 uv run modal deploy \
   --env "${modal_environment}" \
   -m policyengine_household_api.modal_release.gateway_app
 
-cleanup_target="$(config_value cleanup_target)"
-if [ "${cleanup_target}" != "none" ]; then
-  bash .github/scripts/modal-cleanup-apps.sh modal-cleanup.json
+if [ "${deploy_mode}" = "release" ]; then
+  cleanup_target="$(config_value cleanup_target)"
+  if [ "${cleanup_target}" != "none" ]; then
+    bash "${modal_cleanup_apps_script}" modal-cleanup.json
+  fi
 fi
 
-gateway_url="$(bash .github/scripts/modal-get-url.sh)"
+gateway_url="$(bash "${modal_get_url_script}")"
 curl -fsS "${gateway_url}/liveness_check"
