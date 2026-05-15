@@ -1,3 +1,10 @@
+## [0.19.8] - 2026-05-15
+
+### Fixed
+
+- Avoid current/frontier manifest transitions for Modal code-only deploys.
+
+
 ## [0.19.7] - 2026-05-15
 
 ### Changed
