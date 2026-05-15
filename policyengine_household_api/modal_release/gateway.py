@@ -163,11 +163,13 @@ def resolve_app_for_request(
 def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
     import modal
 
-    worker_function = modal.Function.from_name(
+    worker_cls = modal.Cls.from_name(
         app_name,
-        "handle_household_request",
+        "HouseholdWorker",
     )
-    return _response_from_dispatch_result(worker_function.remote(payload))
+    return _response_from_dispatch_result(
+        worker_cls().handle_household_request.remote(payload)
+    )
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:

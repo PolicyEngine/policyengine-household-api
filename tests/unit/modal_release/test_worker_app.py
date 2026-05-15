@@ -44,3 +44,26 @@ def test_worker_function_options_do_not_keep_workers_warm_without_env(
 
     with pytest.raises(RuntimeError, match="MODAL_ENVIRONMENT"):
         worker_function_options(modal_environment=None)
+
+
+def test_worker_function_options_enable_memory_snapshot_in_all_envs(
+    worker_app,
+):
+    for environment in ("main", "staging", "testing"):
+        options = worker_app.worker_function_options(
+            modal_environment=environment
+        )
+        assert options["enable_memory_snapshot"] is True, (
+            f"enable_memory_snapshot must be True in `{environment}` "
+            "so cold starts restore from a memory snapshot instead of "
+            "re-running the ~45s policyengine import chain"
+        )
+
+
+def test_household_worker_exposes_snapshot_entrypoint(worker_app):
+    """The class must declare its snapshot-time hook so heavy imports
+    are captured in the memory snapshot rather than running per cold
+    start."""
+    worker_cls = worker_app.HouseholdWorker
+    assert hasattr(worker_cls, "load_flask_app")
+    assert hasattr(worker_cls, "handle_household_request")

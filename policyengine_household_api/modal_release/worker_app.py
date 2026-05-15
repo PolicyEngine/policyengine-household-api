@@ -45,6 +45,7 @@ def worker_function_options(
         "secrets": [household_api_secret()],
         "timeout": 180,
         "scaledown_window": 300,
+        "enable_memory_snapshot": True,
     }
     if environment == "main":
         options["min_containers"] = 3
@@ -53,9 +54,25 @@ def worker_function_options(
     return options
 
 
-@app.function(**worker_function_options())
-def handle_household_request(payload: dict[str, Any]) -> dict[str, Any]:
-    configure_google_credentials()
-    from policyengine_household_api.api import app as flask_app
+@app.cls(**worker_function_options())
+class HouseholdWorker:
+    """Worker class for handling household API requests.
 
-    return dispatch_to_flask_app(flask_app, payload)
+    Uses a Modal class with ``@modal.enter(snap=True)`` so the heavy Flask
+    app import runs at memory-snapshot creation time. Subsequent container
+    starts restore from the snapshot in seconds rather than re-running the
+    full policyengine country-package import chain on every cold start.
+    """
+
+    @modal.enter(snap=True)
+    def load_flask_app(self) -> None:
+        from policyengine_household_api.api import app as flask_app
+
+        self.flask_app = flask_app
+
+    @modal.method()
+    def handle_household_request(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        configure_google_credentials()
+        return dispatch_to_flask_app(self.flask_app, payload)
