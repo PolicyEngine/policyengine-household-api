@@ -10,6 +10,7 @@ from policyengine_household_api.constants import COUNTRIES
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
+    empty_manifest,
     normalize_manifest,
 )
 
@@ -109,11 +110,15 @@ def create_gateway_app(
 
 def load_modal_manifest() -> dict[str, Any]:
     import modal
+    from modal.exception import NotFoundError
 
-    manifest_dict = modal.Dict.from_name(
-        MANIFEST_DICT_NAME,
-        create_if_missing=True,
-    )
+    try:
+        manifest_dict = modal.Dict.from_name(
+            MANIFEST_DICT_NAME,
+            create_if_missing=False,
+        )
+    except NotFoundError:
+        return empty_manifest()
     return normalize_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
 
 
