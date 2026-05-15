@@ -17,7 +17,7 @@ def main() -> None:
     args = _parse_args()
     manifest_dict = modal.Dict.from_name(
         MANIFEST_DICT_NAME,
-        create_if_missing=True,
+        create_if_missing=False,
         environment_name=args.modal_environment,
     )
     deployments = active_app_deployments(manifest_dict.get(MANIFEST_DICT_KEY))

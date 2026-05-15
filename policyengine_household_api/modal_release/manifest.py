@@ -334,6 +334,7 @@ def rewrite_existing_manifest_for_storage(
             "Cannot rewrite a Modal release manifest without an active "
             "`current` or `frontier` app"
         )
+    active_app_deployments(rewritten_manifest)
     return rewritten_manifest
 
 

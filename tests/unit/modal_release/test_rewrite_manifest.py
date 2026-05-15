@@ -42,3 +42,22 @@ def test_rewrite_modal_manifest_writes_rewritten_manifest():
     assert rewritten["schema_version"] == 2
     assert rewritten["retired"] == []
     assert manifest_dict[MANIFEST_DICT_KEY] == rewritten
+
+
+def test_rewrite_modal_manifest_rejects_missing_active_package_versions_without_writing():
+    original_manifest = {
+        "schema_version": 1,
+        "current": {
+            "app_name": "current-app",
+            "package_versions": {"us": "1.691.1"},
+            "deployed_at": "2026-01-01T00:00:00+00:00",
+        },
+        "frontier": None,
+        "retired": [],
+    }
+    manifest_dict = {MANIFEST_DICT_KEY: original_manifest}
+
+    with pytest.raises(ValueError, match="must declare"):
+        rewrite_modal_manifest(manifest_dict)
+
+    assert manifest_dict[MANIFEST_DICT_KEY] == original_manifest
