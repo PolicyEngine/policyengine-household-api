@@ -19,7 +19,7 @@ block:
 modal_release:
   new_app_target: frontier
   promote_existing_frontier: true
-  cleanup_target: none
+  cleanup_target: retired
 ```
 
 Allowed values:
@@ -40,13 +40,15 @@ different deployment behavior:
 modal_release:
   new_app_target: frontier
   promote_existing_frontier: true
-  cleanup_target: none
+  cleanup_target: retired
 ```
 
 This deploys the new worker to `frontier`, promotes the previous `frontier` to
 `current`, and moves the previous `current` into the manifest's `retired`
-history. Retired apps are not deleted unless `cleanup_target: retired` is
-explicitly configured.
+history. The default weekly release shape uses `cleanup_target: retired`, so
+apps in the retired history are stopped after the manifest is updated. Use
+`cleanup_target: none` only when the user explicitly asks to preserve retired
+worker apps after release.
 
 Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
