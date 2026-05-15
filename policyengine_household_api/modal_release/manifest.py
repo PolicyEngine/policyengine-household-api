@@ -252,8 +252,10 @@ def active_app_deployments(
         app_name = app_reference.get("app_name")
         if not app_name:
             continue
-        package_versions = _release_package_versions(
-            app_reference.get("package_versions", {})
+        package_versions = _required_release_package_versions(
+            app_reference.get("package_versions", {}),
+            app_name=app_name,
+            channel=channel,
         )
         if (
             app_name in deployments_by_name
@@ -318,6 +320,23 @@ def rewrite_manifest_for_storage(
     return normalized
 
 
+def rewrite_existing_manifest_for_storage(
+    manifest: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not manifest:
+        raise ValueError("Cannot rewrite a missing Modal release manifest")
+
+    rewritten_manifest = rewrite_manifest_for_storage(manifest)
+    if not rewritten_manifest.get("current") and not rewritten_manifest.get(
+        "frontier"
+    ):
+        raise ValueError(
+            "Cannot rewrite a Modal release manifest without an active "
+            "`current` or `frontier` app"
+        )
+    return rewritten_manifest
+
+
 def _retire_entry(
     retired: list[dict[str, Any]],
     entry: Mapping[str, Any] | None,
@@ -367,8 +386,33 @@ def _slugify_version(version: str) -> str:
 def _release_package_versions(
     package_versions: Mapping[str, str],
 ) -> dict[str, str]:
+    if not isinstance(package_versions, Mapping):
+        raise ValueError("Modal manifest `package_versions` must be a mapping")
     return {
-        country: package_versions[country]
+        country: version
         for country in RELEASE_PACKAGE_VERSION_COUNTRIES
         if country in package_versions
+        and isinstance(version := package_versions[country], str)
+        and version
     }
+
+
+def _required_release_package_versions(
+    package_versions: Mapping[str, str],
+    *,
+    app_name: str,
+    channel: str,
+) -> dict[str, str]:
+    versions = _release_package_versions(package_versions)
+    missing_countries = [
+        country
+        for country in RELEASE_PACKAGE_VERSION_COUNTRIES
+        if country not in versions
+    ]
+    if missing_countries:
+        missing = ", ".join(missing_countries)
+        raise ValueError(
+            f"Active Modal app `{app_name}` in `{channel}` must declare "
+            f"release package version(s): {missing}"
+        )
+    return versions

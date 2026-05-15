@@ -9,6 +9,7 @@ from policyengine_household_api.modal_release.manifest import (
     cleanup_app_names_for_target,
     current_package_versions,
     normalize_manifest,
+    rewrite_existing_manifest_for_storage,
     rewrite_manifest_for_storage,
 )
 from policyengine_household_api.modal_release import (
@@ -292,6 +293,21 @@ def test_active_app_deployments_rejects_conflicting_active_app_versions():
         active_app_deployments(manifest)
 
 
+def test_active_app_deployments_requires_release_package_versions():
+    manifest = {
+        "schema_version": 2,
+        "current": {
+            **_app("current-app"),
+            "package_versions": {"us": "1.691.1"},
+        },
+        "frontier": None,
+        "retired": [],
+    }
+
+    with pytest.raises(ValueError, match="must declare"):
+        active_app_deployments(manifest)
+
+
 def test_rewrite_manifest_removes_active_and_duplicate_retired_apps():
     manifest = {
         "schema_version": 1,
@@ -312,3 +328,20 @@ def test_rewrite_manifest_removes_active_and_duplicate_retired_apps():
         "old-app",
         "older-app",
     ]
+
+
+def test_rewrite_existing_manifest_rejects_missing_manifest():
+    with pytest.raises(ValueError, match="missing Modal release manifest"):
+        rewrite_existing_manifest_for_storage(None)
+
+
+def test_rewrite_existing_manifest_rejects_manifest_without_active_apps():
+    manifest = {
+        "schema_version": 1,
+        "current": None,
+        "frontier": None,
+        "retired": [_app("old-app")],
+    }
+
+    with pytest.raises(ValueError, match="without an active"):
+        rewrite_existing_manifest_for_storage(manifest)

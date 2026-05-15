@@ -10,7 +10,7 @@ import modal
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
-    rewrite_manifest_for_storage,
+    rewrite_existing_manifest_for_storage,
 )
 
 
@@ -18,18 +18,23 @@ def main() -> None:
     args = _parse_args()
     manifest_dict = modal.Dict.from_name(
         MANIFEST_DICT_NAME,
-        create_if_missing=True,
+        create_if_missing=False,
         environment_name=args.modal_environment,
     )
-    rewritten_manifest = rewrite_manifest_for_storage(
-        manifest_dict.get(MANIFEST_DICT_KEY)
-    )
-    manifest_dict[MANIFEST_DICT_KEY] = rewritten_manifest
+    rewritten_manifest = rewrite_modal_manifest(manifest_dict)
 
     if args.manifest_output:
         _write_json(Path(args.manifest_output), rewritten_manifest)
 
     print(json.dumps(rewritten_manifest, indent=2, sort_keys=True))
+
+
+def rewrite_modal_manifest(manifest_dict) -> dict[str, Any]:
+    rewritten_manifest = rewrite_existing_manifest_for_storage(
+        manifest_dict.get(MANIFEST_DICT_KEY)
+    )
+    manifest_dict[MANIFEST_DICT_KEY] = rewritten_manifest
+    return rewritten_manifest
 
 
 def _parse_args() -> argparse.Namespace:
