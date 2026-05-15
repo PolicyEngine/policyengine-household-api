@@ -4,9 +4,8 @@ from pathlib import Path
 
 from policyengine_household_api.modal_release.gateway_app import (
     GATEWAY_APP_NAME,
-    GATEWAY_CUSTOM_DOMAIN,
     GATEWAY_WEB_ENDPOINT_LABEL,
-    gateway_custom_domains,
+    gateway_wsgi_app_options,
 )
 
 
@@ -14,22 +13,8 @@ def test_gateway_web_endpoint_label_is_short_and_stable():
     assert GATEWAY_WEB_ENDPOINT_LABEL == "household-api-gateway"
 
 
-def test_gateway_custom_domain_defaults_to_main_environment_only():
-    assert gateway_custom_domains(modal_environment="main") == (
-        GATEWAY_CUSTOM_DOMAIN,
-    )
-    assert gateway_custom_domains(modal_environment="staging") == ()
-    assert gateway_custom_domains(modal_environment="testing") == ()
-
-
-def test_gateway_custom_domain_accepts_explicit_override():
-    assert gateway_custom_domains(
-        custom_domains="example.com, alt.example.com"
-    ) == (
-        "example.com",
-        "alt.example.com",
-    )
-    assert gateway_custom_domains(custom_domains="") == ()
+def test_gateway_wsgi_app_options_do_not_register_custom_domains():
+    assert gateway_wsgi_app_options() == {"label": GATEWAY_WEB_ENDPOINT_LABEL}
 
 
 def test_gateway_web_endpoint_label_fits_modal_hostname_limit():
