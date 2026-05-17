@@ -86,10 +86,14 @@ class HouseholdWorker:
         # captured in the snapshot hold sockets that closed at snapshot
         # time. Reset them so the first request opens fresh connections.
         #
-        # Also re-runs `configure_google_credentials()` in case Modal did
-        # not preserve `/tmp` across snapshots and the credentials file is
-        # missing on the restored filesystem.
+        # Also force-recreate the Google credentials file: Modal preserves
+        # env vars across snapshot restore, but /tmp is not guaranteed to
+        # be preserved. Without popping the env var first,
+        # configure_google_credentials() would short-circuit on the
+        # surviving GOOGLE_APPLICATION_CREDENTIALS and leave it pointing
+        # at a missing file, breaking analytics DB reconnects.
         # See: https://modal.com/docs/guide/memory-snapshot
+        os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
         configure_google_credentials()
 
         from policyengine_household_api.data import analytics_setup
