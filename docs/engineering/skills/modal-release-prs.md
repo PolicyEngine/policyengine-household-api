@@ -121,7 +121,8 @@ Modal deployment history for deploy provenance.
 
 For `/calculate` and `/calculate_demo`, the Modal gateway reads the top-level
 request field `version` and removes it before dispatching to the worker's
-`handle_household_request` Modal function. Accepted values are:
+`HouseholdWorker.handle_household_request` Modal class method. Accepted
+values are:
 
 - omitted or `current`: route to the current worker
 - `frontier`: route to the frontier worker

@@ -45,6 +45,7 @@ def worker_function_options(
         "secrets": [household_api_secret()],
         "timeout": 180,
         "scaledown_window": 300,
+        "enable_memory_snapshot": True,
     }
     if environment == "main":
         options["min_containers"] = 3
@@ -53,9 +54,69 @@ def worker_function_options(
     return options
 
 
-@app.function(**worker_function_options())
-def handle_household_request(payload: dict[str, Any]) -> dict[str, Any]:
-    configure_google_credentials()
-    from policyengine_household_api.api import app as flask_app
+@app.cls(**worker_function_options())
+class HouseholdWorker:
+    """Worker class for handling household API requests.
 
-    return dispatch_to_flask_app(flask_app, payload)
+    Uses a Modal class with ``@modal.enter(snap=True)`` so the heavy Flask
+    app import runs at memory-snapshot creation time. Subsequent container
+    starts restore from the snapshot in seconds rather than re-running the
+    full policyengine country-package import chain on every cold start.
+    """
+
+    @modal.enter(snap=True)
+    def load_flask_app(self) -> None:
+        # Importing `policyengine_household_api.api` runs
+        # `initialize_analytics_db_if_enabled` at module level, which opens a
+        # Cloud SQL connection in environments where analytics is enabled.
+        # That connection needs GOOGLE_APPLICATION_CREDENTIALS, set by
+        # `configure_google_credentials()`. Configure credentials first so the
+        # snapshot-time import can succeed even before any request method runs.
+        configure_google_credentials()
+
+        from policyengine_household_api.api import app as flask_app
+
+        self.flask_app = flask_app
+
+    @modal.enter(snap=False)
+    def reset_post_snapshot_state(self) -> None:
+        # Runs on every container start AFTER snapshot restore. Memory
+        # snapshots preserve Python object state but not live network
+        # connections; the SQLAlchemy pool and the Cloud SQL Connector
+        # captured in the snapshot hold sockets that closed at snapshot
+        # time. Reset them so the first request opens fresh connections.
+        #
+        # Also force-recreate the Google credentials file: Modal preserves
+        # env vars across snapshot restore, but /tmp is not guaranteed to
+        # be preserved. Without popping the env var first,
+        # configure_google_credentials() would short-circuit on the
+        # surviving GOOGLE_APPLICATION_CREDENTIALS and leave it pointing
+        # at a missing file, breaking analytics DB reconnects.
+        # See: https://modal.com/docs/guide/memory-snapshot
+        os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+        configure_google_credentials()
+
+        from policyengine_household_api.data import analytics_setup
+
+        if not analytics_setup.is_analytics_enabled():
+            return
+
+        analytics_setup.cleanup()
+
+        try:
+            with self.flask_app.app_context():
+                analytics_setup.db.engine.dispose()
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Failed to dispose analytics DB engine after snapshot "
+                "restore; subsequent queries may reconnect lazily: %s",
+                exc,
+            )
+
+    @modal.method()
+    def handle_household_request(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        return dispatch_to_flask_app(self.flask_app, payload)

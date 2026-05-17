@@ -52,6 +52,38 @@ def test_worker_function_options_do_not_keep_workers_warm_without_env(
         worker_function_options(modal_environment=None)
 
 
+def test_worker_function_options_enable_memory_snapshot_in_all_envs(
+    worker_app,
+):
+    for environment in ("main", "staging", "testing"):
+        options = worker_app.worker_function_options(
+            modal_environment=environment
+        )
+        assert options["enable_memory_snapshot"] is True, (
+            f"enable_memory_snapshot must be True in `{environment}` "
+            "so cold starts restore from a memory snapshot instead of "
+            "re-running the ~45s policyengine import chain"
+        )
+
+
+def test_household_worker_exposes_snapshot_entrypoint(worker_app):
+    """The class must declare its snapshot-time hook so heavy imports
+    are captured in the memory snapshot rather than running per cold
+    start."""
+    worker_cls = worker_app.HouseholdWorker
+    assert hasattr(worker_cls, "load_flask_app")
+    assert hasattr(worker_cls, "handle_household_request")
+
+
+def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
+    """The class must declare a post-restore hook so network state
+    captured in the memory snapshot (SQLAlchemy pool, Cloud SQL
+    Connector) gets reset on every container start. Modal preserves
+    Python object state but not live TCP sockets across snapshots."""
+    worker_cls = worker_app.HouseholdWorker
+    assert hasattr(worker_cls, "reset_post_snapshot_state")
+
+
 def test_country_package_install_specs_use_release_package_versions_only():
     assert country_package_install_specs(
         {
