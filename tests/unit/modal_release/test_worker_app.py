@@ -84,19 +84,30 @@ def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
     assert hasattr(worker_cls, "reset_post_snapshot_state")
 
 
-def test_worker_function_options_allow_concurrent_inputs_in_all_envs(
-    worker_app,
-):
+def test_worker_concurrency_options_set_max_inputs(worker_app):
     """Each container processes up to 5 requests in parallel. Keeping this
     consistent across environments ensures staging behavior mirrors
     production so concurrency-related issues surface in staging tests."""
+    assert worker_app.worker_concurrency_options()["max_inputs"] == 5
+
+
+def test_worker_concurrency_options_set_target_inputs(worker_app):
+    """`target_inputs=4` keeps the autoscaler aiming for 80% steady-state
+    utilisation, so each container retains a free slot to absorb a
+    single-request spike without waiting on a cold start."""
+    assert worker_app.worker_concurrency_options()["target_inputs"] == 4
+
+
+def test_worker_function_options_do_not_use_deprecated_concurrency_kwarg(
+    worker_app,
+):
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
             modal_environment=environment
         )
-        assert options["allow_concurrent_inputs"] == 5, (
-            f"allow_concurrent_inputs must be 5 in `{environment}` so each "
-            "container handles 5 concurrent requests"
+        assert "allow_concurrent_inputs" not in options, (
+            "`allow_concurrent_inputs` is deprecated; use "
+            f"`@modal.concurrent` for `{environment}` worker concurrency"
         )
 
 
