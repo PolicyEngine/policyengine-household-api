@@ -1,3 +1,10 @@
+## [0.19.10] - 2026-05-17
+
+### Changed
+
+- Enable Modal memory snapshots on the household API worker so cold starts restore the pre-loaded Flask app and policyengine country systems instead of re-running the ~45s import chain on every fresh container.
+
+
 ## [0.19.9] - 2026-05-15
 
 ### Fixed
