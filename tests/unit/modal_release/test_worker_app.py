@@ -84,6 +84,37 @@ def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
     assert hasattr(worker_cls, "reset_post_snapshot_state")
 
 
+def test_worker_function_options_allow_concurrent_inputs_in_all_envs(
+    worker_app,
+):
+    """Each container processes up to 5 requests in parallel. Keeping this
+    consistent across environments ensures staging behavior mirrors
+    production so concurrency-related issues surface in staging tests."""
+    for environment in ("main", "staging", "testing"):
+        options = worker_app.worker_function_options(
+            modal_environment=environment
+        )
+        assert options["allow_concurrent_inputs"] == 5, (
+            f"allow_concurrent_inputs must be 5 in `{environment}` so each "
+            "container handles 5 concurrent requests"
+        )
+
+
+def test_worker_function_options_max_containers_capped_in_all_envs(
+    worker_app,
+):
+    """A hard ceiling on autoscale prevents runaway scaling from a buggy
+    client or traffic spike from racking up unbounded cost."""
+    for environment in ("main", "staging", "testing"):
+        options = worker_app.worker_function_options(
+            modal_environment=environment
+        )
+        assert options["max_containers"] == 100, (
+            f"max_containers must be 100 in `{environment}` to bound "
+            "autoscale cost"
+        )
+
+
 def test_country_package_install_specs_use_release_package_versions_only():
     assert country_package_install_specs(
         {
