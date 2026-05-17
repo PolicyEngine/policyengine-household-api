@@ -33,8 +33,8 @@ Normal PR validation rejects `cleanup_target: current` and
 regular code PR. `promote_existing_frontier: true` is only valid when
 `new_app_target: frontier`.
 
-Use the default weekly release shape unless the user explicitly asks for a
-different deployment behavior:
+Use this release shape for the normal weekly country-package release unless
+the user explicitly asks for different current/frontier behavior:
 
 ```yaml
 modal_release:
@@ -45,22 +45,27 @@ modal_release:
 
 This deploys the new worker to `frontier`, promotes the previous `frontier` to
 `current`, and moves the previous `current` into the manifest's `retired`
-history. The default weekly release shape uses `cleanup_target: retired`, so
+history. This release shape uses `cleanup_target: retired`, so
 apps in the retired history are stopped after the manifest is updated. Use
 `cleanup_target: none` only when the user explicitly asks to preserve retired
 worker apps after release.
 
 Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
-The PR-body YAML block is required only when the PR changes a release-significant
-country package version, meaning `policyengine_us` or `policyengine_uk` in
-`pyproject.toml`. Code-only changes, including changes to Modal release code,
-must not require a `modal_release` block unless those US or UK package versions
-also change.
+The PR-body YAML block is the only automatic signal that a deployment should
+promote, retire, clean up, or otherwise mutate the current/frontier manifest.
+It is required when the PR changes a release-significant country package
+version, meaning `policyengine_us` or `policyengine_uk` in `pyproject.toml`.
+Code-only changes, including changes to Modal release code, must not require a
+`modal_release` block unless those US or UK package versions also change.
 The release workflow deploys from the finalized
-`Update PolicyEngine Household API` versioning commit; ordinary push events do
-not deploy Modal apps. Manual `workflow_dispatch` runs use the default weekly
-release shape.
+`Update PolicyEngine Household API` versioning commit. When that commit has no
+PR-body `modal_release` block, the workflow performs a code-only deploy: it
+redeploys the active `current` and `frontier` worker apps already named in the
+manifest, preserving each app's manifest-declared US/UK package versions, then
+redeploys the gateway without changing the manifest. Ordinary push events do
+not deploy Modal apps. Manual `workflow_dispatch` runs are explicit release
+operations and use the weekly release shape by default.
 
 The household API deploy pipeline is Modal-only. Do not add App Engine, GCP
 Artifact Registry, Docker image, or GCP traffic-promotion deployment steps to
@@ -78,6 +83,13 @@ Canada, Nigeria, or Israel package versions in Modal worker app names, manifest
 package version references, or release validation. Those countries may still be
 served by the worker, but their package versions must not control a Modal
 release.
+
+The canonical manifest schema version is `1`. Runtime code should validate that
+stored manifests already match this schema; do not add legacy normalization to
+the gateway, release updater, or active-app discovery paths. The manifest
+rewrite command is the only bridge from older stored shapes: it copies the old
+`current` and `frontier` app references into canonical schema version `1`,
+drops retired history, and removes non-release package keys.
 
 Manual workflow dispatch exposes the same `new_app_target`,
 `promote_existing_frontier`, and `cleanup_target` settings as the PR-body YAML
@@ -102,6 +114,8 @@ the shared database.
 
 Each manifest app reference records the worker's minimum required analytics
 revision and the database revision observed after the release migration step.
+The manifest must not include source commit metadata; use GitHub Actions and
+Modal deployment history for deploy provenance.
 
 ## Request Routing
 

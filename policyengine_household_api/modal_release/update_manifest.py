@@ -13,7 +13,7 @@ from policyengine_household_api.modal_release.manifest import (
     apply_release_config,
     build_app_reference,
     cleanup_app_names_for_target,
-    normalize_manifest,
+    validate_manifest,
 )
 from policyengine_household_api.modal_release.release_config import (
     ModalReleaseConfig,
@@ -32,13 +32,12 @@ def main() -> None:
         create_if_missing=True,
         environment_name=args.modal_environment,
     )
-    current_manifest = normalize_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
+    current_manifest = validate_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
 
     new_app = None
     if config.deploys_new_app:
         new_app = build_app_reference(
             app_name=args.new_app_name,
-            source_commit=args.source_commit,
             analytics_database_revision=args.analytics_database_revision,
         )
 
@@ -72,7 +71,6 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--config-json", required=True)
     parser.add_argument("--new-app-name")
-    parser.add_argument("--source-commit")
     parser.add_argument("--analytics-database-revision")
     parser.add_argument("--modal-environment")
     parser.add_argument("--cleanup-output")

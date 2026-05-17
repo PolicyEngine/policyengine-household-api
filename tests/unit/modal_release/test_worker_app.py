@@ -2,6 +2,12 @@ import importlib
 
 import pytest
 
+from policyengine_household_api.modal_release.images import (
+    PACKAGE_VERSIONS_ENV,
+    country_package_install_specs,
+    deployment_package_versions_from_env,
+)
+
 
 pytestmark = pytest.mark.usefixtures("worker_app")
 
@@ -76,3 +82,37 @@ def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
     Python object state but not live TCP sockets across snapshots."""
     worker_cls = worker_app.HouseholdWorker
     assert hasattr(worker_cls, "reset_post_snapshot_state")
+
+
+def test_country_package_install_specs_use_release_package_versions_only():
+    assert country_package_install_specs(
+        {
+            "uk": "2.31.0",
+            "us": "1.691.1",
+            "ca": "0.96.3",
+        }
+    ) == [
+        "policyengine_uk==2.31.0",
+        "policyengine_us==1.691.1",
+    ]
+
+
+def test_deployment_package_versions_from_env(monkeypatch):
+    monkeypatch.setenv(
+        PACKAGE_VERSIONS_ENV,
+        '{"uk":"2.31.0","us":"1.691.1","ca":"0.96.3"}',
+    )
+
+    assert deployment_package_versions_from_env() == {
+        "uk": "2.31.0",
+        "us": "1.691.1",
+    }
+
+
+def test_deployment_package_versions_from_env_rejects_non_object(
+    monkeypatch,
+):
+    monkeypatch.setenv(PACKAGE_VERSIONS_ENV, '["us"]')
+
+    with pytest.raises(RuntimeError, match="JSON object"):
+        deployment_package_versions_from_env()

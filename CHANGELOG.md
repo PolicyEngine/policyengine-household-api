@@ -1,3 +1,17 @@
+## [0.19.9] - 2026-05-15
+
+### Fixed
+
+- Use uv-compatible package overlays for Modal code-only worker deploys.
+
+
+## [0.19.8] - 2026-05-15
+
+### Fixed
+
+- Avoid current/frontier manifest transitions for Modal code-only deploys.
+
+
 ## [0.19.7] - 2026-05-15
 
 ### Changed
