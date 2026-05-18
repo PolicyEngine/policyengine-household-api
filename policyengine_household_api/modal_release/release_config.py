@@ -38,6 +38,7 @@ class ModalReleaseConfigError(ValueError):
 class NewAppTarget(StrEnum):
     FRONTIER = "frontier"
     CURRENT = "current"
+    BOTH = "both"
     NONE = "none"
 
 

@@ -29,6 +29,22 @@ def test_parse_modal_release_config_from_fenced_yaml():
     assert config.promote_existing_frontier is True
 
 
+def test_parse_accepts_both_target_without_promotion():
+    config = parse_modal_release_config_from_body(
+        """
+```yaml
+modal_release:
+  new_app_target: both
+  promote_existing_frontier: false
+  cleanup_target: retired
+```
+"""
+    )
+
+    assert config.new_app_target == NewAppTarget.BOTH
+    assert config.promote_existing_frontier is False
+
+
 def test_parse_rejects_missing_config():
     with pytest.raises(ModalReleaseConfigError, match="modal_release"):
         parse_modal_release_config_from_body("## Summary\n")
@@ -51,6 +67,20 @@ def test_parse_rejects_invalid_promotion_combination():
 ```yaml
 modal_release:
   new_app_target: current
+  promote_existing_frontier: true
+  cleanup_target: none
+```
+"""
+        )
+
+
+def test_parse_rejects_both_target_with_promotion():
+    with pytest.raises(ModalReleaseConfigError, match="may only be true"):
+        parse_modal_release_config_from_body(
+            """
+```yaml
+modal_release:
+  new_app_target: both
   promote_existing_frontier: true
   cleanup_target: none
 ```

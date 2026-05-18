@@ -4,7 +4,9 @@ from pathlib import Path
 
 from policyengine_household_api.modal_release.gateway_app import (
     GATEWAY_APP_NAME,
+    GATEWAY_CUSTOM_DOMAIN,
     GATEWAY_WEB_ENDPOINT_LABEL,
+    gateway_custom_domains,
     gateway_wsgi_app_options,
 )
 
@@ -13,8 +15,31 @@ def test_gateway_web_endpoint_label_is_short_and_stable():
     assert GATEWAY_WEB_ENDPOINT_LABEL == "household-api-gateway"
 
 
-def test_gateway_wsgi_app_options_do_not_register_custom_domains():
-    assert gateway_wsgi_app_options() == {"label": GATEWAY_WEB_ENDPOINT_LABEL}
+def test_gateway_wsgi_app_options_registers_production_custom_domain():
+    assert gateway_wsgi_app_options(modal_environment="main") == {
+        "label": GATEWAY_WEB_ENDPOINT_LABEL,
+        "custom_domains": (GATEWAY_CUSTOM_DOMAIN,),
+    }
+
+
+def test_gateway_wsgi_app_options_do_not_register_staging_custom_domains():
+    assert gateway_wsgi_app_options(modal_environment="staging") == {
+        "label": GATEWAY_WEB_ENDPOINT_LABEL
+    }
+
+
+def test_gateway_custom_domain_override_supports_multiple_domains():
+    assert gateway_custom_domains(
+        modal_environment="staging",
+        custom_domains=" api.example.org, secondary.example.org ",
+    ) == ("api.example.org", "secondary.example.org")
+
+
+def test_gateway_custom_domain_override_can_disable_domains():
+    assert gateway_wsgi_app_options(
+        modal_environment="main",
+        custom_domains="",
+    ) == {"label": GATEWAY_WEB_ENDPOINT_LABEL}
 
 
 def test_gateway_web_endpoint_label_fits_modal_hostname_limit():

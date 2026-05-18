@@ -84,6 +84,43 @@ def test_direct_current_release_retires_current_and_frontier():
     ]
 
 
+def test_both_release_sets_current_and_frontier_to_new_app():
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app", us="1.690.0"),
+        "frontier": _app("frontier-app"),
+        "retired": [],
+    }
+    config = ModalReleaseConfig(
+        new_app_target=NewAppTarget.BOTH,
+        promote_existing_frontier=False,
+        cleanup_target=CleanupTarget.RETIRED,
+    )
+    new_app = _app("new-shared-app", uk="2.88.18")
+
+    updated = apply_release_config(
+        manifest,
+        config,
+        new_app=new_app,
+        timestamp="2026-01-02T00:00:00+00:00",
+    )
+
+    assert updated["current"] == new_app
+    assert updated["frontier"] == new_app
+    assert [app["app_name"] for app in updated["retired"]] == [
+        "current-app",
+        "frontier-app",
+    ]
+    assert [app["retirement_reason"] for app in updated["retired"]] == [
+        "replaced-current",
+        "replaced-frontier",
+    ]
+    assert cleanup_app_names_for_target(
+        updated,
+        CleanupTarget.RETIRED,
+    ) == ["current-app", "frontier-app"]
+
+
 def test_retired_cleanup_excludes_active_apps():
     manifest = {
         "schema_version": 1,

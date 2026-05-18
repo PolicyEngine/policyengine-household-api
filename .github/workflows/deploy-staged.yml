@@ -14,6 +14,7 @@ on:
         options:
           - frontier
           - current
+          - both
           - none
       promote_existing_frontier:
         description: "Move the existing frontier worker to current before deploying a new frontier"
@@ -264,6 +265,9 @@ jobs:
           bash .github/scripts/modal-deploy-release.sh \
             '${{ needs.resolve-modal-release-config.outputs.config_json }}' \
             '${{ needs.resolve-modal-release-config.outputs.deploy_mode }}'
+
+      - name: Verify production custom domain
+        run: bash .github/scripts/modal-custom-domain-smoke.sh
 
   publish:
     name: Publish to PyPI

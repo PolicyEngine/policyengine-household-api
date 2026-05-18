@@ -24,7 +24,7 @@ modal_release:
 
 Allowed values:
 
-- `new_app_target`: `frontier`, `current`, or `none`
+- `new_app_target`: `frontier`, `current`, `both`, or `none`
 - `promote_existing_frontier`: `true` or `false`
 - `cleanup_target`: `none`, `retired`, `frontier`, or `current`
 
@@ -49,6 +49,20 @@ history. This release shape uses `cleanup_target: retired`, so
 apps in the retired history are stopped after the manifest is updated. Use
 `cleanup_target: none` only when the user explicitly asks to preserve retired
 worker apps after release.
+
+Use this release shape when the newly built worker must become both `current`
+and `frontier` in a single release:
+
+```yaml
+modal_release:
+  new_app_target: both
+  promote_existing_frontier: false
+  cleanup_target: retired
+```
+
+This deploys one new worker app, writes the same app reference into both
+`current` and `frontier`, and moves the previous active workers into the
+manifest's `retired` history.
 
 Do not use PR labels, branch names, model-specific tags, or title prefixes to
 control Modal release behavior. The PR body YAML block is the source of truth.
