@@ -16,7 +16,7 @@ for app_name in payload.get("app_names", []):
   if [[ -z "${app_name}" ]]; then
     continue
   fi
-  if ! output="$(uv run modal app stop --env "${environment}" "${app_name}" 2>&1)"; then
+  if ! output="$(uv run modal app stop --yes --env "${environment}" "${app_name}" 2>&1)"; then
     echo "${output}"
     if [[ "${output}" == *"already stopped"* ]]; then
       continue
