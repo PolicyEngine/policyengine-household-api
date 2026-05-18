@@ -1,3 +1,10 @@
+## [0.20.3] - 2026-05-18
+
+### Changed
+
+- Enable Modal `@modal.concurrent(max_inputs=5, target_inputs=4)` (5x warm-pool capacity, autoscaler aims for 80% steady-state utilisation, no new container cost) and cap autoscale at `max_containers=100` to prevent runaway scaling.
+
+
 ## [0.20.2] - 2026-05-18
 
 ### Fixed
