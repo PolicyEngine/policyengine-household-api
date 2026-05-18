@@ -207,6 +207,22 @@ def apply_release_config(
         next_manifest["current"] = deepcopy(dict(new_app or {}))
         next_manifest["frontier"] = None
 
+    elif config.new_app_target == NewAppTarget.BOTH:
+        retired = _retire_entry(
+            retired,
+            next_manifest.get("current"),
+            retired_at=retired_at,
+            reason="replaced-current",
+        )
+        retired = _retire_entry(
+            retired,
+            next_manifest.get("frontier"),
+            retired_at=retired_at,
+            reason="replaced-frontier",
+        )
+        next_manifest["current"] = deepcopy(dict(new_app or {}))
+        next_manifest["frontier"] = deepcopy(dict(new_app or {}))
+
     next_manifest["retired"] = retired
     return validate_manifest(next_manifest)
 
