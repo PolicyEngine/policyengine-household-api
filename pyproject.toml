@@ -25,7 +25,7 @@ dependencies = [
     "policyengine_canada==0.96.3",
     "policyengine-ng==0.5.1",
     "policyengine-il==0.1.0",
-    "policyengine_uk==2.31.0",
+    "policyengine_uk==2.88.18",
     "policyengine_us==1.691.1",
     "pyjwt",
     "pyyaml>=6",
