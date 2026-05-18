@@ -1,3 +1,14 @@
+## [0.20.0] - 2026-05-18
+
+### Added
+
+- Enable the production Modal gateway custom domain and verify it during deployment.
+
+### Changed
+
+- Allow Modal releases to launch the same newly built worker on both `current` and `frontier`.
+
+
 ## [0.19.10] - 2026-05-17
 
 ### Changed
