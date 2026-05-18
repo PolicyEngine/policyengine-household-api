@@ -1,3 +1,10 @@
+## [0.20.2] - 2026-05-18
+
+### Fixed
+
+- Remove the production custom-domain smoke gate from Modal deployment so code can deploy before DNS cutover.
+
+
 ## [0.20.1] - 2026-05-18
 
 ### Fixed
