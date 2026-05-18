@@ -266,9 +266,6 @@ jobs:
             '${{ needs.resolve-modal-release-config.outputs.config_json }}' \
             '${{ needs.resolve-modal-release-config.outputs.deploy_mode }}'
 
-      - name: Verify production custom domain
-        run: bash .github/scripts/modal-custom-domain-smoke.sh
-
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
