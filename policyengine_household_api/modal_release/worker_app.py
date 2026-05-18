@@ -46,6 +46,13 @@ def worker_function_options(
         "timeout": 180,
         "scaledown_window": 300,
         "enable_memory_snapshot": True,
+        # Hard cap on autoscale. Without this Modal is bounded only by the
+        # workspace quota, so a runaway traffic spike (or a buggy partner
+        # client) could scale to hundreds of containers and rack up cost.
+        # 100 covers any realistic partner burst we expect today (peak 100
+        # concurrent x 5 inputs = 500 in-flight) while keeping accidents
+        # bounded.
+        "max_containers": 100,
     }
     if environment == "main":
         options["min_containers"] = 3
@@ -54,7 +61,21 @@ def worker_function_options(
     return options
 
 
+def worker_concurrency_options() -> dict[str, int]:
+    # Each container processes up to 5 requests in parallel (`max_inputs`).
+    # With ~3s of CPU per request on a 1-core container, 5-way sharing gives
+    # ~15s wall-time per request when fully saturated. Multiplies effective
+    # warm-pool capacity 5x with no additional container cost.
+    #
+    # `target_inputs=4` is the autoscaler's steady-state goal: keep average
+    # utilisation at 80% so each container retains one free slot to absorb
+    # single-request spikes without waiting on a cold start. Containers still
+    # burst up to `max_inputs=5` under load before queueing.
+    return {"max_inputs": 5, "target_inputs": 4}
+
+
 @app.cls(**worker_function_options())
+@modal.concurrent(**worker_concurrency_options())
 class HouseholdWorker:
     """Worker class for handling household API requests.
 
