@@ -1,3 +1,10 @@
+## [0.20.1] - 2026-05-18
+
+### Fixed
+
+- Make Modal retired-app cleanup non-interactive in CI.
+
+
 ## [0.20.0] - 2026-05-18
 
 ### Added
