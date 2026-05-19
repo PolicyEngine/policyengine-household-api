@@ -1,5 +1,8 @@
 import pytest
 
+from policyengine_household_api.data.analytics_migration import (
+    ANALYTICS_ALEMBIC_MINIMUM_REVISION,
+)
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_SCHEMA_VERSION,
     active_app_deployments,
@@ -198,7 +201,10 @@ def test_app_reference_includes_analytics_migration_metadata():
         analytics_database_revision="20260512_0003",
     )
 
-    assert app["analytics_migration_minimum_revision"] == "20260512_0003"
+    assert (
+        app["analytics_migration_minimum_revision"]
+        == ANALYTICS_ALEMBIC_MINIMUM_REVISION
+    )
     assert app["analytics_database_revision"] == "20260512_0003"
     assert "source_commit" not in app
 
