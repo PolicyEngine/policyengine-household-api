@@ -708,6 +708,18 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: requested_version
+          in: query
+          description: Optional filter for the Modal request version selector, such as current, frontier, or an exact package version.
+          required: false
+          schema:
+            type: string
+        - name: resolved_channel
+          in: query
+          description: Optional filter for the Modal channel that served the request.
+          required: false
+          schema:
+            $ref: "#/components/schemas/CalculateAnalyticsResolvedChannel"
         - name: unique
           in: query
           description: When true, return one row per unique variable key instead of one row per calculate request.
@@ -739,6 +751,8 @@ paths:
                     message: null
                     start_time: "2026-05-07T00:00:00Z"
                     end_time: "2026-05-13T00:00:00Z"
+                    requested_version: null
+                    resolved_channel: null
                     unique: false
                     requests:
                       - request_uuid: "018f79e7-6ee3-7621-9eda-6d29cf0cf910"
@@ -746,6 +760,8 @@ paths:
                         api_version: "0.17.0"
                         country_id: us
                         model_version: "1.691.1"
+                        requested_version: frontier
+                        resolved_channel: frontier
                         endpoint: calculate
                         method: POST
                         response_status_code: 200
@@ -769,6 +785,8 @@ paths:
                     message: null
                     start_time: null
                     end_time: null
+                    requested_version: null
+                    resolved_channel: null
                     unique: true
                     unique_keys:
                       - variable_name: age
@@ -1311,6 +1329,15 @@ components:
           type: string
           format: date-time
           nullable: true
+        requested_version:
+          type: string
+          nullable: true
+        resolved_channel:
+          type: string
+          nullable: true
+          enum:
+            - current
+            - frontier
         unique:
           type: boolean
         requests:
@@ -1338,6 +1365,15 @@ components:
         model_version:
           type: string
           nullable: true
+        requested_version:
+          type: string
+          nullable: true
+        resolved_channel:
+          type: string
+          nullable: true
+          enum:
+            - current
+            - frontier
         endpoint:
           type: string
           nullable: true
@@ -1410,6 +1446,11 @@ components:
         last_seen:
           type: string
           format: date-time
+    CalculateAnalyticsResolvedChannel:
+      type: string
+      enum:
+        - current
+        - frontier
     CalculateAnalyticsVariableSource:
       type: string
       enum:

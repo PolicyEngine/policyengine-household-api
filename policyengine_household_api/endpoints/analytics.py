@@ -16,6 +16,7 @@ from policyengine_household_api.data.models import (
     CalculateRequest,
     CalculateRequestVariable,
 )
+from policyengine_household_api.models.analytics import ModalResolvedChannel
 
 
 DEFAULT_REQUEST_LIMIT = 1_000
@@ -28,6 +29,8 @@ FALSE_VALUES = {"0", "false", "no"}
 class CalculateAnalyticsQuery:
     start_time: datetime | None
     end_time: datetime | None
+    requested_version: str | None
+    resolved_channel: str | None
     unique: bool
     limit: int
 
@@ -50,6 +53,8 @@ def get_calculate_analytics_requests() -> Response:
         "message": None,
         "start_time": _datetime_to_json(query.start_time),
         "end_time": _datetime_to_json(query.end_time),
+        "requested_version": query.requested_version,
+        "resolved_channel": query.resolved_channel,
         "unique": query.unique,
     }
     if query.unique:
@@ -97,6 +102,12 @@ def _parse_query_args() -> CalculateAnalyticsQuery:
     return CalculateAnalyticsQuery(
         start_time=start_time,
         end_time=end_time,
+        requested_version=_parse_optional_string(
+            request.args.get("requested_version")
+        ),
+        resolved_channel=_parse_resolved_channel(
+            request.args.get("resolved_channel")
+        ),
         unique=_parse_bool(request.args.get("unique"), default=False),
         limit=_parse_limit(request.args.get("limit")),
     )
@@ -139,6 +150,23 @@ def _parse_bool(value: str | None, *, default: bool) -> bool:
     raise ValueError("`unique` must be true or false")
 
 
+def _parse_optional_string(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _parse_resolved_channel(value: str | None) -> str | None:
+    value = _parse_optional_string(value)
+    if value is None:
+        return None
+    if value not in {channel.value for channel in ModalResolvedChannel}:
+        allowed = ", ".join(channel.value for channel in ModalResolvedChannel)
+        raise ValueError(f"`resolved_channel` must be one of: {allowed}")
+    return value
+
+
 def _parse_limit(value: str | None) -> int:
     if value is None:
         return DEFAULT_REQUEST_LIMIT
@@ -156,7 +184,7 @@ def _parse_limit(value: str | None) -> int:
 def _calculate_requests(
     query: CalculateAnalyticsQuery,
 ) -> list[dict[str, Any]]:
-    request_query = _apply_time_filters(CalculateRequest.query, query)
+    request_query = _apply_filters(CalculateRequest.query, query)
     calculate_requests = (
         request_query.order_by(CalculateRequest.created_at.desc())
         .limit(query.limit)
@@ -204,7 +232,7 @@ def _variables_by_request_id(
 def _unique_variable_keys(
     query: CalculateAnalyticsQuery,
 ) -> list[dict[str, Any]]:
-    variable_query = _apply_time_filters(CalculateRequestVariable.query, query)
+    variable_query = _apply_filters(CalculateRequestVariable.query, query)
     rows = (
         variable_query.with_entities(
             CalculateRequestVariable.variable_name,
@@ -251,13 +279,21 @@ def _unique_variable_keys(
     ]
 
 
-def _apply_time_filters(query, filters: CalculateAnalyticsQuery):
+def _apply_filters(query, filters: CalculateAnalyticsQuery):
     model = query.column_descriptions[0]["entity"]
     created_at = model.created_at
     if filters.start_time:
         query = query.filter(created_at >= filters.start_time)
     if filters.end_time:
         query = query.filter(created_at <= filters.end_time)
+    if filters.requested_version:
+        query = query.filter(
+            model.requested_version == filters.requested_version
+        )
+    if filters.resolved_channel:
+        query = query.filter(
+            model.resolved_channel == filters.resolved_channel
+        )
     return query
 
 
@@ -271,6 +307,8 @@ def _request_to_dict(
         "api_version": calculate_request.api_version,
         "country_id": calculate_request.country_id,
         "model_version": calculate_request.model_version,
+        "requested_version": calculate_request.requested_version,
+        "resolved_channel": calculate_request.resolved_channel,
         "endpoint": calculate_request.endpoint,
         "method": calculate_request.method,
         "response_status_code": calculate_request.response_status_code,

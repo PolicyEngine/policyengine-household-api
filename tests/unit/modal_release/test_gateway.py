@@ -11,6 +11,9 @@ from policyengine_household_api.modal_release.gateway import (
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_SCHEMA_VERSION,
 )
+from policyengine_household_api.utils.modal_routing_metadata import (
+    MODAL_ROUTING_PAYLOAD_KEY,
+)
 
 
 def _manifest():
@@ -53,7 +56,12 @@ def test_calculate_defaults_to_current():
     response = client.post("/us/calculate", json={"household": {}})
 
     assert response.status_code == 200
-    assert worker_requests[0][0] == "current-app"
+    app_name, payload = worker_requests[0]
+    assert app_name == "current-app"
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "current",
+        "resolved_channel": "current",
+    }
 
 
 def test_calculate_routes_frontier_and_strips_version():
@@ -68,6 +76,10 @@ def test_calculate_routes_frontier_and_strips_version():
     app_name, payload = worker_requests[0]
     assert app_name == "frontier-app"
     assert "version" not in json.loads(payload["body"])
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "frontier",
+        "resolved_channel": "frontier",
+    }
 
 
 def test_calculate_routes_exact_active_country_package_version():
@@ -82,6 +94,10 @@ def test_calculate_routes_exact_active_country_package_version():
     app_name, payload = worker_requests[0]
     assert app_name == "frontier-app"
     assert "version" not in json.loads(payload["body"])
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "2.0.0",
+        "resolved_channel": "frontier",
+    }
 
 
 def test_calculate_rejects_unknown_version():
@@ -188,6 +204,30 @@ def test_calculate_forwards_request_metadata_to_worker():
     assert payload["path"] == "us/calculate"
     assert payload["query_string"] == "trace=true"
     assert payload["headers"]["Authorization"] == "Bearer token"
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "current",
+        "resolved_channel": "current",
+    }
+
+
+def test_gateway_routing_metadata_is_not_taken_from_inbound_headers():
+    client, worker_requests = _client_with_dispatch()
+
+    response = client.post(
+        "/us/calculate",
+        json={"household": {}},
+        headers={
+            "X-PolicyEngine-Requested-Version": "frontier",
+            "X-PolicyEngine-Resolved-Channel": "frontier",
+        },
+    )
+
+    assert response.status_code == 200
+    _, payload = worker_requests[0]
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "current",
+        "resolved_channel": "current",
+    }
 
 
 def test_ai_analysis_routes_to_current_worker():
@@ -203,6 +243,10 @@ def test_ai_analysis_routes_to_current_worker():
     assert app_name == "current-app"
     assert payload["path"] == "us/ai-analysis"
     assert "version" in json.loads(payload["body"])
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "current",
+        "resolved_channel": "current",
+    }
 
 
 def test_non_country_route_routes_to_current_worker():

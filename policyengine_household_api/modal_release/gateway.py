@@ -13,6 +13,10 @@ from policyengine_household_api.modal_release.manifest import (
     empty_manifest,
     validate_manifest,
 )
+from policyengine_household_api.utils.modal_routing_metadata import (
+    MODAL_ROUTING_PAYLOAD_KEY,
+    modal_routing_payload,
+)
 
 
 VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
@@ -100,7 +104,7 @@ def create_gateway_app(
             )
             return route_to_worker_function(
                 resolved_app.app_name,
-                _request_payload(path, body),
+                _request_payload(path, body, resolved_app),
             )
         except GatewayResolutionError as e:
             return _json_error(str(e), 400)
@@ -212,13 +216,21 @@ def _country_and_endpoint(path: str) -> tuple[str | None, str | None]:
     return parts[0], parts[1]
 
 
-def _request_payload(path: str, body: bytes) -> dict[str, Any]:
+def _request_payload(
+    path: str,
+    body: bytes,
+    resolved_app: ResolvedApp,
+) -> dict[str, Any]:
     return {
         "method": request.method,
         "path": path,
         "query_string": request.query_string.decode("utf-8"),
         "headers": _forward_headers(),
         "body": body,
+        MODAL_ROUTING_PAYLOAD_KEY: modal_routing_payload(
+            requested_version=resolved_app.requested_version,
+            resolved_channel=resolved_app.channel,
+        ),
     }
 
 

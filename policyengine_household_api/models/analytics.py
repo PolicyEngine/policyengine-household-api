@@ -40,6 +40,11 @@ class PeriodGranularity(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ModalResolvedChannel(StrEnum):
+    CURRENT = "current"
+    FRONTIER = "frontier"
+
+
 class VariableUsageSummary(BaseModel):
     """A grouped, value-free variable usage record for one request."""
 
@@ -68,5 +73,7 @@ class AnalyticsContext(BaseModel):
     created_at: datetime
     country_id: str | None
     model_version: str | None = None
+    requested_version: str | None = None
+    resolved_channel: ModalResolvedChannel | None = None
     variable_summaries: tuple[VariableUsageSummary, ...] = ()
     record_calculate_request: bool = False

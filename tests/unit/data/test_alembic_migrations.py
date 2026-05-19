@@ -50,6 +50,14 @@ def test__alembic_upgrade_head__creates_expected_analytics_schema(
         column["name"]
         for column in inspector.get_columns("calculate_request_variables")
     }
+    request_columns = {
+        column["name"]
+        for column in inspector.get_columns("calculate_requests")
+    }
+    assert "requested_version" in request_columns
+    assert "resolved_channel" in request_columns
+    assert "requested_version" in variable_columns
+    assert "resolved_channel" in variable_columns
     assert "entity_type" in variable_columns
     assert "variable_name_truncated" in variable_columns
     assert "request_entity_group" not in variable_columns
@@ -70,6 +78,13 @@ def test__alembic_upgrade_head__creates_expected_analytics_schema(
         for index in inspector.get_indexes("calculate_request_variables")
     }
     assert "ix_calc_vars_request_id" in variable_indexes
+    assert "ix_calc_vars_channel_created" in variable_indexes
+    assert "ix_calc_vars_requested_created" in variable_indexes
+    request_indexes = {
+        index["name"] for index in inspector.get_indexes("calculate_requests")
+    }
+    assert "ix_calculate_requests_channel_created" in request_indexes
+    assert "ix_calculate_requests_requested_created" in request_indexes
 
 
 def test__migrated_schema__stores_truncated_variable_name_with_orm(
@@ -110,6 +125,8 @@ def test__migrated_schema__stores_truncated_variable_name_with_orm(
             request.api_version = "1.0.0"
             request.country_id = "us"
             request.model_version = "0.0.0"
+            request.requested_version = "frontier"
+            request.resolved_channel = "frontier"
             request.endpoint = "calculate"
             request.method = "POST"
             request.content_length_bytes = 123
@@ -129,6 +146,8 @@ def test__migrated_schema__stores_truncated_variable_name_with_orm(
                 variable.country_id = "us"
                 variable.api_version = "1.0.0"
                 variable.model_version = "0.0.0"
+                variable.requested_version = request.requested_version
+                variable.resolved_channel = request.resolved_channel
                 variable.response_status_code = 400
                 variable.variable_name = stored_name
                 variable.variable_name_truncated = True
@@ -158,6 +177,14 @@ def test__migrated_schema__stores_truncated_variable_name_with_orm(
             )
             assert all(
                 variable.variable_name_truncated is True
+                for variable in stored_variables
+            )
+            assert all(
+                variable.requested_version == "frontier"
+                for variable in stored_variables
+            )
+            assert all(
+                variable.resolved_channel == "frontier"
                 for variable in stored_variables
             )
         finally:
@@ -231,6 +258,8 @@ def test__alembic_downgrade_from_truncation_revision__drops_truncated_rows(
         for column in inspector.get_columns("calculate_request_variables")
     }
     assert "variable_name_truncated" not in variable_columns
+    assert "requested_version" not in variable_columns
+    assert "resolved_channel" not in variable_columns
 
     with engine.connect() as connection:
         truncated_count = connection.execute(

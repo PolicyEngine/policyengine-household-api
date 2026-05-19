@@ -2,6 +2,7 @@ from policyengine_household_api.data.analytics_setup import db
 from policyengine_household_api.models.analytics import (
     AnalyticsHttpMethod,
     AvailabilityStatus,
+    ModalResolvedChannel,
     PeriodGranularity,
     VariableSource,
 )
@@ -52,6 +53,12 @@ class CalculateRequest(db.Model):
     api_version = mapped_column(String(32), nullable=True)
     country_id = mapped_column(String(16), nullable=False)
     model_version = mapped_column(String(64), nullable=True)
+    requested_version = mapped_column(String(64), nullable=True)
+    resolved_channel = mapped_column(
+        String(16),
+        nullable=True,
+        info={"options": _enum_values(ModalResolvedChannel)},
+    )
     endpoint = mapped_column(String(64), nullable=True)
     method = mapped_column(
         String(16),
@@ -79,6 +86,16 @@ class CalculateRequest(db.Model):
             "country_id",
             "created_at",
         ),
+        Index(
+            "ix_calculate_requests_channel_created",
+            "resolved_channel",
+            "created_at",
+        ),
+        Index(
+            "ix_calculate_requests_requested_created",
+            "requested_version",
+            "created_at",
+        ),
     )
 
 
@@ -98,6 +115,12 @@ class CalculateRequestVariable(db.Model):
     country_id = mapped_column(String(16), nullable=False)
     api_version = mapped_column(String(32), nullable=True)
     model_version = mapped_column(String(64), nullable=True)
+    requested_version = mapped_column(String(64), nullable=True)
+    resolved_channel = mapped_column(
+        String(16),
+        nullable=True,
+        info={"options": _enum_values(ModalResolvedChannel)},
+    )
     response_status_code = mapped_column(Integer, nullable=True)
     variable_name = mapped_column(String(255), nullable=False)
     variable_name_truncated = mapped_column(
@@ -146,5 +169,15 @@ class CalculateRequestVariable(db.Model):
             "country_id",
             "model_version",
             "variable_name",
+        ),
+        Index(
+            "ix_calc_vars_channel_created",
+            "resolved_channel",
+            "created_at",
+        ),
+        Index(
+            "ix_calc_vars_requested_created",
+            "requested_version",
+            "created_at",
         ),
     )

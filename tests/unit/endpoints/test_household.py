@@ -3,6 +3,10 @@ import json
 import pytest
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.endpoints.household import _validate_axes
+from policyengine_household_api.utils.modal_routing_metadata import (
+    REQUESTED_VERSION_ENVIRON_KEY,
+    RESOLVED_CHANNEL_ENVIRON_KEY,
+)
 from policyengine_household_api.utils.config_loader import get_config_value
 from tests.fixtures.country import (
     valid_household_requesting_ctc_calculation,
@@ -285,6 +289,50 @@ class TestCalculateEndpoint:
         assert unknown_variable.source == "household_input"
         assert unknown_variable.period_granularity == "year"
         calculate_analytics_capture.db.session.commit.assert_called_once()
+
+    def test__analytics_enabled__captures_modal_routing_metadata(
+        self, client, calculate_analytics_capture
+    ):
+        response = client.post(
+            "/us/calculate",
+            json={"household": valid_household_requesting_ctc_calculation},
+            headers=self.auth_headers,
+            environ_overrides={
+                REQUESTED_VERSION_ENVIRON_KEY: "1.691.1",
+                RESOLVED_CHANNEL_ENVIRON_KEY: "frontier",
+            },
+        )
+
+        assert response.status_code == 200
+        calculate_request = calculate_analytics_capture.calculate_request
+        assert calculate_request.requested_version == "1.691.1"
+        assert calculate_request.resolved_channel == "frontier"
+        assert {
+            variable.requested_version
+            for variable in calculate_analytics_capture.variable_rows
+        } == {"1.691.1"}
+        assert {
+            variable.resolved_channel
+            for variable in calculate_analytics_capture.variable_rows
+        } == {"frontier"}
+
+    def test__analytics_enabled__ignores_spoofed_modal_routing_headers(
+        self, client, calculate_analytics_capture
+    ):
+        response = client.post(
+            "/us/calculate",
+            json={"household": valid_household_requesting_ctc_calculation},
+            headers={
+                **self.auth_headers,
+                "X-PolicyEngine-Requested-Version": "frontier",
+                "X-PolicyEngine-Resolved-Channel": "frontier",
+            },
+        )
+
+        assert response.status_code == 200
+        calculate_request = calculate_analytics_capture.calculate_request
+        assert calculate_request.requested_version is None
+        assert calculate_request.resolved_channel is None
 
     def test__unknown_axis_variable__returns_400_with_errors(self, client):
         household = {
