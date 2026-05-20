@@ -1,3 +1,10 @@
+## [0.21.0] - 2026-05-20
+
+### Added
+
+- Added Modal requested-version and resolved-channel metadata to calculate analytics.
+
+
 ## [0.20.3] - 2026-05-18
 
 ### Changed
