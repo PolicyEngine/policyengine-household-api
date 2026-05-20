@@ -1,3 +1,10 @@
+## [0.21.1] - 2026-05-20
+
+### Fixed
+
+- Fixed Modal gateway imports so routing metadata does not pull worker-only dependencies into the lightweight gateway image.
+
+
 ## [0.21.0] - 2026-05-20
 
 ### Added
