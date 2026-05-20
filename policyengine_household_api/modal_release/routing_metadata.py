@@ -6,6 +6,9 @@ from typing import Any
 MODAL_ROUTING_PAYLOAD_KEY = "modal_routing"
 REQUESTED_VERSION_ENVIRON_KEY = "policyengine.requested_version"
 RESOLVED_CHANNEL_ENVIRON_KEY = "policyengine.resolved_channel"
+# Keep this literal in sync with the app's channel values manually. Importing
+# the shared enum here pulls heavy, unnecessary dependencies into the Modal
+# gateway image and has broken production gateway startup.
 RESOLVED_CHANNEL_VALUES = {"current", "frontier"}
 
 
