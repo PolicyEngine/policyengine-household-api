@@ -102,6 +102,8 @@ def _add_calculate_analytics_request(
     request_uuid: str,
     created_at: datetime,
     variable_rows: list[dict],
+    requested_version: str | None = "current",
+    resolved_channel: str | None = "current",
 ) -> CalculateRequest:
     visit = Visit()
     visit.client_id = "test-client"
@@ -120,6 +122,8 @@ def _add_calculate_analytics_request(
     calculate_request.api_version = "0.17.0"
     calculate_request.country_id = "us"
     calculate_request.model_version = "1.691.1"
+    calculate_request.requested_version = requested_version
+    calculate_request.resolved_channel = resolved_channel
     calculate_request.endpoint = "calculate"
     calculate_request.method = "POST"
     calculate_request.content_length_bytes = 123
@@ -142,6 +146,8 @@ def _add_calculate_analytics_request(
         variable.country_id = "us"
         variable.api_version = "0.17.0"
         variable.model_version = "1.691.1"
+        variable.requested_version = requested_version
+        variable.resolved_channel = resolved_channel
         variable.response_status_code = 200
         for key, value in variable_row.items():
             setattr(variable, key, value)

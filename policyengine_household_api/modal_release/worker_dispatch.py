@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from policyengine_household_api.utils.modal_routing_metadata import (
+    routing_environ_overrides,
+)
+
 
 HOP_BY_HOP_RESPONSE_HEADERS = {
     "connection",
@@ -21,12 +25,14 @@ def dispatch_to_flask_app(
     method = str(payload.get("method") or "GET")
     body = payload.get("body")
     headers = dict(payload.get("headers") or {})
+    environ_overrides = routing_environ_overrides(payload)
 
     response = flask_app.test_client().open(
         path=path,
         method=method,
         data=body if method != "GET" else None,
         headers=headers,
+        environ_overrides=environ_overrides,
     )
 
     return {

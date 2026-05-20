@@ -377,7 +377,7 @@ class TestAlembicRevisionCompatibility:
         )
 
         assert _alembic_revision_is_compatible(
-            "20260512_0003",
+            "20260519_0004",
             minimum_revision="20260508_0001",
         )
 

@@ -22,7 +22,12 @@ from policyengine_household_api.data.models import (
 )
 from policyengine_household_api.models.analytics import (
     AnalyticsContext,
+    ModalResolvedChannel,
     VariableUsageSummary,
+)
+from policyengine_household_api.utils.modal_routing_metadata import (
+    REQUESTED_VERSION_ENVIRON_KEY,
+    RESOLVED_CHANNEL_ENVIRON_KEY,
 )
 from policyengine_household_api.utils.variable_usage_analytics import (
     extract_variable_usage,
@@ -120,6 +125,7 @@ def _build_analytics_context(args, kwargs) -> AnalyticsContext:
     client_id = _client_id_from_request()
     country_id = _country_id_from_route_args(args, kwargs)
     payload = _request_json()
+    requested_version, resolved_channel = _routing_metadata_from_request()
 
     context = AnalyticsContext(
         client_id=client_id,
@@ -129,6 +135,8 @@ def _build_analytics_context(args, kwargs) -> AnalyticsContext:
         content_length_bytes=request.content_length,
         created_at=now,
         country_id=country_id,
+        requested_version=requested_version,
+        resolved_channel=resolved_channel,
     )
 
     if country_id is None or not _collect_variable_usage():
@@ -197,6 +205,22 @@ def _collect_variable_usage() -> bool:
     if isinstance(value, str):
         return value.lower() not in {"0", "false", "no"}
     return bool(value)
+
+
+def _routing_metadata_from_request() -> tuple[
+    str | None, ModalResolvedChannel | None
+]:
+    requested_version = request.environ.get(REQUESTED_VERSION_ENVIRON_KEY)
+    resolved_channel = request.environ.get(RESOLVED_CHANNEL_ENVIRON_KEY)
+    if not isinstance(requested_version, str) or not requested_version:
+        return None, None
+
+    try:
+        channel = ModalResolvedChannel(resolved_channel)
+    except ValueError:
+        return None, None
+
+    return requested_version, channel
 
 
 def _record_analytics(
@@ -281,6 +305,10 @@ def _build_calculate_request(
     calculate_request.api_version = context.api_version
     calculate_request.country_id = context.country_id
     calculate_request.model_version = context.model_version
+    calculate_request.requested_version = context.requested_version
+    calculate_request.resolved_channel = (
+        context.resolved_channel.value if context.resolved_channel else None
+    )
     calculate_request.endpoint = context.endpoint
     calculate_request.method = context.method.value
     calculate_request.content_length_bytes = context.content_length_bytes
@@ -307,6 +335,8 @@ def _build_calculate_request_variable(
     variable.country_id = calculate_request.country_id
     variable.api_version = calculate_request.api_version
     variable.model_version = calculate_request.model_version
+    variable.requested_version = calculate_request.requested_version
+    variable.resolved_channel = calculate_request.resolved_channel
     variable.response_status_code = calculate_request.response_status_code
     (
         variable.variable_name,

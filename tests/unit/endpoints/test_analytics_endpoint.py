@@ -36,9 +36,13 @@ def test__calculate_analytics_requests__filters_by_time_window(
     payload = json.loads(response.data)
     assert response.status_code == 200
     assert payload["unique"] is False
+    assert payload["requested_version"] is None
+    assert payload["resolved_channel"] is None
     assert [request["request_uuid"] for request in payload["requests"]] == [
         included_request.request_uuid
     ]
+    assert payload["requests"][0]["requested_version"] == "current"
+    assert payload["requests"][0]["resolved_channel"] == "current"
     assert payload["requests"][0]["variables"] == [
         {
             "variable_name": "employment_income",
@@ -85,6 +89,8 @@ def test__calculate_analytics_requests__unique_returns_grouped_keys(
     payload = json.loads(response.data)
     assert response.status_code == 200
     assert payload["unique"] is True
+    assert payload["requested_version"] is None
+    assert payload["resolved_channel"] is None
     assert "requests" not in payload
     assert payload["unique_keys"] == [
         {
@@ -112,6 +118,117 @@ def test__calculate_analytics_requests__unique_returns_grouped_keys(
             "last_seen": "2026-05-11T12:00:00Z",
         },
     ]
+
+
+def test__calculate_analytics_requests__filters_by_modal_routing(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    add_calculate_analytics_request(
+        "current-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+        requested_version="current",
+        resolved_channel="current",
+    )
+    frontier_request = add_calculate_analytics_request(
+        "frontier-request",
+        datetime(2026, 5, 11, 12, 0, 0),
+        [calculate_analytics_variable("employment_income")],
+        requested_version="frontier",
+        resolved_channel="frontier",
+    )
+    exact_request = add_calculate_analytics_request(
+        "exact-request",
+        datetime(2026, 5, 12, 12, 0, 0),
+        [calculate_analytics_variable("ctc")],
+        requested_version="1.691.1",
+        resolved_channel="frontier",
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?resolved_channel=frontier"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert payload["resolved_channel"] == "frontier"
+    assert [request["request_uuid"] for request in payload["requests"]] == [
+        exact_request.request_uuid,
+        frontier_request.request_uuid,
+    ]
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?requested_version=1.691.1"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert payload["requested_version"] == "1.691.1"
+    assert [request["request_uuid"] for request in payload["requests"]] == [
+        exact_request.request_uuid,
+    ]
+
+
+def test__calculate_analytics_requests__unique_respects_modal_routing_filters(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    add_calculate_analytics_request(
+        "current-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+        requested_version="current",
+        resolved_channel="current",
+    )
+    add_calculate_analytics_request(
+        "frontier-request",
+        datetime(2026, 5, 11, 12, 0, 0),
+        [calculate_analytics_variable("employment_income")],
+        requested_version="frontier",
+        resolved_channel="frontier",
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?unique=true&resolved_channel=frontier"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert payload["unique"] is True
+    assert payload["unique_keys"] == [
+        {
+            "variable_name": "employment_income",
+            "entity_type": "person",
+            "source": "household_input",
+            "period_granularity": "year",
+            "availability_status": "supported",
+            "variable_name_truncated": False,
+            "request_count": 1,
+            "occurrence_count": 1,
+            "first_seen": "2026-05-11T12:00:00Z",
+            "last_seen": "2026-05-11T12:00:00Z",
+        }
+    ]
+
+
+def test__calculate_analytics_requests__invalid_resolved_channel_returns_400(
+    analytics_endpoint_app,
+):
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?resolved_channel=stable"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 400
+    assert payload["status"] == "error"
+    assert "resolved_channel" in payload["message"]
 
 
 def test__calculate_analytics_requests__invalid_time_returns_400(

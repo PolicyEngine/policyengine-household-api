@@ -12,6 +12,7 @@ from policyengine_household_api.models.analytics import (
     AnalyticsContext,
     AnalyticsHttpMethod,
     AvailabilityStatus,
+    ModalResolvedChannel,
     PeriodGranularity,
     VariableSource,
     VariableUsageSummary,
@@ -27,9 +28,12 @@ def test__analytics_context__is_typed_model():
         content_length_bytes=123,
         created_at=datetime(2026, 5, 12, tzinfo=timezone.utc),
         country_id="us",
+        requested_version="frontier",
+        resolved_channel="frontier",
     )
 
     assert context.method is AnalyticsHttpMethod.POST
+    assert context.resolved_channel is ModalResolvedChannel.FRONTIER
     assert context.record_calculate_request is False
     with pytest.raises(ValidationError):
         AnalyticsContext(
@@ -50,6 +54,12 @@ def test__analytics_sqlalchemy_rows__define_fixed_options():
     assert CalculateRequest.__table__.c.method.info["options"] == tuple(
         method.value for method in AnalyticsHttpMethod
     )
+    assert CalculateRequest.__table__.c.resolved_channel.info[
+        "options"
+    ] == tuple(channel.value for channel in ModalResolvedChannel)
+    assert CalculateRequestVariable.__table__.c.resolved_channel.info[
+        "options"
+    ] == tuple(channel.value for channel in ModalResolvedChannel)
     assert CalculateRequestVariable.__table__.c.source.info[
         "options"
     ] == tuple(source.value for source in VariableSource)
