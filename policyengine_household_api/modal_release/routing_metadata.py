@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from policyengine_household_api.models.analytics import ModalResolvedChannel
-
 
 MODAL_ROUTING_PAYLOAD_KEY = "modal_routing"
 REQUESTED_VERSION_ENVIRON_KEY = "policyengine.requested_version"
 RESOLVED_CHANNEL_ENVIRON_KEY = "policyengine.resolved_channel"
+RESOLVED_CHANNEL_VALUES = {"current", "frontier"}
 
 
 def modal_routing_payload(
@@ -30,9 +29,7 @@ def routing_environ_overrides(payload: dict[str, Any]) -> dict[str, str]:
     resolved_channel = routing.get("resolved_channel")
     if not isinstance(requested_version, str) or not requested_version:
         return {}
-    if resolved_channel not in {
-        channel.value for channel in ModalResolvedChannel
-    }:
+    if resolved_channel not in RESOLVED_CHANNEL_VALUES:
         return {}
 
     return {
