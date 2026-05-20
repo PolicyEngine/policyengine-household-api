@@ -13,7 +13,7 @@ from policyengine_household_api.modal_release.manifest import (
     empty_manifest,
     validate_manifest,
 )
-from policyengine_household_api.utils.modal_routing_metadata import (
+from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
 )

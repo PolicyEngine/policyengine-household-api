@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from policyengine_household_api.utils.modal_routing_metadata import (
+from policyengine_household_api.modal_release.routing_metadata import (
     routing_environ_overrides,
 )
 

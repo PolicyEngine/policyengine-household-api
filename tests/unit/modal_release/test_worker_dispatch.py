@@ -3,7 +3,7 @@ from flask import Flask, Response, request
 from policyengine_household_api.modal_release.worker_dispatch import (
     dispatch_to_flask_app,
 )
-from policyengine_household_api.utils.modal_routing_metadata import (
+from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,

@@ -3,7 +3,7 @@ import json
 import pytest
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.endpoints.household import _validate_axes
-from policyengine_household_api.utils.modal_routing_metadata import (
+from policyengine_household_api.modal_release.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,
 )
