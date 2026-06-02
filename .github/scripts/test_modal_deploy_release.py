@@ -56,6 +56,7 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
 
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
+    assert "modal_require_active_channels.py" in log
     assert "DEPLOY_APP=current-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
     assert "DEPLOY_APP=frontier-app" in log
@@ -92,10 +93,45 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
 
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
+    assert "modal_require_active_channels.py" in log
     assert "DEPLOY_APP=release-app" in log
     assert "-m policyengine_household_api.modal_release.update_manifest" in log
     assert "--source-commit" not in log
     assert "cleanup-called" in log
+
+
+def test_modal_deploy_release_fails_before_deploy_when_channels_missing(
+    tmp_path,
+):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    env["REQUIRE_ACTIVE_CHANNELS_RC"] = "1"
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"frontier",'
+                '"promote_existing_frontier":true,'
+                '"cleanup_target":"retired"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    log = log_path.read_text()
+    assert "modal_require_active_channels.py" in log
+    assert "DEPLOY_APP=release-app" not in log
+    assert (
+        "-m policyengine_household_api.modal_release.update_manifest"
+        not in log
+    )
 
 
 def _deploy_env(tmp_path: Path, log_path: Path) -> dict[str, str]:
@@ -147,6 +183,15 @@ echo "$*" >> "${{UV_LOG}}"
 
 if [[ "$*" == *"policyengine_household_api.modal_release.analytics_revision"* ]]; then
   echo "20260512_0003"
+  exit 0
+fi
+
+if [[ "$*" == *"modal_require_active_channels.py"* ]]; then
+  echo "require-active-channels" >> "{log_path}"
+  if [[ "${{REQUIRE_ACTIVE_CHANNELS_RC:-0}}" != "0" ]]; then
+    echo "Modal release manifest must configure both current and frontier" >&2
+    exit "${{REQUIRE_ACTIVE_CHANNELS_RC}}"
+  fi
   exit 0
 fi
 

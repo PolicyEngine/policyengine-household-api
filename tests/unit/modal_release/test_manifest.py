@@ -11,6 +11,7 @@ from policyengine_household_api.modal_release.manifest import (
     build_app_name,
     cleanup_app_names_for_target,
     current_package_versions,
+    require_active_current_and_frontier,
     rewrite_existing_manifest_for_storage,
     rewrite_manifest_for_storage,
     validate_manifest,
@@ -364,6 +365,41 @@ def test_active_app_deployments_rejects_conflicting_active_app_versions():
         active_app_deployments(manifest)
 
 
+def test_require_active_current_and_frontier_rejects_missing_current():
+    manifest = {
+        "schema_version": 1,
+        "current": None,
+        "frontier": _app("frontier-app"),
+        "retired": [],
+    }
+
+    with pytest.raises(ValueError, match="missing `current`"):
+        require_active_current_and_frontier(manifest)
+
+
+def test_require_active_current_and_frontier_rejects_missing_frontier():
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": None,
+        "retired": [],
+    }
+
+    with pytest.raises(ValueError, match="missing `frontier`"):
+        require_active_current_and_frontier(manifest)
+
+
+def test_require_active_current_and_frontier_accepts_both_channels():
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app"),
+        "retired": [],
+    }
+
+    assert require_active_current_and_frontier(manifest) == manifest
+
+
 def test_active_app_deployments_requires_release_package_versions():
     manifest = {
         "schema_version": 1,
@@ -371,7 +407,7 @@ def test_active_app_deployments_requires_release_package_versions():
             **_app("current-app"),
             "package_versions": {"us": "1.691.1"},
         },
-        "frontier": None,
+        "frontier": _app("frontier-app"),
         "retired": [],
     }
 
