@@ -7,6 +7,7 @@ output_file="${GITHUB_OUTPUT:-}"
 modal_extract_versions_script="${MODAL_EXTRACT_VERSIONS_SCRIPT:-.github/scripts/modal_extract_versions.py}"
 modal_sync_secrets_script="${MODAL_SYNC_SECRETS_SCRIPT:-.github/scripts/modal-sync-secrets.sh}"
 modal_active_worker_apps_script="${MODAL_ACTIVE_WORKER_APPS_SCRIPT:-.github/scripts/modal_active_worker_apps.py}"
+modal_require_active_channels_script="${MODAL_REQUIRE_ACTIVE_CHANNELS_SCRIPT:-.github/scripts/modal_require_active_channels.py}"
 modal_cleanup_apps_script="${MODAL_CLEANUP_APPS_SCRIPT:-.github/scripts/modal-cleanup-apps.sh}"
 modal_get_url_script="${MODAL_GET_URL_SCRIPT:-.github/scripts/modal-get-url.sh}"
 
@@ -68,6 +69,9 @@ case "${deploy_mode}" in
     exit 1
     ;;
 esac
+
+uv run python "${modal_require_active_channels_script}" \
+  --modal-environment "${modal_environment}"
 
 uv run alembic upgrade head
 analytics_database_revision="$(

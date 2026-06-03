@@ -282,13 +282,11 @@ def cleanup_app_names_for_target(
 def active_app_deployments(
     manifest: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    validated = validate_manifest(manifest)
+    validated = require_active_current_and_frontier(manifest)
     deployments_by_name: dict[str, dict[str, str]] = {}
 
     for channel in ("current", "frontier"):
         app_reference = validated.get(channel)
-        if not app_reference:
-            continue
         app_name = app_reference.get("app_name")
         if not app_name:
             continue
@@ -307,9 +305,6 @@ def active_app_deployments(
             )
         deployments_by_name[app_name] = package_versions
 
-    if not deployments_by_name:
-        raise ValueError("No active Modal household API apps are configured")
-
     return [
         {
             "app_name": app_name,
@@ -317,6 +312,23 @@ def active_app_deployments(
         }
         for app_name, package_versions in deployments_by_name.items()
     ]
+
+
+def require_active_current_and_frontier(
+    manifest: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    validated = validate_manifest(manifest)
+    missing_channels = [
+        f"`{channel}`"
+        for channel in ("current", "frontier")
+        if not validated.get(channel)
+    ]
+    if missing_channels:
+        raise ValueError(
+            "Modal release manifest must configure both `current` and "
+            f"`frontier`; missing {', '.join(missing_channels)}"
+        )
+    return validated
 
 
 def prune_cleaned_retired_apps(
