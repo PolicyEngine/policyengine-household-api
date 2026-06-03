@@ -65,7 +65,9 @@ def validate_failover_manifest(
     if not isinstance(validated.get("environment"), str):
         raise FailoverManifestError("Failover manifest environment is invalid")
     if not isinstance(validated.get("generated_at"), str):
-        raise FailoverManifestError("Failover manifest generated_at is invalid")
+        raise FailoverManifestError(
+            "Failover manifest generated_at is invalid"
+        )
 
     channels = validated.get("channels")
     if not isinstance(channels, Mapping):

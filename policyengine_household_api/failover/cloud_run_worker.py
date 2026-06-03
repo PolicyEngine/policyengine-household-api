@@ -23,7 +23,8 @@ WORKER_PACKAGE_VERSIONS_ENV = "HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON"
 def create_worker_app(
     *,
     flask_app: Flask | None = None,
-    dispatcher: Callable[[Flask, dict[str, Any]], dict[str, Any]] | None = None,
+    dispatcher: Callable[[Flask, dict[str, Any]], dict[str, Any]]
+    | None = None,
     channel: str | None = None,
     package_versions: dict[str, str] | None = None,
 ) -> Flask:

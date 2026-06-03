@@ -74,4 +74,3 @@ def _decode_body(value: Any) -> bytes:
     if not isinstance(value, str):
         raise ValueError("Dispatch body must be base64-encoded text")
     return base64.b64decode(value.encode("ascii"))
-

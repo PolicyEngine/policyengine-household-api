@@ -37,4 +37,3 @@ def test_dispatch_response_round_trips_bytes_and_headers():
     decoded = decode_dispatch_response(encode_dispatch_response(result))
 
     assert decoded == result
-
