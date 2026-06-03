@@ -34,6 +34,9 @@ on:
 
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT || 'policyengine-household-api' }}
+  HOUSEHOLD_CLOUD_RUN_REGION: ${{ vars.HOUSEHOLD_CLOUD_RUN_REGION || 'us-central1' }}
+  HOUSEHOLD_FAILOVER_MANIFEST_BUCKET: ${{ vars.HOUSEHOLD_FAILOVER_MANIFEST_BUCKET || 'policyengine-household-api-release-manifests' }}
   MODAL_WORKSPACE: policyengine
   PYTHON_VERSION: "3.13"
 
@@ -216,10 +219,184 @@ jobs:
             "${{ matrix.channel }}" \
             "${{ matrix.route_mode }}"
 
+  deploy-cloud-run-staging:
+    name: Deploy Cloud Run failover to staging
+    runs-on: ubuntu-latest
+    needs: [deploy-modal-staging]
+    environment: staging
+    permissions:
+      contents: read
+    outputs:
+      gateway_url: ${{ steps.deploy.outputs.gateway_url }}
+      manifest_uri: ${{ steps.deploy.outputs.manifest_uri }}
+    env:
+      MODAL_ENVIRONMENT: staging
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Deploy Cloud Run failover services
+        id: deploy
+        env:
+          APP__ENVIRONMENT: staging
+          AUTH__ENABLED: "true"
+          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          AI__ENABLED: "true"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT }}
+          HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
+        run: bash .github/scripts/cloud-run-deploy-failover.sh
+
+  integration-tests-cloud-run-staging:
+    name: Integration tests against Cloud Run staging (${{ matrix.channel }}, ${{ matrix.route_mode }})
+    runs-on: ubuntu-latest
+    needs: [deploy-cloud-run-staging]
+    environment: staging
+    env:
+      HOUSEHOLD_API_BASE_URL: ${{ needs.deploy-cloud-run-staging.outputs.gateway_url }}
+      HOUSEHOLD_API_EXPECTED_BACKEND: modal
+      MODAL_ENVIRONMENT: staging
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [current, frontier]
+        route_mode: [channel, exact]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Fetch Auth0 test token
+        env:
+          AUTH0_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_ID }}
+          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_SECRET }}
+          AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
+        run: python .github/scripts/fetch_auth0_test_token.py
+
+      - name: Run deployed integration tests for route
+        run: |
+          bash .github/scripts/run-deployed-tests-for-modal-route.sh \
+            "${{ matrix.channel }}" \
+            "${{ matrix.route_mode }}"
+
+  integration-tests-cloud-run-fallback-staging:
+    name: Forced Cloud Run fallback test against staging
+    runs-on: ubuntu-latest
+    needs: [deploy-cloud-run-staging, integration-tests-cloud-run-staging]
+    environment: staging
+    env:
+      HOUSEHOLD_API_BASE_URL: ${{ needs.deploy-cloud-run-staging.outputs.gateway_url }}
+      HOUSEHOLD_API_EXPECTED_BACKEND: cloud_run
+      MODAL_ENVIRONMENT: staging
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      CLOUD_RUN_GATEWAY_SERVICE: ${{ vars.HOUSEHOLD_CLOUD_RUN_STAGING_GATEWAY_SERVICE || 'household-api-staging-gateway' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Fetch Auth0 test token
+        env:
+          AUTH0_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_ID }}
+          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_SECRET }}
+          AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
+        run: python .github/scripts/fetch_auth0_test_token.py
+
+      - name: Force Cloud Run fallback
+        run: |
+          gcloud run services update "${CLOUD_RUN_GATEWAY_SERVICE}" \
+            --region "${HOUSEHOLD_CLOUD_RUN_REGION}" \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --update-env-vars HOUSEHOLD_FAILOVER_FORCE_BACKEND=cloud_run \
+            --quiet
+
+      - name: Run deployed fallback tests
+        run: |
+          bash .github/scripts/run-deployed-tests-for-modal-route.sh \
+            current \
+            channel
+
+      - name: Restore Modal-primary routing
+        if: always()
+        run: |
+          gcloud run services update "${CLOUD_RUN_GATEWAY_SERVICE}" \
+            --region "${HOUSEHOLD_CLOUD_RUN_REGION}" \
+            --project "${GOOGLE_CLOUD_PROJECT}" \
+            --remove-env-vars HOUSEHOLD_FAILOVER_FORCE_BACKEND \
+            --quiet
+
   deploy-modal-production:
     name: Deploy Modal release to production
     runs-on: ubuntu-latest
-    needs: [resolve-modal-release-config, integration-tests-staging]
+    needs:
+      [
+        resolve-modal-release-config,
+        integration-tests-staging,
+        integration-tests-cloud-run-staging,
+        integration-tests-cloud-run-fallback-staging,
+      ]
     if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
     environment: production
     permissions:
@@ -266,6 +443,59 @@ jobs:
             '${{ needs.resolve-modal-release-config.outputs.config_json }}' \
             '${{ needs.resolve-modal-release-config.outputs.deploy_mode }}'
 
+  deploy-cloud-run-production:
+    name: Deploy Cloud Run failover to production
+    runs-on: ubuntu-latest
+    needs: [deploy-modal-production]
+    environment: production
+    permissions:
+      contents: read
+    outputs:
+      gateway_url: ${{ steps.deploy.outputs.gateway_url }}
+      manifest_uri: ${{ steps.deploy.outputs.manifest_uri }}
+    env:
+      MODAL_ENVIRONMENT: main
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Deploy Cloud Run failover services
+        id: deploy
+        env:
+          APP__ENVIRONMENT: production
+          AUTH__ENABLED: "true"
+          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
+          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          AI__ENABLED: "true"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT }}
+          HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
+        run: bash .github/scripts/cloud-run-deploy-failover.sh
+
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
@@ -273,7 +503,7 @@ jobs:
       github.repository == 'PolicyEngine/policyengine-household-api' &&
       github.event_name == 'push' &&
       github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [deploy-modal-production]
+    needs: [deploy-cloud-run-production]
     environment:
       name: pypi
       url: https://pypi.org/p/policyengine-household-api

@@ -11,6 +11,7 @@ BASE_URL_ENV_VAR = "HOUSEHOLD_API_BASE_URL"
 AUTH_TOKEN_ENV_VAR = "HOUSEHOLD_API_AUTH_TOKEN"
 REQUEST_VERSION_ENV_VAR = "HOUSEHOLD_API_REQUEST_VERSION"
 EXPECTED_CHANNEL_ENV_VAR = "HOUSEHOLD_API_EXPECTED_CHANNEL"
+EXPECTED_BACKEND_ENV_VAR = "HOUSEHOLD_API_EXPECTED_BACKEND"
 ROUTE_MODE_ENV_VAR = "HOUSEHOLD_API_ROUTE_MODE"
 DEFAULT_TIMEOUT_SECONDS = 90
 
@@ -112,6 +113,11 @@ def request_version() -> str | None:
 @pytest.fixture(scope="session")
 def expected_channel() -> str | None:
     return os.getenv(EXPECTED_CHANNEL_ENV_VAR, "").strip() or None
+
+
+@pytest.fixture(scope="session")
+def expected_backend() -> str | None:
+    return os.getenv(EXPECTED_BACKEND_ENV_VAR, "").strip() or None
 
 
 @pytest.fixture(scope="session")
