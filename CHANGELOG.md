@@ -1,3 +1,10 @@
+## [0.21.3] - 2026-06-03
+
+### Fixed
+
+- Fail Modal deployments early when the release manifest is missing either the `current` or `frontier` channel.
+
+
 ## [0.21.2] - 2026-05-30
 
 ### Changed
