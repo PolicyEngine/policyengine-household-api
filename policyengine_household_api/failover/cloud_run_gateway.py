@@ -39,6 +39,7 @@ from policyengine_household_api.modal_release.gateway import (
 LOGGER = logging.getLogger(__name__)
 MODAL_STATUS_URL = "https://status.modal.com/index.json"
 FORCE_BACKEND_ENV = "HOUSEHOLD_FAILOVER_FORCE_BACKEND"
+MODAL_ENVIRONMENT_ENV = "MODAL_ENVIRONMENT"
 RETRY_AFTER_SECONDS = 10
 MODAL_FAILURE_THRESHOLD = 3
 MODAL_PROBE_INTERVAL_SECONDS = 15
@@ -271,12 +272,29 @@ def create_gateway_app(
 
 
 def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:
-    try:
-        from policyengine_household_api.modal_release.gateway import (
-            call_worker_function,
-        )
+    import modal
 
-        return call_worker_function(app_name, payload)
+    try:
+        worker_cls = _modal_lookup(
+            modal.Cls.from_name,
+            app_name,
+            "HouseholdWorker",
+        )
+        return _response_from_dispatch_result(
+            worker_cls().handle_household_request.remote(payload)
+        )
+    except modal.exception.NotFoundError:
+        try:
+            worker_function = _modal_lookup(
+                modal.Function.from_name,
+                app_name,
+                "handle_household_request",
+            )
+            return _response_from_dispatch_result(
+                worker_function.remote(payload)
+            )
+        except Exception as exc:
+            raise ModalBackendUnavailable(str(exc)) from exc
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
 
@@ -285,7 +303,11 @@ def probe_modal_worker(app_name: str) -> None:
     try:
         import modal
 
-        worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
+        worker_cls = _modal_lookup(
+            modal.Cls.from_name,
+            app_name,
+            "HouseholdWorker",
+        )
         result = worker_cls().health_check.remote()
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
@@ -490,6 +512,21 @@ def _cloud_run_auth_header(audience: str) -> dict[str, str]:
         return {}
     token = id_token.fetch_id_token(GoogleAuthRequest(), audience)
     return {"Authorization": f"Bearer {token}"}
+
+
+def _modal_lookup(
+    lookup: Callable[..., Any],
+    app_name: str,
+    object_name: str,
+) -> Any:
+    environment = os.getenv(MODAL_ENVIRONMENT_ENV, "").strip()
+    if environment:
+        return lookup(
+            app_name,
+            object_name,
+            environment_name=environment,
+        )
+    return lookup(app_name, object_name)
 
 
 def _join_url(base_url: str, path: str) -> str:

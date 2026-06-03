@@ -36,8 +36,8 @@ Use this circuit policy unless a PR explicitly changes it:
   household API, including app-level 500 responses.
 - When the circuit opens, fetch Modal status JSON at most once per minute as
   corroborating evidence; never make that status page a hard dependency.
-- Keep probing Modal after failover. Close the circuit only after consecutive
-  successful Modal health probes.
+- Keep probing Modal after failover. Close the circuit after a successful
+  direct Modal health probe for that channel.
 
 When neither Modal nor the Cloud Run fallback worker can serve a request, the
 gateway returns HTTP `503 Service Unavailable`, includes `Retry-After: 10`,
@@ -62,6 +62,13 @@ Mirror the existing staged Modal release pathway:
 Do not add App Engine deployment, App Engine traffic promotion, or DNS cutover
 to this workflow. Public-domain traffic changes are separate infrastructure
 operations.
+
+The Cloud Run deploy wrapper is
+`.github/scripts/cloud-run-deploy-failover.sh`. It reads Modal channel
+metadata through `.github/scripts/cloud_run_failover_channels.py`, deploys
+private `current` and `frontier` Cloud Run workers with `min-instances=0`,
+uploads the GCS failover manifest, then deploys the public gateway with
+`min-instances=1`.
 
 ## Testing Expectations
 
