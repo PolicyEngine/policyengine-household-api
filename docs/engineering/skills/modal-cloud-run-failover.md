@@ -32,6 +32,9 @@ Use this circuit policy unless a PR explicitly changes it:
 - Open the channel circuit after 3 consecutive Modal probe failures.
 - Treat Modal SDK transport/runtime failures and probe timeouts as Modal
   platform failures.
+- Keep Modal request and probe timeouts separate. Request timeouts should be
+  long enough for healthy but loaded calculations; probe timeouts should stay
+  short so recovery checks do not consume request capacity.
 - Do not open the circuit for ordinary Flask response status codes from the
   household API, including app-level 500 responses.
 - When the circuit opens, fetch Modal status JSON at most once per minute as
@@ -73,6 +76,13 @@ uploads the GCS failover manifest, then deploys the public gateway with
 Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
 secret values through `--set-env-vars` or delimiter-joined command arguments.
+
+The manifest bucket is pre-provisioned infrastructure. Keep bucket IAM outside
+the deploy wrapper: the GitHub deployment service account needs
+`roles/storage.objectAdmin` on the bucket so the workflow can upload manifests,
+and the gateway runtime service account needs `roles/storage.objectViewer` so
+runtime manifest reads work with least privilege. The release workflow should
+deploy services and manifests, not mutate bucket IAM on every run.
 
 ## Testing Expectations
 

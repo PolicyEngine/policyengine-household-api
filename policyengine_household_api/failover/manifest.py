@@ -43,6 +43,14 @@ class FailoverManifestError(ValueError):
     pass
 
 
+class FailoverManifestUnavailable(FailoverManifestError):
+    pass
+
+
+class FailoverRoutingError(FailoverManifestError):
+    pass
+
+
 def current_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -135,13 +143,13 @@ def resolve_failover_channel_for_request(
     if requested in FAILOVER_CHANNELS:
         reference = channels.get(requested)
         if not reference:
-            raise FailoverManifestError(
+            raise FailoverManifestUnavailable(
                 f"No `{requested}` failover channel is configured"
             )
         return _resolved_channel(requested, requested, reference)
 
     if not country_id:
-        raise FailoverManifestError(
+        raise FailoverRoutingError(
             "Exact package version routing requires a country endpoint"
         )
 
@@ -152,7 +160,7 @@ def resolve_failover_channel_for_request(
         if reference["package_versions"].get(country_id) == requested:
             return _resolved_channel(channel, requested, reference)
 
-    raise FailoverManifestError(
+    raise FailoverRoutingError(
         f"No active failover channel serves `{country_id}` package "
         f"version `{requested}`"
     )

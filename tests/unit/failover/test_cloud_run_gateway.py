@@ -9,6 +9,7 @@ from policyengine_household_api.failover.cloud_run_gateway import (
     ModalBackendUnavailable,
     create_gateway_app,
 )
+from policyengine_household_api.failover.manifest import FailoverManifestError
 
 
 def _manifest():
@@ -48,6 +49,8 @@ def _client(
     modal_status_checker=None,
     fallback_warmup=None,
     modal_timeout_seconds=None,
+    modal_request_timeout_seconds=None,
+    modal_probe_timeout_seconds=None,
 ):
     app = create_gateway_app(
         manifest_loader=_manifest,
@@ -62,6 +65,8 @@ def _client(
         fallback_warmup=fallback_warmup or (lambda resolved: None),
         circuit_registry=CircuitRegistry(time_source=clock),
         modal_timeout_seconds=modal_timeout_seconds,
+        modal_request_timeout_seconds=modal_request_timeout_seconds,
+        modal_probe_timeout_seconds=modal_probe_timeout_seconds,
     )
     return app.test_client()
 
@@ -162,7 +167,8 @@ def test_three_modal_timeouts_open_circuit_then_fall_back():
     client = _client(
         modal_request=slow_modal_request,
         modal_status_checker=lambda: status_checks.append("checked") or {},
-        modal_timeout_seconds=0.01,
+        modal_request_timeout_seconds=0.01,
+        modal_probe_timeout_seconds=1,
     )
 
     for _ in range(2):
@@ -177,6 +183,22 @@ def test_three_modal_timeouts_open_circuit_then_fall_back():
     assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
     assert response.headers["X-PolicyEngine-Primary-State"] == "unhealthy"
     assert status_checks == ["checked"]
+
+
+def test_modal_request_timeout_is_separate_from_probe_timeout():
+    def slow_modal_request(app_name, payload):
+        time.sleep(0.02)
+        return _json_response({"backend": "modal"})
+
+    response = _client(
+        modal_request=slow_modal_request,
+        modal_request_timeout_seconds=0.1,
+        modal_probe_timeout_seconds=0.001,
+    ).post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 200
+    assert response.get_json() == {"backend": "modal"}
+    assert response.headers["X-PolicyEngine-Backend"] == "modal"
 
 
 def test_both_backends_unavailable_returns_retry_after():
@@ -196,6 +218,53 @@ def test_both_backends_unavailable_returns_retry_after():
     assert response.headers["Retry-After"] == "10"
     assert response.get_json()["code"] == "backend_unavailable"
     assert response.headers["X-PolicyEngine-Backend"] == "none"
+
+
+def test_manifest_unavailable_returns_retry_after():
+    def unavailable_manifest():
+        raise FailoverManifestError("manifest could not be loaded")
+
+    client = create_gateway_app(
+        manifest_loader=unavailable_manifest,
+        modal_request=lambda app_name, payload: _json_response(
+            {"backend": "modal"}
+        ),
+        modal_health_probe=lambda app_name: None,
+        fallback_request=lambda resolved, payload: _json_response(
+            {"backend": "cloud_run"}
+        ),
+        modal_status_checker=lambda: {},
+        fallback_warmup=lambda resolved: None,
+    ).test_client()
+
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 503
+    assert response.headers["Retry-After"] == "10"
+    assert response.get_json()["code"] == "gateway_unavailable"
+    assert response.headers.get("X-PolicyEngine-Backend") is None
+
+
+def test_unknown_exact_package_version_stays_bad_request():
+    response = _client().post(
+        "/us/calculate",
+        json={"version": "9.9.9", "household": {}},
+    )
+
+    assert response.status_code == 400
+    assert "Retry-After" not in response.headers
+    assert response.get_json()["status"] == "error"
+
+
+def test_non_string_version_stays_bad_request():
+    response = _client().post(
+        "/us/calculate",
+        json={"version": 123, "household": {}},
+    )
+
+    assert response.status_code == 400
+    assert "Retry-After" not in response.headers
+    assert response.get_json()["status"] == "error"
 
 
 def test_forced_cloud_run_failure_returns_retry_after(monkeypatch):

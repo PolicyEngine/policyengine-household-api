@@ -331,6 +331,12 @@ append_env_value \
 append_env_if_set "${gateway_env_file}" HOUSEHOLD_FAILOVER_FORCE_BACKEND
 append_env_if_set "${gateway_env_file}" HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH
 append_env_if_set "${gateway_env_file}" HOUSEHOLD_FAILOVER_MODAL_TIMEOUT_SECONDS
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_REQUEST_TIMEOUT_SECONDS
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_PROBE_TIMEOUT_SECONDS
 sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_ID \

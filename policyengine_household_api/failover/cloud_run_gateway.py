@@ -23,11 +23,14 @@ from policyengine_household_api.failover.manifest import (
     FAILOVER_MANIFEST_BLOB_ENV,
     FAILOVER_MANIFEST_BUCKET_ENV,
     FailoverManifestError,
+    FailoverManifestUnavailable,
+    FailoverRoutingError,
     ResolvedFailoverChannel,
     resolve_failover_channel_for_request,
     validate_failover_manifest,
 )
 from policyengine_household_api.modal_release.gateway import (
+    GatewayResolutionError,
     VERSIONED_ENDPOINTS,
     _country_and_endpoint,
     _extract_requested_version,
@@ -46,7 +49,8 @@ MODAL_FAILURE_THRESHOLD = 3
 MODAL_PROBE_INTERVAL_SECONDS = 15
 MODAL_STATUS_CHECK_MIN_INTERVAL_SECONDS = 60
 MANIFEST_CACHE_SECONDS = 30
-MODAL_OPERATION_TIMEOUT_SECONDS = 5.0
+MODAL_REQUEST_TIMEOUT_SECONDS = 30.0
+MODAL_PROBE_TIMEOUT_SECONDS = 5.0
 MODAL_EXECUTOR_MAX_WORKERS = 16
 
 _MODAL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
@@ -189,6 +193,8 @@ def create_gateway_app(
     fallback_warmup: Callable[[ResolvedFailoverChannel], None] | None = None,
     circuit_registry: CircuitRegistry | None = None,
     modal_timeout_seconds: float | None = None,
+    modal_request_timeout_seconds: float | None = None,
+    modal_probe_timeout_seconds: float | None = None,
 ) -> Flask:
     app = Flask(__name__)
     load_manifest = manifest_loader or GcsFailoverManifestLoader()
@@ -198,10 +204,23 @@ def create_gateway_app(
     check_modal_status = modal_status_checker or fetch_modal_status
     warm_fallback = fallback_warmup or warm_cloud_run_worker
     circuits = circuit_registry or CircuitRegistry()
-    modal_timeout = (
-        modal_timeout_seconds
-        if modal_timeout_seconds is not None
-        else _modal_operation_timeout_seconds()
+    request_timeout = (
+        max(modal_request_timeout_seconds, 0.001)
+        if modal_request_timeout_seconds is not None
+        else _modal_operation_timeout_seconds(
+            "HOUSEHOLD_FAILOVER_MODAL_REQUEST_TIMEOUT_SECONDS",
+            MODAL_REQUEST_TIMEOUT_SECONDS,
+            legacy_timeout_seconds=modal_timeout_seconds,
+        )
+    )
+    probe_timeout = (
+        max(modal_probe_timeout_seconds, 0.001)
+        if modal_probe_timeout_seconds is not None
+        else _modal_operation_timeout_seconds(
+            "HOUSEHOLD_FAILOVER_MODAL_PROBE_TIMEOUT_SECONDS",
+            MODAL_PROBE_TIMEOUT_SECONDS,
+            legacy_timeout_seconds=modal_timeout_seconds,
+        )
     )
 
     @app.get("/liveness_check")
@@ -210,29 +229,32 @@ def create_gateway_app(
 
     @app.get("/readiness_check")
     def readiness_check() -> Response:
-        manifest = validate_failover_manifest(load_manifest())
+        try:
+            manifest = validate_failover_manifest(load_manifest())
+        except FailoverManifestError as exc:
+            return _gateway_unavailable_response(str(exc))
         if not manifest["channels"].get("current"):
-            response = jsonify(
-                {
-                    "status": "error",
-                    "message": "No current failover channel is configured",
-                }
+            return _gateway_unavailable_response(
+                "No current failover channel is configured"
             )
-            response.status_code = 503
-            response.headers["Retry-After"] = str(RETRY_AFTER_SECONDS)
-            return response
         return Response("OK", status=200, mimetype="text/plain")
 
     @app.get("/versions")
     def versions() -> Response:
-        return jsonify(validate_failover_manifest(load_manifest()))
+        try:
+            return jsonify(validate_failover_manifest(load_manifest()))
+        except FailoverManifestError as exc:
+            return _gateway_unavailable_response(str(exc))
 
     @app.get("/versions/<country_id>")
     def country_versions(country_id: str) -> Response:
         if country_id not in COUNTRIES:
             return _json_error(f"Unsupported country `{country_id}`", 404)
 
-        manifest = validate_failover_manifest(load_manifest())
+        try:
+            manifest = validate_failover_manifest(load_manifest())
+        except FailoverManifestError as exc:
+            return _gateway_unavailable_response(str(exc))
         versions_by_channel = {}
         for channel, reference in manifest["channels"].items():
             if reference:
@@ -256,6 +278,10 @@ def create_gateway_app(
 
         try:
             manifest = validate_failover_manifest(load_manifest())
+        except FailoverManifestError as exc:
+            return _gateway_unavailable_response(str(exc))
+
+        try:
             if country_id and endpoint in VERSIONED_ENDPOINTS:
                 body, requested_version = _extract_requested_version(body)
             else:
@@ -275,7 +301,8 @@ def create_gateway_app(
                 call_fallback=call_fallback,
                 check_modal_status=check_modal_status,
                 warm_fallback=warm_fallback,
-                modal_timeout_seconds=modal_timeout,
+                modal_request_timeout_seconds=request_timeout,
+                modal_probe_timeout_seconds=probe_timeout,
             )
             return _with_gateway_headers(
                 response,
@@ -283,7 +310,9 @@ def create_gateway_app(
                 channel=resolved.channel,
                 primary_state=circuits.primary_state(resolved.channel),
             )
-        except FailoverManifestError as exc:
+        except FailoverManifestUnavailable as exc:
+            return _gateway_unavailable_response(str(exc))
+        except (FailoverRoutingError, GatewayResolutionError) as exc:
             return _json_error(str(exc), 400)
 
     return app
@@ -394,7 +423,8 @@ def _route_to_backend(
     ],
     check_modal_status: Callable[[], dict[str, Any]],
     warm_fallback: Callable[[ResolvedFailoverChannel], None],
-    modal_timeout_seconds: float,
+    modal_request_timeout_seconds: float,
+    modal_probe_timeout_seconds: float,
 ) -> tuple[Response, str]:
     force_backend = os.getenv(FORCE_BACKEND_ENV, "").strip().lower()
     if force_backend == "cloud_run":
@@ -411,7 +441,7 @@ def _route_to_backend(
             probe_modal=probe_modal,
             check_modal_status=check_modal_status,
             warm_fallback=warm_fallback,
-            modal_timeout_seconds=modal_timeout_seconds,
+            modal_probe_timeout_seconds=modal_probe_timeout_seconds,
         )
         if circuits.state(resolved.channel).is_open:
             return _route_to_fallback_or_503(
@@ -423,7 +453,7 @@ def _route_to_backend(
     try:
         response = _run_modal_operation(
             lambda: call_modal(resolved.modal_app_name, payload),
-            timeout_seconds=modal_timeout_seconds,
+            timeout_seconds=modal_request_timeout_seconds,
         )
         circuits.record_success(resolved.channel)
         return response, "modal"
@@ -450,7 +480,7 @@ def _refresh_modal_circuit(
     probe_modal: Callable[[str], None],
     check_modal_status: Callable[[], dict[str, Any]],
     warm_fallback: Callable[[ResolvedFailoverChannel], None],
-    modal_timeout_seconds: float,
+    modal_probe_timeout_seconds: float,
 ) -> None:
     if not circuits.should_probe(resolved.channel):
         return
@@ -458,7 +488,7 @@ def _refresh_modal_circuit(
     try:
         _run_modal_operation(
             lambda: probe_modal(resolved.modal_app_name),
-            timeout_seconds=modal_timeout_seconds,
+            timeout_seconds=modal_probe_timeout_seconds,
         )
         circuits.record_success(resolved.channel)
     except ModalBackendUnavailable:
@@ -524,6 +554,20 @@ def _backend_unavailable_response(
     return response
 
 
+def _gateway_unavailable_response(message: str) -> Response:
+    response = jsonify(
+        {
+            "status": "error",
+            "code": "gateway_unavailable",
+            "message": message,
+            "retry_after_seconds": RETRY_AFTER_SECONDS,
+        }
+    )
+    response.status_code = 503
+    response.headers["Retry-After"] = str(RETRY_AFTER_SECONDS)
+    return response
+
+
 def _with_gateway_headers(
     response: Response,
     *,
@@ -573,14 +617,24 @@ def _run_modal_operation(
         raise ModalBackendUnavailable(str(exc)) from exc
 
 
-def _modal_operation_timeout_seconds() -> float:
-    raw_value = os.getenv("HOUSEHOLD_FAILOVER_MODAL_TIMEOUT_SECONDS", "")
+def _modal_operation_timeout_seconds(
+    env_var: str,
+    default: float,
+    *,
+    legacy_timeout_seconds: float | None = None,
+) -> float:
+    if legacy_timeout_seconds is not None:
+        return max(legacy_timeout_seconds, 0.001)
+    raw_value = os.getenv(env_var, "") or os.getenv(
+        "HOUSEHOLD_FAILOVER_MODAL_TIMEOUT_SECONDS",
+        "",
+    )
     if not raw_value:
-        return MODAL_OPERATION_TIMEOUT_SECONDS
+        return default
     try:
         timeout = float(raw_value)
     except ValueError:
-        return MODAL_OPERATION_TIMEOUT_SECONDS
+        return default
     return max(timeout, 0.001)
 
 

@@ -35,6 +35,8 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
         "USER_ANALYTICS_DB_USERNAME": "analytics-user",
         "USER_ANALYTICS_DB_PASSWORD": "analytics@password,with,comma",
+        "HOUSEHOLD_FAILOVER_MODAL_REQUEST_TIMEOUT_SECONDS": "45",
+        "HOUSEHOLD_FAILOVER_MODAL_PROBE_TIMEOUT_SECONDS": "5",
     }
 
     result = subprocess.run(
