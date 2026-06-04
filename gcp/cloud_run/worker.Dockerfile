@@ -55,9 +55,10 @@ RUN chmod +x /app/start.sh
 
 RUN groupadd policyapi && \
     useradd --gid policyapi --create-home policyapi && \
-    chown -R policyapi:policyapi /app /opt/venv
+    chown -R policyapi:policyapi /app
 
 ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 

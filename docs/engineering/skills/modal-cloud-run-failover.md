@@ -84,6 +84,13 @@ URL for this pre-cutover check. For a local isolated testing deployment, use
 `.github/scripts/cloud-run-testing-deploy-and-load-test.sh`; it deploys a
 testing namespace, smoke-checks the gateway, and runs the load-test harness.
 
+Do not recursively `chown` the Cloud Run worker virtualenv at `/opt/venv`.
+The runtime user only needs read and execute access to run Python and installed
+console scripts. Keep `/opt/venv` root-owned, set `PYTHONDONTWRITEBYTECODE=1`,
+and only `chown` paths the app must write to. Recursive ownership rewrites over
+the worker virtualenv are very slow in Docker Desktop because the venv contains
+tens of thousands of files.
+
 Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
 secret values through `--set-env-vars` or delimiter-joined command arguments.
