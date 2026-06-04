@@ -31,38 +31,94 @@ cloud_run_environment() {
   fi
 }
 
-join_gcloud_env_vars() {
-  local joined=""
-  local item
-  for item in "$@"; do
-    if [ -z "${joined}" ]; then
-      joined="${item}"
-    else
-      joined="${joined}@${item}"
-    fi
-  done
-  printf '^@^%s\n' "${joined}"
-}
-
 append_env_if_set() {
   local env_file="${1:?env file is required}"
   local key="${2:?env key is required}"
   if [ -n "${!key:-}" ]; then
-    printf '%s=%s\n' "${key}" "${!key}" >> "${env_file}"
+    append_env_value "${env_file}" "${key}" "${!key}"
   fi
+}
+
+append_env_value() {
+  local env_file="${1:?env file is required}"
+  local key="${2:?env key is required}"
+  local value="${3:-}"
+  local line
+
+  printf '%s: |-\n' "${key}" >> "${env_file}"
+  while IFS= read -r line || [ -n "${line}" ]; do
+    printf '  %s\n' "${line}" >> "${env_file}"
+  done <<EOF
+${value}
+EOF
 }
 
 env_args_from_file() {
   local env_file="${1:?env file is required}"
-  local env_values=()
-  local line
   if [ ! -s "${env_file}" ]; then
     return
   fi
+  printf '%s\n' "--env-vars-file=${env_file}"
+}
+
+sync_secret_if_set() {
+  local secrets_file="${1:?secrets file is required}"
+  local key="${2:?secret env key is required}"
+  local service_account="${3:?service account is required}"
+  local secret_override_key="HOUSEHOLD_CLOUD_RUN_SECRET_${key}"
+  local secret_override_value="${!secret_override_key:-}"
+  local secret_name="${secret_override_value:-${secret_prefix}-${key}}"
+  local secret_value_file
+
+  if [ -z "${!key:-}" ]; then
+    return
+  fi
+
+  if ! "${gcloud_bin}" secrets describe "${secret_name}" \
+    --project "${project}" >/dev/null 2>&1; then
+    "${gcloud_bin}" secrets create "${secret_name}" \
+      --project "${project}" \
+      --replication-policy automatic \
+      --quiet
+  fi
+
+  secret_value_file="$(mktemp)"
+  chmod 600 "${secret_value_file}"
+  printf '%s' "${!key}" > "${secret_value_file}"
+  if ! "${gcloud_bin}" secrets versions add "${secret_name}" \
+    --project "${project}" \
+    --data-file "${secret_value_file}" >/dev/null; then
+    rm -f "${secret_value_file}"
+    return 1
+  fi
+  rm -f "${secret_value_file}"
+
+  "${gcloud_bin}" secrets add-iam-policy-binding "${secret_name}" \
+    --project "${project}" \
+    --member "serviceAccount:${service_account}" \
+    --role roles/secretmanager.secretAccessor \
+    --quiet >/dev/null
+
+  printf '%s=%s:latest\n' "${key}" "${secret_name}" >> "${secrets_file}"
+}
+
+secret_args_from_file() {
+  local secrets_file="${1:?secrets file is required}"
+  local joined=""
+  local line
+
+  if [ ! -s "${secrets_file}" ]; then
+    return
+  fi
+
   while IFS= read -r line; do
-    env_values+=("${line}")
-  done < "${env_file}"
-  printf '%s\n' "--set-env-vars=$(join_gcloud_env_vars "${env_values[@]}")"
+    if [ -z "${joined}" ]; then
+      joined="${line}"
+    else
+      joined="${joined},${line}"
+    fi
+  done < "${secrets_file}"
+  printf '%s\n' "--set-secrets=${joined}"
 }
 
 service_name() {
@@ -95,6 +151,7 @@ region="${HOUSEHOLD_CLOUD_RUN_REGION:-us-central1}"
 repository="${HOUSEHOLD_CLOUD_RUN_ARTIFACT_REPOSITORY:-household-api}"
 environment="$(cloud_run_environment)"
 service_prefix="${HOUSEHOLD_CLOUD_RUN_SERVICE_PREFIX:-household-api-${environment}}"
+secret_prefix="${HOUSEHOLD_CLOUD_RUN_SECRET_PREFIX:-${service_prefix}}"
 manifest_bucket="${HOUSEHOLD_FAILOVER_MANIFEST_BUCKET}"
 manifest_blob="${HOUSEHOLD_FAILOVER_MANIFEST_BLOB:-${environment}/failover-manifest.json}"
 artifact_host="${region}-docker.pkg.dev"
@@ -126,8 +183,10 @@ channels_tsv="$(mktemp)"
 manifest_json="$(mktemp)"
 worker_urls_tsv="$(mktemp)"
 worker_env_file="$(mktemp)"
+worker_secrets_file="$(mktemp)"
 gateway_env_file="$(mktemp)"
-trap 'rm -f "${channels_tsv}" "${manifest_json}" "${worker_urls_tsv}" "${worker_env_file}" "${gateway_env_file}"' EXIT
+gateway_secrets_file="$(mktemp)"
+trap 'rm -f "${channels_tsv}" "${manifest_json}" "${worker_urls_tsv}" "${worker_env_file}" "${worker_secrets_file}" "${gateway_env_file}" "${gateway_secrets_file}"' EXIT
 
 "${uv_bin}" run python "${channels_script}" \
   --modal-environment "${MODAL_ENVIRONMENT}" \
@@ -162,19 +221,41 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   "${docker_bin}" push "${worker_image}"
 
   : > "${worker_env_file}"
-  printf 'APP__ENVIRONMENT=%s\n' "${environment}" >> "${worker_env_file}"
-  printf 'HOUSEHOLD_FAILOVER_CHANNEL=%s\n' "${channel}" >> "${worker_env_file}"
-  printf 'HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON=%s\n' \
-    "${package_versions_json}" >> "${worker_env_file}"
+  : > "${worker_secrets_file}"
+  append_env_value "${worker_env_file}" APP__ENVIRONMENT "${environment}"
+  append_env_value "${worker_env_file}" HOUSEHOLD_FAILOVER_CHANNEL "${channel}"
+  append_env_value \
+    "${worker_env_file}" \
+    HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON \
+    "${package_versions_json}"
   append_env_if_set "${worker_env_file}" ANALYTICS__ENABLED
   append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_CONNECTION_NAME
   append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_USERNAME
-  append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_PASSWORD
   append_env_if_set "${worker_env_file}" AUTH__ENABLED
   append_env_if_set "${worker_env_file}" AUTH0_ADDRESS_NO_DOMAIN
   append_env_if_set "${worker_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
   append_env_if_set "${worker_env_file}" AI__ENABLED
-  append_env_if_set "${worker_env_file}" ANTHROPIC_API_KEY
+  sync_secret_if_set \
+    "${worker_secrets_file}" \
+    USER_ANALYTICS_DB_PASSWORD \
+    "${worker_service_account}"
+  sync_secret_if_set \
+    "${worker_secrets_file}" \
+    ANTHROPIC_API_KEY \
+    "${worker_service_account}"
+
+  worker_env_args=()
+  worker_secret_args=()
+  if worker_env_arg="$(env_args_from_file "${worker_env_file}")"; then
+    if [ -n "${worker_env_arg}" ]; then
+      worker_env_args+=("${worker_env_arg}")
+    fi
+  fi
+  if worker_secret_arg="$(secret_args_from_file "${worker_secrets_file}")"; then
+    if [ -n "${worker_secret_arg}" ]; then
+      worker_secret_args+=("${worker_secret_arg}")
+    fi
+  fi
 
   deploy_run_service "${gcloud_bin}" run deploy "${worker_service}" \
     --image "${worker_image}" \
@@ -189,7 +270,8 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
     --cpu "${worker_cpu}" \
     --memory "${worker_memory}" \
     --service-account "${worker_service_account}" \
-    "$(env_args_from_file "${worker_env_file}")" \
+    "${worker_env_args[@]}" \
+    "${worker_secret_args[@]}" \
     --quiet
 
   "${gcloud_bin}" run services add-iam-policy-binding "${worker_service}" \
@@ -235,16 +317,41 @@ done < "${worker_urls_tsv}"
 "${docker_bin}" push "${gateway_image}"
 
 : > "${gateway_env_file}"
-printf 'APP__ENVIRONMENT=%s\n' "${environment}" >> "${gateway_env_file}"
-printf 'MODAL_ENVIRONMENT=%s\n' "${MODAL_ENVIRONMENT}" >> "${gateway_env_file}"
-printf 'HOUSEHOLD_FAILOVER_MANIFEST_BUCKET=%s\n' \
-  "${manifest_bucket}" >> "${gateway_env_file}"
-printf 'HOUSEHOLD_FAILOVER_MANIFEST_BLOB=%s\n' \
-  "${manifest_blob}" >> "${gateway_env_file}"
-append_env_if_set "${gateway_env_file}" MODAL_TOKEN_ID
-append_env_if_set "${gateway_env_file}" MODAL_TOKEN_SECRET
+: > "${gateway_secrets_file}"
+append_env_value "${gateway_env_file}" APP__ENVIRONMENT "${environment}"
+append_env_value "${gateway_env_file}" MODAL_ENVIRONMENT "${MODAL_ENVIRONMENT}"
+append_env_value \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MANIFEST_BUCKET \
+  "${manifest_bucket}"
+append_env_value \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MANIFEST_BLOB \
+  "${manifest_blob}"
 append_env_if_set "${gateway_env_file}" HOUSEHOLD_FAILOVER_FORCE_BACKEND
 append_env_if_set "${gateway_env_file}" HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH
+append_env_if_set "${gateway_env_file}" HOUSEHOLD_FAILOVER_MODAL_TIMEOUT_SECONDS
+sync_secret_if_set \
+  "${gateway_secrets_file}" \
+  MODAL_TOKEN_ID \
+  "${gateway_service_account}"
+sync_secret_if_set \
+  "${gateway_secrets_file}" \
+  MODAL_TOKEN_SECRET \
+  "${gateway_service_account}"
+
+gateway_env_args=()
+gateway_secret_args=()
+if gateway_env_arg="$(env_args_from_file "${gateway_env_file}")"; then
+  if [ -n "${gateway_env_arg}" ]; then
+    gateway_env_args+=("${gateway_env_arg}")
+  fi
+fi
+if gateway_secret_arg="$(secret_args_from_file "${gateway_secrets_file}")"; then
+  if [ -n "${gateway_secret_arg}" ]; then
+    gateway_secret_args+=("${gateway_secret_arg}")
+  fi
+fi
 
 deploy_run_service "${gcloud_bin}" run deploy "${gateway_service}" \
   --image "${gateway_image}" \
@@ -259,7 +366,8 @@ deploy_run_service "${gcloud_bin}" run deploy "${gateway_service}" \
   --cpu "${gateway_cpu}" \
   --memory "${gateway_memory}" \
   --service-account "${gateway_service_account}" \
-  "$(env_args_from_file "${gateway_env_file}")" \
+  "${gateway_env_args[@]}" \
+  "${gateway_secret_args[@]}" \
   --quiet
 
 gateway_url="$(

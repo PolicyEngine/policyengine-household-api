@@ -25,13 +25,16 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "MODAL_ENVIRONMENT": "staging",
         "GOOGLE_CLOUD_PROJECT": "policyengine-test",
         "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
+        "MODAL_TOKEN_ID": "modal-token-id@example",
+        "MODAL_TOKEN_SECRET": "modal-token,secret@example",
         "AUTH__ENABLED": "true",
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
+        "ANTHROPIC_API_KEY": "sk-ant@test,secret",
         "ANALYTICS__ENABLED": "true",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
         "USER_ANALYTICS_DB_USERNAME": "analytics-user",
-        "USER_ANALYTICS_DB_PASSWORD": "analytics-password",
+        "USER_ANALYTICS_DB_PASSWORD": "analytics@password,with,comma",
     }
 
     result = subprocess.run(
@@ -51,6 +54,24 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gcloud run deploy household-api-staging-current-worker" in log
     assert "gcloud run deploy household-api-staging-frontier-worker" in log
     assert "--no-allow-unauthenticated --min-instances 0" in log
+    assert "--env-vars-file=" in log
+    assert "--set-env-vars" not in log
+    assert (
+        "--set-secrets=USER_ANALYTICS_DB_PASSWORD="
+        "household-api-staging-USER_ANALYTICS_DB_PASSWORD:latest,"
+        "ANTHROPIC_API_KEY=household-api-staging-ANTHROPIC_API_KEY:latest"
+        in log
+    )
+    assert (
+        "--set-secrets=MODAL_TOKEN_ID="
+        "household-api-staging-MODAL_TOKEN_ID:latest,"
+        "MODAL_TOKEN_SECRET=household-api-staging-MODAL_TOKEN_SECRET:latest"
+        in log
+    )
+    assert "gcloud secrets versions add" in log
+    assert "analytics@password,with,comma" not in log
+    assert "modal-token,secret@example" not in log
+    assert "sk-ant@test,secret" not in log
     assert "gcloud storage cp" in log
     assert "gs://manifest-bucket/staging/failover-manifest.json" in log
     assert "gcloud run deploy household-api-staging-gateway" in log

@@ -70,6 +70,10 @@ private `current` and `frontier` Cloud Run workers with `min-instances=0`,
 uploads the GCS failover manifest, then deploys the public gateway with
 `min-instances=1`.
 
+Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
+values to Secret Manager and bind them with `--set-secrets`; do not pass raw
+secret values through `--set-env-vars` or delimiter-joined command arguments.
+
 ## Testing Expectations
 
 When changing this system, include focused tests for:
