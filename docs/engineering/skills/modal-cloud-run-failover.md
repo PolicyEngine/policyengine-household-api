@@ -80,7 +80,9 @@ Cloud Run may send more concurrent requests to a container than Gunicorn can
 serve. Load-test at least 25 concurrent requests through the Cloud Run gateway
 before DNS cutover or any production traffic migration. Use
 `.github/scripts/cloud_run_gateway_load_test.py` against the deployed gateway
-URL for this pre-cutover check.
+URL for this pre-cutover check. For a local isolated testing deployment, use
+`.github/scripts/cloud-run-testing-deploy-and-load-test.sh`; it deploys a
+testing namespace, smoke-checks the gateway, and runs the load-test harness.
 
 Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
