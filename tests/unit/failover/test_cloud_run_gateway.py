@@ -1,4 +1,5 @@
 import json
+import time
 
 from flask import Response
 
@@ -46,6 +47,7 @@ def _client(
     fallback_request=None,
     modal_status_checker=None,
     fallback_warmup=None,
+    modal_timeout_seconds=None,
 ):
     app = create_gateway_app(
         manifest_loader=_manifest,
@@ -59,6 +61,7 @@ def _client(
         modal_status_checker=modal_status_checker or (lambda: {}),
         fallback_warmup=fallback_warmup or (lambda resolved: None),
         circuit_registry=CircuitRegistry(time_source=clock),
+        modal_timeout_seconds=modal_timeout_seconds,
     )
     return app.test_client()
 
@@ -149,6 +152,33 @@ def test_modal_call_failure_opens_circuit_after_threshold_then_falls_back():
     assert status_checks == ["checked"]
 
 
+def test_three_modal_timeouts_open_circuit_then_fall_back():
+    status_checks = []
+
+    def slow_modal_request(app_name, payload):
+        time.sleep(0.05)
+        return _json_response({"backend": "modal"})
+
+    client = _client(
+        modal_request=slow_modal_request,
+        modal_status_checker=lambda: status_checks.append("checked") or {},
+        modal_timeout_seconds=0.01,
+    )
+
+    for _ in range(2):
+        response = client.post("/us/calculate", json={"household": {}})
+        assert response.status_code == 503
+        assert response.headers["Retry-After"] == "10"
+
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 200
+    assert response.get_json() == {"backend": "cloud_run"}
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+    assert response.headers["X-PolicyEngine-Primary-State"] == "unhealthy"
+    assert status_checks == ["checked"]
+
+
 def test_both_backends_unavailable_returns_retry_after():
     client = _client(
         modal_request=lambda app_name, payload: (_ for _ in ()).throw(
@@ -161,6 +191,21 @@ def test_both_backends_unavailable_returns_retry_after():
 
     for _ in range(3):
         response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 503
+    assert response.headers["Retry-After"] == "10"
+    assert response.get_json()["code"] == "backend_unavailable"
+    assert response.headers["X-PolicyEngine-Backend"] == "none"
+
+
+def test_forced_cloud_run_failure_returns_retry_after(monkeypatch):
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_FORCE_BACKEND", "cloud_run")
+
+    response = _client(
+        fallback_request=lambda resolved, payload: (_ for _ in ()).throw(
+            FallbackBackendUnavailable("fallback failed")
+        )
+    ).post("/us/calculate", json={"household": {}})
 
     assert response.status_code == 503
     assert response.headers["Retry-After"] == "10"

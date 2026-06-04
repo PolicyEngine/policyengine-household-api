@@ -20,7 +20,7 @@ RUN uv sync --frozen --no-dev
 ARG HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON={}
 ENV HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON=${HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON}
 
-RUN python - <<'PY' > /tmp/country-package-specs.txt
+RUN /opt/venv/bin/python - <<'PY' > /tmp/country-package-specs.txt
 from policyengine_household_api.modal_release.images import (
     country_package_install_specs,
 )
@@ -67,4 +67,3 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
 USER policyapi
 
 CMD ["/app/start.sh"]
-

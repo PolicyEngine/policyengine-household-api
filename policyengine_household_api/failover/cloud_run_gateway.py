@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 from dataclasses import dataclass
 import json
 import logging
@@ -45,6 +46,16 @@ MODAL_FAILURE_THRESHOLD = 3
 MODAL_PROBE_INTERVAL_SECONDS = 15
 MODAL_STATUS_CHECK_MIN_INTERVAL_SECONDS = 60
 MANIFEST_CACHE_SECONDS = 30
+MODAL_OPERATION_TIMEOUT_SECONDS = 5.0
+MODAL_EXECUTOR_MAX_WORKERS = 16
+
+_MODAL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=MODAL_EXECUTOR_MAX_WORKERS,
+    thread_name_prefix="household-modal",
+)
+_MODAL_EXECUTOR_SEMAPHORE = threading.BoundedSemaphore(
+    MODAL_EXECUTOR_MAX_WORKERS,
+)
 
 
 class ModalBackendUnavailable(RuntimeError):
@@ -177,6 +188,7 @@ def create_gateway_app(
     modal_status_checker: Callable[[], dict[str, Any]] | None = None,
     fallback_warmup: Callable[[ResolvedFailoverChannel], None] | None = None,
     circuit_registry: CircuitRegistry | None = None,
+    modal_timeout_seconds: float | None = None,
 ) -> Flask:
     app = Flask(__name__)
     load_manifest = manifest_loader or GcsFailoverManifestLoader()
@@ -186,6 +198,11 @@ def create_gateway_app(
     check_modal_status = modal_status_checker or fetch_modal_status
     warm_fallback = fallback_warmup or warm_cloud_run_worker
     circuits = circuit_registry or CircuitRegistry()
+    modal_timeout = (
+        modal_timeout_seconds
+        if modal_timeout_seconds is not None
+        else _modal_operation_timeout_seconds()
+    )
 
     @app.get("/liveness_check")
     def liveness_check() -> Response:
@@ -258,6 +275,7 @@ def create_gateway_app(
                 call_fallback=call_fallback,
                 check_modal_status=check_modal_status,
                 warm_fallback=warm_fallback,
+                modal_timeout_seconds=modal_timeout,
             )
             return _with_gateway_headers(
                 response,
@@ -376,10 +394,15 @@ def _route_to_backend(
     ],
     check_modal_status: Callable[[], dict[str, Any]],
     warm_fallback: Callable[[ResolvedFailoverChannel], None],
+    modal_timeout_seconds: float,
 ) -> tuple[Response, str]:
     force_backend = os.getenv(FORCE_BACKEND_ENV, "").strip().lower()
     if force_backend == "cloud_run":
-        return call_fallback(resolved, payload), "cloud_run"
+        return _route_to_fallback_or_503(
+            resolved,
+            payload,
+            call_fallback=call_fallback,
+        )
 
     if force_backend != "modal":
         _refresh_modal_circuit(
@@ -388,6 +411,7 @@ def _route_to_backend(
             probe_modal=probe_modal,
             check_modal_status=check_modal_status,
             warm_fallback=warm_fallback,
+            modal_timeout_seconds=modal_timeout_seconds,
         )
         if circuits.state(resolved.channel).is_open:
             return _route_to_fallback_or_503(
@@ -397,7 +421,10 @@ def _route_to_backend(
             )
 
     try:
-        response = call_modal(resolved.modal_app_name, payload)
+        response = _run_modal_operation(
+            lambda: call_modal(resolved.modal_app_name, payload),
+            timeout_seconds=modal_timeout_seconds,
+        )
         circuits.record_success(resolved.channel)
         return response, "modal"
     except ModalBackendUnavailable:
@@ -423,12 +450,16 @@ def _refresh_modal_circuit(
     probe_modal: Callable[[str], None],
     check_modal_status: Callable[[], dict[str, Any]],
     warm_fallback: Callable[[ResolvedFailoverChannel], None],
+    modal_timeout_seconds: float,
 ) -> None:
     if not circuits.should_probe(resolved.channel):
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        probe_modal(resolved.modal_app_name)
+        _run_modal_operation(
+            lambda: probe_modal(resolved.modal_app_name),
+            timeout_seconds=modal_timeout_seconds,
+        )
         circuits.record_success(resolved.channel)
     except ModalBackendUnavailable:
         if circuits.record_failure(resolved.channel):
@@ -512,6 +543,45 @@ def _cloud_run_auth_header(audience: str) -> dict[str, str]:
         return {}
     token = id_token.fetch_id_token(GoogleAuthRequest(), audience)
     return {"Authorization": f"Bearer {token}"}
+
+
+def _run_modal_operation(
+    operation: Callable[[], Any],
+    *,
+    timeout_seconds: float,
+) -> Any:
+    if not _MODAL_EXECUTOR_SEMAPHORE.acquire(blocking=False):
+        raise ModalBackendUnavailable("Modal operation executor is saturated")
+
+    try:
+        future = _MODAL_EXECUTOR.submit(operation)
+    except Exception:
+        _MODAL_EXECUTOR_SEMAPHORE.release()
+        raise
+
+    future.add_done_callback(lambda _: _MODAL_EXECUTOR_SEMAPHORE.release())
+    try:
+        return future.result(timeout=timeout_seconds)
+    except concurrent.futures.TimeoutError as exc:
+        future.cancel()
+        raise ModalBackendUnavailable(
+            f"Modal operation timed out after {timeout_seconds:g}s"
+        ) from exc
+    except ModalBackendUnavailable:
+        raise
+    except Exception as exc:
+        raise ModalBackendUnavailable(str(exc)) from exc
+
+
+def _modal_operation_timeout_seconds() -> float:
+    raw_value = os.getenv("HOUSEHOLD_FAILOVER_MODAL_TIMEOUT_SECONDS", "")
+    if not raw_value:
+        return MODAL_OPERATION_TIMEOUT_SECONDS
+    try:
+        timeout = float(raw_value)
+    except ValueError:
+        return MODAL_OPERATION_TIMEOUT_SECONDS
+    return max(timeout, 0.001)
 
 
 def _modal_lookup(
