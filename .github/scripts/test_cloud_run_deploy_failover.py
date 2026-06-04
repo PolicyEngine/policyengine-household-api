@@ -110,6 +110,52 @@ def test_cloud_run_deploy_failover_requires_manifest_bucket(tmp_path):
     assert "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET" in result.stdout
 
 
+def test_cloud_run_deploy_failover_handles_empty_secret_args(tmp_path):
+    log_path = tmp_path / "commands.log"
+    output_path = tmp_path / "github-output.txt"
+    _write_fake_uv(tmp_path, log_path)
+    _write_fake_docker(tmp_path, log_path)
+    _write_fake_gcloud(tmp_path, log_path)
+    _write_fake_curl(tmp_path, log_path)
+
+    env = {
+        **os.environ,
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "UV_BIN": str(tmp_path / "uv"),
+        "DOCKER_BIN": str(tmp_path / "docker"),
+        "GCLOUD_BIN": str(tmp_path / "gcloud"),
+        "CURL_BIN": str(tmp_path / "curl"),
+        "GITHUB_OUTPUT": str(output_path),
+        "GITHUB_SHA": "abc123",
+        "MODAL_ENVIRONMENT": "staging",
+        "GOOGLE_CLOUD_PROJECT": "policyengine-test",
+        "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
+    }
+    for key in (
+        "ANTHROPIC_API_KEY",
+        "MODAL_TOKEN_ID",
+        "MODAL_TOKEN_SECRET",
+        "USER_ANALYTICS_DB_PASSWORD",
+    ):
+        env.pop(key, None)
+
+    result = subprocess.run(
+        ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert "gcloud run deploy household-api-staging-current-worker" in log
+    assert "gcloud run deploy household-api-staging-gateway" in log
+    assert "--set-secrets" not in log
+    assert "gateway_url=https://household-api-staging-gateway.run.app" in (
+        output_path.read_text()
+    )
+
+
 def _write_fake_uv(tmp_path: Path, log_path: Path) -> None:
     script = tmp_path / "uv"
     script.write_text(

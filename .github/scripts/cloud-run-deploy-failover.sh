@@ -235,35 +235,39 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
     "${worker_secrets_file}" \
     ANTHROPIC_API_KEY
 
-  worker_env_args=()
-  worker_secret_args=()
+  worker_env_arg=""
+  worker_secret_arg=""
   if worker_env_arg="$(env_args_from_file "${worker_env_file}")"; then
-    if [ -n "${worker_env_arg}" ]; then
-      worker_env_args+=("${worker_env_arg}")
-    fi
+    :
   fi
   if worker_secret_arg="$(secret_args_from_file "${worker_secrets_file}")"; then
-    if [ -n "${worker_secret_arg}" ]; then
-      worker_secret_args+=("${worker_secret_arg}")
-    fi
+    :
   fi
 
-  deploy_run_service "${gcloud_bin}" run deploy "${worker_service}" \
-    --image "${worker_image}" \
-    --region "${region}" \
-    --project "${project}" \
-    --platform managed \
-    --no-allow-unauthenticated \
-    --min-instances "${worker_min_instances}" \
-    --max-instances "${worker_max_instances}" \
-    --concurrency "${worker_concurrency}" \
-    --timeout 300 \
-    --cpu "${worker_cpu}" \
-    --memory "${worker_memory}" \
-    --service-account "${worker_service_account}" \
-    "${worker_env_args[@]}" \
-    "${worker_secret_args[@]}" \
-    --quiet
+  worker_deploy_cmd=(
+    "${gcloud_bin}" run deploy "${worker_service}"
+    --image "${worker_image}"
+    --region "${region}"
+    --project "${project}"
+    --platform managed
+    --no-allow-unauthenticated
+    --min-instances "${worker_min_instances}"
+    --max-instances "${worker_max_instances}"
+    --concurrency "${worker_concurrency}"
+    --timeout 300
+    --cpu "${worker_cpu}"
+    --memory "${worker_memory}"
+    --service-account "${worker_service_account}"
+  )
+  if [ -n "${worker_env_arg}" ]; then
+    worker_deploy_cmd+=("${worker_env_arg}")
+  fi
+  if [ -n "${worker_secret_arg}" ]; then
+    worker_deploy_cmd+=("${worker_secret_arg}")
+  fi
+  worker_deploy_cmd+=(--quiet)
+
+  deploy_run_service "${worker_deploy_cmd[@]}"
 
   worker_url="$(
     "${gcloud_bin}" run services describe "${worker_service}" \
@@ -328,35 +332,39 @@ sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_SECRET
 
-gateway_env_args=()
-gateway_secret_args=()
+gateway_env_arg=""
+gateway_secret_arg=""
 if gateway_env_arg="$(env_args_from_file "${gateway_env_file}")"; then
-  if [ -n "${gateway_env_arg}" ]; then
-    gateway_env_args+=("${gateway_env_arg}")
-  fi
+  :
 fi
 if gateway_secret_arg="$(secret_args_from_file "${gateway_secrets_file}")"; then
-  if [ -n "${gateway_secret_arg}" ]; then
-    gateway_secret_args+=("${gateway_secret_arg}")
-  fi
+  :
 fi
 
-deploy_run_service "${gcloud_bin}" run deploy "${gateway_service}" \
-  --image "${gateway_image}" \
-  --region "${region}" \
-  --project "${project}" \
-  --platform managed \
-  --allow-unauthenticated \
-  --min-instances "${gateway_min_instances}" \
-  --max-instances "${gateway_max_instances}" \
-  --concurrency "${gateway_concurrency}" \
-  --timeout 300 \
-  --cpu "${gateway_cpu}" \
-  --memory "${gateway_memory}" \
-  --service-account "${gateway_service_account}" \
-  "${gateway_env_args[@]}" \
-  "${gateway_secret_args[@]}" \
-  --quiet
+gateway_deploy_cmd=(
+  "${gcloud_bin}" run deploy "${gateway_service}"
+  --image "${gateway_image}"
+  --region "${region}"
+  --project "${project}"
+  --platform managed
+  --allow-unauthenticated
+  --min-instances "${gateway_min_instances}"
+  --max-instances "${gateway_max_instances}"
+  --concurrency "${gateway_concurrency}"
+  --timeout 300
+  --cpu "${gateway_cpu}"
+  --memory "${gateway_memory}"
+  --service-account "${gateway_service_account}"
+)
+if [ -n "${gateway_env_arg}" ]; then
+  gateway_deploy_cmd+=("${gateway_env_arg}")
+fi
+if [ -n "${gateway_secret_arg}" ]; then
+  gateway_deploy_cmd+=("${gateway_secret_arg}")
+fi
+gateway_deploy_cmd+=(--quiet)
+
+deploy_run_service "${gateway_deploy_cmd[@]}"
 
 gateway_url="$(
   "${gcloud_bin}" run services describe "${gateway_service}" \
