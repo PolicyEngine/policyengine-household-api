@@ -78,7 +78,9 @@ requests. Keep gateway container workers, gateway Cloud Run concurrency,
 worker container threads, and worker Cloud Run concurrency aligned; otherwise
 Cloud Run may send more concurrent requests to a container than Gunicorn can
 serve. Load-test at least 25 concurrent requests through the Cloud Run gateway
-before DNS cutover or any production traffic migration.
+before DNS cutover or any production traffic migration. Use
+`.github/scripts/cloud_run_gateway_load_test.py` against the deployed gateway
+URL for this pre-cutover check.
 
 Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
