@@ -26,22 +26,13 @@ def _household_app():
     return app
 
 
-def test_worker_health_reports_channel_and_package_versions():
-    app = create_worker_app(
-        flask_app=_household_app(),
-        channel="frontier",
-        package_versions={"us": "1.2.3"},
-    )
+def test_worker_liveness_check():
+    app = create_worker_app(flask_app=_household_app())
 
-    response = app.test_client().get("/_internal/health")
+    response = app.test_client().get("/liveness_check")
 
     assert response.status_code == 200
-    assert response.get_json() == {
-        "status": "ok",
-        "backend": "cloud_run",
-        "channel": "frontier",
-        "package_versions": {"us": "1.2.3"},
-    }
+    assert response.text == "OK"
 
 
 def test_worker_dispatches_payload_to_household_app():

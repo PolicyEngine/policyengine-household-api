@@ -73,7 +73,6 @@ def test_household_worker_exposes_snapshot_entrypoint(worker_app):
     worker_cls = worker_app.HouseholdWorker
     assert hasattr(worker_cls, "load_flask_app")
     assert hasattr(worker_cls, "handle_household_request")
-    assert hasattr(worker_cls, "health_check")
 
 
 def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):

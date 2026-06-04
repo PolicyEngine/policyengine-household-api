@@ -1,15 +1,23 @@
 import json
+import sys
 import time
+import types
 
 from flask import Response
+import pytest
 
 from policyengine_household_api.failover.cloud_run_gateway import (
     CircuitRegistry,
     FallbackBackendUnavailable,
+    GcsFailoverManifestLoader,
     ModalBackendUnavailable,
     create_gateway_app,
+    probe_modal_worker,
 )
-from policyengine_household_api.failover.manifest import FailoverManifestError
+from policyengine_household_api.failover.manifest import (
+    FailoverManifestError,
+    FailoverManifestReadError,
+)
 
 
 def _manifest():
@@ -245,6 +253,43 @@ def test_manifest_unavailable_returns_retry_after():
     assert response.headers.get("X-PolicyEngine-Backend") is None
 
 
+def test_gcs_manifest_loader_wraps_read_errors():
+    loader = GcsFailoverManifestLoader(bucket_name="")
+
+    with pytest.raises(FailoverManifestReadError, match="Could not read"):
+        loader()
+
+
+def test_probe_modal_worker_uses_liveness_dispatch(monkeypatch):
+    captured_payloads = _install_fake_modal(
+        monkeypatch,
+        class_result={"status_code": 200, "body": b"OK", "headers": []},
+    )
+
+    probe_modal_worker("modal-current")
+
+    assert captured_payloads == [
+        {
+            "method": "GET",
+            "path": "/liveness_check",
+            "query_string": "",
+            "headers": {},
+            "body": b"",
+        }
+    ]
+
+
+def test_probe_modal_worker_liveness_supports_legacy_function(monkeypatch):
+    captured_payloads = _install_fake_modal(
+        monkeypatch,
+        function_result={"status_code": 200, "body": b"OK", "headers": []},
+    )
+
+    probe_modal_worker("modal-current")
+
+    assert captured_payloads[0]["path"] == "/liveness_check"
+
+
 def test_unknown_exact_package_version_stays_bad_request():
     response = _client().post(
         "/us/calculate",
@@ -314,3 +359,50 @@ def test_exact_package_version_routes_to_matching_channel():
     assert response.status_code == 200
     assert captured == ["modal-frontier"]
     assert response.headers["X-PolicyEngine-Route-Channel"] == "frontier"
+
+
+def _install_fake_modal(
+    monkeypatch,
+    *,
+    class_result=None,
+    function_result=None,
+):
+    captured_payloads = []
+
+    class NotFoundError(Exception):
+        pass
+
+    class FakeModalCls:
+        @staticmethod
+        def from_name(app_name, object_name, **kwargs):
+            if class_result is None:
+                raise NotFoundError()
+
+            class FakeWorkerClass:
+                def __call__(self):
+                    return types.SimpleNamespace(
+                        handle_household_request=types.SimpleNamespace(
+                            remote=lambda payload: captured_payloads.append(
+                                payload
+                            )
+                            or class_result
+                        )
+                    )
+
+            return FakeWorkerClass()
+
+    class FakeModalFunction:
+        @staticmethod
+        def from_name(app_name, object_name, **kwargs):
+            return types.SimpleNamespace(
+                remote=lambda payload: captured_payloads.append(payload)
+                or function_result
+            )
+
+    fake_modal = types.SimpleNamespace(
+        Cls=FakeModalCls,
+        Function=FakeModalFunction,
+        exception=types.SimpleNamespace(NotFoundError=NotFoundError),
+    )
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+    return captured_payloads

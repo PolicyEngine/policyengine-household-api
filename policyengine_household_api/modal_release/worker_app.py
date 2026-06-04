@@ -141,7 +141,3 @@ class HouseholdWorker:
         self, payload: dict[str, Any]
     ) -> dict[str, Any]:
         return dispatch_to_flask_app(self.flask_app, payload)
-
-    @modal.method()
-    def health_check(self) -> dict[str, str]:
-        return {"status": "ok", "backend": "modal"}

@@ -23,6 +23,7 @@ from policyengine_household_api.failover.manifest import (
     FAILOVER_MANIFEST_BLOB_ENV,
     FAILOVER_MANIFEST_BUCKET_ENV,
     FailoverManifestError,
+    FailoverManifestReadError,
     FailoverManifestUnavailable,
     FailoverRoutingError,
     ResolvedFailoverChannel,
@@ -164,21 +165,24 @@ class GcsFailoverManifestLoader:
             self._time() - self._cached_at < self.cache_seconds
         ):
             return self._cached_manifest
-        if not self.bucket_name:
-            raise FailoverManifestError(
-                f"{FAILOVER_MANIFEST_BUCKET_ENV} must be set"
+        try:
+            if not self.bucket_name:
+                raise ValueError(f"{FAILOVER_MANIFEST_BUCKET_ENV} must be set")
+
+            from google.cloud import storage
+
+            client = storage.Client()
+            blob = client.bucket(self.bucket_name).blob(self.blob_name)
+            manifest = validate_failover_manifest(
+                json.loads(blob.download_as_text())
             )
-
-        from google.cloud import storage
-
-        client = storage.Client()
-        blob = client.bucket(self.bucket_name).blob(self.blob_name)
-        manifest = validate_failover_manifest(
-            json.loads(blob.download_as_text())
-        )
-        self._cached_manifest = manifest
-        self._cached_at = self._time()
-        return manifest
+            self._cached_manifest = manifest
+            self._cached_at = self._time()
+            return manifest
+        except Exception as exc:
+            raise FailoverManifestReadError(
+                "Could not read Cloud Run failover manifest"
+            ) from exc
 
 
 def create_gateway_app(
@@ -319,6 +323,30 @@ def create_gateway_app(
 
 
 def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:
+    return _response_from_dispatch_result(
+        _call_modal_worker_dispatch(app_name, payload)
+    )
+
+
+def probe_modal_worker(app_name: str) -> None:
+    result = _call_modal_worker_dispatch(
+        app_name,
+        {
+            "method": "GET",
+            "path": "/liveness_check",
+            "query_string": "",
+            "headers": {},
+            "body": b"",
+        },
+    )
+    if int(result["status_code"]) != 200:
+        raise ModalBackendUnavailable("Modal worker liveness check failed")
+
+
+def _call_modal_worker_dispatch(
+    app_name: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
     import modal
 
     try:
@@ -327,9 +355,7 @@ def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:
             app_name,
             "HouseholdWorker",
         )
-        return _response_from_dispatch_result(
-            worker_cls().handle_household_request.remote(payload)
-        )
+        return worker_cls().handle_household_request.remote(payload)
     except modal.exception.NotFoundError:
         try:
             worker_function = _modal_lookup(
@@ -337,29 +363,11 @@ def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:
                 app_name,
                 "handle_household_request",
             )
-            return _response_from_dispatch_result(
-                worker_function.remote(payload)
-            )
+            return worker_function.remote(payload)
         except Exception as exc:
             raise ModalBackendUnavailable(str(exc)) from exc
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
-
-
-def probe_modal_worker(app_name: str) -> None:
-    try:
-        import modal
-
-        worker_cls = _modal_lookup(
-            modal.Cls.from_name,
-            app_name,
-            "HouseholdWorker",
-        )
-        result = worker_cls().health_check.remote()
-    except Exception as exc:
-        raise ModalBackendUnavailable(str(exc)) from exc
-    if not isinstance(result, dict) or result.get("status") != "ok":
-        raise ModalBackendUnavailable("Modal worker health check failed")
 
 
 def call_cloud_run_worker(
@@ -397,7 +405,7 @@ def call_cloud_run_worker(
 
 
 def warm_cloud_run_worker(resolved: ResolvedFailoverChannel) -> None:
-    health_url = _join_url(resolved.cloud_run_worker_url, "/_internal/health")
+    health_url = _join_url(resolved.cloud_run_worker_url, "/liveness_check")
     headers = _cloud_run_auth_header(resolved.cloud_run_worker_url)
     req = urllib_request.Request(health_url, headers=headers, method="GET")
     try:

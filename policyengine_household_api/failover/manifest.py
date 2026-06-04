@@ -47,6 +47,10 @@ class FailoverManifestUnavailable(FailoverManifestError):
     pass
 
 
+class FailoverManifestReadError(FailoverManifestUnavailable):
+    pass
+
+
 class FailoverRoutingError(FailoverManifestError):
     pass
 
