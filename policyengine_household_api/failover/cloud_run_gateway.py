@@ -11,6 +11,7 @@ from typing import Any, Callable
 from urllib import error, request as urllib_request
 
 from flask import Flask, Response, jsonify, request
+from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token
 
@@ -52,7 +53,7 @@ MODAL_STATUS_CHECK_MIN_INTERVAL_SECONDS = 60
 MANIFEST_CACHE_SECONDS = 30
 MODAL_REQUEST_TIMEOUT_SECONDS = 30.0
 MODAL_PROBE_TIMEOUT_SECONDS = 5.0
-MODAL_EXECUTOR_MAX_WORKERS = 16
+MODAL_EXECUTOR_MAX_WORKERS = 32
 
 _MODAL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     max_workers=MODAL_EXECUTOR_MAX_WORKERS,
@@ -379,38 +380,46 @@ def call_cloud_run_worker(
         "/_internal/dispatch",
     )
     body = json.dumps(encode_dispatch_request(payload)).encode("utf-8")
-    headers = {
-        "Content-Type": "application/json",
-        **_cloud_run_auth_header(resolved.cloud_run_worker_url),
-    }
-    req = urllib_request.Request(
-        dispatch_url,
-        data=body,
-        headers=headers,
-        method="POST",
-    )
     try:
+        headers = {
+            "Content-Type": "application/json",
+            **_cloud_run_auth_header(resolved.cloud_run_worker_url),
+        }
+        req = urllib_request.Request(
+            dispatch_url,
+            data=body,
+            headers=headers,
+            method="POST",
+        )
         with urllib_request.urlopen(req, timeout=180) as response:
             response_payload = json.loads(response.read().decode("utf-8"))
+        dispatch_result = decode_dispatch_response(response_payload)
     except (
         OSError,
         error.HTTPError,
         error.URLError,
+        google_auth_exceptions.GoogleAuthError,
         json.JSONDecodeError,
+        UnicodeDecodeError,
+        ValueError,
     ) as exc:
         raise FallbackBackendUnavailable(str(exc)) from exc
-    return _response_from_dispatch_result(
-        decode_dispatch_response(response_payload)
-    )
+    return _response_from_dispatch_result(dispatch_result)
 
 
 def warm_cloud_run_worker(resolved: ResolvedFailoverChannel) -> None:
     health_url = _join_url(resolved.cloud_run_worker_url, "/liveness_check")
-    headers = _cloud_run_auth_header(resolved.cloud_run_worker_url)
-    req = urllib_request.Request(health_url, headers=headers, method="GET")
     try:
+        headers = _cloud_run_auth_header(resolved.cloud_run_worker_url)
+        req = urllib_request.Request(health_url, headers=headers, method="GET")
         urllib_request.urlopen(req, timeout=5).close()
-    except OSError:
+    except (
+        OSError,
+        error.HTTPError,
+        error.URLError,
+        google_auth_exceptions.GoogleAuthError,
+        ValueError,
+    ):
         LOGGER.info("Cloud Run fallback warmup failed", exc_info=True)
 
 

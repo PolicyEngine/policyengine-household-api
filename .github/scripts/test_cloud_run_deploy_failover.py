@@ -56,6 +56,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gcloud run deploy household-api-staging-current-worker" in log
     assert "gcloud run deploy household-api-staging-frontier-worker" in log
     assert "--no-allow-unauthenticated --min-instances 0" in log
+    assert "--concurrency 25" in log
     assert "--env-vars-file=" in log
     assert "--set-env-vars" not in log
     assert (
@@ -71,6 +72,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         in log
     )
     assert "gcloud secrets versions add" in log
+    assert "add-iam-policy-binding" not in log
     assert "analytics@password,with,comma" not in log
     assert "modal-token,secret@example" not in log
     assert "sk-ant@test,secret" not in log
@@ -78,9 +80,8 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gs://manifest-bucket/staging/failover-manifest.json" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
     assert "--allow-unauthenticated --min-instances 1" in log
-    assert (
-        "serviceAccount:123456789-compute@developer.gserviceaccount.com" in log
-    )
+    assert "--concurrency 32" in log
+    assert "--service-account 123456789-compute@developer.gserviceaccount.com" in log
     assert "gateway_url=https://household-api-staging-gateway.run.app" in (
         output_path.read_text()
     )

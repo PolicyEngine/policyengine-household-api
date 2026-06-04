@@ -1,6 +1,6 @@
 import json
 import sys
-import time
+import threading
 import types
 
 from flask import Response
@@ -11,12 +11,16 @@ from policyengine_household_api.failover.cloud_run_gateway import (
     FallbackBackendUnavailable,
     GcsFailoverManifestLoader,
     ModalBackendUnavailable,
+    _run_modal_operation,
+    call_cloud_run_worker,
     create_gateway_app,
     probe_modal_worker,
+    warm_cloud_run_worker,
 )
 from policyengine_household_api.failover.manifest import (
     FailoverManifestError,
     FailoverManifestReadError,
+    ResolvedFailoverChannel,
 )
 
 
@@ -45,6 +49,16 @@ def _json_response(payload, status=200):
         json.dumps(payload),
         status=status,
         mimetype="application/json",
+    )
+
+
+def _resolved_channel():
+    return ResolvedFailoverChannel(
+        channel="current",
+        requested_version="current",
+        modal_app_name="modal-current",
+        cloud_run_worker_url="https://current.run.app",
+        package_versions={"uk": "2.31.0", "us": "1.0.0"},
     )
 
 
@@ -165,15 +179,14 @@ def test_modal_call_failure_opens_circuit_after_threshold_then_falls_back():
     assert status_checks == ["checked"]
 
 
-def test_three_modal_timeouts_open_circuit_then_fall_back():
+def test_three_modal_timeout_failures_open_circuit_then_fall_back():
     status_checks = []
 
-    def slow_modal_request(app_name, payload):
-        time.sleep(0.05)
-        return _json_response({"backend": "modal"})
+    def timed_out_modal_request(app_name, payload):
+        raise ModalBackendUnavailable("Modal operation timed out after 0.01s")
 
     client = _client(
-        modal_request=slow_modal_request,
+        modal_request=timed_out_modal_request,
         modal_status_checker=lambda: status_checks.append("checked") or {},
         modal_request_timeout_seconds=0.01,
         modal_probe_timeout_seconds=1,
@@ -193,14 +206,29 @@ def test_three_modal_timeouts_open_circuit_then_fall_back():
     assert status_checks == ["checked"]
 
 
+def test_run_modal_operation_converts_timeout_to_modal_unavailable():
+    release = threading.Event()
+
+    try:
+        with pytest.raises(ModalBackendUnavailable, match="timed out"):
+            _run_modal_operation(
+                lambda: release.wait(timeout=1),
+                timeout_seconds=0.001,
+            )
+    finally:
+        release.set()
+
+
 def test_modal_request_timeout_is_separate_from_probe_timeout():
+    release = threading.Event()
+
     def slow_modal_request(app_name, payload):
-        time.sleep(0.02)
+        release.wait(timeout=0.02)
         return _json_response({"backend": "modal"})
 
     response = _client(
         modal_request=slow_modal_request,
-        modal_request_timeout_seconds=0.1,
+        modal_request_timeout_seconds=1,
         modal_probe_timeout_seconds=0.001,
     ).post("/us/calculate", json={"household": {}})
 
@@ -258,6 +286,40 @@ def test_gcs_manifest_loader_wraps_read_errors():
 
     with pytest.raises(FailoverManifestReadError, match="Could not read"):
         loader()
+
+
+def test_cloud_run_worker_auth_failure_is_fallback_unavailable(monkeypatch):
+    def fail_auth(audience):
+        raise ValueError("token unavailable")
+
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway._cloud_run_auth_header",
+        fail_auth,
+    )
+
+    with pytest.raises(FallbackBackendUnavailable, match="token unavailable"):
+        call_cloud_run_worker(
+            _resolved_channel(),
+            {
+                "method": "GET",
+                "path": "/liveness_check",
+                "query_string": "",
+                "headers": {},
+                "body": b"",
+            },
+        )
+
+
+def test_cloud_run_worker_warmup_swallows_auth_failure(monkeypatch):
+    def fail_auth(audience):
+        raise ValueError("token unavailable")
+
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway._cloud_run_auth_header",
+        fail_auth,
+    )
+
+    warm_cloud_run_worker(_resolved_channel())
 
 
 def test_probe_modal_worker_uses_liveness_dispatch(monkeypatch):

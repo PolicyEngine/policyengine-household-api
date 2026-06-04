@@ -64,7 +64,6 @@ env_args_from_file() {
 sync_secret_if_set() {
   local secrets_file="${1:?secrets file is required}"
   local key="${2:?secret env key is required}"
-  local service_account="${3:?service account is required}"
   local secret_override_key="HOUSEHOLD_CLOUD_RUN_SECRET_${key}"
   local secret_override_value="${!secret_override_key:-}"
   local secret_name="${secret_override_value:-${secret_prefix}-${key}}"
@@ -92,12 +91,6 @@ sync_secret_if_set() {
     return 1
   fi
   rm -f "${secret_value_file}"
-
-  "${gcloud_bin}" secrets add-iam-policy-binding "${secret_name}" \
-    --project "${project}" \
-    --member "serviceAccount:${service_account}" \
-    --role roles/secretmanager.secretAccessor \
-    --quiet >/dev/null
 
   printf '%s=%s:latest\n' "${key}" "${secret_name}" >> "${secrets_file}"
 }
@@ -169,13 +162,13 @@ gateway_service="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE:-$(service_name gateway)}
 gateway_image="${image_base}/${gateway_service}:${image_tag}"
 gateway_min_instances="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES:-1}"
 gateway_max_instances="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MAX_INSTANCES:-20}"
-gateway_concurrency="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CONCURRENCY:-80}"
+gateway_concurrency="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CONCURRENCY:-32}"
 gateway_cpu="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CPU:-1}"
 gateway_memory="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MEMORY:-512Mi}"
 
 worker_min_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MIN_INSTANCES:-0}"
 worker_max_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MAX_INSTANCES:-100}"
-worker_concurrency="${HOUSEHOLD_CLOUD_RUN_WORKER_CONCURRENCY:-5}"
+worker_concurrency="${HOUSEHOLD_CLOUD_RUN_WORKER_CONCURRENCY:-25}"
 worker_cpu="${HOUSEHOLD_CLOUD_RUN_WORKER_CPU:-1}"
 worker_memory="${HOUSEHOLD_CLOUD_RUN_WORKER_MEMORY:-4Gi}"
 
@@ -237,12 +230,10 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   append_env_if_set "${worker_env_file}" AI__ENABLED
   sync_secret_if_set \
     "${worker_secrets_file}" \
-    USER_ANALYTICS_DB_PASSWORD \
-    "${worker_service_account}"
+    USER_ANALYTICS_DB_PASSWORD
   sync_secret_if_set \
     "${worker_secrets_file}" \
-    ANTHROPIC_API_KEY \
-    "${worker_service_account}"
+    ANTHROPIC_API_KEY
 
   worker_env_args=()
   worker_secret_args=()
@@ -272,13 +263,6 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
     --service-account "${worker_service_account}" \
     "${worker_env_args[@]}" \
     "${worker_secret_args[@]}" \
-    --quiet
-
-  "${gcloud_bin}" run services add-iam-policy-binding "${worker_service}" \
-    --region "${region}" \
-    --project "${project}" \
-    --member "serviceAccount:${gateway_service_account}" \
-    --role roles/run.invoker \
     --quiet
 
   worker_url="$(
@@ -339,12 +323,10 @@ append_env_if_set \
   HOUSEHOLD_FAILOVER_MODAL_PROBE_TIMEOUT_SECONDS
 sync_secret_if_set \
   "${gateway_secrets_file}" \
-  MODAL_TOKEN_ID \
-  "${gateway_service_account}"
+  MODAL_TOKEN_ID
 sync_secret_if_set \
   "${gateway_secrets_file}" \
-  MODAL_TOKEN_SECRET \
-  "${gateway_service_account}"
+  MODAL_TOKEN_SECRET
 
 gateway_env_args=()
 gateway_secret_args=()

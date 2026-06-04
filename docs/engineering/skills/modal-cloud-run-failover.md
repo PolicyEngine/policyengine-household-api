@@ -73,16 +73,33 @@ private `current` and `frontier` Cloud Run workers with `min-instances=0`,
 uploads the GCS failover manifest, then deploys the public gateway with
 `min-instances=1`.
 
+Default Cloud Run concurrency should support at least 25 concurrent household
+requests. Keep gateway container workers, gateway Cloud Run concurrency,
+worker container threads, and worker Cloud Run concurrency aligned; otherwise
+Cloud Run may send more concurrent requests to a container than Gunicorn can
+serve. Load-test at least 25 concurrent requests through the Cloud Run gateway
+before DNS cutover or any production traffic migration.
+
 Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
 secret values through `--set-env-vars` or delimiter-joined command arguments.
 
-The manifest bucket is pre-provisioned infrastructure. Keep bucket IAM outside
-the deploy wrapper: the GitHub deployment service account needs
-`roles/storage.objectAdmin` on the bucket so the workflow can upload manifests,
-and the gateway runtime service account needs `roles/storage.objectViewer` so
-runtime manifest reads work with least privilege. The release workflow should
-deploy services and manifests, not mutate bucket IAM on every run.
+IAM is one-time infrastructure setup and must stay outside the release
+workflow. The Cloud Run deploy wrapper should not call
+`add-iam-policy-binding` or otherwise grant roles. Configure these bindings
+through one-time setup or IaC before deployment:
+
+- the GitHub deployment service account needs `roles/storage.objectAdmin` on
+  the manifest bucket so the workflow can upload manifests
+- the gateway runtime service account needs `roles/storage.objectViewer` on
+  the manifest bucket so runtime manifest reads work with least privilege
+- gateway and worker runtime service accounts need
+  `roles/secretmanager.secretAccessor` on the Secret Manager secrets they mount
+- the gateway runtime service account needs `roles/run.invoker` on the private
+  worker services it calls
+
+The release workflow should deploy images, services, secret versions, and
+manifests; it should not mutate IAM on every run.
 
 ## Testing Expectations
 
@@ -96,3 +113,5 @@ When changing this system, include focused tests for:
 - Modal status JSON being fetched only after elevated local failure evidence
 - Cloud Run deploy scripts with stubbed `gcloud`, `docker`, and manifest files
 - deployed tests for normal Modal-primary routing and forced Cloud Run fallback
+- a 25-concurrent-request load test against the Cloud Run gateway before any
+  production traffic cutover
