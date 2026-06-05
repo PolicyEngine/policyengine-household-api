@@ -192,6 +192,7 @@ gateway_image="${image_base}/${gateway_service}:${image_tag}"
 gateway_min_instances="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES:-1}"
 gateway_max_instances="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MAX_INSTANCES:-20}"
 gateway_concurrency="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CONCURRENCY:-32}"
+gateway_timeout="${HOUSEHOLD_CLOUD_RUN_GATEWAY_TIMEOUT_SECONDS:-1200}"
 gateway_cpu="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CPU:-1}"
 gateway_memory="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MEMORY:-512Mi}"
 
@@ -199,6 +200,7 @@ worker_min_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MIN_INSTANCES:-0}"
 worker_max_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MAX_INSTANCES:-100}"
 worker_concurrency="${HOUSEHOLD_CLOUD_RUN_WORKER_CONCURRENCY:-5}"
 worker_threads="${HOUSEHOLD_CLOUD_RUN_WORKER_THREADS:-${worker_concurrency}}"
+worker_timeout="${HOUSEHOLD_CLOUD_RUN_WORKER_TIMEOUT_SECONDS:-1200}"
 worker_cpu="${HOUSEHOLD_CLOUD_RUN_WORKER_CPU:-1}"
 worker_memory="${HOUSEHOLD_CLOUD_RUN_WORKER_MEMORY:-4Gi}"
 worker_scaling_concurrency_target="$(
@@ -250,6 +252,7 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   : > "${worker_secrets_file}"
   append_env_value "${worker_env_file}" APP__ENVIRONMENT "${environment}"
   append_env_value "${worker_env_file}" WEB_THREADS "${worker_threads}"
+  append_env_value "${worker_env_file}" WEB_TIMEOUT "${worker_timeout}"
   append_env_value "${worker_env_file}" HOUSEHOLD_FAILOVER_CHANNEL "${channel}"
   append_env_value \
     "${worker_env_file}" \
@@ -288,7 +291,7 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
     --min-instances "${worker_min_instances}"
     --max-instances "${worker_max_instances}"
     --concurrency "${worker_concurrency}"
-    --timeout 300
+    --timeout "${worker_timeout}"
     --cpu "${worker_cpu}"
     --memory "${worker_memory}"
     --service-account "${worker_service_account}"
@@ -362,6 +365,10 @@ append_env_if_set \
 append_env_if_set \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_MODAL_PROBE_TIMEOUT_SECONDS
+append_env_value \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS \
+  "${worker_timeout}"
 sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_ID
@@ -388,7 +395,7 @@ gateway_deploy_cmd=(
   --min-instances "${gateway_min_instances}"
   --max-instances "${gateway_max_instances}"
   --concurrency "${gateway_concurrency}"
-  --timeout 300
+  --timeout "${gateway_timeout}"
   --cpu "${gateway_cpu}"
   --memory "${gateway_memory}"
   --service-account "${gateway_service_account}"

@@ -17,6 +17,9 @@ from policyengine_household_api.failover.cloud_run_gateway import (
     probe_modal_worker,
     warm_cloud_run_worker,
 )
+from policyengine_household_api.failover.dispatch_codec import (
+    encode_dispatch_response,
+)
 from policyengine_household_api.failover.manifest import (
     FailoverManifestError,
     FailoverManifestReadError,
@@ -308,6 +311,56 @@ def test_cloud_run_worker_auth_failure_is_fallback_unavailable(monkeypatch):
                 "body": b"",
             },
         )
+
+
+def test_cloud_run_worker_timeout_uses_env(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def read(self):
+            return json.dumps(
+                encode_dispatch_response(
+                    {
+                        "status_code": 200,
+                        "body": b'{"backend":"cloud_run"}',
+                        "headers": [("Content-Type", "application/json")],
+                    }
+                )
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH", "1")
+    monkeypatch.setenv(
+        "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS",
+        "1200",
+    )
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway.urllib_request.urlopen",
+        fake_urlopen,
+    )
+
+    response = call_cloud_run_worker(
+        _resolved_channel(),
+        {
+            "method": "GET",
+            "path": "/liveness_check",
+            "query_string": "",
+            "headers": {},
+            "body": b"",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["timeout"] == 1200
 
 
 def test_cloud_run_worker_warmup_swallows_auth_failure(monkeypatch):

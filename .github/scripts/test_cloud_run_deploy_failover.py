@@ -57,6 +57,8 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gcloud run deploy household-api-staging-frontier-worker" in log
     assert "--no-allow-unauthenticated --min-instances 0" in log
     assert "--concurrency 5" in log
+    assert log.count("--timeout 1200") == 3
+    assert "WEB_TIMEOUT: |-" in log
     assert "cloud_run_apply_scaling_controls.py" in log
     assert "--scaling-concurrency-target 0.3" in log
     assert "gcloud run services replace" in log
@@ -82,6 +84,8 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gcloud storage cp" in log
     assert "gs://manifest-bucket/staging/failover-manifest.json" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
+    assert "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS: |-" in log
+    assert "  1200" in log
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (
@@ -252,6 +256,13 @@ def _write_fake_gcloud(tmp_path: Path, log_path: Path) -> None:
         f"""#!/usr/bin/env bash
 set -euo pipefail
 echo "gcloud $*" >> "{log_path}"
+
+for arg in "$@"; do
+  if [[ "${{arg}}" == --env-vars-file=* ]]; then
+    echo "env-vars-file ${{arg#--env-vars-file=}}" >> "{log_path}"
+    cat "${{arg#--env-vars-file=}}" >> "{log_path}"
+  fi
+done
 
 if [[ "$*" == "projects describe policyengine-test --format=value(projectNumber)" ]]; then
   echo "123456789"

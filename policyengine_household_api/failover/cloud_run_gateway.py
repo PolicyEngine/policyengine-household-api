@@ -53,6 +53,7 @@ MODAL_STATUS_CHECK_MIN_INTERVAL_SECONDS = 60
 MANIFEST_CACHE_SECONDS = 30
 MODAL_REQUEST_TIMEOUT_SECONDS = 30.0
 MODAL_PROBE_TIMEOUT_SECONDS = 5.0
+CLOUD_RUN_WORKER_TIMEOUT_SECONDS = 180.0
 MODAL_EXECUTOR_MAX_WORKERS = 32
 
 _MODAL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
@@ -391,7 +392,13 @@ def call_cloud_run_worker(
             headers=headers,
             method="POST",
         )
-        with urllib_request.urlopen(req, timeout=180) as response:
+        with urllib_request.urlopen(
+            req,
+            timeout=_operation_timeout_seconds(
+                "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS",
+                CLOUD_RUN_WORKER_TIMEOUT_SECONDS,
+            ),
+        ) as response:
             response_payload = json.loads(response.read().decode("utf-8"))
         dispatch_result = decode_dispatch_response(response_payload)
     except (
@@ -646,6 +653,20 @@ def _modal_operation_timeout_seconds(
         "HOUSEHOLD_FAILOVER_MODAL_TIMEOUT_SECONDS",
         "",
     )
+    return _operation_timeout_seconds_from_value(raw_value, default)
+
+
+def _operation_timeout_seconds(env_var: str, default: float) -> float:
+    return _operation_timeout_seconds_from_value(
+        os.getenv(env_var, ""),
+        default,
+    )
+
+
+def _operation_timeout_seconds_from_value(
+    raw_value: str,
+    default: float,
+) -> float:
     if not raw_value:
         return default
     try:
