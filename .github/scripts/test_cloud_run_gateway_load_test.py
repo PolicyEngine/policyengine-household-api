@@ -39,6 +39,7 @@ def test_cloud_run_gateway_load_test_sends_concurrent_requests():
 
     assert result.returncode == 0, result.stderr
     assert "requests=8 success=8 failed=0" in result.stdout
+    assert "p90=" in result.stdout
     assert "observed_backends={'cloud_run': 8}" in result.stdout
     assert handler.max_active_requests > 1
 

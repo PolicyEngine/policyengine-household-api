@@ -56,7 +56,10 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gcloud run deploy household-api-staging-current-worker" in log
     assert "gcloud run deploy household-api-staging-frontier-worker" in log
     assert "--no-allow-unauthenticated --min-instances 0" in log
-    assert "--concurrency 25" in log
+    assert "--concurrency 5" in log
+    assert "cloud_run_apply_scaling_controls.py" in log
+    assert "--scaling-concurrency-target 0.3" in log
+    assert "gcloud run services replace" in log
     assert "--env-vars-file=" in log
     assert "--set-env-vars" not in log
     assert (
@@ -81,7 +84,10 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gcloud run deploy household-api-staging-gateway" in log
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
-    assert "--service-account 123456789-compute@developer.gserviceaccount.com" in log
+    assert (
+        "--service-account 123456789-compute@developer.gserviceaccount.com"
+        in log
+    )
     assert "gateway_url=https://household-api-staging-gateway.run.app" in (
         output_path.read_text()
     )
@@ -110,7 +116,36 @@ def test_cloud_run_deploy_failover_requires_manifest_bucket(tmp_path):
     assert "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET" in result.stdout
 
 
-def test_cloud_run_deploy_failover_handles_empty_secret_args(tmp_path):
+def test_cloud_run_deploy_failover_requires_modal_credentials(tmp_path):
+    log_path = tmp_path / "commands.log"
+    _write_fake_gcloud(tmp_path, log_path)
+
+    env = {
+        **os.environ,
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "MODAL_ENVIRONMENT": "staging",
+        "GOOGLE_CLOUD_PROJECT": "policyengine-test",
+        "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
+    }
+    env.pop("MODAL_TOKEN_ID", None)
+    env.pop("MODAL_TOKEN_SECRET", None)
+
+    result = subprocess.run(
+        ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "MODAL_TOKEN_ID" in result.stdout
+    assert "MODAL_TOKEN_SECRET" in result.stdout
+    assert not log_path.exists()
+
+
+def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
+    tmp_path,
+):
     log_path = tmp_path / "commands.log"
     output_path = tmp_path / "github-output.txt"
     _write_fake_uv(tmp_path, log_path)
@@ -130,11 +165,11 @@ def test_cloud_run_deploy_failover_handles_empty_secret_args(tmp_path):
         "MODAL_ENVIRONMENT": "staging",
         "GOOGLE_CLOUD_PROJECT": "policyengine-test",
         "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
+        "MODAL_TOKEN_ID": "modal-token-id@example",
+        "MODAL_TOKEN_SECRET": "modal-token,secret@example",
     }
     for key in (
         "ANTHROPIC_API_KEY",
-        "MODAL_TOKEN_ID",
-        "MODAL_TOKEN_SECRET",
         "USER_ANALYTICS_DB_PASSWORD",
     ):
         env.pop(key, None)
@@ -150,7 +185,13 @@ def test_cloud_run_deploy_failover_handles_empty_secret_args(tmp_path):
     log = log_path.read_text()
     assert "gcloud run deploy household-api-staging-current-worker" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
-    assert "--set-secrets" not in log
+    assert (
+        "--set-secrets=MODAL_TOKEN_ID="
+        "household-api-staging-MODAL_TOKEN_ID:latest,"
+        "MODAL_TOKEN_SECRET=household-api-staging-MODAL_TOKEN_SECRET:latest"
+        in log
+    )
+    assert "modal-token,secret@example" not in log
     assert "gateway_url=https://household-api-staging-gateway.run.app" in (
         output_path.read_text()
     )

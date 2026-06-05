@@ -2,6 +2,7 @@
 set -euo pipefail
 
 channels_script="${CLOUD_RUN_CHANNELS_SCRIPT:-.github/scripts/cloud_run_failover_channels.py}"
+scaling_controls_script="${CLOUD_RUN_SCALING_CONTROLS_SCRIPT:-.github/scripts/cloud_run_apply_scaling_controls.py}"
 curl_bin="${CURL_BIN:-curl}"
 docker_bin="${DOCKER_BIN:-docker}"
 gcloud_bin="${GCLOUD_BIN:-gcloud}"
@@ -134,10 +135,38 @@ deploy_run_service() {
   "$@"
 }
 
+apply_worker_scaling_controls() {
+  local service="${1:?service is required}"
+  local scaling_concurrency_target="${2:-}"
+  local service_yaml
+
+  if [ -z "${scaling_concurrency_target}" ] ||
+    [ "${scaling_concurrency_target}" = "none" ]; then
+    return
+  fi
+
+  service_yaml="$(mktemp)"
+  "${gcloud_bin}" run services describe "${service}" \
+    --region "${region}" \
+    --project "${project}" \
+    --format export > "${service_yaml}"
+  "${uv_bin}" run python "${scaling_controls_script}" \
+    --input-yaml "${service_yaml}" \
+    --output-yaml "${service_yaml}" \
+    --scaling-concurrency-target "${scaling_concurrency_target}"
+  "${gcloud_bin}" run services replace "${service_yaml}" \
+    --region "${region}" \
+    --project "${project}" \
+    --quiet
+  rm -f "${service_yaml}"
+}
+
 require_env \
   MODAL_ENVIRONMENT \
   GOOGLE_CLOUD_PROJECT \
-  HOUSEHOLD_FAILOVER_MANIFEST_BUCKET
+  HOUSEHOLD_FAILOVER_MANIFEST_BUCKET \
+  MODAL_TOKEN_ID \
+  MODAL_TOKEN_SECRET
 
 project="${GOOGLE_CLOUD_PROJECT}"
 region="${HOUSEHOLD_CLOUD_RUN_REGION:-us-central1}"
@@ -168,9 +197,13 @@ gateway_memory="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MEMORY:-512Mi}"
 
 worker_min_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MIN_INSTANCES:-0}"
 worker_max_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MAX_INSTANCES:-100}"
-worker_concurrency="${HOUSEHOLD_CLOUD_RUN_WORKER_CONCURRENCY:-25}"
+worker_concurrency="${HOUSEHOLD_CLOUD_RUN_WORKER_CONCURRENCY:-5}"
+worker_threads="${HOUSEHOLD_CLOUD_RUN_WORKER_THREADS:-${worker_concurrency}}"
 worker_cpu="${HOUSEHOLD_CLOUD_RUN_WORKER_CPU:-1}"
 worker_memory="${HOUSEHOLD_CLOUD_RUN_WORKER_MEMORY:-4Gi}"
+worker_scaling_concurrency_target="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_WORKER_SCALING_CONCURRENCY_TARGET:-0.3}"
+)"
 
 channels_tsv="$(mktemp)"
 manifest_json="$(mktemp)"
@@ -216,6 +249,7 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   : > "${worker_env_file}"
   : > "${worker_secrets_file}"
   append_env_value "${worker_env_file}" APP__ENVIRONMENT "${environment}"
+  append_env_value "${worker_env_file}" WEB_THREADS "${worker_threads}"
   append_env_value "${worker_env_file}" HOUSEHOLD_FAILOVER_CHANNEL "${channel}"
   append_env_value \
     "${worker_env_file}" \
@@ -268,6 +302,9 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   worker_deploy_cmd+=(--quiet)
 
   deploy_run_service "${worker_deploy_cmd[@]}"
+  apply_worker_scaling_controls \
+    "${worker_service}" \
+    "${worker_scaling_concurrency_target}"
 
   worker_url="$(
     "${gcloud_bin}" run services describe "${worker_service}" \

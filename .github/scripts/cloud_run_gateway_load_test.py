@@ -210,13 +210,14 @@ def _report_results(
 
     print(
         "requests={requests} success={success} failed={failed} "
-        "error_rate={error_rate:.3f} p50={p50:.3f}s p95={p95:.3f}s "
-        "p99={p99:.3f}s max={max_elapsed:.3f}s".format(
+        "error_rate={error_rate:.3f} p50={p50:.3f}s p90={p90:.3f}s "
+        "p95={p95:.3f}s p99={p99:.3f}s max={max_elapsed:.3f}s".format(
             requests=len(results),
             success=len(successful),
             failed=len(failed),
             error_rate=error_rate,
             p50=_percentile(elapsed, 50),
+            p90=_percentile(elapsed, 90),
             p95=_percentile(elapsed, 95),
             p99=_percentile(elapsed, 99),
             max_elapsed=elapsed[-1],
