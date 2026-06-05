@@ -24,6 +24,11 @@ _jwks_cache: dict = {}
 # per-issuer so we can rate-limit retries without caching the failure
 # itself.
 _jwks_last_failure: dict = {}
+# Records forced refresh attempts after token validation failures. Successful
+# JWKS fetches are cached indefinitely in normal operation, but Modal memory
+# snapshots can preserve an otherwise-successful key set across Auth0 signing
+# key rotation.
+_jwks_last_forced_refresh: dict = {}
 _jwks_lock = Lock()
 
 
@@ -75,11 +80,39 @@ def _fetch_jwks(issuer: str):
     return key_set
 
 
+def _force_refresh_jwks(issuer: str):
+    """Refresh JWKS even when a successful key set is already cached.
+
+    This is used only after token validation fails. It lets long-lived or
+    snapshot-restored workers recover from Auth0 signing-key rotation while
+    rate-limiting refresh attempts for genuinely invalid tokens.
+    """
+    with _jwks_lock:
+        last_refresh = _jwks_last_forced_refresh.get(issuer)
+        if (
+            last_refresh is not None
+            and time.monotonic() - last_refresh < JWKS_RETRY_INTERVAL_SECONDS
+        ):
+            return _jwks_cache.get(issuer)
+        _jwks_last_forced_refresh[issuer] = time.monotonic()
+
+    key_set = _fetch_jwks_uncached(issuer)
+
+    with _jwks_lock:
+        if key_set is not None:
+            _jwks_cache[issuer] = key_set
+            _jwks_last_failure.pop(issuer, None)
+            return key_set
+        _jwks_last_failure[issuer] = time.monotonic()
+        return _jwks_cache.get(issuer)
+
+
 def _clear_jwks_cache():
     """Test helper: wipe the success/failure caches."""
     with _jwks_lock:
         _jwks_cache.clear()
         _jwks_last_failure.clear()
+        _jwks_last_forced_refresh.clear()
 
 
 class Auth0JWTBearerTokenValidator(JWTBearerTokenValidator):
@@ -111,4 +144,12 @@ class Auth0JWTBearerTokenValidator(JWTBearerTokenValidator):
         # responds.
         if self.public_key is None:
             self.public_key = _fetch_jwks(self._issuer)
+        token = super().authenticate_token(token_string)
+        if token is not None:
+            return token
+
+        refreshed_key = _force_refresh_jwks(self._issuer)
+        if refreshed_key is None:
+            return None
+        self.public_key = refreshed_key
         return super().authenticate_token(token_string)
