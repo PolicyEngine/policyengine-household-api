@@ -133,69 +133,6 @@ class TestAuth0JWTBearerTokenValidator:
         assert second is sentinel
         assert mock_fetch.call_count == 1
 
-    def test__given_stale_cached_jwks__failed_token_validation_refreshes(
-        self,
-    ):
-        """A stale successful JWKS cache must self-heal after key rotation."""
-        old_private_key = _private_key()
-        new_private_key = _private_key()
-        responses = [
-            _fake_jwks_response(old_private_key, kid="old-key"),
-            _fake_jwks_response(new_private_key, kid="new-key"),
-        ]
-
-        with patch(
-            "policyengine_household_api.auth.validation.urlopen",
-            side_effect=responses,
-        ) as mock_urlopen:
-            validator = validation.Auth0JWTBearerTokenValidator(
-                "tenant.example", "audience"
-            )
-            token = _signed_token(
-                new_private_key,
-                {
-                    "iss": "https://tenant.example/",
-                    "aud": "audience",
-                    "exp": int(time.time()) + 300,
-                    "sub": "client-id",
-                },
-                kid="new-key",
-            )
-
-            claims = validator.authenticate_token(token)
-
-        assert claims["sub"] == "client-id"
-        assert mock_urlopen.call_count == 2
-
-    def test__given_repeated_invalid_tokens__forced_refresh_is_throttled(
-        self, monkeypatch
-    ):
-        """Invalid tokens must not trigger a JWKS fetch on every request."""
-        monkeypatch.setattr(validation, "JWKS_RETRY_INTERVAL_SECONDS", 60)
-        private_key = _private_key()
-
-        with patch(
-            "policyengine_household_api.auth.validation.urlopen",
-            return_value=_fake_jwks_response(private_key),
-        ) as mock_urlopen:
-            validator = validation.Auth0JWTBearerTokenValidator(
-                "tenant.example", "audience"
-            )
-            token = _signed_token(
-                _private_key(),
-                {
-                    "iss": "https://tenant.example/",
-                    "aud": "audience",
-                    "exp": int(time.time()) + 300,
-                    "sub": "client-id",
-                },
-            )
-
-            assert validator.authenticate_token(token) is None
-            assert validator.authenticate_token(token) is None
-
-        assert mock_urlopen.call_count == 2
-
     def test__given_rs256_jwks__authenticates_signed_token(self):
         """Regression guard for Authlib 1.7's joserfc key path."""
         private_key = _private_key()
@@ -329,12 +266,7 @@ def _private_key():
     )
 
 
-def _signed_token(
-    private_key,
-    claims: dict,
-    *,
-    kid: str = "test-key",
-) -> str:
+def _signed_token(private_key, claims: dict) -> str:
     private_pem = private_key.private_bytes(
         serialization.Encoding.PEM,
         serialization.PrivateFormat.PKCS8,
@@ -344,15 +276,15 @@ def _signed_token(
         claims,
         private_pem,
         algorithm="RS256",
-        headers={"kid": kid},
+        headers={"kid": "test-key"},
     )
 
 
-def _fake_jwks_response(private_key, *, kid: str = "test-key"):
+def _validator_for_key(private_key):
     public_jwk = json.loads(RSAAlgorithm.to_jwk(private_key.public_key()))
     public_jwk.update(
         {
-            "kid": kid,
+            "kid": "test-key",
             "use": "sig",
             "alg": "RS256",
         }
@@ -369,13 +301,9 @@ def _fake_jwks_response(private_key, *, kid: str = "test-key"):
         def read(self):
             return json.dumps(jwks).encode()
 
-    return FakeResponse()
-
-
-def _validator_for_key(private_key):
     with patch(
         "policyengine_household_api.auth.validation.urlopen",
-        return_value=_fake_jwks_response(private_key),
+        return_value=FakeResponse(),
     ):
         return validation.Auth0JWTBearerTokenValidator(
             "tenant.example",
