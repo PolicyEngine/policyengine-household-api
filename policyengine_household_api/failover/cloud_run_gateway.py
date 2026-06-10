@@ -46,13 +46,24 @@ LOGGER = logging.getLogger(__name__)
 MODAL_STATUS_URL = "https://status.modal.com/index.json"
 FORCE_BACKEND_ENV = "HOUSEHOLD_FAILOVER_FORCE_BACKEND"
 MODAL_ENVIRONMENT_ENV = "MODAL_ENVIRONMENT"
+MODAL_CANARY_APP_NAME_ENV = "HOUSEHOLD_MODAL_CANARY_APP_NAME"
+MODAL_CANARY_FUNCTION_NAME_ENV = (
+    "HOUSEHOLD_FAILOVER_MODAL_CANARY_FUNCTION_NAME"
+)
 RETRY_AFTER_SECONDS = 10
-MODAL_FAILURE_THRESHOLD = 3
+MODAL_CANARY_APP_NAME = "policyengine-household-api-canary"
+MODAL_CANARY_FUNCTION_NAME = "ping"
+MODAL_FAILURE_MIN_COUNT = 10
+MODAL_FAILURE_RATE = 0.5
+MODAL_FAILURE_WINDOW_SECONDS = 60.0
 MODAL_PROBE_INTERVAL_SECONDS = 15
 MODAL_STATUS_CHECK_MIN_INTERVAL_SECONDS = 60
+MODAL_MIN_OPEN_SECONDS = 60.0
+MODAL_RECOVERY_SUCCESSES = 3
 MANIFEST_CACHE_SECONDS = 30
 MODAL_REQUEST_TIMEOUT_SECONDS = 30.0
 MODAL_PROBE_TIMEOUT_SECONDS = 5.0
+MODAL_CANARY_TIMEOUT_SECONDS = 5.0
 CLOUD_RUN_WORKER_TIMEOUT_SECONDS = 180.0
 MODAL_EXECUTOR_MAX_WORKERS = 32
 
@@ -75,10 +86,25 @@ class FallbackBackendUnavailable(RuntimeError):
 
 @dataclass
 class ChannelCircuit:
-    consecutive_failures: int = 0
+    attempts: list[tuple[float, bool]] | None = None
     is_open: bool = False
+    opened_at: float = 0.0
     last_probe_at: float = 0.0
     last_modal_status_check_at: float = 0.0
+    recovery_successes: int = 0
+
+    def __post_init__(self) -> None:
+        if self.attempts is None:
+            self.attempts = []
+
+
+@dataclass(frozen=True)
+class ModalCircuitPolicy:
+    failure_min_count: int = MODAL_FAILURE_MIN_COUNT
+    failure_rate: float = MODAL_FAILURE_RATE
+    failure_window_seconds: float = MODAL_FAILURE_WINDOW_SECONDS
+    min_open_seconds: float = MODAL_MIN_OPEN_SECONDS
+    recovery_successes: int = MODAL_RECOVERY_SUCCESSES
 
 
 class CircuitRegistry:
@@ -101,6 +127,9 @@ class CircuitRegistry:
     def primary_state(self, channel: str) -> str:
         return "unhealthy" if self.state(channel).is_open else "healthy"
 
+    def is_open(self, channel: str) -> bool:
+        return self.state(channel).is_open
+
     def should_probe(self, channel: str) -> bool:
         circuit = self.state(channel)
         return (
@@ -112,25 +141,76 @@ class CircuitRegistry:
         with self._lock:
             self._circuits[channel].last_probe_at = self._time()
 
-    def record_success(self, channel: str) -> None:
+    def record_success(
+        self,
+        channel: str,
+        policy: ModalCircuitPolicy,
+    ) -> None:
         with self._lock:
             circuit = self._circuits[channel]
-            circuit.consecutive_failures = 0
-            circuit.is_open = False
+            now = self._time()
+            circuit.attempts.append((now, True))
+            self._trim_attempts(circuit, now, policy.failure_window_seconds)
+            circuit.recovery_successes = 0
 
-    def record_failure(self, channel: str) -> bool:
+    def record_failure(
+        self,
+        channel: str,
+        policy: ModalCircuitPolicy,
+    ) -> bool:
         with self._lock:
             circuit = self._circuits[channel]
-            circuit.consecutive_failures += 1
-            if circuit.consecutive_failures >= MODAL_FAILURE_THRESHOLD:
-                circuit.is_open = True
-            return circuit.is_open
+            now = self._time()
+            circuit.attempts.append((now, False))
+            circuit.recovery_successes = 0
+            self._trim_attempts(circuit, now, policy.failure_window_seconds)
+            if circuit.is_open:
+                return False
+            return self._threshold_reached(circuit, policy)
+
+    def open(self, channel: str) -> None:
+        with self._lock:
+            circuit = self._circuits[channel]
+            circuit.is_open = True
+            circuit.opened_at = self._time()
+            circuit.recovery_successes = 0
+
+    def ready_for_recovery_probe(
+        self,
+        channel: str,
+        policy: ModalCircuitPolicy,
+    ) -> bool:
+        with self._lock:
+            circuit = self._circuits[channel]
+            return (
+                circuit.is_open
+                and self._time() - circuit.opened_at >= policy.min_open_seconds
+            )
+
+    def record_recovery_success(
+        self,
+        channel: str,
+        policy: ModalCircuitPolicy,
+    ) -> bool:
+        with self._lock:
+            circuit = self._circuits[channel]
+            circuit.recovery_successes += 1
+            if circuit.recovery_successes < policy.recovery_successes:
+                return False
+            circuit.is_open = False
+            circuit.opened_at = 0.0
+            circuit.recovery_successes = 0
+            circuit.attempts.clear()
+            circuit.attempts.append((self._time(), True))
+            return True
+
+    def record_recovery_failure(self, channel: str) -> None:
+        with self._lock:
+            self._circuits[channel].recovery_successes = 0
 
     def should_check_modal_status(self, channel: str) -> bool:
         with self._lock:
             circuit = self._circuits[channel]
-            if not circuit.is_open:
-                return False
             return (
                 self._time() - circuit.last_modal_status_check_at
                 >= MODAL_STATUS_CHECK_MIN_INTERVAL_SECONDS
@@ -139,6 +219,30 @@ class CircuitRegistry:
     def record_modal_status_check(self, channel: str) -> None:
         with self._lock:
             self._circuits[channel].last_modal_status_check_at = self._time()
+
+    def _threshold_reached(
+        self,
+        circuit: ChannelCircuit,
+        policy: ModalCircuitPolicy,
+    ) -> bool:
+        attempts = circuit.attempts or []
+        failures = sum(1 for _, succeeded in attempts if not succeeded)
+        if failures < policy.failure_min_count:
+            return False
+        return failures / len(attempts) >= policy.failure_rate
+
+    def _trim_attempts(
+        self,
+        circuit: ChannelCircuit,
+        now: float,
+        window_seconds: float,
+    ) -> None:
+        cutoff = now - window_seconds
+        circuit.attempts[:] = [
+            attempt
+            for attempt in circuit.attempts or []
+            if attempt[0] >= cutoff
+        ]
 
 
 class GcsFailoverManifestLoader:
@@ -192,24 +296,29 @@ def create_gateway_app(
     manifest_loader: Callable[[], dict[str, Any]] | None = None,
     modal_request: Callable[[str, dict[str, Any]], Response] | None = None,
     modal_health_probe: Callable[[str], None] | None = None,
+    modal_canary_probe: Callable[[], None] | None = None,
     fallback_request: (
         Callable[[ResolvedFailoverChannel, dict[str, Any]], Response] | None
     ) = None,
     modal_status_checker: Callable[[], dict[str, Any]] | None = None,
     fallback_warmup: Callable[[ResolvedFailoverChannel], None] | None = None,
     circuit_registry: CircuitRegistry | None = None,
+    circuit_policy: ModalCircuitPolicy | None = None,
     modal_timeout_seconds: float | None = None,
     modal_request_timeout_seconds: float | None = None,
     modal_probe_timeout_seconds: float | None = None,
+    modal_canary_timeout_seconds: float | None = None,
 ) -> Flask:
     app = Flask(__name__)
     load_manifest = manifest_loader or GcsFailoverManifestLoader()
     call_modal = modal_request or call_modal_worker
     probe_modal = modal_health_probe or probe_modal_worker
+    probe_canary = modal_canary_probe or probe_modal_canary
     call_fallback = fallback_request or call_cloud_run_worker
     check_modal_status = modal_status_checker or fetch_modal_status
     warm_fallback = fallback_warmup or warm_cloud_run_worker
     circuits = circuit_registry or CircuitRegistry()
+    policy = circuit_policy or modal_circuit_policy_from_env()
     request_timeout = (
         max(modal_request_timeout_seconds, 0.001)
         if modal_request_timeout_seconds is not None
@@ -217,6 +326,14 @@ def create_gateway_app(
             "HOUSEHOLD_FAILOVER_MODAL_REQUEST_TIMEOUT_SECONDS",
             MODAL_REQUEST_TIMEOUT_SECONDS,
             legacy_timeout_seconds=modal_timeout_seconds,
+        )
+    )
+    canary_timeout = (
+        max(modal_canary_timeout_seconds, 0.001)
+        if modal_canary_timeout_seconds is not None
+        else _operation_timeout_seconds(
+            "HOUSEHOLD_FAILOVER_MODAL_CANARY_TIMEOUT_SECONDS",
+            MODAL_CANARY_TIMEOUT_SECONDS,
         )
     )
     probe_timeout = (
@@ -302,13 +419,16 @@ def create_gateway_app(
                 resolved,
                 payload,
                 circuits=circuits,
+                policy=policy,
                 call_modal=call_modal,
                 probe_modal=probe_modal,
+                probe_canary=probe_canary,
                 call_fallback=call_fallback,
                 check_modal_status=check_modal_status,
                 warm_fallback=warm_fallback,
                 modal_request_timeout_seconds=request_timeout,
                 modal_probe_timeout_seconds=probe_timeout,
+                modal_canary_timeout_seconds=canary_timeout,
             )
             return _with_gateway_headers(
                 response,
@@ -343,6 +463,27 @@ def probe_modal_worker(app_name: str) -> None:
     )
     if int(result["status_code"]) != 200:
         raise ModalBackendUnavailable("Modal worker liveness check failed")
+
+
+def probe_modal_canary() -> None:
+    import modal
+
+    app_name = os.getenv(MODAL_CANARY_APP_NAME_ENV, MODAL_CANARY_APP_NAME)
+    function_name = os.getenv(
+        MODAL_CANARY_FUNCTION_NAME_ENV,
+        MODAL_CANARY_FUNCTION_NAME,
+    )
+    try:
+        canary_function = _modal_lookup(
+            modal.Function.from_name,
+            app_name,
+            function_name,
+        )
+        result = canary_function.remote()
+    except Exception as exc:
+        raise ModalBackendUnavailable(str(exc)) from exc
+    if not isinstance(result, dict) or result.get("ok") is not True:
+        raise ModalBackendUnavailable("Modal canary returned unhealthy result")
 
 
 def _call_modal_worker_dispatch(
@@ -440,8 +581,10 @@ def _route_to_backend(
     payload: dict[str, Any],
     *,
     circuits: CircuitRegistry,
+    policy: ModalCircuitPolicy,
     call_modal: Callable[[str, dict[str, Any]], Response],
     probe_modal: Callable[[str], None],
+    probe_canary: Callable[[], None],
     call_fallback: Callable[
         [ResolvedFailoverChannel, dict[str, Any]], Response
     ],
@@ -449,6 +592,7 @@ def _route_to_backend(
     warm_fallback: Callable[[ResolvedFailoverChannel], None],
     modal_request_timeout_seconds: float,
     modal_probe_timeout_seconds: float,
+    modal_canary_timeout_seconds: float,
 ) -> tuple[Response, str]:
     force_backend = os.getenv(FORCE_BACKEND_ENV, "").strip().lower()
     if force_backend == "cloud_run":
@@ -462,12 +606,15 @@ def _route_to_backend(
         _refresh_modal_circuit(
             resolved,
             circuits=circuits,
+            policy=policy,
             probe_modal=probe_modal,
+            probe_canary=probe_canary,
             check_modal_status=check_modal_status,
             warm_fallback=warm_fallback,
             modal_probe_timeout_seconds=modal_probe_timeout_seconds,
+            modal_canary_timeout_seconds=modal_canary_timeout_seconds,
         )
-        if circuits.state(resolved.channel).is_open:
+        if circuits.is_open(resolved.channel):
             return _route_to_fallback_or_503(
                 resolved,
                 payload,
@@ -479,21 +626,28 @@ def _route_to_backend(
             lambda: call_modal(resolved.modal_app_name, payload),
             timeout_seconds=modal_request_timeout_seconds,
         )
-        circuits.record_success(resolved.channel)
+        circuits.record_success(resolved.channel, policy)
         return response, "modal"
     except ModalBackendUnavailable:
-        if circuits.record_failure(resolved.channel):
-            _check_modal_status_after_open(
+        if force_backend == "modal":
+            return _backend_unavailable_response(resolved), "none"
+        if circuits.record_failure(resolved.channel, policy):
+            _log_modal_status_after_threshold(
                 resolved.channel,
                 circuits=circuits,
                 check_modal_status=check_modal_status,
             )
-            warm_fallback(resolved)
-            return _route_to_fallback_or_503(
-                resolved,
-                payload,
-                call_fallback=call_fallback,
-            )
+            if _modal_canary_confirms_outage(
+                probe_canary=probe_canary,
+                timeout_seconds=modal_canary_timeout_seconds,
+            ):
+                circuits.open(resolved.channel)
+                warm_fallback(resolved)
+                return _route_to_fallback_or_503(
+                    resolved,
+                    payload,
+                    call_fallback=call_fallback,
+                )
         return _backend_unavailable_response(resolved), "none"
 
 
@@ -501,11 +655,26 @@ def _refresh_modal_circuit(
     resolved: ResolvedFailoverChannel,
     *,
     circuits: CircuitRegistry,
+    policy: ModalCircuitPolicy,
     probe_modal: Callable[[str], None],
+    probe_canary: Callable[[], None],
     check_modal_status: Callable[[], dict[str, Any]],
     warm_fallback: Callable[[ResolvedFailoverChannel], None],
     modal_probe_timeout_seconds: float,
+    modal_canary_timeout_seconds: float,
 ) -> None:
+    if circuits.is_open(resolved.channel):
+        _refresh_open_modal_circuit(
+            resolved,
+            circuits=circuits,
+            policy=policy,
+            probe_modal=probe_modal,
+            probe_canary=probe_canary,
+            modal_probe_timeout_seconds=modal_probe_timeout_seconds,
+            modal_canary_timeout_seconds=modal_canary_timeout_seconds,
+        )
+        return
+
     if not circuits.should_probe(resolved.channel):
         return
     circuits.record_probe_attempt(resolved.channel)
@@ -514,15 +683,49 @@ def _refresh_modal_circuit(
             lambda: probe_modal(resolved.modal_app_name),
             timeout_seconds=modal_probe_timeout_seconds,
         )
-        circuits.record_success(resolved.channel)
+        circuits.record_success(resolved.channel, policy)
     except ModalBackendUnavailable:
-        if circuits.record_failure(resolved.channel):
-            _check_modal_status_after_open(
+        if circuits.record_failure(resolved.channel, policy):
+            _log_modal_status_after_threshold(
                 resolved.channel,
                 circuits=circuits,
                 check_modal_status=check_modal_status,
             )
-            warm_fallback(resolved)
+            if _modal_canary_confirms_outage(
+                probe_canary=probe_canary,
+                timeout_seconds=modal_canary_timeout_seconds,
+            ):
+                circuits.open(resolved.channel)
+                warm_fallback(resolved)
+
+
+def _refresh_open_modal_circuit(
+    resolved: ResolvedFailoverChannel,
+    *,
+    circuits: CircuitRegistry,
+    policy: ModalCircuitPolicy,
+    probe_modal: Callable[[str], None],
+    probe_canary: Callable[[], None],
+    modal_probe_timeout_seconds: float,
+    modal_canary_timeout_seconds: float,
+) -> None:
+    if not circuits.ready_for_recovery_probe(resolved.channel, policy):
+        return
+    if not circuits.should_probe(resolved.channel):
+        return
+    circuits.record_probe_attempt(resolved.channel)
+    try:
+        _run_modal_operation(
+            probe_canary,
+            timeout_seconds=modal_canary_timeout_seconds,
+        )
+        _run_modal_operation(
+            lambda: probe_modal(resolved.modal_app_name),
+            timeout_seconds=modal_probe_timeout_seconds,
+        )
+        circuits.record_recovery_success(resolved.channel, policy)
+    except ModalBackendUnavailable:
+        circuits.record_recovery_failure(resolved.channel)
 
 
 def _route_to_fallback_or_503(
@@ -539,7 +742,22 @@ def _route_to_fallback_or_503(
         return _backend_unavailable_response(resolved), "none"
 
 
-def _check_modal_status_after_open(
+def _modal_canary_confirms_outage(
+    *,
+    probe_canary: Callable[[], None],
+    timeout_seconds: float,
+) -> bool:
+    try:
+        _run_modal_operation(
+            probe_canary,
+            timeout_seconds=timeout_seconds,
+        )
+        return False
+    except ModalBackendUnavailable:
+        return True
+
+
+def _log_modal_status_after_threshold(
     channel: str,
     *,
     circuits: CircuitRegistry,
@@ -550,11 +768,29 @@ def _check_modal_status_after_open(
     circuits.record_modal_status_check(channel)
     try:
         LOGGER.warning(
-            "Modal circuit opened; status page snapshot: %s",
-            check_modal_status(),
+            "Modal failover threshold reached; status page snapshot: %s",
+            modal_status_summary(check_modal_status()),
         )
     except Exception:
         LOGGER.warning("Modal status page check failed", exc_info=True)
+
+
+def modal_status_summary(status: dict[str, Any]) -> dict[str, Any]:
+    attributes = status.get("data", {}).get("attributes", {})
+    summary: dict[str, Any] = {
+        "aggregate_state": attributes.get("aggregate_state"),
+        "resources": {},
+    }
+    relevant_names = {"CPU functions", "Web endpoints"}
+    for included in status.get("included", []):
+        if included.get("type") != "status_page_resource":
+            continue
+        resource = included.get("attributes", {})
+        name = resource.get("public_name")
+        if name not in relevant_names:
+            continue
+        summary["resources"][name] = resource.get("status")
+    return summary
 
 
 def _backend_unavailable_response(
@@ -654,6 +890,52 @@ def _modal_operation_timeout_seconds(
         "",
     )
     return _operation_timeout_seconds_from_value(raw_value, default)
+
+
+def modal_circuit_policy_from_env() -> ModalCircuitPolicy:
+    return ModalCircuitPolicy(
+        failure_min_count=_operation_int_from_env(
+            "HOUSEHOLD_FAILOVER_MODAL_FAILURE_MIN_COUNT",
+            MODAL_FAILURE_MIN_COUNT,
+            minimum=1,
+        ),
+        failure_rate=min(
+            1.0,
+            _operation_timeout_seconds(
+                "HOUSEHOLD_FAILOVER_MODAL_FAILURE_RATE",
+                MODAL_FAILURE_RATE,
+            ),
+        ),
+        failure_window_seconds=_operation_timeout_seconds(
+            "HOUSEHOLD_FAILOVER_MODAL_FAILURE_WINDOW_SECONDS",
+            MODAL_FAILURE_WINDOW_SECONDS,
+        ),
+        min_open_seconds=_operation_timeout_seconds(
+            "HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS",
+            MODAL_MIN_OPEN_SECONDS,
+        ),
+        recovery_successes=_operation_int_from_env(
+            "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES",
+            MODAL_RECOVERY_SUCCESSES,
+            minimum=1,
+        ),
+    )
+
+
+def _operation_int_from_env(
+    env_var: str,
+    default: int,
+    *,
+    minimum: int,
+) -> int:
+    raw_value = os.getenv(env_var, "")
+    if not raw_value:
+        return default
+    try:
+        value = int(raw_value)
+    except ValueError:
+        return default
+    return max(value, minimum)
 
 
 def _operation_timeout_seconds(env_var: str, default: float) -> float:

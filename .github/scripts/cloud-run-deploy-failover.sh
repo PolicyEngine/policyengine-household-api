@@ -365,6 +365,28 @@ append_env_if_set \
 append_env_if_set \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_MODAL_PROBE_TIMEOUT_SECONDS
+append_env_if_set "${gateway_env_file}" HOUSEHOLD_MODAL_CANARY_APP_NAME
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_CANARY_FUNCTION_NAME
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_CANARY_TIMEOUT_SECONDS
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_FAILURE_MIN_COUNT
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_FAILURE_RATE
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_FAILURE_WINDOW_SECONDS
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES
 append_env_value \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS \

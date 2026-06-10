@@ -37,6 +37,14 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "USER_ANALYTICS_DB_PASSWORD": "analytics@password,with,comma",
         "HOUSEHOLD_FAILOVER_MODAL_REQUEST_TIMEOUT_SECONDS": "45",
         "HOUSEHOLD_FAILOVER_MODAL_PROBE_TIMEOUT_SECONDS": "5",
+        "HOUSEHOLD_MODAL_CANARY_APP_NAME": "household-canary",
+        "HOUSEHOLD_FAILOVER_MODAL_CANARY_FUNCTION_NAME": "ping",
+        "HOUSEHOLD_FAILOVER_MODAL_CANARY_TIMEOUT_SECONDS": "4",
+        "HOUSEHOLD_FAILOVER_MODAL_FAILURE_MIN_COUNT": "10",
+        "HOUSEHOLD_FAILOVER_MODAL_FAILURE_RATE": "0.5",
+        "HOUSEHOLD_FAILOVER_MODAL_FAILURE_WINDOW_SECONDS": "60",
+        "HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS": "60",
+        "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES": "3",
     }
 
     result = subprocess.run(
@@ -84,6 +92,15 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "gcloud storage cp" in log
     assert "gs://manifest-bucket/staging/failover-manifest.json" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
+    assert "HOUSEHOLD_MODAL_CANARY_APP_NAME: |-" in log
+    assert "  household-canary" in log
+    assert "HOUSEHOLD_FAILOVER_MODAL_CANARY_FUNCTION_NAME: |-" in log
+    assert "HOUSEHOLD_FAILOVER_MODAL_CANARY_TIMEOUT_SECONDS: |-" in log
+    assert "HOUSEHOLD_FAILOVER_MODAL_FAILURE_MIN_COUNT: |-" in log
+    assert "HOUSEHOLD_FAILOVER_MODAL_FAILURE_RATE: |-" in log
+    assert "HOUSEHOLD_FAILOVER_MODAL_FAILURE_WINDOW_SECONDS: |-" in log
+    assert "HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS: |-" in log
+    assert "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES: |-" in log
     assert "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS: |-" in log
     assert "  1200" in log
     assert "--allow-unauthenticated --min-instances 1" in log

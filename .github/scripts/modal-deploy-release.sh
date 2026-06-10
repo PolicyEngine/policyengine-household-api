@@ -53,6 +53,13 @@ deploy_worker_app() {
       -m policyengine_household_api.modal_release.worker_app
 }
 
+deploy_canary_app() {
+  MODAL_ENVIRONMENT="${modal_environment}" \
+    uv run modal deploy \
+      --env "${modal_environment}" \
+      -m policyengine_household_api.modal_release.canary_app
+}
+
 require_env \
   MODAL_ENVIRONMENT \
   USER_ANALYTICS_DB_USERNAME \
@@ -96,6 +103,7 @@ worker_app_name="$(
 )"
 
 bash "${modal_sync_secrets_script}"
+deploy_canary_app
 
 if [ "${deploy_mode}" = "code" ]; then
   active_apps_tsv="$(mktemp)"

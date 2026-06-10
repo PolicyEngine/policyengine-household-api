@@ -29,18 +29,25 @@ Modal failure evidence opens or is about to open the circuit.
 Use this circuit policy unless a PR explicitly changes it:
 
 - Probe active Modal workers directly by channel.
-- Open the channel circuit after 3 consecutive Modal probe failures.
-- Treat Modal SDK transport/runtime failures and probe timeouts as Modal
-  platform failures.
+- Treat a channel as a fallback candidate after elevated local Modal failure
+  evidence crosses the configured sliding-window threshold. Defaults are 10
+  Modal failures, a 50% failure rate, and a 60-second window.
+- Open the channel circuit only when the independent Modal canary also fails.
+- Deploy the Modal canary with the Modal release pathway. It must stay tiny:
+  no household API imports, country packages, Cloud SQL, GCS, Auth0,
+  analytics, or secrets.
 - Keep Modal request and probe timeouts separate. Request timeouts should be
   long enough for healthy but loaded calculations; probe timeouts should stay
   short so recovery checks do not consume request capacity.
 - Do not open the circuit for ordinary Flask response status codes from the
   household API, including app-level 500 responses.
-- When the circuit opens, fetch Modal status JSON at most once per minute as
-  corroborating evidence; never make that status page a hard dependency.
-- Keep probing Modal after failover. Close the circuit after a successful
-  direct Modal health probe for that channel.
+- When local failure evidence crosses the threshold or the circuit opens, fetch
+  Modal status JSON at most once per minute as corroborating evidence; never
+  make that status page a hard dependency.
+- Keep probing Modal after failover. Close the circuit only after the minimum
+  open window elapses and repeated recovery checks pass. A recovery check must
+  pass both the independent Modal canary and the channel's direct Modal worker
+  health probe.
 
 When neither Modal nor the Cloud Run fallback worker can serve a request, the
 gateway returns HTTP `503 Service Unavailable`, includes `Retry-After: 10`,
@@ -117,7 +124,11 @@ manifests; it should not mutate IAM on every run.
 When changing this system, include focused tests for:
 
 - failover manifest validation and exact-version resolution
-- Modal circuit transitions after 3 probe failures
+- Modal circuit candidate transitions after the sliding-window threshold
+- Modal canary failure being required before fallback opens
+- Modal canary success preventing fallback even after the threshold is crossed
+- open-circuit recovery requiring repeated canary and Modal worker health
+  successes
 - app-level 4xx/5xx responses not opening the Modal circuit
 - Modal platform failures routing to Cloud Run fallback
 - `503` fallback exhaustion responses including `Retry-After`
