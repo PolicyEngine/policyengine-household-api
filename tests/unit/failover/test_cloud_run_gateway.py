@@ -142,10 +142,10 @@ def test_app_level_500_does_not_trigger_fallback_or_status_page_check():
             {"status": "error"},
             status=500,
         ),
-        fallback_request=lambda resolved, payload: fallback_calls.append(
-            resolved.channel
-        )
-        or _json_response({"backend": "cloud_run"}),
+        fallback_request=lambda resolved, payload: (
+            fallback_calls.append(resolved.channel)
+            or _json_response({"backend": "cloud_run"})
+        ),
         modal_status_checker=lambda: status_checks.append("checked") or {},
     )
 
@@ -462,8 +462,9 @@ def test_exact_package_version_routes_to_matching_channel():
     captured = []
 
     client = _client(
-        modal_request=lambda app_name, payload: captured.append(app_name)
-        or _json_response({"backend": "modal"})
+        modal_request=lambda app_name, payload: (
+            captured.append(app_name) or _json_response({"backend": "modal"})
+        )
     )
 
     response = client.post(
@@ -497,10 +498,10 @@ def _install_fake_modal(
                 def __call__(self):
                     return types.SimpleNamespace(
                         handle_household_request=types.SimpleNamespace(
-                            remote=lambda payload: captured_payloads.append(
-                                payload
+                            remote=lambda payload: (
+                                captured_payloads.append(payload)
+                                or class_result
                             )
-                            or class_result
                         )
                     )
 
@@ -510,8 +511,9 @@ def _install_fake_modal(
         @staticmethod
         def from_name(app_name, object_name, **kwargs):
             return types.SimpleNamespace(
-                remote=lambda payload: captured_payloads.append(payload)
-                or function_result
+                remote=lambda payload: (
+                    captured_payloads.append(payload) or function_result
+                )
             )
 
     fake_modal = types.SimpleNamespace(

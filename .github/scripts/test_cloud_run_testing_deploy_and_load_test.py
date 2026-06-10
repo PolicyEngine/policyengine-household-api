@@ -90,7 +90,10 @@ def test_testing_deploy_script_can_skip_deploy_and_disable_expected_backend(
 
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
-    assert "gcloud run services describe household-api-testing-scratch-gateway" in log
+    assert (
+        "gcloud run services describe household-api-testing-scratch-gateway"
+        in log
+    )
     assert "--requests 2 --concurrency 1" in log
     assert "--expected-backend" not in log
 
