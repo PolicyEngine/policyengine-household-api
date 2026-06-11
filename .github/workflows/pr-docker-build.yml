@@ -29,13 +29,36 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Read pinned policyengine-us version
+        id: pin
+        run: |
+          version=$(python3 - <<'EOF'
+          import tomllib
+          from pathlib import Path
+
+          deps = tomllib.loads(Path("pyproject.toml").read_text())["project"][
+              "dependencies"
+          ]
+          for dep in deps:
+              name, _, version = dep.replace(" ", "").partition("==")
+              if name.replace("-", "_") == "policyengine_us" and version:
+                  print(version)
+                  break
+          EOF
+          )
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      # Pass the build arg with the already-pinned version so PR CI exercises
+      # the same Dockerfile override path the publish workflow always uses.
       - name: Build image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./gcp/policyengine_household_api/Dockerfile.production
           push: false
+          build-args: |
+            POLICYENGINE_US_VERSION=${{ steps.pin.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
