@@ -1,0 +1,41 @@
+name: PR Docker build check
+
+# Build-only validation of the published Dockerfile, since nothing else in PR
+# CI exercises it. Runs only when files that affect the image build change;
+# package source changes are deliberately excluded (they cannot break the
+# build, and the publish workflow builds every release post-merge anyway).
+# Single-arch: the publish workflow covers arm64.
+
+on:
+  pull_request:
+    paths:
+      - gcp/policyengine_household_api/Dockerfile.production
+      - gcp/policyengine_household_api/start.sh
+      - config/default.yaml
+      - .dockerignore
+      - .github/workflows/publish-docker-image.yml
+      - .github/workflows/pr-docker-build.yml
+      - pyproject.toml
+      - uv.lock
+
+concurrency:
+  group: household-api-pr-docker-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-build:
+    name: Build Docker image (no push)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./gcp/policyengine_household_api/Dockerfile.production
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -10,6 +10,8 @@ first, then keep adapters thin.
 Current skills:
 
 - `database-migrations.md`: Alembic and analytics database migration rules.
+- `docker-images.md`: GHCR image publishing, the tag scheme, and
+  published-Dockerfile rules.
 - `github-prs.md`: same-repository PR workflow, PR head verification, changelog
   expectations, and title conventions.
 - `modal-release-prs.md`: current/frontier Modal deployment behavior and PR
