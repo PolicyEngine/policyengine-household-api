@@ -28,6 +28,7 @@ class TestCustomerInputs:
         deployed_api,
         auth_token,
         request_version,
+        expected_backend,
         route_mode,
         household,
     ):
@@ -36,6 +37,7 @@ class TestCustomerInputs:
             auth_token,
             household,
             request_version,
+            expected_backend,
             route_mode,
         )
 
@@ -51,6 +53,7 @@ class TestCustomerInputs:
         deployed_api,
         auth_token,
         request_version,
+        expected_backend,
         route_mode,
         household,
     ):
@@ -59,6 +62,7 @@ class TestCustomerInputs:
             auth_token,
             household,
             request_version,
+            expected_backend,
             route_mode,
         )
 
@@ -73,6 +77,7 @@ class TestCustomerInputs:
         deployed_api,
         auth_token,
         request_version,
+        expected_backend,
         route_mode,
         household,
     ):
@@ -81,6 +86,7 @@ class TestCustomerInputs:
             auth_token,
             household,
             request_version,
+            expected_backend,
             route_mode,
         )
 
@@ -90,6 +96,7 @@ class TestCustomerInputs:
         auth_token,
         household,
         request_version,
+        expected_backend,
         route_mode,
     ):
         household_model = HouseholdModelUS(**household)
@@ -112,6 +119,7 @@ class TestCustomerInputs:
             response,
             input_variables,
             variables_to_calc,
+            expected_backend,
             route_mode,
         )
 
@@ -141,9 +149,14 @@ class TestCustomerInputs:
         response,
         input_variables,
         variables_to_calc,
+        expected_backend,
         route_mode,
     ):
         assert response.status_code == 200
+        if expected_backend:
+            assert response.headers["X-PolicyEngine-Backend"] == (
+                expected_backend
+            )
 
         result = response.json()
         self._verify_response_schema(result, route_mode)
