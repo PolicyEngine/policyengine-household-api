@@ -83,7 +83,10 @@ operations and use the weekly release shape by default.
 
 The household API deploy pipeline is Modal-only. Do not add App Engine, GCP
 Artifact Registry, Docker image, or GCP traffic-promotion deployment steps to
-the release workflow. The release workflow deploys the full Modal app set to
+the release workflow. Public GHCR Docker images are a distribution artifact,
+not a deployment target: the separate `Publish Docker image` workflow observes
+completed `Release to Modal` runs and publishes images after the fact, and
+must never gate or modify Modal deployments (see `docker-images.md`). The release workflow deploys the full Modal app set to
 the `staging` Modal environment, runs the same deployed integration test suite
 as separate matrix jobs for both `current` and `frontier`, then deploys the
 same release config to the `main` Modal environment after all staging jobs pass.
