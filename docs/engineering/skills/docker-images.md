@@ -17,9 +17,20 @@ publish workflow must never gate, modify, or participate in Modal releases.
 | `<api-version>` | household-api release that built the image (e.g. `0.21.4`) |
 | `sha-<commit>` | Release commit the image was built from |
 
-Channel tags are floating pointers, repointed weekly. Exact-version tags are
-rebuilt when a code-only release ships new API code for the same model
-version, matching how Modal redeploys workers in place.
+Channel tags are floating pointers, repointed weekly. They always carry the
+same model package versions as the hosted channels — `frontier` stays ahead
+of (or, after a `both`-target release, equal to) `current` exactly as the
+gateway manifest does; the publisher mirrors the manifest and never imposes
+its own ordering.
+
+The channel contract is about model package versions, not API-layer code.
+A promoted `current` image keeps the API code it was built with as
+`frontier`, matching the hosted worker, which is promoted without redeploy.
+One known asymmetry: a code-only release redeploys both hosted workers with
+new API code but only rebuilds the pyproject-pinned (frontier) image, so the
+`current` image's API code can lag its worker until the next weekly
+promotion; model outputs are unaffected. Force-rebuild an exact tag with a
+manual `workflow_dispatch` run if this ever matters.
 
 ## How publishing works
 
