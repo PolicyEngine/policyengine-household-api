@@ -69,6 +69,15 @@ Mirror the existing staged Modal release pathway:
    Modal production manifest.
 8. Smoke-check production Cloud Run gateway health.
 
+Stop retired Modal worker apps only after the corresponding Cloud Run failover
+manifest has been refreshed (after steps 4 and 7), not during the Modal deploy.
+Stopping them earlier would leave the failover gateway's stored GCS manifest
+pointing a channel at a stopped Modal app until the Cloud Run deploy refreshes
+it. The release workflow enforces this by setting `HOUSEHOLD_DEFER_MODAL_CLEANUP`
+on the Modal deploy jobs and running cleanup in dedicated
+`cleanup-modal-staging` and `cleanup-modal-production` jobs that depend on the
+matching Cloud Run deploy.
+
 Do not add App Engine deployment, App Engine traffic promotion, or DNS cutover
 to this workflow. Public-domain traffic changes are separate infrastructure
 operations.
