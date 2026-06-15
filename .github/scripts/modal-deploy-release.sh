@@ -141,7 +141,16 @@ uv run modal deploy \
 if [ "${deploy_mode}" = "release" ]; then
   cleanup_target="$(config_value cleanup_target)"
   if [ "${cleanup_target}" != "none" ]; then
-    bash "${modal_cleanup_apps_script}" modal-cleanup.json
+    if [ -n "${HOUSEHOLD_DEFER_MODAL_CLEANUP:-}" ]; then
+      # Stopping the retired Modal app here would strand the Cloud Run
+      # failover gateway, whose GCS manifest still points `current` at that
+      # app until the Cloud Run deploy refreshes it. Defer the stop to a
+      # later job that runs after the failover manifest is refreshed. The
+      # app list to stop is recorded in modal-cleanup.json.
+      echo "Deferring Modal app cleanup until after the Cloud Run failover manifest refresh."
+    else
+      bash "${modal_cleanup_apps_script}" modal-cleanup.json
+    fi
   fi
 fi
 

@@ -12,6 +12,8 @@ from policyengine_household_api.failover.cloud_run_gateway import (
     GcsFailoverManifestLoader,
     ModalCircuitPolicy,
     ModalBackendUnavailable,
+    ModalExecutorSaturated,
+    _modal_canary_confirms_outage,
     _run_modal_operation,
     call_cloud_run_worker,
     create_gateway_app,
@@ -670,6 +672,140 @@ def test_exact_package_version_routes_to_matching_channel():
     assert response.status_code == 200
     assert captured == ["modal-frontier"]
     assert response.headers["X-PolicyEngine-Route-Channel"] == "frontier"
+
+
+def test_versions_endpoint_omits_worker_urls_and_matches_modal_schema():
+    response = _client().get("/versions")
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "schema_version": 1,
+        "current": {
+            "app_name": "modal-current",
+            "package_versions": {"uk": "2.31.0", "us": "1.0.0"},
+        },
+        "frontier": {
+            "app_name": "modal-frontier",
+            "package_versions": {"uk": "2.88.18", "us": "2.0.0"},
+        },
+    }
+    body = response.get_data(as_text=True)
+    assert "cloud_run_worker_url" not in body
+    assert "run.app" not in body
+
+
+def test_gateway_rejects_request_body_over_limit(monkeypatch):
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_MAX_CONTENT_LENGTH", "1024")
+
+    response = _client().post(
+        "/us/calculate",
+        data=b"x" * 4096,
+        content_type="application/json",
+    )
+
+    assert response.status_code == 413
+
+
+def test_gcs_manifest_loader_serves_last_known_good_on_refresh_error():
+    clock = [1000.0]
+    calls = []
+
+    def fetch():
+        calls.append(1)
+        if len(calls) == 1:
+            return _manifest()
+        raise RuntimeError("gcs unavailable")
+
+    loader = GcsFailoverManifestLoader(
+        bucket_name="bucket",
+        cache_seconds=30,
+        time_source=lambda: clock[0],
+        fetch=fetch,
+    )
+
+    first = loader()
+    assert first["channels"]["current"]["modal_app_name"] == "modal-current"
+
+    clock[0] += 31  # expire the cache so the next call refreshes
+    second = loader()
+    assert second == first  # stale manifest served instead of raising
+    assert len(calls) == 2
+
+    clock[0] += 1  # within the refreshed window: serve cache, no new fetch
+    third = loader()
+    assert third == first
+    assert len(calls) == 2
+
+
+def test_gcs_manifest_loader_raises_when_no_cached_manifest():
+    def fetch():
+        raise RuntimeError("gcs unavailable")
+
+    loader = GcsFailoverManifestLoader(bucket_name="bucket", fetch=fetch)
+
+    with pytest.raises(FailoverManifestReadError, match="Could not read"):
+        loader()
+
+
+def test_run_modal_operation_raises_saturated_when_executor_full():
+    semaphore = threading.BoundedSemaphore(1)
+    assert semaphore.acquire(blocking=False) is True
+    try:
+        with pytest.raises(ModalExecutorSaturated):
+            _run_modal_operation(
+                lambda: None,
+                timeout_seconds=1,
+                semaphore=semaphore,
+            )
+    finally:
+        semaphore.release()
+
+
+def test_modal_canary_saturation_does_not_confirm_outage(monkeypatch):
+    # A fully drained probe executor means the canary cannot run; local
+    # saturation must not be treated as confirmation of a Modal outage.
+    drained = threading.BoundedSemaphore(1)
+    assert drained.acquire(blocking=False) is True
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "_MODAL_PROBE_EXECUTOR_SEMAPHORE",
+        drained,
+    )
+
+    confirmed = _modal_canary_confirms_outage(
+        probe_canary=_canary_failure,
+        timeout_seconds=1,
+    )
+
+    assert confirmed is False
+
+
+def test_request_executor_saturation_sheds_load_without_opening_circuit():
+    fallback_calls = []
+    canary_calls = []
+
+    def saturated_modal(app_name, payload):
+        raise ModalExecutorSaturated("Modal operation executor is saturated")
+
+    client = _client(
+        modal_request=saturated_modal,
+        modal_canary_probe=lambda: canary_calls.append("canary"),
+        fallback_request=lambda resolved, payload: (
+            fallback_calls.append(resolved.channel)
+            or _json_response({"backend": "cloud_run"})
+        ),
+    )
+
+    for _ in range(15):
+        response = client.post("/us/calculate", json={"household": {}})
+        assert response.status_code == 503
+        assert response.headers["X-PolicyEngine-Backend"] == "none"
+        assert response.headers["X-PolicyEngine-Primary-State"] == "healthy"
+
+    # Local saturation never records circuit failures, so it neither runs the
+    # canary nor trips the breaker into the Cloud Run fallback.
+    assert fallback_calls == []
+    assert canary_calls == []
 
 
 def _install_fake_modal(

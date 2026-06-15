@@ -169,10 +169,20 @@ jobs:
           AI__ENABLED: "true"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
+          # Defer stopping retired Modal apps until cleanup-modal-staging runs,
+          # after the Cloud Run failover manifest has been refreshed.
+          HOUSEHOLD_DEFER_MODAL_CLEANUP: "true"
         run: |
           bash .github/scripts/modal-deploy-release.sh \
             '${{ needs.resolve-modal-release-config.outputs.config_json }}' \
             '${{ needs.resolve-modal-release-config.outputs.deploy_mode }}'
+
+      - name: Upload deferred Modal cleanup manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: modal-cleanup-staging
+          path: modal-cleanup.json
+          if-no-files-found: ignore
 
   integration-tests-staging:
     name: Integration tests against Modal staging (${{ matrix.channel }}, ${{ matrix.route_mode }})
@@ -387,6 +397,45 @@ jobs:
             --remove-env-vars HOUSEHOLD_FAILOVER_FORCE_BACKEND \
             --quiet
 
+  cleanup-modal-staging:
+    name: Clean up retired Modal staging apps
+    runs-on: ubuntu-latest
+    needs: [deploy-cloud-run-staging]
+    environment: staging
+    permissions:
+      contents: read
+    env:
+      MODAL_ENVIRONMENT: staging
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Download deferred Modal cleanup manifest
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: modal-cleanup-staging
+
+      - name: Stop retired Modal apps
+        run: |
+          if [ -f modal-cleanup.json ]; then
+            bash .github/scripts/modal-cleanup-apps.sh modal-cleanup.json
+          else
+            echo "No deferred Modal cleanup manifest; nothing to stop."
+          fi
+
   deploy-modal-production:
     name: Deploy Modal release to production
     runs-on: ubuntu-latest
@@ -438,10 +487,22 @@ jobs:
           AI__ENABLED: "true"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
+          # Defer stopping retired Modal apps until cleanup-modal-production
+          # runs, after the Cloud Run failover manifest has been refreshed.
+          # Otherwise the failover gateway would point `current` at a stopped
+          # Modal app during the Cloud Run deploy window.
+          HOUSEHOLD_DEFER_MODAL_CLEANUP: "true"
         run: |
           bash .github/scripts/modal-deploy-release.sh \
             '${{ needs.resolve-modal-release-config.outputs.config_json }}' \
             '${{ needs.resolve-modal-release-config.outputs.deploy_mode }}'
+
+      - name: Upload deferred Modal cleanup manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: modal-cleanup-production
+          path: modal-cleanup.json
+          if-no-files-found: ignore
 
   deploy-cloud-run-production:
     name: Deploy Cloud Run failover to production
@@ -495,6 +556,45 @@ jobs:
           HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT }}
           HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
         run: bash .github/scripts/cloud-run-deploy-failover.sh
+
+  cleanup-modal-production:
+    name: Clean up retired Modal production apps
+    runs-on: ubuntu-latest
+    needs: [deploy-cloud-run-production]
+    environment: production
+    permissions:
+      contents: read
+    env:
+      MODAL_ENVIRONMENT: main
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Download deferred Modal cleanup manifest
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: modal-cleanup-production
+
+      - name: Stop retired Modal apps
+        run: |
+          if [ -f modal-cleanup.json ]; then
+            bash .github/scripts/modal-cleanup-apps.sh modal-cleanup.json
+          else
+            echo "No deferred Modal cleanup manifest; nothing to stop."
+          fi
 
   publish:
     name: Publish to PyPI

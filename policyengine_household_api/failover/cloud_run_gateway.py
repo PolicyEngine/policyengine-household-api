@@ -28,8 +28,12 @@ from policyengine_household_api.failover.manifest import (
     FailoverManifestUnavailable,
     FailoverRoutingError,
     ResolvedFailoverChannel,
+    public_versions_view,
     resolve_failover_channel_for_request,
     validate_failover_manifest,
+)
+from policyengine_household_api.failover.request_limits import (
+    max_content_length_bytes,
 )
 from policyengine_household_api.modal_release.gateway import (
     GatewayResolutionError,
@@ -66,7 +70,10 @@ MODAL_PROBE_TIMEOUT_SECONDS = 5.0
 MODAL_CANARY_TIMEOUT_SECONDS = 5.0
 CLOUD_RUN_WORKER_TIMEOUT_SECONDS = 180.0
 MODAL_EXECUTOR_MAX_WORKERS = 32
+MODAL_PROBE_EXECUTOR_MAX_WORKERS = 8
 
+# Real user requests to Modal run on this executor. Saturating it is a local
+# capacity limit, not a Modal outage.
 _MODAL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     max_workers=MODAL_EXECUTOR_MAX_WORKERS,
     thread_name_prefix="household-modal",
@@ -75,8 +82,27 @@ _MODAL_EXECUTOR_SEMAPHORE = threading.BoundedSemaphore(
     MODAL_EXECUTOR_MAX_WORKERS,
 )
 
+# Health probes and the canary confirmation run on a dedicated executor so they
+# stay independent of request-path saturation: request load can never both
+# supply Modal failure evidence and "confirm" it through the same starved
+# pool, and a hung request call can never starve the probes that recover the
+# circuit.
+_MODAL_PROBE_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=MODAL_PROBE_EXECUTOR_MAX_WORKERS,
+    thread_name_prefix="household-modal-probe",
+)
+_MODAL_PROBE_EXECUTOR_SEMAPHORE = threading.BoundedSemaphore(
+    MODAL_PROBE_EXECUTOR_MAX_WORKERS,
+)
+
 
 class ModalBackendUnavailable(RuntimeError):
+    pass
+
+
+class ModalExecutorSaturated(ModalBackendUnavailable):
+    """The gateway's own executor was full, so no Modal call was attempted."""
+
     pass
 
 
@@ -253,6 +279,7 @@ class GcsFailoverManifestLoader:
         blob_name: str | None = None,
         cache_seconds: int = MANIFEST_CACHE_SECONDS,
         time_source: Callable[[], float] | None = None,
+        fetch: Callable[[], Any] | None = None,
     ) -> None:
         self.bucket_name = bucket_name or os.getenv(
             FAILOVER_MANIFEST_BUCKET_ENV
@@ -263,32 +290,48 @@ class GcsFailoverManifestLoader:
         )
         self.cache_seconds = cache_seconds
         self._time = time_source or time.monotonic
+        self._fetch = fetch
         self._cached_manifest: dict[str, Any] | None = None
         self._cached_at = 0.0
 
     def __call__(self) -> dict[str, Any]:
+        now = self._time()
         if self._cached_manifest and (
-            self._time() - self._cached_at < self.cache_seconds
+            now - self._cached_at < self.cache_seconds
         ):
             return self._cached_manifest
         try:
-            if not self.bucket_name:
-                raise ValueError(f"{FAILOVER_MANIFEST_BUCKET_ENV} must be set")
-
-            from google.cloud import storage
-
-            client = storage.Client()
-            blob = client.bucket(self.bucket_name).blob(self.blob_name)
-            manifest = validate_failover_manifest(
-                json.loads(blob.download_as_text())
-            )
+            manifest = validate_failover_manifest(self._download_manifest())
             self._cached_manifest = manifest
-            self._cached_at = self._time()
+            self._cached_at = now
             return manifest
         except Exception as exc:
+            if self._cached_manifest is not None:
+                # A transient GCS/read error shouldn't turn into request-wide
+                # 503s. Serve the last-known-good manifest and revalidate it on
+                # the next cache window rather than hammering GCS per request.
+                self._cached_at = now
+                LOGGER.warning(
+                    "Failed to refresh Cloud Run failover manifest; serving "
+                    "last-known-good manifest",
+                    exc_info=True,
+                )
+                return self._cached_manifest
             raise FailoverManifestReadError(
                 "Could not read Cloud Run failover manifest"
             ) from exc
+
+    def _download_manifest(self) -> Any:
+        if self._fetch is not None:
+            return self._fetch()
+        if not self.bucket_name:
+            raise ValueError(f"{FAILOVER_MANIFEST_BUCKET_ENV} must be set")
+
+        from google.cloud import storage
+
+        client = storage.Client()
+        blob = client.bucket(self.bucket_name).blob(self.blob_name)
+        return json.loads(blob.download_as_text())
 
 
 def create_gateway_app(
@@ -310,6 +353,9 @@ def create_gateway_app(
     modal_canary_timeout_seconds: float | None = None,
 ) -> Flask:
     app = Flask(__name__)
+    # Reject oversized request bodies before buffering them via
+    # ``request.get_data()`` on a small gateway container.
+    app.config["MAX_CONTENT_LENGTH"] = max_content_length_bytes()
     load_manifest = manifest_loader or GcsFailoverManifestLoader()
     call_modal = modal_request or call_modal_worker
     probe_modal = modal_health_probe or probe_modal_worker
@@ -365,7 +411,7 @@ def create_gateway_app(
     @app.get("/versions")
     def versions() -> Response:
         try:
-            return jsonify(validate_failover_manifest(load_manifest()))
+            return jsonify(public_versions_view(load_manifest()))
         except FailoverManifestError as exc:
             return _gateway_unavailable_response(str(exc))
 
@@ -628,6 +674,11 @@ def _route_to_backend(
         )
         circuits.record_success(resolved.channel, policy)
         return response, "modal"
+    except ModalExecutorSaturated:
+        # The gateway's own request executor is full. That is a local capacity
+        # limit, not a Modal outage, so shed load with a 503 without recording
+        # circuit-breaker failure evidence or triggering a fallback.
+        return _backend_unavailable_response(resolved), "none"
     except ModalBackendUnavailable:
         if force_backend == "modal":
             return _backend_unavailable_response(resolved), "none"
@@ -679,11 +730,15 @@ def _refresh_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        _run_modal_operation(
+        _run_modal_probe(
             lambda: probe_modal(resolved.modal_app_name),
             timeout_seconds=modal_probe_timeout_seconds,
         )
         circuits.record_success(resolved.channel, policy)
+    except ModalExecutorSaturated:
+        # Could not run an independent probe; skip it without recording a
+        # Modal failure on the circuit.
+        return
     except ModalBackendUnavailable:
         if circuits.record_failure(resolved.channel, policy):
             _log_modal_status_after_threshold(
@@ -715,11 +770,11 @@ def _refresh_open_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        _run_modal_operation(
+        _run_modal_probe(
             probe_canary,
             timeout_seconds=modal_canary_timeout_seconds,
         )
-        _run_modal_operation(
+        _run_modal_probe(
             lambda: probe_modal(resolved.modal_app_name),
             timeout_seconds=modal_probe_timeout_seconds,
         )
@@ -748,9 +803,17 @@ def _modal_canary_confirms_outage(
     timeout_seconds: float,
 ) -> bool:
     try:
-        _run_modal_operation(
+        _run_modal_probe(
             probe_canary,
             timeout_seconds=timeout_seconds,
+        )
+        return False
+    except ModalExecutorSaturated:
+        # We could not run an independent canary check, so we cannot confirm a
+        # Modal outage. Keep Modal as primary rather than opening the circuit
+        # on local-saturation evidence alone.
+        LOGGER.warning(
+            "Modal canary executor saturated; cannot confirm Modal outage"
         )
         return False
     except ModalBackendUnavailable:
@@ -853,17 +916,19 @@ def _run_modal_operation(
     operation: Callable[[], Any],
     *,
     timeout_seconds: float,
+    executor: concurrent.futures.ThreadPoolExecutor = _MODAL_EXECUTOR,
+    semaphore: threading.BoundedSemaphore = _MODAL_EXECUTOR_SEMAPHORE,
 ) -> Any:
-    if not _MODAL_EXECUTOR_SEMAPHORE.acquire(blocking=False):
-        raise ModalBackendUnavailable("Modal operation executor is saturated")
+    if not semaphore.acquire(blocking=False):
+        raise ModalExecutorSaturated("Modal operation executor is saturated")
 
     try:
-        future = _MODAL_EXECUTOR.submit(operation)
+        future = executor.submit(operation)
     except Exception:
-        _MODAL_EXECUTOR_SEMAPHORE.release()
+        semaphore.release()
         raise
 
-    future.add_done_callback(lambda _: _MODAL_EXECUTOR_SEMAPHORE.release())
+    future.add_done_callback(lambda _: semaphore.release())
     try:
         return future.result(timeout=timeout_seconds)
     except concurrent.futures.TimeoutError as exc:
@@ -875,6 +940,20 @@ def _run_modal_operation(
         raise
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
+
+
+def _run_modal_probe(
+    operation: Callable[[], Any],
+    *,
+    timeout_seconds: float,
+) -> Any:
+    """Run a health probe / canary check on the dedicated probe executor."""
+    return _run_modal_operation(
+        operation,
+        timeout_seconds=timeout_seconds,
+        executor=_MODAL_PROBE_EXECUTOR,
+        semaphore=_MODAL_PROBE_EXECUTOR_SEMAPHORE,
+    )
 
 
 def _modal_operation_timeout_seconds(

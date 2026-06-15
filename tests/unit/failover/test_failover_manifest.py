@@ -3,6 +3,7 @@ import pytest
 from policyengine_household_api.failover.manifest import (
     FailoverManifestError,
     build_failover_manifest,
+    public_versions_view,
     resolve_failover_channel_for_request,
     validate_failover_manifest,
 )
@@ -87,3 +88,22 @@ def test_rejects_unsupported_manifest_schema_version():
 
     with pytest.raises(FailoverManifestError, match="schema version"):
         validate_failover_manifest(manifest)
+
+
+def test_public_versions_view_omits_worker_urls():
+    view = public_versions_view(_manifest())
+
+    assert view == {
+        "schema_version": 1,
+        "current": {
+            "app_name": "modal-current",
+            "package_versions": {"uk": "2.31.0", "us": "1.0.0"},
+            "deployed_at": "2026-01-01T00:00:00+00:00",
+            "analytics_database_revision": "20260519_0004",
+        },
+        "frontier": {
+            "app_name": "modal-frontier",
+            "package_versions": {"uk": "2.88.18", "us": "2.0.0"},
+            "deployed_at": "2026-01-02T00:00:00+00:00",
+        },
+    }

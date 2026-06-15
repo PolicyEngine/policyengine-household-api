@@ -78,3 +78,16 @@ def test_worker_rejects_invalid_dispatch_payload():
 
     assert response.status_code == 400
     assert response.get_json()["code"] == "invalid_dispatch_payload"
+
+
+def test_worker_rejects_dispatch_payload_over_limit(monkeypatch):
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_MAX_CONTENT_LENGTH", "1024")
+    app = create_worker_app(flask_app=_household_app())
+
+    response = app.test_client().post(
+        "/_internal/dispatch",
+        data=b"x" * 4096,
+        content_type="application/json",
+    )
+
+    assert response.status_code == 413

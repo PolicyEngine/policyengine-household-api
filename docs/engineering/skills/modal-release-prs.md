@@ -81,16 +81,25 @@ redeploys the gateway without changing the manifest. Ordinary push events do
 not deploy Modal apps. Manual `workflow_dispatch` runs are explicit release
 operations and use the weekly release shape by default.
 
-The household API deploy pipeline is Modal-only. Do not add App Engine, GCP
-Artifact Registry, Docker image, or GCP traffic-promotion deployment steps to
-the release workflow. The release workflow deploys the full Modal app set to
-the `staging` Modal environment, runs the same deployed integration test suite
-as separate matrix jobs for both `current` and `frontier`, then deploys the
-same release config to the `main` Modal environment after all staging jobs pass.
-Each channel is tested by channel name and by the exact US package version from
-`/versions/us`. Google credentials in the release workflow are only for Cloud
-SQL analytics database access and for syncing the Modal worker secret needed to
-reach that database.
+The household API primary serving path is Modal-only. Do not add App Engine or
+GCP traffic-promotion deployment steps to the release workflow, and do not route
+primary household traffic through anything other than the Modal gateway. The one
+deliberate exception is the Cloud Run failover path documented in
+`modal-cloud-run-failover.md`: that path intentionally adds GCP Artifact
+Registry, Docker image builds, and Cloud Run deploy steps to the release
+workflow to stand up the standby gateway and fallback workers. Keep those steps
+scoped to the failover gateway, the failover workers, and the GCS failover
+manifest; they must not change how the Modal gateway serves current/frontier
+traffic, and Modal remains the primary backend until an explicit traffic
+cutover. The release workflow deploys the full Modal app set to the `staging`
+Modal environment, runs the same deployed integration test suite as separate
+matrix jobs for both `current` and `frontier`, then deploys the same release
+config to the `main` Modal environment after all staging jobs pass. Each channel
+is tested by channel name and by the exact US package version from
+`/versions/us`. Google credentials in the release workflow are used for Cloud
+SQL analytics database access, for syncing the Modal worker secret needed to
+reach that database, and for deploying the Cloud Run failover gateway and
+workers.
 
 Only the US and UK package versions are release-significant. Do not include
 Canada, Nigeria, or Israel package versions in Modal worker app names, manifest

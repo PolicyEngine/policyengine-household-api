@@ -102,6 +102,37 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "cleanup-called" in log
 
 
+def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    env["HOUSEHOLD_DEFER_MODAL_CLEANUP"] = "true"
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"frontier",'
+                '"promote_existing_frontier":true,'
+                '"cleanup_target":"retired"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert "-m policyengine_household_api.modal_release.update_manifest" in log
+    # Cleanup must be deferred to the post-failover-refresh job, so the
+    # in-script cleanup hook never fires.
+    assert "cleanup-called" not in log
+    assert "Deferring Modal app cleanup" in result.stdout
+
+
 def test_modal_deploy_release_fails_before_deploy_when_channels_missing(
     tmp_path,
 ):

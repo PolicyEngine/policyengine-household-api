@@ -9,6 +9,9 @@ from policyengine_household_api.failover.dispatch_codec import (
     decode_dispatch_request,
     encode_dispatch_response,
 )
+from policyengine_household_api.failover.request_limits import (
+    max_content_length_bytes,
+)
 from policyengine_household_api.modal_release.worker_dispatch import (
     dispatch_to_flask_app,
 )
@@ -21,6 +24,10 @@ def create_worker_app(
     | None = None,
 ) -> Flask:
     app = Flask(__name__)
+    # Reject oversized dispatch payloads before buffering them. The gateway
+    # base64-encodes the original request body into this payload, so the cap
+    # is the Cloud Run platform limit rather than the household body limit.
+    app.config["MAX_CONTENT_LENGTH"] = max_content_length_bytes()
     household_app = flask_app or _load_household_app()
     dispatch = dispatcher or dispatch_to_flask_app
 
