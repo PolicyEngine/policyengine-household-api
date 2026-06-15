@@ -808,6 +808,49 @@ def test_request_executor_saturation_sheds_load_without_opening_circuit():
     assert canary_calls == []
 
 
+def test_recovery_probe_saturation_preserves_recovery_progress(monkeypatch):
+    clock = [100.0]
+    registry = CircuitRegistry(time_source=lambda: clock[0])
+    policy = ModalCircuitPolicy(
+        min_open_seconds=60,
+        recovery_successes=3,
+    )
+    registry.open("current")
+    registry.record_recovery_success("current", policy)
+    assert registry.state("current").recovery_successes == 1
+
+    drained = threading.BoundedSemaphore(1)
+    assert drained.acquire(blocking=False) is True
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "_MODAL_PROBE_EXECUTOR_SEMAPHORE",
+        drained,
+    )
+
+    client = create_gateway_app(
+        manifest_loader=_manifest,
+        modal_request=lambda app_name, payload: _json_response(
+            {"backend": "modal"}
+        ),
+        modal_health_probe=lambda app_name: None,
+        modal_canary_probe=lambda: None,
+        fallback_request=lambda resolved, payload: _json_response(
+            {"backend": "cloud_run"}
+        ),
+        modal_status_checker=lambda: {},
+        fallback_warmup=lambda resolved: None,
+        circuit_registry=registry,
+        circuit_policy=policy,
+    ).test_client()
+
+    clock[0] = 200.0  # past both min_open_seconds and the probe interval
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+    # A saturated recovery probe must not reset the recovery streak.
+    assert registry.state("current").recovery_successes == 1
+
+
 def _install_fake_modal(
     monkeypatch,
     *,

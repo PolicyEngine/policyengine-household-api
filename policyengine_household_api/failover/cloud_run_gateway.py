@@ -779,6 +779,10 @@ def _refresh_open_modal_circuit(
             timeout_seconds=modal_probe_timeout_seconds,
         )
         circuits.record_recovery_success(resolved.channel, policy)
+    except ModalExecutorSaturated:
+        # Local saturation is not Modal evidence; skip this recovery round
+        # without resetting the in-progress recovery streak.
+        return
     except ModalBackendUnavailable:
         circuits.record_recovery_failure(resolved.channel)
 
