@@ -45,6 +45,14 @@ def test_testing_deploy_script_deploys_smokes_and_load_tests(tmp_path):
         "testing/ada-lovelace/failover-manifest.json"
     ) in log
     assert "DEPLOY_ENV HOUSEHOLD_FAILOVER_FORCE_BACKEND=cloud_run" in log
+    assert (
+        "DEPLOY_ENV HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT="
+        "987654321-compute@developer.gserviceaccount.com"
+    ) in log
+    assert (
+        "DEPLOY_ENV HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT="
+        "987654321-compute@developer.gserviceaccount.com"
+    ) in log
     assert "curl -fsS https://testing-gateway.run.app/liveness_check" in log
     assert "curl -fsS https://testing-gateway.run.app/readiness_check" in log
     assert "uv run python load-test.py" in log
@@ -137,6 +145,10 @@ def _write_fake_gcloud(tmp_path: Path, log_path: Path) -> None:
         f"""#!/usr/bin/env bash
 set -euo pipefail
 echo "gcloud $*" >> "{log_path}"
+if [[ "$*" == projects\\ describe* ]]; then
+  echo "987654321"
+  exit 0
+fi
 if [[ "$*" == run\\ services\\ describe* ]]; then
   echo "https://described-gateway.run.app"
 fi

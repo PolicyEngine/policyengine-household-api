@@ -166,7 +166,9 @@ require_env \
   GOOGLE_CLOUD_PROJECT \
   HOUSEHOLD_FAILOVER_MANIFEST_BUCKET \
   MODAL_TOKEN_ID \
-  MODAL_TOKEN_SECRET
+  MODAL_TOKEN_SECRET \
+  HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT \
+  HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT
 
 project="${GOOGLE_CLOUD_PROJECT}"
 region="${HOUSEHOLD_CLOUD_RUN_REGION:-us-central1}"
@@ -180,12 +182,10 @@ artifact_host="${region}-docker.pkg.dev"
 image_tag="${GITHUB_SHA:-local}"
 image_base="${artifact_host}/${project}/${repository}"
 
-project_number="$(
-  "${gcloud_bin}" projects describe "${project}" \
-    --format='value(projectNumber)'
-)"
-gateway_service_account="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT:-${project_number}-compute@developer.gserviceaccount.com}"
-worker_service_account="${HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT:-${gateway_service_account}}"
+# Runtime service accounts are required (validated above); never silently fall
+# back to the broad Compute Engine default service account for a public deploy.
+gateway_service_account="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT}"
+worker_service_account="${HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT}"
 
 gateway_service="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE:-$(service_name gateway)}"
 gateway_image="${image_base}/${gateway_service}:${image_tag}"

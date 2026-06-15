@@ -27,6 +27,12 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
         "MODAL_TOKEN_ID": "modal-token-id@example",
         "MODAL_TOKEN_SECRET": "modal-token,secret@example",
+        "HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT": (
+            "household-api-gateway@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
+            "household-api-worker@policyengine-test.iam.gserviceaccount.com"
+        ),
         "AUTH__ENABLED": "true",
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
@@ -106,9 +112,15 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (
-        "--service-account 123456789-compute@developer.gserviceaccount.com"
+        "--service-account "
+        "household-api-worker@policyengine-test.iam.gserviceaccount.com" in log
+    )
+    assert (
+        "--service-account "
+        "household-api-gateway@policyengine-test.iam.gserviceaccount.com"
         in log
     )
+    assert "123456789-compute@developer.gserviceaccount.com" not in log
     assert "gateway_url=https://household-api-staging-gateway.run.app" in (
         output_path.read_text()
     )
@@ -135,6 +147,34 @@ def test_cloud_run_deploy_failover_requires_manifest_bucket(tmp_path):
 
     assert result.returncode == 1
     assert "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET" in result.stdout
+
+
+def test_cloud_run_deploy_failover_requires_service_accounts(tmp_path):
+    log_path = tmp_path / "commands.log"
+    _write_fake_gcloud(tmp_path, log_path)
+
+    env = {
+        **os.environ,
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "MODAL_ENVIRONMENT": "staging",
+        "GOOGLE_CLOUD_PROJECT": "policyengine-test",
+        "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
+        "MODAL_TOKEN_ID": "modal-token-id",
+        "MODAL_TOKEN_SECRET": "modal-token-secret",
+    }
+    env.pop("HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT", None)
+    env.pop("HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT", None)
+
+    result = subprocess.run(
+        ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT" in result.stdout
+    assert "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT" in result.stdout
 
 
 def test_cloud_run_deploy_failover_requires_modal_credentials(tmp_path):
@@ -188,6 +228,12 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
         "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
         "MODAL_TOKEN_ID": "modal-token-id@example",
         "MODAL_TOKEN_SECRET": "modal-token,secret@example",
+        "HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT": (
+            "household-api-gateway@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
+            "household-api-worker@policyengine-test.iam.gserviceaccount.com"
+        ),
     }
     for key in (
         "ANTHROPIC_API_KEY",
@@ -280,11 +326,6 @@ for arg in "$@"; do
     cat "${{arg#--env-vars-file=}}" >> "{log_path}"
   fi
 done
-
-if [[ "$*" == "projects describe policyengine-test --format=value(projectNumber)" ]]; then
-  echo "123456789"
-  exit 0
-fi
 
 if [[ "$*" == artifacts\\ repositories\\ describe* ]]; then
   exit 0

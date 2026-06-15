@@ -124,6 +124,14 @@ through one-time setup or IaC before deployment:
   `roles/secretmanager.secretAccessor` on the Secret Manager secrets they mount
 - the gateway runtime service account needs `roles/run.invoker` on the private
   worker services it calls
+- the worker runtime service account needs `roles/cloudsql.client` so it can
+  reach the analytics database through the Cloud SQL Python connector
+
+The deploy wrapper requires `HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT` and
+`HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT`; it does not fall back to the
+Compute Engine default service account, so a public deploy fails loudly when a
+provisioned runtime service account is missing. The disposable testing deploy
+script may default these to the compute SA for throwaway namespaces.
 
 The release workflow should deploy images, services, secret versions, and
 manifests; it should not mutate IAM on every run.

@@ -268,6 +268,22 @@ export DOCKER_BIN="${docker_bin}"
 export UV_BIN="${uv_bin}"
 export CURL_BIN="${curl_bin}"
 
+# The deploy script requires explicit runtime service accounts. For disposable
+# testing namespaces, default to the project's Compute Engine default service
+# account unless the caller provides dedicated SAs. This keeps the broad-SA
+# choice explicit to this throwaway path rather than a hidden production default.
+compute_sa=""
+if [ -z "${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT:-}" ] \
+  || [ -z "${HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT:-}" ]; then
+  project_number="$(
+    "${gcloud_bin}" projects describe "${project}" \
+      --format='value(projectNumber)'
+  )"
+  compute_sa="${project_number}-compute@developer.gserviceaccount.com"
+fi
+export HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT:-${compute_sa}}"
+export HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT="${HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT:-${compute_sa}}"
+
 if [ -z "${GITHUB_SHA:-}" ]; then
   GITHUB_SHA="$(git -C "${repo_root}" rev-parse --short HEAD)"
   export GITHUB_SHA
@@ -284,6 +300,8 @@ log "Cloud Run environment: ${cloud_run_environment}"
 log "Modal environment: ${modal_environment}"
 log "Manifest: gs://${manifest_bucket}/${manifest_blob}"
 log "Gateway service: ${gateway_service}"
+log "Gateway SA: ${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT}"
+log "Worker SA: ${HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT}"
 log "This script does not grant IAM; required runtime roles must already exist."
 
 deploy_output="$(mktemp)"
