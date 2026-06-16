@@ -1,3 +1,11 @@
+## [0.22.0] - 2026-06-16
+
+### Added
+
+- Added a Cloud Run failover gateway and private fallback worker deployment path
+  for Modal current/frontier household API releases.
+
+
 ## [0.21.4] - 2026-06-11
 
 ### Changed
