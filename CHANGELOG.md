@@ -1,3 +1,10 @@
+## [0.22.1] - 2026-06-16
+
+### Fixed
+
+- Made deployed-test response header lookups case-insensitive so Cloud Run (HTTP/2) integration tests no longer fail on the lowercased `X-PolicyEngine-Backend` header.
+
+
 ## [0.22.0] - 2026-06-16
 
 ### Added
