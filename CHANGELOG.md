@@ -1,3 +1,10 @@
+## [0.22.2] - 2026-06-16
+
+### Fixed
+
+- Warmed the Cloud Run fallback workers before the forced-fallback staging test so it no longer times out on `min-instances=0` cold starts.
+
+
 ## [0.22.1] - 2026-06-16
 
 ### Fixed
