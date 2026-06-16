@@ -22,5 +22,9 @@ When changing analytics database models or Alembic migrations, read
 When changing Modal current/frontier release behavior, PR release settings, or
 deployment workflows, read `docs/engineering/skills/modal-release-prs.md`.
 
+When changing Cloud Run gateway failover, Cloud Run fallback workers, or
+Modal-to-Cloud-Run fallback deployment workflows, read
+`docs/engineering/skills/modal-cloud-run-failover.md`.
+
 When adding, moving, or reviewing tests, read
 `docs/engineering/skills/testing.md`.
