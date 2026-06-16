@@ -382,6 +382,12 @@ jobs:
             --update-env-vars HOUSEHOLD_FAILOVER_FORCE_BACKEND=cloud_run \
             --quiet
 
+      - name: Warm Cloud Run fallback workers
+        # Cold-start the min-instances=0 fallback workers before the test so it
+        # doesn't time out waiting on the first request. Best-effort; the test
+        # step is the gate. See the script for details.
+        run: bash .github/scripts/cloud-run-warm-workers.sh
+
       - name: Run deployed fallback tests
         run: |
           bash .github/scripts/run-deployed-tests-for-modal-route.sh \
