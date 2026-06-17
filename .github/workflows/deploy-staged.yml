@@ -661,11 +661,25 @@ jobs:
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    # Publish on the normal versioning-commit push, OR on a manual
+    # workflow_dispatch release (deploy_mode `release`) so a dispatched re-ship
+    # of the weekly -- the documented hotfix re-trigger -- is a complete release
+    # and not a Modal-only deploy. This runs after deploy-cloud-run-production,
+    # which is downstream of the production go-live gate, so it only fires
+    # post-approval.
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      github.event_name == 'push' &&
-      github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [deploy-cloud-run-production]
+      (
+        (
+          github.event_name == 'push' &&
+          github.event.head_commit.message == 'Update PolicyEngine Household API'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          needs.resolve-modal-release-config.outputs.deploy_mode == 'release'
+        )
+      )
+    needs: [resolve-modal-release-config, deploy-cloud-run-production]
     environment:
       name: pypi
       url: https://pypi.org/p/policyengine-household-api
@@ -690,15 +704,31 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # A workflow_dispatch release does not bump the version, so the
+          # version in pyproject may already be on PyPI -- skip it instead of
+          # failing the run.
+          skip-existing: true
 
   tag-release:
     name: Publish git tag
     runs-on: ubuntu-latest
+    # Tag on the normal versioning-commit push, OR on a manual workflow_dispatch
+    # release, matching the publish job above so a dispatched re-ship is also
+    # tagged. publish-git-tag.sh is idempotent (skips if the tag already exists).
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      github.event_name == 'push' &&
-      github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [publish]
+      (
+        (
+          github.event_name == 'push' &&
+          github.event.head_commit.message == 'Update PolicyEngine Household API'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          needs.resolve-modal-release-config.outputs.deploy_mode == 'release'
+        )
+      )
+    needs: [resolve-modal-release-config, publish]
     permissions:
       contents: write
 
