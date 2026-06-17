@@ -442,6 +442,35 @@ jobs:
             echo "No deferred Modal cleanup manifest; nothing to stop."
           fi
 
+  gate-production:
+    name: Await production go-live approval
+    runs-on: ubuntu-latest
+    needs:
+      [
+        resolve-modal-release-config,
+        integration-tests-staging,
+        integration-tests-cloud-run-staging,
+        integration-tests-cloud-run-fallback-staging,
+      ]
+    if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
+    # Pause only the weekly version release for a manual go-live click. The
+    # weekly version bump resolves to source `versioning-parent-pull-request`
+    # and routes through the protected `production-gate` environment, where it
+    # waits for a required reviewer to approve. Code-only redeploys and manual
+    # workflow_dispatch resolve to an empty environment and pass straight
+    # through with no approval, so ordinary merges keep auto-deploying.
+    #
+    # The gate is INERT until required reviewers are configured on the
+    # `production-gate` environment (Settings -> Environments). Until then this
+    # job runs through immediately and nothing is gated. See issue #1558.
+    environment: ${{ needs.resolve-modal-release-config.outputs.source == 'versioning-parent-pull-request' && 'production-gate' || '' }}
+    steps:
+      - name: Record go-live approval
+        run: |
+          echo "Production go-live approved."
+          echo "source=${{ needs.resolve-modal-release-config.outputs.source }}"
+          echo "deploy_mode=${{ needs.resolve-modal-release-config.outputs.deploy_mode }}"
+
   deploy-modal-production:
     name: Deploy Modal release to production
     runs-on: ubuntu-latest
@@ -451,6 +480,7 @@ jobs:
         integration-tests-staging,
         integration-tests-cloud-run-staging,
         integration-tests-cloud-run-fallback-staging,
+        gate-production,
       ]
     if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
     environment: production
