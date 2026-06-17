@@ -2,12 +2,12 @@ name: Weekly US Household API Update
 
 on:
   schedule:
-    # Every Tuesday at ~9 AM ET (2 PM UTC). Moved a day earlier than the
-    # Wednesday go-live so the PR and CI land Tuesday morning: the team can
-    # review and merge Tuesday, staging deploy + integration tests validate
-    # that day, and the weekly release then waits at the production-gate
+    # Every Tuesday at 5 PM EST (10 PM UTC). Moved a day earlier than the
+    # Wednesday go-live so the PR and CI land Tuesday: the team can review
+    # and merge Tuesday, staging deploy + integration tests validate that
+    # evening, and the weekly release then waits at the production-gate
     # approval for a deliberate Wednesday go-live. See issue #1558.
-    - cron: "0 14 * * 2"
+    - cron: "0 22 * * 2"
   # Allow manual trigger
   workflow_dispatch:
 

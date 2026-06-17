@@ -453,17 +453,19 @@ jobs:
         integration-tests-cloud-run-fallback-staging,
       ]
     if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
-    # Pause only the weekly version release for a manual go-live click. The
-    # weekly version bump resolves to source `versioning-parent-pull-request`
-    # and routes through the protected `production-gate` environment, where it
-    # waits for a required reviewer to approve. Code-only redeploys and manual
-    # workflow_dispatch resolve to an empty environment and pass straight
-    # through with no approval, so ordinary merges keep auto-deploying.
+    # Pause every version release (deploy_mode `release`) for a manual go-live
+    # click: both the weekly version bump AND manual workflow_dispatch releases
+    # route through the protected `production-gate` environment, where they wait
+    # for a required reviewer to approve. This lets us trigger/validate a
+    # release early but hold real production until a promised go-live time.
+    # Only code-only redeploys (deploy_mode `code` -- ordinary feature/fix/docs
+    # merges) resolve to an empty environment and pass straight through with no
+    # approval, so normal merges keep auto-deploying.
     #
     # The gate is INERT until required reviewers are configured on the
     # `production-gate` environment (Settings -> Environments). Until then this
     # job runs through immediately and nothing is gated. See issue #1558.
-    environment: ${{ needs.resolve-modal-release-config.outputs.source == 'versioning-parent-pull-request' && 'production-gate' || '' }}
+    environment: ${{ needs.resolve-modal-release-config.outputs.deploy_mode == 'release' && 'production-gate' || '' }}
     steps:
       - name: Record go-live approval
         run: |
