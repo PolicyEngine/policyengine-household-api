@@ -323,6 +323,14 @@ jobs:
           AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
         run: python .github/scripts/fetch_auth0_test_token.py
 
+      - name: Warm Modal worker through the gateway
+        # The Modal workers scale to zero shortly after a deploy, so the first
+        # calculate routed through the gateway pays a cold start that can exceed
+        # the gateway's Modal request timeout and 503. Warm the channel under
+        # test first so the test step exercises a warm worker. Best-effort; the
+        # test step remains the gate. See the script for details.
+        run: bash .github/scripts/cloud-run-warm-modal-via-gateway.sh "${{ matrix.channel }}"
+
       - name: Run deployed integration tests for route
         run: |
           bash .github/scripts/run-deployed-tests-for-modal-route.sh \

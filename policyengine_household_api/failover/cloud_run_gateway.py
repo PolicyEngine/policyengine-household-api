@@ -65,7 +65,10 @@ MODAL_STATUS_CHECK_MIN_INTERVAL_SECONDS = 60
 MODAL_MIN_OPEN_SECONDS = 60.0
 MODAL_RECOVERY_SUCCESSES = 3
 MANIFEST_CACHE_SECONDS = 30
-MODAL_REQUEST_TIMEOUT_SECONDS = 30.0
+# Long enough to absorb a cold Modal worker's first response (container boot +
+# country model load), which can take tens of seconds, without converting a
+# slow-but-healthy calculation into a 503. Probe/canary timeouts stay short.
+MODAL_REQUEST_TIMEOUT_SECONDS = 90.0
 MODAL_PROBE_TIMEOUT_SECONDS = 5.0
 MODAL_CANARY_TIMEOUT_SECONDS = 5.0
 CLOUD_RUN_WORKER_TIMEOUT_SECONDS = 180.0
