@@ -1,3 +1,10 @@
+## [0.22.3] - 2026-06-17
+
+### Fixed
+
+- Raise the Cloud Run gateway's Modal request timeout to 90 seconds so a cold Modal worker's first calculation is no longer cut off and returned as a 503, and warm the Modal worker through the gateway before the staging gateway integration tests so they exercise a warm backend.
+
+
 ## [0.22.2] - 2026-06-16
 
 ### Fixed
