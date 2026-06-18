@@ -25,6 +25,8 @@ from policyengine_household_api.models.analytics import (
     ModalResolvedChannel,
     VariableUsageSummary,
 )
+from policyengine_household_api.observability import set_request_attribute
+from policyengine_household_api.observability import timed_segment
 from policyengine_household_api.modal_release.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,
@@ -103,18 +105,22 @@ def log_analytics_if_enabled(func):
                 "not ready."
             )
 
-        analytics_context = _build_analytics_context(args, kwargs)
+        with timed_segment("analytics_context_build"):
+            analytics_context = _build_analytics_context(args, kwargs)
+        _set_observability_context_attributes(analytics_context)
 
         try:
             response = func(*args, **kwargs)
         except Exception:
-            _record_analytics(analytics_context, 500)
+            with timed_segment("analytics_write"):
+                _record_analytics(analytics_context, 500)
             raise
 
-        _record_analytics(
-            analytics_context,
-            getattr(response, "status_code", None),
-        )
+        with timed_segment("analytics_write"):
+            _record_analytics(
+                analytics_context,
+                getattr(response, "status_code", None),
+            )
         return response
 
     return decorated_function
@@ -260,6 +266,23 @@ def _record_analytics(
         db.session.rollback()
         logger.error(f"Failed to log analytics: {e}")
         raise
+
+
+def _set_observability_context_attributes(
+    context: AnalyticsContext | None,
+) -> None:
+    if context is None:
+        return
+    set_request_attribute("country_id", context.country_id)
+    set_request_attribute("api_version", context.api_version)
+    set_request_attribute("model_version", context.model_version)
+    set_request_attribute("requested_version", context.requested_version)
+    if context.resolved_channel is not None:
+        set_request_attribute("resolved_channel", context.resolved_channel)
+    set_request_attribute(
+        "distinct_variable_count",
+        len({summary.variable_name for summary in context.variable_summaries}),
+    )
 
 
 def _build_visit(context: AnalyticsContext) -> Visit:

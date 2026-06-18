@@ -7,6 +7,17 @@ from typing import Any, Callable
 from flask import Flask, Response, jsonify, request
 
 from policyengine_household_api.constants import COUNTRIES
+from policyengine_household_api.observability import (
+    OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
+    REQUEST_ID_HEADER,
+    TRACEPARENT_HEADER,
+    current_context,
+    current_traceparent_header,
+    init_observability,
+    record_error,
+    set_request_attribute,
+    timed_segment,
+)
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
@@ -45,6 +56,7 @@ def create_gateway_app(
     worker_request: Callable[[str, dict[str, Any]], Response] | None = None,
 ) -> Flask:
     app = Flask(__name__)
+    init_observability(app, service_role="modal_gateway")
     load_manifest = manifest_loader or load_modal_manifest
     route_to_worker_function = worker_request or call_worker_function
 
@@ -96,23 +108,41 @@ def create_gateway_app(
     def route_request(path: str) -> Response:
         country_id, endpoint = _country_and_endpoint(path)
         body = request.get_data()
+        set_request_attribute("country_id", country_id)
+        set_request_attribute("endpoint", endpoint)
 
         try:
-            manifest = validate_manifest(load_manifest())
-            if country_id and endpoint in VERSIONED_ENDPOINTS:
-                body, requested_version = _extract_requested_version(body)
-            else:
-                requested_version = "current"
-            resolved_app = resolve_app_for_request(
-                manifest,
-                country_id=country_id,
-                requested_version=requested_version,
+            with timed_segment("manifest_load"):
+                manifest = validate_manifest(load_manifest())
+            with timed_segment("version_resolution"):
+                if country_id and endpoint in VERSIONED_ENDPOINTS:
+                    body, requested_version = _extract_requested_version(body)
+                else:
+                    requested_version = "current"
+                resolved_app = resolve_app_for_request(
+                    manifest,
+                    country_id=country_id,
+                    requested_version=requested_version,
+                )
+            set_request_attribute("backend", "modal")
+            set_request_attribute("modal_app_name", resolved_app.app_name)
+            set_request_attribute(
+                "requested_version",
+                resolved_app.requested_version,
             )
-            return route_to_worker_function(
-                resolved_app.app_name,
-                _request_payload(path, body, resolved_app),
-            )
+            set_request_attribute("resolved_channel", resolved_app.channel)
+            with timed_segment("worker_dispatch", backend="modal"):
+                return route_to_worker_function(
+                    resolved_app.app_name,
+                    _request_payload(path, body, resolved_app),
+                )
         except VersionRoutingError as e:
+            record_error(
+                e,
+                handled=True,
+                status_code=e.status_code,
+                include_stack=False,
+            )
             return _json_error(
                 str(e),
                 e.status_code,
@@ -258,6 +288,13 @@ def _forward_headers() -> dict[str, str]:
     }
     if request.content_type:
         forwarded_headers["Content-Type"] = request.content_type
+    context = current_context()
+    if context is not None:
+        forwarded_headers[REQUEST_ID_HEADER] = context.request_id
+        forwarded_headers[OBSERVABILITY_INTERNAL_DISPATCH_HEADER] = "1"
+    traceparent = current_traceparent_header()
+    if traceparent:
+        forwarded_headers[TRACEPARENT_HEADER] = traceparent
     return forwarded_headers
 
 

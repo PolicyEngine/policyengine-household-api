@@ -7,6 +7,7 @@ from policyengine_household_api.decorators.auth import (
     ANALYTICS_READ_SCOPE,
     NoOpDecorator,
     ConditionalAuthDecorator,
+    ObservedAuthDecorator,
     create_auth_decorator,
     StaticBearerTokenValidator,
 )
@@ -179,18 +180,19 @@ class TestConditionalAuthDecoratorWithAuthDisabled:
 class TestCreateAuthDecorator:
     """Test the factory function create_auth_decorator."""
 
-    def test__given_auth_enabled__returns_resource_protector(
+    def test__given_auth_enabled__returns_observed_resource_protector(
         self,
         auth_enabled_environment,
         mock_resource_protector,
         mock_auth0_validator,
     ):
-        """Test that factory returns ResourceProtector when auth is enabled."""
+        """Factory wraps ResourceProtector with observability when enabled."""
         _, mock_protector_instance = mock_resource_protector
 
         decorator = create_auth_decorator()
 
-        assert decorator is mock_protector_instance
+        assert isinstance(decorator, ObservedAuthDecorator)
+        assert decorator._decorator is mock_protector_instance
 
     def test__given_auth_disabled__returns_noop_decorator(
         self,

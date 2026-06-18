@@ -6,10 +6,18 @@ based on configuration, allowing for easy local development without authenticati
 while maintaining security in production environments.
 """
 
+from functools import wraps
 from typing import Optional, Any, Callable
+from authlib.integrations.flask_oauth2.resource_protector import (
+    MissingAuthorizationError,
+    OAuth2Error,
+)
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from ..auth.validation import Auth0JWTBearerTokenValidator
+from ..observability import record_error
+from ..observability import set_request_attribute
+from ..observability import timed_segment
 from ..utils.config_loader import get_config_value
 
 ANALYTICS_READ_SCOPE = "read:calculate-analytics"
@@ -169,4 +177,81 @@ def create_auth_decorator() -> Any:
         An authentication decorator (ResourceProtector or NoOpDecorator)
     """
     conditional_auth = ConditionalAuthDecorator()
-    return conditional_auth.get_decorator()
+    decorator = conditional_auth.get_decorator()
+    if not conditional_auth.is_enabled:
+        return decorator
+    return ObservedAuthDecorator(decorator)
+
+
+class ObservedAuthDecorator:
+    """Wrap an auth decorator with coarse request-path observability."""
+
+    def __init__(self, decorator: Any):
+        self._decorator = decorator
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._decorator, name)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Callable:
+        if args and callable(args[0]):
+            return self._decorate(args[0], scopes=None, optional=False)
+        scopes = args[0] if args else kwargs.pop("scopes", None)
+        optional = bool(kwargs.pop("optional", False))
+        claims = dict(kwargs)
+        claims["scopes"] = scopes
+        for claim in claims:
+            if isinstance(claims[claim], str):
+                claims[claim] = [claims[claim]]
+
+        def decorator(func: Callable) -> Callable:
+            return self._decorate(
+                func,
+                optional=optional,
+                **claims,
+            )
+
+        return decorator
+
+    def _decorate(
+        self,
+        func: Callable,
+        *,
+        optional: bool,
+        **claims: Any,
+    ) -> Callable:
+        @wraps(func)
+        def wrapper(*func_args: Any, **func_kwargs: Any) -> Any:
+            optional_missing = False
+            with timed_segment("auth"):
+                try:
+                    self._decorator.acquire_token(**claims)
+                except MissingAuthorizationError as exc:
+                    if optional:
+                        set_request_attribute("auth_result", "optional_missing")
+                        optional_missing = True
+                    else:
+                        self._record_auth_error(exc)
+                        self._decorator.raise_error_response(exc)
+                except OAuth2Error as exc:
+                    self._record_auth_error(exc)
+                    self._decorator.raise_error_response(exc)
+            if optional_missing:
+                return func(*func_args, **func_kwargs)
+            set_request_attribute("auth_result", "success")
+            return func(*func_args, **func_kwargs)
+
+        return wrapper
+
+    def _record_auth_error(self, exc: Exception) -> None:
+        set_request_attribute("auth_result", "failed")
+        status_code = getattr(
+            exc,
+            "status_code",
+            getattr(exc, "code", 401),
+        )
+        record_error(
+            exc,
+            handled=True,
+            status_code=status_code,
+            include_stack=False,
+        )
