@@ -52,21 +52,21 @@ def log_observability_failure(
         if not _INTERNAL_LOGGER.handlers:
             configure_internal_logger(logging.ERROR)
         _INTERNAL_LOGGER.error(_safe_json(payload))
-    except Exception:
+    except BaseException:
         _write_stderr(payload)
 
 
 def _write_stderr(payload: dict[str, Any]) -> None:
     try:
         sys.stderr.write(_safe_json(payload) + "\n")
-    except Exception:
+    except BaseException:
         return
 
 
 def _safe_json(payload: dict[str, Any]) -> str:
     try:
         return json.dumps(payload, sort_keys=True, default=str)
-    except Exception as exc:
+    except BaseException as exc:
         return json.dumps(
             {
                 "schema_version": "policyengine.observability.internal_error.v1",

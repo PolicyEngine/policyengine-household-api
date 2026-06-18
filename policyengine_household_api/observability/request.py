@@ -21,7 +21,7 @@ from .metrics import METRICS
 
 try:
     from opentelemetry import trace
-except Exception:  # pragma: no cover - dependency fallback
+except BaseException:  # pragma: no cover - dependency fallback
     trace = None
 
 
@@ -135,8 +135,12 @@ class RequestObservabilityContext:
             try:
                 span.record_exception(exc)
                 span.set_attribute("error.type", type(exc).__name__)
-            except Exception:
-                pass
+            except BaseException as observability_exc:
+                log_observability_failure(
+                    "otel.record_exception",
+                    observability_exc,
+                    original_error_type=type(exc).__name__,
+                )
 
     def duration_seconds(self) -> float:
         return time.perf_counter() - self.started_at
@@ -211,7 +215,7 @@ def set_request_attribute(key: str, value: Any) -> None:
         context = current_context()
         if context is not None:
             context.set_attribute(key, value)
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure(
             "request.set_attribute",
             exc,
@@ -235,7 +239,7 @@ def record_error(
                 status_code=status_code,
                 include_stack=include_stack,
             )
-    except Exception as observability_exc:
+    except BaseException as observability_exc:
         log_observability_failure(
             "request.record_error",
             observability_exc,
@@ -276,7 +280,7 @@ def record_event(event: str, **fields: Any) -> None:
                 else {"event": event}
             )
             METRICS.record_failover_event(attrs)
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure(
             "request.record_event",
             exc,
@@ -290,7 +294,7 @@ def current_traceparent_header() -> str | None:
         if trace_id is None or span_id is None:
             return None
         return f"00-{trace_id}-{span_id}-01"
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("request.current_traceparent_header", exc)
         return None
 
@@ -319,7 +323,7 @@ def emit_request_log(context: RequestObservabilityContext) -> None:
         ):
             return
         _REQUEST_LOGGER.info(_json(context.as_log_record()))
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure(
             "request.emit_request_log",
             exc,
@@ -336,7 +340,7 @@ def _current_span():
         return None
     try:
         return trace.get_current_span()
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.current_span", exc)
         return None
 
@@ -347,7 +351,7 @@ def _trace_ids() -> tuple[str | None, str | None]:
         return None, None
     try:
         context = span.get_span_context()
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.span_context", exc)
         return None, None
     if not getattr(context, "is_valid", False):
@@ -364,7 +368,7 @@ def _start_span(name: str, attrs: dict[str, Any]):
             key: value for key, value in attrs.items() if value is not None
         }
         return tracer.start_as_current_span(name, attributes=span_attrs)
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.start_span", exc, span=name)
         return None
 
@@ -378,7 +382,7 @@ def _safe_span(name: str, attrs: dict[str, Any]) -> Iterator[None]:
 
     try:
         span_cm.__enter__()
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.span_enter", exc, span=name)
         yield
         return
@@ -389,7 +393,7 @@ def _safe_span(name: str, attrs: dict[str, Any]) -> Iterator[None]:
         exc_type, exc, tb = sys.exc_info()
         try:
             span_cm.__exit__(exc_type, exc, tb)
-        except Exception as observability_exc:
+        except BaseException as observability_exc:
             log_observability_failure(
                 "otel.span_exit",
                 observability_exc,
@@ -399,7 +403,7 @@ def _safe_span(name: str, attrs: dict[str, Any]) -> Iterator[None]:
     else:
         try:
             span_cm.__exit__(None, None, None)
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("otel.span_exit", exc, span=name)
 
 
@@ -413,7 +417,7 @@ def _record_segment_safely(name: str, start: float | None) -> None:
         context = current_context()
         if context is not None:
             context.record_segment(name, end - start)
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure(
             "request.record_segment",
             exc,
@@ -424,6 +428,6 @@ def _record_segment_safely(name: str, start: float | None) -> None:
 def _safe_perf_counter(operation: str) -> float | None:
     try:
         return time.perf_counter()
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure(operation, exc)
         return None

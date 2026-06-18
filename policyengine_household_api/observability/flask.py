@@ -23,19 +23,19 @@ from .request import (
 
 try:
     from opentelemetry.instrumentation.flask import FlaskInstrumentor
-except Exception:  # pragma: no cover - optional dependency fallback
+except BaseException:  # pragma: no cover - optional dependency fallback
     FlaskInstrumentor = None
 
 
 try:
     from opentelemetry import trace
-except Exception:  # pragma: no cover - optional dependency fallback
+except BaseException:  # pragma: no cover - optional dependency fallback
     trace = None
 
 
 try:
     from opentelemetry import metrics
-except Exception:  # pragma: no cover - optional dependency fallback
+except BaseException:  # pragma: no cover - optional dependency fallback
     metrics = None
 
 
@@ -80,7 +80,7 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
             set_current_context(context)
             set_request_attribute("endpoint", request.endpoint)
             METRICS.add_active_request(1, context.metric_attributes())
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("flask.before_request", exc)
 
     @app.after_request
@@ -105,7 +105,7 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
                 context.metric_attributes(),
             )
             _close_active_request(context)
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("flask.after_request", exc)
         return response
 
@@ -119,7 +119,7 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
                 record_error(exc, handled=False, status_code=500)
             _close_active_request(context)
             emit_request_log(context)
-        except Exception as observability_exc:
+        except BaseException as observability_exc:
             log_observability_failure(
                 "flask.teardown_request",
                 observability_exc,
@@ -131,7 +131,7 @@ def _instrument_flask(app: Flask) -> None:
         return
     try:
         FlaskInstrumentor().instrument_app(app)
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.instrument_flask", exc)
         return
 
@@ -156,7 +156,7 @@ def _configure_otel(config: ObservabilityConfig) -> None:
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.configure_imports", exc)
         return
     if trace is None or metrics is None:
@@ -181,7 +181,7 @@ def _configure_otel(config: ObservabilityConfig) -> None:
             MeterProvider(resource=resource, metric_readers=[metric_reader])
         )
         _OTEL_CONFIGURED = True
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.configure", exc)
         return
 
@@ -192,7 +192,7 @@ def _close_active_request(context: RequestObservabilityContext) -> None:
             return
         context.active_closed = True
         METRICS.add_active_request(-1, context.metric_attributes())
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure(
             "flask.close_active_request",
             exc,
@@ -245,7 +245,7 @@ def _traceparent_header() -> str | None:
         return None
     try:
         span_context = trace.get_current_span().get_span_context()
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure("otel.traceparent_header", exc)
         return None
     if not getattr(span_context, "is_valid", False):
