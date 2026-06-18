@@ -1,6 +1,8 @@
 import json
+from types import SimpleNamespace
 
 from flask import Flask
+import pytest
 
 from policyengine_household_api.observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
@@ -9,6 +11,10 @@ from policyengine_household_api.observability import (
     init_observability,
     timed_segment,
 )
+from policyengine_household_api.observability import (
+    request as request_observability,
+)
+from policyengine_household_api.observability.internal import _INTERNAL_LOGGER
 from policyengine_household_api.observability.request import (
     RequestObservabilityContext,
 )
@@ -118,3 +124,101 @@ def test_current_context_is_available_during_request(monkeypatch):
         return {"status": "ok"}
 
     assert app.test_client().get("/context").status_code == 200
+
+
+def test_timed_segment_logs_and_swallows_otel_span_enter_failure(monkeypatch):
+    internal_logs = []
+    monkeypatch.setattr(_INTERNAL_LOGGER, "error", internal_logs.append)
+
+    class BrokenSpan:
+        def __enter__(self):
+            raise RuntimeError("otel enter failed")
+
+        def __exit__(self, *_args):
+            return None
+
+    monkeypatch.setattr(
+        request_observability,
+        "trace",
+        SimpleNamespace(
+            get_tracer=lambda _name: SimpleNamespace(
+                start_as_current_span=lambda *_args, **_kwargs: BrokenSpan()
+            )
+        ),
+    )
+
+    with timed_segment("broken_span"):
+        pass
+
+    assert any("otel.span_enter" in log for log in internal_logs)
+    assert any("otel enter failed" in log for log in internal_logs)
+
+
+def test_timed_segment_preserves_app_exception_when_otel_exit_fails(
+    monkeypatch,
+):
+    internal_logs = []
+    monkeypatch.setattr(_INTERNAL_LOGGER, "error", internal_logs.append)
+
+    class BrokenExitSpan:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            raise RuntimeError("otel exit failed")
+
+    monkeypatch.setattr(
+        request_observability,
+        "trace",
+        SimpleNamespace(
+            get_tracer=lambda _name: SimpleNamespace(
+                start_as_current_span=lambda *_args,
+                **_kwargs: BrokenExitSpan()
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError, match="application failed"):
+        with timed_segment("broken_exit"):
+            raise ValueError("application failed")
+
+    assert any("otel.span_exit" in log for log in internal_logs)
+    assert any("otel exit failed" in log for log in internal_logs)
+
+
+def test_timed_segment_preserves_app_exception_when_metric_recording_fails(
+    monkeypatch,
+):
+    internal_logs = []
+    monkeypatch.setattr(_INTERNAL_LOGGER, "error", internal_logs.append)
+    context = RequestObservabilityContext(
+        config=ObservabilityConfig(service_role="test_api"),
+        request_id="req-123",
+        method="GET",
+        route="/ok",
+        path="/ok",
+        endpoint="ok",
+        query_keys=[],
+        content_length_bytes=None,
+        inbound={},
+    )
+    monkeypatch.setattr(
+        request_observability,
+        "current_context",
+        lambda: context,
+    )
+    monkeypatch.setattr(
+        request_observability.METRICS,
+        "record_segment",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("metrics failed")
+        ),
+    )
+
+    with pytest.raises(ValueError, match="application failed"):
+        with timed_segment("metric_failure"):
+            raise ValueError("application failed")
+
+    assert context.timings_ms["metric_failure"] >= 0
+    assert any("request.record_segment" in log for log in internal_logs)
+    assert any("metrics failed" in log for log in internal_logs)
