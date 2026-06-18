@@ -7,7 +7,7 @@ from .internal import log_observability_failure
 
 try:
     from opentelemetry import metrics
-except Exception:  # pragma: no cover - dependency fallback
+except BaseException:  # pragma: no cover - dependency fallback
     metrics = None
 
 
@@ -24,7 +24,7 @@ def _instrument(factory, *args, **kwargs):
         return _NoOpInstrument()
     try:
         return factory(*args, **kwargs)
-    except Exception as exc:
+    except BaseException as exc:
         log_observability_failure(
             "metrics.create_instrument",
             exc,
@@ -35,11 +35,12 @@ def _instrument(factory, *args, **kwargs):
 
 class ObservabilityMetrics:
     def __init__(self) -> None:
-        meter = (
-            metrics.get_meter("policyengine-household-api")
-            if metrics
-            else None
-        )
+        meter = None
+        if metrics:
+            try:
+                meter = metrics.get_meter("policyengine-household-api")
+            except BaseException as exc:
+                log_observability_failure("metrics.get_meter", exc)
         self.http_duration = _instrument(
             getattr(meter, "create_histogram", None),
             "http.server.request.duration",
@@ -98,7 +99,7 @@ class ObservabilityMetrics:
         try:
             self.http_duration.record(duration_seconds, attributes)
             self.requests.add(1, attributes)
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("metrics.record_request", exc)
 
     def record_segment(
@@ -120,7 +121,7 @@ class ObservabilityMetrics:
                 self.backend_duration.record(
                     duration_seconds, segment_attributes
                 )
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure(
                 "metrics.record_segment",
                 exc,
@@ -130,19 +131,19 @@ class ObservabilityMetrics:
     def record_error(self, attributes: dict[str, Any]) -> None:
         try:
             self.errors.add(1, attributes)
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("metrics.record_error", exc)
 
     def record_rate_limited(self, attributes: dict[str, Any]) -> None:
         try:
             self.rate_limited.add(1, attributes)
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("metrics.record_rate_limited", exc)
 
     def record_failover_event(self, attributes: dict[str, Any]) -> None:
         try:
             self.failover_events.add(1, attributes)
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("metrics.record_failover_event", exc)
 
     def add_active_request(
@@ -150,7 +151,7 @@ class ObservabilityMetrics:
     ) -> None:
         try:
             self.active_requests.add(delta, attributes)
-        except Exception as exc:
+        except BaseException as exc:
             log_observability_failure("metrics.add_active_request", exc)
 
 

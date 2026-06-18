@@ -24,6 +24,10 @@ from policyengine_household_api.observability.config import (
 )
 
 
+class OTelFailure(BaseException):
+    pass
+
+
 def _observed_app():
     app = Flask(__name__)
     init_observability(app, service_role="test_api")
@@ -132,7 +136,7 @@ def test_timed_segment_logs_and_swallows_otel_span_enter_failure(monkeypatch):
 
     class BrokenSpan:
         def __enter__(self):
-            raise RuntimeError("otel enter failed")
+            raise OTelFailure("otel enter failed")
 
         def __exit__(self, *_args):
             return None
@@ -165,7 +169,7 @@ def test_timed_segment_preserves_app_exception_when_otel_exit_fails(
             return self
 
         def __exit__(self, *_args):
-            raise RuntimeError("otel exit failed")
+            raise OTelFailure("otel exit failed")
 
     monkeypatch.setattr(
         request_observability,
@@ -212,7 +216,7 @@ def test_timed_segment_preserves_app_exception_when_metric_recording_fails(
         request_observability.METRICS,
         "record_segment",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            RuntimeError("metrics failed")
+            OTelFailure("metrics failed")
         ),
     )
 
