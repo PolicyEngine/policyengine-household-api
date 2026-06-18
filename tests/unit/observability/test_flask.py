@@ -172,8 +172,9 @@ def test_timed_segment_preserves_app_exception_when_otel_exit_fails(
         "trace",
         SimpleNamespace(
             get_tracer=lambda _name: SimpleNamespace(
-                start_as_current_span=lambda *_args,
-                **_kwargs: BrokenExitSpan()
+                start_as_current_span=lambda *_args, **_kwargs: (
+                    BrokenExitSpan()
+                )
             )
         ),
     )
