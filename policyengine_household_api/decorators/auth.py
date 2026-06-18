@@ -227,7 +227,9 @@ class ObservedAuthDecorator:
                     self._decorator.acquire_token(**claims)
                 except MissingAuthorizationError as exc:
                     if optional:
-                        set_request_attribute("auth_result", "optional_missing")
+                        set_request_attribute(
+                            "auth_result", "optional_missing"
+                        )
                         optional_missing = True
                     else:
                         self._record_auth_error(exc)

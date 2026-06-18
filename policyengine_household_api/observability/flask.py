@@ -57,7 +57,9 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
     @app.before_request
     def _start_observed_request() -> None:
         route = request.url_rule.rule if request.url_rule else request.path
-        request_id = request.headers.get(REQUEST_ID_HEADER) or str(uuid.uuid4())
+        request_id = request.headers.get(REQUEST_ID_HEADER) or str(
+            uuid.uuid4()
+        )
         context = RequestObservabilityContext(
             config=config,
             request_id=request_id,
@@ -224,7 +226,4 @@ def _traceparent_header() -> str | None:
         return None
     if not getattr(span_context, "is_valid", False):
         return None
-    return (
-        f"00-{span_context.trace_id:032x}-"
-        f"{span_context.span_id:016x}-01"
-    )
+    return f"00-{span_context.trace_id:032x}-{span_context.span_id:016x}-01"

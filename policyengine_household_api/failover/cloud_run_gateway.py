@@ -474,7 +474,9 @@ def create_gateway_app(
                     country_id=country_id,
                     requested_version=requested_version,
                 )
-            set_request_attribute("requested_version", resolved.requested_version)
+            set_request_attribute(
+                "requested_version", resolved.requested_version
+            )
             set_request_attribute("resolved_channel", resolved.channel)
             payload = _request_payload(path, body, resolved)
             response, backend = _route_to_backend(
@@ -503,7 +505,9 @@ def create_gateway_app(
             record_error(exc, handled=True, status_code=503)
             return _gateway_unavailable_response(str(exc))
         except (FailoverRoutingError, GatewayResolutionError) as exc:
-            record_error(exc, handled=True, status_code=400, include_stack=False)
+            record_error(
+                exc, handled=True, status_code=400, include_stack=False
+            )
             return _json_error(str(exc), 400)
 
     return app

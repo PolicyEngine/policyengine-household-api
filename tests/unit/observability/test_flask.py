@@ -34,12 +34,16 @@ def test_request_log_contains_request_metadata_and_timing(monkeypatch):
     records = []
     monkeypatch.setattr(_REQUEST_LOGGER, "info", records.append)
 
-    response = _observed_app().test_client().get(
-        "/ok?secret=value",
-        headers={
-            "X-Forwarded-For": "203.0.113.1, 10.0.0.2",
-            "User-Agent": "test-agent",
-        },
+    response = (
+        _observed_app()
+        .test_client()
+        .get(
+            "/ok?secret=value",
+            headers={
+                "X-Forwarded-For": "203.0.113.1, 10.0.0.2",
+                "User-Agent": "test-agent",
+            },
+        )
     )
 
     assert response.status_code == 200
@@ -60,9 +64,13 @@ def test_internal_dispatch_suppresses_external_request_log(monkeypatch):
     records = []
     monkeypatch.setattr(_REQUEST_LOGGER, "info", records.append)
 
-    response = _observed_app().test_client().get(
-        "/ok",
-        headers={OBSERVABILITY_INTERNAL_DISPATCH_HEADER: "1"},
+    response = (
+        _observed_app()
+        .test_client()
+        .get(
+            "/ok",
+            headers={OBSERVABILITY_INTERNAL_DISPATCH_HEADER: "1"},
+        )
     )
 
     assert response.status_code == 200
