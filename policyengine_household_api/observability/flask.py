@@ -5,6 +5,7 @@ import uuid
 from flask import Flask, request
 
 from .config import ObservabilityConfig
+from .internal import log_observability_failure
 from .metrics import METRICS
 from .request import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
@@ -56,61 +57,73 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
 
     @app.before_request
     def _start_observed_request() -> None:
-        route = request.url_rule.rule if request.url_rule else request.path
-        request_id = request.headers.get(REQUEST_ID_HEADER) or str(
-            uuid.uuid4()
-        )
-        context = RequestObservabilityContext(
-            config=config,
-            request_id=request_id,
-            method=request.method,
-            route=route,
-            path=request.path,
-            endpoint=request.endpoint,
-            query_keys=sorted(request.args.keys()),
-            content_length_bytes=request.content_length,
-            inbound=_inbound_request_metadata(config),
-            internal_dispatch=(
-                request.headers.get(OBSERVABILITY_INTERNAL_DISPATCH_HEADER)
-                == "1"
-            ),
-        )
-        set_current_context(context)
-        set_request_attribute("endpoint", request.endpoint)
-        METRICS.add_active_request(1, context.metric_attributes())
+        try:
+            route = request.url_rule.rule if request.url_rule else request.path
+            request_id = request.headers.get(REQUEST_ID_HEADER) or str(
+                uuid.uuid4()
+            )
+            context = RequestObservabilityContext(
+                config=config,
+                request_id=request_id,
+                method=request.method,
+                route=route,
+                path=request.path,
+                endpoint=request.endpoint,
+                query_keys=sorted(request.args.keys()),
+                content_length_bytes=request.content_length,
+                inbound=_inbound_request_metadata(config),
+                internal_dispatch=(
+                    request.headers.get(OBSERVABILITY_INTERNAL_DISPATCH_HEADER)
+                    == "1"
+                ),
+            )
+            set_current_context(context)
+            set_request_attribute("endpoint", request.endpoint)
+            METRICS.add_active_request(1, context.metric_attributes())
+        except Exception as exc:
+            log_observability_failure("flask.before_request", exc)
 
     @app.after_request
     def _finish_observed_request(response):
-        context = current_context()
-        if context is None:
-            return response
+        try:
+            context = current_context()
+            if context is None:
+                return response
 
-        context.status_code = response.status_code
-        response.headers[REQUEST_ID_HEADER] = context.request_id
-        traceparent = _traceparent_header()
-        if traceparent:
-            response.headers[TRACEPARENT_HEADER] = traceparent
+            context.status_code = response.status_code
+            response.headers[REQUEST_ID_HEADER] = context.request_id
+            traceparent = _traceparent_header()
+            if traceparent:
+                response.headers[TRACEPARENT_HEADER] = traceparent
 
-        if response.status_code == 429:
-            context.set_attribute("rate_limited", True)
-            METRICS.record_rate_limited(context.metric_attributes())
+            if response.status_code == 429:
+                context.set_attribute("rate_limited", True)
+                METRICS.record_rate_limited(context.metric_attributes())
 
-        METRICS.record_request(
-            context.duration_seconds(),
-            context.metric_attributes(),
-        )
-        _close_active_request(context)
+            METRICS.record_request(
+                context.duration_seconds(),
+                context.metric_attributes(),
+            )
+            _close_active_request(context)
+        except Exception as exc:
+            log_observability_failure("flask.after_request", exc)
         return response
 
     @app.teardown_request
     def _emit_observed_request(exc) -> None:
-        context = current_context()
-        if context is None:
-            return
-        if exc is not None:
-            record_error(exc, handled=False, status_code=500)
-        _close_active_request(context)
-        emit_request_log(context)
+        try:
+            context = current_context()
+            if context is None:
+                return
+            if exc is not None:
+                record_error(exc, handled=False, status_code=500)
+            _close_active_request(context)
+            emit_request_log(context)
+        except Exception as observability_exc:
+            log_observability_failure(
+                "flask.teardown_request",
+                observability_exc,
+            )
 
 
 def _instrument_flask(app: Flask) -> None:
@@ -118,7 +131,8 @@ def _instrument_flask(app: Flask) -> None:
         return
     try:
         FlaskInstrumentor().instrument_app(app)
-    except Exception:
+    except Exception as exc:
+        log_observability_failure("otel.instrument_flask", exc)
         return
 
 
@@ -142,7 +156,8 @@ def _configure_otel(config: ObservabilityConfig) -> None:
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    except Exception:
+    except Exception as exc:
+        log_observability_failure("otel.configure_imports", exc)
         return
     if trace is None or metrics is None:
         return
@@ -166,15 +181,23 @@ def _configure_otel(config: ObservabilityConfig) -> None:
             MeterProvider(resource=resource, metric_readers=[metric_reader])
         )
         _OTEL_CONFIGURED = True
-    except Exception:
+    except Exception as exc:
+        log_observability_failure("otel.configure", exc)
         return
 
 
 def _close_active_request(context: RequestObservabilityContext) -> None:
-    if context.active_closed:
-        return
-    context.active_closed = True
-    METRICS.add_active_request(-1, context.metric_attributes())
+    try:
+        if context.active_closed:
+            return
+        context.active_closed = True
+        METRICS.add_active_request(-1, context.metric_attributes())
+    except Exception as exc:
+        log_observability_failure(
+            "flask.close_active_request",
+            exc,
+            request_id=getattr(context, "request_id", None),
+        )
 
 
 def _inbound_request_metadata(config: ObservabilityConfig) -> dict:
@@ -222,7 +245,8 @@ def _traceparent_header() -> str | None:
         return None
     try:
         span_context = trace.get_current_span().get_span_context()
-    except Exception:
+    except Exception as exc:
+        log_observability_failure("otel.traceparent_header", exc)
         return None
     if not getattr(span_context, "is_valid", False):
         return None

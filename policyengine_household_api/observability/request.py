@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
 import logging
+import sys
 import time
 import traceback
 from typing import Any, Iterator
@@ -12,6 +13,9 @@ from typing import Any, Iterator
 from flask import g, has_request_context
 
 from .config import ObservabilityConfig
+from .internal import PlainMessageFormatter
+from .internal import configure_internal_logger
+from .internal import log_observability_failure
 from .metrics import METRICS
 
 
@@ -32,18 +36,14 @@ _REQUEST_LOGGER = logging.getLogger(REQUEST_LOGGER_NAME)
 _EVENT_LOGGER = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class _PlainMessageFormatter(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        return record.getMessage()
-
-
 def configure_json_loggers(config: ObservabilityConfig) -> None:
+    configure_internal_logger(config.log_level)
     for logger in (_REQUEST_LOGGER, _EVENT_LOGGER):
         logger.setLevel(config.log_level)
         logger.propagate = False
         if not logger.handlers:
             handler = logging.StreamHandler()
-            handler.setFormatter(_PlainMessageFormatter())
+            handler.setFormatter(PlainMessageFormatter())
             logger.addHandler(handler)
 
 
@@ -207,9 +207,16 @@ def set_current_context(context: RequestObservabilityContext) -> None:
 
 
 def set_request_attribute(key: str, value: Any) -> None:
-    context = current_context()
-    if context is not None:
-        context.set_attribute(key, value)
+    try:
+        context = current_context()
+        if context is not None:
+            context.set_attribute(key, value)
+    except Exception as exc:
+        log_observability_failure(
+            "request.set_attribute",
+            exc,
+            attribute=key,
+        )
 
 
 def record_error(
@@ -219,82 +226,105 @@ def record_error(
     status_code: int | None = None,
     include_stack: bool = True,
 ) -> None:
-    context = current_context()
-    if context is not None:
-        context.record_error(
-            exc,
-            handled=handled,
-            status_code=status_code,
-            include_stack=include_stack,
+    try:
+        context = current_context()
+        if context is not None:
+            context.record_error(
+                exc,
+                handled=handled,
+                status_code=status_code,
+                include_stack=include_stack,
+            )
+    except Exception as observability_exc:
+        log_observability_failure(
+            "request.record_error",
+            observability_exc,
+            original_error_type=type(exc).__name__,
         )
 
 
 def record_event(event: str, **fields: Any) -> None:
-    context = current_context()
-    base: dict[str, Any] = {
-        "schema_version": "policyengine.observability.event.v1",
-        "event": event,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    if context is not None:
-        trace_id, span_id = _trace_ids()
+    try:
+        context = current_context()
+        base: dict[str, Any] = {
+            "schema_version": "policyengine.observability.event.v1",
+            "event": event,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if context is not None:
+            trace_id, span_id = _trace_ids()
+            base.update(
+                {
+                    "service_name": context.config.service_name,
+                    "service_role": context.config.service_role,
+                    "environment": context.config.environment,
+                    "request_id": context.request_id,
+                    "trace_id": trace_id,
+                    "span_id": span_id,
+                    "route": context.route,
+                    "path": context.path,
+                }
+            )
         base.update(
-            {
-                "service_name": context.config.service_name,
-                "service_role": context.config.service_role,
-                "environment": context.config.environment,
-                "request_id": context.request_id,
-                "trace_id": trace_id,
-                "span_id": span_id,
-                "route": context.route,
-                "path": context.path,
-            }
+            {key: value for key, value in fields.items() if value is not None}
         )
-    base.update(
-        {key: value for key, value in fields.items() if value is not None}
-    )
-    _EVENT_LOGGER.info(_json(base))
-    if event.startswith("modal_") or "fallback" in event:
-        attrs = (
-            context.metric_attributes(event=event)
-            if context
-            else {"event": event}
+        _EVENT_LOGGER.info(_json(base))
+        if event.startswith("modal_") or "fallback" in event:
+            attrs = (
+                context.metric_attributes(event=event)
+                if context
+                else {"event": event}
+            )
+            METRICS.record_failover_event(attrs)
+    except Exception as exc:
+        log_observability_failure(
+            "request.record_event",
+            exc,
+            event_name=event,
         )
-        METRICS.record_failover_event(attrs)
 
 
 def current_traceparent_header() -> str | None:
-    trace_id, span_id = _trace_ids()
-    if trace_id is None or span_id is None:
+    try:
+        trace_id, span_id = _trace_ids()
+        if trace_id is None or span_id is None:
+            return None
+        return f"00-{trace_id}-{span_id}-01"
+    except Exception as exc:
+        log_observability_failure("request.current_traceparent_header", exc)
         return None
-    return f"00-{trace_id}-{span_id}-01"
 
 
 @contextmanager
 def timed_segment(name: str, **attrs: Any) -> Iterator[None]:
-    start = time.perf_counter()
-    span_cm = _start_span(f"household.{name}", attrs)
+    start = _safe_perf_counter(f"timed_segment.{name}.start")
     try:
-        with span_cm:
+        with _safe_span(f"household.{name}", attrs):
             yield
-    except Exception:
-        context = current_context()
-        if context is not None:
-            context.record_segment(name, time.perf_counter() - start)
+    except BaseException:
+        _record_segment_safely(name, start)
         raise
     else:
-        context = current_context()
-        if context is not None:
-            context.record_segment(name, time.perf_counter() - start)
+        _record_segment_safely(name, start)
 
 
 def emit_request_log(context: RequestObservabilityContext) -> None:
-    if context.emitted:
-        return
-    context.emitted = True
-    if context.internal_dispatch or not context.config.request_logs_enabled:
-        return
-    _REQUEST_LOGGER.info(_json(context.as_log_record()))
+    try:
+        if context.emitted:
+            return
+        context.emitted = True
+        if (
+            context.internal_dispatch
+            or not context.config.request_logs_enabled
+        ):
+            return
+        _REQUEST_LOGGER.info(_json(context.as_log_record()))
+    except Exception as exc:
+        log_observability_failure(
+            "request.emit_request_log",
+            exc,
+            request_id=getattr(context, "request_id", None),
+        )
 
 
 def _json(payload: dict[str, Any]) -> str:
@@ -306,7 +336,8 @@ def _current_span():
         return None
     try:
         return trace.get_current_span()
-    except Exception:
+    except Exception as exc:
+        log_observability_failure("otel.current_span", exc)
         return None
 
 
@@ -316,26 +347,83 @@ def _trace_ids() -> tuple[str | None, str | None]:
         return None, None
     try:
         context = span.get_span_context()
-    except Exception:
+    except Exception as exc:
+        log_observability_failure("otel.span_context", exc)
         return None, None
     if not getattr(context, "is_valid", False):
         return None, None
     return f"{context.trace_id:032x}", f"{context.span_id:016x}"
 
 
-@contextmanager
-def _null_span() -> Iterator[None]:
-    yield
-
-
 def _start_span(name: str, attrs: dict[str, Any]):
     if trace is None:
-        return _null_span()
+        return None
     try:
         tracer = trace.get_tracer("policyengine-household-api")
         span_attrs = {
             key: value for key, value in attrs.items() if value is not None
         }
         return tracer.start_as_current_span(name, attributes=span_attrs)
-    except Exception:
-        return _null_span()
+    except Exception as exc:
+        log_observability_failure("otel.start_span", exc, span=name)
+        return None
+
+
+@contextmanager
+def _safe_span(name: str, attrs: dict[str, Any]) -> Iterator[None]:
+    span_cm = _start_span(name, attrs)
+    if span_cm is None:
+        yield
+        return
+
+    try:
+        span_cm.__enter__()
+    except Exception as exc:
+        log_observability_failure("otel.span_enter", exc, span=name)
+        yield
+        return
+
+    try:
+        yield
+    except BaseException:
+        exc_type, exc, tb = sys.exc_info()
+        try:
+            span_cm.__exit__(exc_type, exc, tb)
+        except Exception as observability_exc:
+            log_observability_failure(
+                "otel.span_exit",
+                observability_exc,
+                span=name,
+            )
+        raise
+    else:
+        try:
+            span_cm.__exit__(None, None, None)
+        except Exception as exc:
+            log_observability_failure("otel.span_exit", exc, span=name)
+
+
+def _record_segment_safely(name: str, start: float | None) -> None:
+    if start is None:
+        return
+    end = _safe_perf_counter(f"timed_segment.{name}.end")
+    if end is None:
+        return
+    try:
+        context = current_context()
+        if context is not None:
+            context.record_segment(name, end - start)
+    except Exception as exc:
+        log_observability_failure(
+            "request.record_segment",
+            exc,
+            segment=name,
+        )
+
+
+def _safe_perf_counter(operation: str) -> float | None:
+    try:
+        return time.perf_counter()
+    except Exception as exc:
+        log_observability_failure(operation, exc)
+        return None

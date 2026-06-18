@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .internal import log_observability_failure
+
 
 try:
     from opentelemetry import metrics
@@ -22,7 +24,12 @@ def _instrument(factory, *args, **kwargs):
         return _NoOpInstrument()
     try:
         return factory(*args, **kwargs)
-    except Exception:
+    except Exception as exc:
+        log_observability_failure(
+            "metrics.create_instrument",
+            exc,
+            instrument=args[0] if args else None,
+        )
         return _NoOpInstrument()
 
 
@@ -88,8 +95,11 @@ class ObservabilityMetrics:
         duration_seconds: float,
         attributes: dict[str, Any],
     ) -> None:
-        self.http_duration.record(duration_seconds, attributes)
-        self.requests.add(1, attributes)
+        try:
+            self.http_duration.record(duration_seconds, attributes)
+            self.requests.add(1, attributes)
+        except Exception as exc:
+            log_observability_failure("metrics.record_request", exc)
 
     def record_segment(
         self,
@@ -97,30 +107,51 @@ class ObservabilityMetrics:
         duration_seconds: float,
         attributes: dict[str, Any],
     ) -> None:
-        segment_attributes = {**attributes, "segment": segment}
-        self.segment_duration.record(duration_seconds, segment_attributes)
-        if segment == "calculation":
-            self.calculate_duration.record(duration_seconds, attributes)
-        if segment in {
-            "modal_request",
-            "cloud_run_request",
-            "worker_dispatch",
-        }:
-            self.backend_duration.record(duration_seconds, segment_attributes)
+        try:
+            segment_attributes = {**attributes, "segment": segment}
+            self.segment_duration.record(duration_seconds, segment_attributes)
+            if segment == "calculation":
+                self.calculate_duration.record(duration_seconds, attributes)
+            if segment in {
+                "modal_request",
+                "cloud_run_request",
+                "worker_dispatch",
+            }:
+                self.backend_duration.record(
+                    duration_seconds, segment_attributes
+                )
+        except Exception as exc:
+            log_observability_failure(
+                "metrics.record_segment",
+                exc,
+                segment=segment,
+            )
 
     def record_error(self, attributes: dict[str, Any]) -> None:
-        self.errors.add(1, attributes)
+        try:
+            self.errors.add(1, attributes)
+        except Exception as exc:
+            log_observability_failure("metrics.record_error", exc)
 
     def record_rate_limited(self, attributes: dict[str, Any]) -> None:
-        self.rate_limited.add(1, attributes)
+        try:
+            self.rate_limited.add(1, attributes)
+        except Exception as exc:
+            log_observability_failure("metrics.record_rate_limited", exc)
 
     def record_failover_event(self, attributes: dict[str, Any]) -> None:
-        self.failover_events.add(1, attributes)
+        try:
+            self.failover_events.add(1, attributes)
+        except Exception as exc:
+            log_observability_failure("metrics.record_failover_event", exc)
 
     def add_active_request(
         self, delta: int, attributes: dict[str, Any]
     ) -> None:
-        self.active_requests.add(delta, attributes)
+        try:
+            self.active_requests.add(delta, attributes)
+        except Exception as exc:
+            log_observability_failure("metrics.add_active_request", exc)
 
 
 METRICS = ObservabilityMetrics()
