@@ -35,6 +35,11 @@ from policyengine_household_api.failover.manifest import (
 from policyengine_household_api.failover.request_limits import (
     max_content_length_bytes,
 )
+from policyengine_household_api.observability import init_observability
+from policyengine_household_api.observability import record_error
+from policyengine_household_api.observability import record_event
+from policyengine_household_api.observability import set_request_attribute
+from policyengine_household_api.observability import timed_segment
 from policyengine_household_api.modal_release.gateway import (
     GatewayResolutionError,
     VERSIONED_ENDPOINTS,
@@ -356,6 +361,7 @@ def create_gateway_app(
     modal_canary_timeout_seconds: float | None = None,
 ) -> Flask:
     app = Flask(__name__)
+    init_observability(app, service_role="failover_gateway")
     # Reject oversized request bodies before buffering them via
     # ``request.get_data()`` on a small gateway container.
     app.config["MAX_CONTENT_LENGTH"] = max_content_length_bytes()
@@ -447,22 +453,29 @@ def create_gateway_app(
     def route_request(path: str) -> Response:
         country_id, endpoint = _country_and_endpoint(path)
         body = request.get_data()
+        set_request_attribute("country_id", country_id)
+        set_request_attribute("endpoint", endpoint)
 
         try:
-            manifest = validate_failover_manifest(load_manifest())
+            with timed_segment("manifest_load"):
+                manifest = validate_failover_manifest(load_manifest())
         except FailoverManifestError as exc:
+            record_error(exc, handled=True, status_code=503)
             return _gateway_unavailable_response(str(exc))
 
         try:
-            if country_id and endpoint in VERSIONED_ENDPOINTS:
-                body, requested_version = _extract_requested_version(body)
-            else:
-                requested_version = "current"
-            resolved = resolve_failover_channel_for_request(
-                manifest,
-                country_id=country_id,
-                requested_version=requested_version,
-            )
+            with timed_segment("version_resolution"):
+                if country_id and endpoint in VERSIONED_ENDPOINTS:
+                    body, requested_version = _extract_requested_version(body)
+                else:
+                    requested_version = "current"
+                resolved = resolve_failover_channel_for_request(
+                    manifest,
+                    country_id=country_id,
+                    requested_version=requested_version,
+                )
+            set_request_attribute("requested_version", resolved.requested_version)
+            set_request_attribute("resolved_channel", resolved.channel)
             payload = _request_payload(path, body, resolved)
             response, backend = _route_to_backend(
                 resolved,
@@ -479,6 +492,7 @@ def create_gateway_app(
                 modal_probe_timeout_seconds=probe_timeout,
                 modal_canary_timeout_seconds=canary_timeout,
             )
+            set_request_attribute("backend", backend)
             return _with_gateway_headers(
                 response,
                 backend=backend,
@@ -486,8 +500,10 @@ def create_gateway_app(
                 primary_state=circuits.primary_state(resolved.channel),
             )
         except FailoverManifestUnavailable as exc:
+            record_error(exc, handled=True, status_code=503)
             return _gateway_unavailable_response(str(exc))
         except (FailoverRoutingError, GatewayResolutionError) as exc:
+            record_error(exc, handled=True, status_code=400, include_stack=False)
             return _json_error(str(exc), 400)
 
     return app
@@ -645,6 +661,7 @@ def _route_to_backend(
 ) -> tuple[Response, str]:
     force_backend = os.getenv(FORCE_BACKEND_ENV, "").strip().lower()
     if force_backend == "cloud_run":
+        record_event("fallback_selected", reason="forced_cloud_run")
         return _route_to_fallback_or_503(
             resolved,
             payload,
@@ -664,6 +681,11 @@ def _route_to_backend(
             modal_canary_timeout_seconds=modal_canary_timeout_seconds,
         )
         if circuits.is_open(resolved.channel):
+            record_event(
+                "fallback_selected",
+                reason="modal_circuit_open",
+                channel=resolved.channel,
+            )
             return _route_to_fallback_or_503(
                 resolved,
                 payload,
@@ -671,18 +693,29 @@ def _route_to_backend(
             )
 
     try:
-        response = _run_modal_operation(
-            lambda: call_modal(resolved.modal_app_name, payload),
-            timeout_seconds=modal_request_timeout_seconds,
-        )
+        with timed_segment("modal_request", backend="modal"):
+            response = _run_modal_operation(
+                lambda: call_modal(resolved.modal_app_name, payload),
+                timeout_seconds=modal_request_timeout_seconds,
+            )
         circuits.record_success(resolved.channel, policy)
         return response, "modal"
     except ModalExecutorSaturated:
         # The gateway's own request executor is full. That is a local capacity
         # limit, not a Modal outage, so shed load with a 503 without recording
         # circuit-breaker failure evidence or triggering a fallback.
+        record_event(
+            "modal_executor_saturated",
+            channel=resolved.channel,
+            backend="none",
+        )
         return _backend_unavailable_response(resolved), "none"
     except ModalBackendUnavailable:
+        record_event(
+            "modal_request_failed",
+            channel=resolved.channel,
+            backend="modal",
+        )
         if force_backend == "modal":
             return _backend_unavailable_response(resolved), "none"
         if circuits.record_failure(resolved.channel, policy):
@@ -696,7 +729,16 @@ def _route_to_backend(
                 timeout_seconds=modal_canary_timeout_seconds,
             ):
                 circuits.open(resolved.channel)
+                record_event(
+                    "modal_circuit_opened",
+                    channel=resolved.channel,
+                )
                 warm_fallback(resolved)
+                record_event(
+                    "fallback_selected",
+                    reason="modal_canary_confirmed",
+                    channel=resolved.channel,
+                )
                 return _route_to_fallback_or_503(
                     resolved,
                     payload,
@@ -733,10 +775,11 @@ def _refresh_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        _run_modal_probe(
-            lambda: probe_modal(resolved.modal_app_name),
-            timeout_seconds=modal_probe_timeout_seconds,
-        )
+        with timed_segment("modal_probe", backend="modal"):
+            _run_modal_probe(
+                lambda: probe_modal(resolved.modal_app_name),
+                timeout_seconds=modal_probe_timeout_seconds,
+            )
         circuits.record_success(resolved.channel, policy)
     except ModalExecutorSaturated:
         # Could not run an independent probe; skip it without recording a
@@ -754,6 +797,11 @@ def _refresh_modal_circuit(
                 timeout_seconds=modal_canary_timeout_seconds,
             ):
                 circuits.open(resolved.channel)
+                record_event(
+                    "modal_circuit_opened",
+                    channel=resolved.channel,
+                    source="probe",
+                )
                 warm_fallback(resolved)
 
 
@@ -773,15 +821,22 @@ def _refresh_open_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        _run_modal_probe(
-            probe_canary,
-            timeout_seconds=modal_canary_timeout_seconds,
-        )
-        _run_modal_probe(
-            lambda: probe_modal(resolved.modal_app_name),
-            timeout_seconds=modal_probe_timeout_seconds,
-        )
-        circuits.record_recovery_success(resolved.channel, policy)
+        with timed_segment("modal_canary", backend="modal"):
+            _run_modal_probe(
+                probe_canary,
+                timeout_seconds=modal_canary_timeout_seconds,
+            )
+        with timed_segment("modal_probe", backend="modal"):
+            _run_modal_probe(
+                lambda: probe_modal(resolved.modal_app_name),
+                timeout_seconds=modal_probe_timeout_seconds,
+            )
+        recovered = circuits.record_recovery_success(resolved.channel, policy)
+        if recovered:
+            record_event(
+                "modal_circuit_recovered",
+                channel=resolved.channel,
+            )
     except ModalExecutorSaturated:
         # Local saturation is not Modal evidence; skip this recovery round
         # without resetting the in-progress recovery streak.
@@ -799,8 +854,14 @@ def _route_to_fallback_or_503(
     ],
 ) -> tuple[Response, str]:
     try:
-        return call_fallback(resolved, payload), "cloud_run"
+        with timed_segment("cloud_run_request", backend="cloud_run"):
+            return call_fallback(resolved, payload), "cloud_run"
     except FallbackBackendUnavailable:
+        record_event(
+            "backend_unavailable",
+            backend="cloud_run",
+            channel=resolved.channel,
+        )
         return _backend_unavailable_response(resolved), "none"
 
 
@@ -810,10 +871,11 @@ def _modal_canary_confirms_outage(
     timeout_seconds: float,
 ) -> bool:
     try:
-        _run_modal_probe(
-            probe_canary,
-            timeout_seconds=timeout_seconds,
-        )
+        with timed_segment("modal_canary", backend="modal"):
+            _run_modal_probe(
+                probe_canary,
+                timeout_seconds=timeout_seconds,
+            )
         return False
     except ModalExecutorSaturated:
         # We could not run an independent canary check, so we cannot confirm a

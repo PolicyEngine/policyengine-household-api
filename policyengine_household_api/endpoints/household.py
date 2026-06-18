@@ -14,6 +14,9 @@ from policyengine_household_api.models.household import (
     HouseholdModelUK,
     HouseholdModelUS,
 )
+from policyengine_household_api.observability import record_error
+from policyengine_household_api.observability import set_request_attribute
+from policyengine_household_api.observability import timed_segment
 from policyengine_household_api.utils.deprecated_inputs import (
     drop_deprecated_inputs,
 )
@@ -130,83 +133,102 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
             use case and should usually be kept at its default setting.
     """
 
-    payload = request.json or {}
-    household_json = payload.get("household", {})
-    policy_json = payload.get("policy", {})
-    enable_ai_explainer = payload.get("enable_ai_explainer", False)
+    set_request_attribute("country_id", country_id)
+
+    with timed_segment("request_parse"):
+        payload = request.json or {}
+        household_json = payload.get("household", {})
+        policy_json = payload.get("policy", {})
+        enable_ai_explainer = payload.get("enable_ai_explainer", False)
+        set_request_attribute("enable_ai_explainer", enable_ai_explainer)
 
     country = COUNTRIES.get(country_id)
+    set_request_attribute(
+        "model_version",
+        country.policyengine_bundle.get("model_version"),
+    )
 
     # Validate inbound payload shape before reaching the compute layer.
     try:
-        _validate_household_payload(country_id, household_json)
-        _validate_axes(household_json)
+        with timed_segment("payload_validation"):
+            _validate_household_payload(country_id, household_json)
+            _validate_axes(household_json)
     except ValueError as e:
-        return Response(
-            json.dumps({"status": "error", "message": str(e)}),
+        return _json_response(
+            {"status": "error", "message": str(e)},
             status=400,
-            mimetype="application/json",
         )
 
-    variable_errors = validate_household_variables(
-        household=household_json,
-        system=country.tax_benefit_system,
-        model_version=country.policyengine_bundle["model_version"],
-    )
+    with timed_segment("variable_validation"):
+        variable_errors = validate_household_variables(
+            household=household_json,
+            system=country.tax_benefit_system,
+            model_version=country.policyengine_bundle["model_version"],
+        )
     if variable_errors:
-        return Response(
-            json.dumps(
-                {
-                    "status": "error",
-                    "message": "Invalid household variables.",
-                    "errors": [error.message for error in variable_errors],
-                }
-            ),
+        set_request_attribute("variable_error_count", len(variable_errors))
+        return _json_response(
+            {
+                "status": "error",
+                "message": "Invalid household variables.",
+                "errors": [error.message for error in variable_errors],
+            },
             status=400,
-            mimetype="application/json",
         )
 
     # Strip deprecated inputs from a copy before period validation so
     # partners who still pass removed/renamed variables get a warning +
     # working response instead of a `VariableNotFoundError` HTTP 500.
-    deprecated_inputs = drop_deprecated_inputs(household_json)
+    with timed_segment("deprecated_input_filter"):
+        deprecated_inputs = drop_deprecated_inputs(household_json)
     household_json = deprecated_inputs.household
     deprecation_warnings = deprecated_inputs.warnings
+    set_request_attribute(
+        "deprecated_warning_count",
+        len(deprecation_warnings),
+    )
 
     # Validate inbound period data before reaching the compute layer.
     try:
-        validate_period_keys(household_json, country.tax_benefit_system)
-        validate_period_budgets(household_json, country.tax_benefit_system)
+        with timed_segment("period_validation"):
+            validate_period_keys(household_json, country.tax_benefit_system)
+            validate_period_budgets(
+                household_json,
+                country.tax_benefit_system,
+            )
     except ValueError as e:
-        return Response(
-            json.dumps({"status": "error", "message": str(e)}),
+        return _json_response(
+            {"status": "error", "message": str(e)},
             status=400,
-            mimetype="application/json",
         )
 
     # Detect partial monthly input + annual output combinations so partners
     # see a heads-up that some months will read the engine's fallback. v1
     # has no such warning; this is purely additive diagnostic.
-    period_warnings = detect_period_warnings(
-        household_json, country.tax_benefit_system
-    )
+    with timed_segment("period_warning_detection"):
+        period_warnings = detect_period_warnings(
+            household_json,
+            country.tax_benefit_system,
+        )
+    set_request_attribute("period_warning_count", len(period_warnings))
 
     try:
         result: dict
         computation_tree_uuid: UUID | None
-        result, computation_tree_uuid = country.calculate(
-            household_json, policy_json, enable_ai_explainer
-        )
+        with timed_segment("calculation"):
+            result, computation_tree_uuid = country.calculate(
+                household_json, policy_json, enable_ai_explainer
+            )
     except Exception as e:
         logging.exception(e)
+        record_error(e, handled=True, status_code=500)
         response_body = dict(
             status="error",
             message=f"Error calculating household under policy: {e}",
         )
-        return Response(
-            json.dumps(response_body),
+        return _json_response(
+            response_body,
             status=500,
-            mimetype="application/json",
         )
 
     response_body = dict(
@@ -227,10 +249,10 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     if enable_ai_explainer:
         response_body["computation_tree_uuid"] = str(computation_tree_uuid)
 
-    return Response(
-        json.dumps(
-            response_body,
-        ),
-        200,
-        mimetype="application/json",
-    )
+    return _json_response(response_body, status=200)
+
+
+def _json_response(payload: dict, *, status: int) -> Response:
+    with timed_segment("response_serialization"):
+        body = json.dumps(payload)
+    return Response(body, status, mimetype="application/json")
