@@ -28,7 +28,11 @@ def _instrument(factory, *args, **kwargs):
 
 class ObservabilityMetrics:
     def __init__(self) -> None:
-        meter = metrics.get_meter("policyengine-household-api") if metrics else None
+        meter = (
+            metrics.get_meter("policyengine-household-api")
+            if metrics
+            else None
+        )
         self.http_duration = _instrument(
             getattr(meter, "create_histogram", None),
             "http.server.request.duration",
@@ -97,7 +101,11 @@ class ObservabilityMetrics:
         self.segment_duration.record(duration_seconds, segment_attributes)
         if segment == "calculation":
             self.calculate_duration.record(duration_seconds, attributes)
-        if segment in {"modal_request", "cloud_run_request", "worker_dispatch"}:
+        if segment in {
+            "modal_request",
+            "cloud_run_request",
+            "worker_dispatch",
+        }:
             self.backend_duration.record(duration_seconds, segment_attributes)
 
     def record_error(self, attributes: dict[str, Any]) -> None:
@@ -109,7 +117,9 @@ class ObservabilityMetrics:
     def record_failover_event(self, attributes: dict[str, Any]) -> None:
         self.failover_events.add(1, attributes)
 
-    def add_active_request(self, delta: int, attributes: dict[str, Any]) -> None:
+    def add_active_request(
+        self, delta: int, attributes: dict[str, Any]
+    ) -> None:
         self.active_requests.add(delta, attributes)
 
 

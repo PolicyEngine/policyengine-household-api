@@ -474,7 +474,9 @@ def create_gateway_app(
                     country_id=country_id,
                     requested_version=requested_version,
                 )
-            set_request_attribute("requested_version", resolved.requested_version)
+            set_request_attribute(
+                "requested_version", resolved.requested_version
+            )
             set_request_attribute("resolved_channel", resolved.channel)
             payload = _request_payload(path, body, resolved)
             response, backend = _route_to_backend(

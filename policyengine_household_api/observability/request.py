@@ -127,7 +127,9 @@ class RequestObservabilityContext:
                 else None
             ),
         )
-        METRICS.record_error(self.metric_attributes(error_type=type(exc).__name__))
+        METRICS.record_error(
+            self.metric_attributes(error_type=type(exc).__name__)
+        )
         span = _current_span()
         if span is not None:
             try:
@@ -165,7 +167,9 @@ class RequestObservabilityContext:
         return attributes
 
     def as_log_record(self) -> dict[str, Any]:
-        event = "http_request_failed" if self.error else "http_request_completed"
+        event = (
+            "http_request_failed" if self.error else "http_request_completed"
+        )
         status_code = self.status_code or (500 if self.error else None)
         trace_id, span_id = _trace_ids()
         return {
@@ -246,10 +250,16 @@ def record_event(event: str, **fields: Any) -> None:
                 "path": context.path,
             }
         )
-    base.update({key: value for key, value in fields.items() if value is not None})
+    base.update(
+        {key: value for key, value in fields.items() if value is not None}
+    )
     _EVENT_LOGGER.info(_json(base))
     if event.startswith("modal_") or "fallback" in event:
-        attrs = context.metric_attributes(event=event) if context else {"event": event}
+        attrs = (
+            context.metric_attributes(event=event)
+            if context
+            else {"event": event}
+        )
         METRICS.record_failover_event(attrs)
 
 
@@ -323,7 +333,9 @@ def _start_span(name: str, attrs: dict[str, Any]):
         return _null_span()
     try:
         tracer = trace.get_tracer("policyengine-household-api")
-        span_attrs = {key: value for key, value in attrs.items() if value is not None}
+        span_attrs = {
+            key: value for key, value in attrs.items() if value is not None
+        }
         return tracer.start_as_current_span(name, attributes=span_attrs)
     except Exception:
         return _null_span()
