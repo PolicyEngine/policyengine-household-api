@@ -16,8 +16,8 @@ from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from ..auth.validation import Auth0JWTBearerTokenValidator
 from ..observability import record_error
-from ..observability import set_request_attribute
-from ..observability import timed_segment
+from ..observability import set_attribute
+from ..observability import segment
 from ..utils.config_loader import get_config_value
 
 ANALYTICS_READ_SCOPE = "read:calculate-analytics"
@@ -222,14 +222,12 @@ class ObservedAuthDecorator:
         @wraps(func)
         def wrapper(*func_args: Any, **func_kwargs: Any) -> Any:
             optional_missing = False
-            with timed_segment("auth"):
+            with segment("auth"):
                 try:
                     self._decorator.acquire_token(**claims)
                 except MissingAuthorizationError as exc:
                     if optional:
-                        set_request_attribute(
-                            "auth_result", "optional_missing"
-                        )
+                        set_attribute("auth_result", "optional_missing")
                         optional_missing = True
                     else:
                         self._record_auth_error(exc)
@@ -239,13 +237,13 @@ class ObservedAuthDecorator:
                     self._decorator.raise_error_response(exc)
             if optional_missing:
                 return func(*func_args, **func_kwargs)
-            set_request_attribute("auth_result", "success")
+            set_attribute("auth_result", "success")
             return func(*func_args, **func_kwargs)
 
         return wrapper
 
     def _record_auth_error(self, exc: Exception) -> None:
-        set_request_attribute("auth_result", "failed")
+        set_attribute("auth_result", "failed")
         status_code = getattr(
             exc,
             "status_code",

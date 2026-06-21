@@ -25,8 +25,8 @@ from policyengine_household_api.models.analytics import (
     ModalResolvedChannel,
     VariableUsageSummary,
 )
-from policyengine_household_api.observability import set_request_attribute
-from policyengine_household_api.observability import timed_segment
+from policyengine_household_api.observability import set_attribute
+from policyengine_household_api.observability import segment
 from policyengine_household_api.modal_release.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,
@@ -105,18 +105,18 @@ def log_analytics_if_enabled(func):
                 "not ready."
             )
 
-        with timed_segment("analytics_context_build"):
+        with segment("analytics_context_build"):
             analytics_context = _build_analytics_context(args, kwargs)
         _set_observability_context_attributes(analytics_context)
 
         try:
             response = func(*args, **kwargs)
         except Exception:
-            with timed_segment("analytics_write"):
+            with segment("analytics_write"):
                 _record_analytics(analytics_context, 500)
             raise
 
-        with timed_segment("analytics_write"):
+        with segment("analytics_write"):
             _record_analytics(
                 analytics_context,
                 getattr(response, "status_code", None),
@@ -273,13 +273,13 @@ def _set_observability_context_attributes(
 ) -> None:
     if context is None:
         return
-    set_request_attribute("country_id", context.country_id)
-    set_request_attribute("api_version", context.api_version)
-    set_request_attribute("model_version", context.model_version)
-    set_request_attribute("requested_version", context.requested_version)
+    set_attribute("country_id", context.country_id)
+    set_attribute("api_version", context.api_version)
+    set_attribute("model_version", context.model_version)
+    set_attribute("requested_version", context.requested_version)
     if context.resolved_channel is not None:
-        set_request_attribute("resolved_channel", context.resolved_channel)
-    set_request_attribute(
+        set_attribute("resolved_channel", context.resolved_channel)
+    set_attribute(
         "distinct_variable_count",
         len({summary.variable_name for summary in context.variable_summaries}),
     )

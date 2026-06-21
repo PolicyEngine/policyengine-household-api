@@ -14,8 +14,8 @@ from policyengine_household_api.models.household import (
     HouseholdModelUS,
 )
 from policyengine_household_api.observability import record_error
-from policyengine_household_api.observability import set_request_attribute
-from policyengine_household_api.observability import timed_segment
+from policyengine_household_api.observability import set_attribute
+from policyengine_household_api.observability import segment
 from policyengine_household_api.utils.deprecated_inputs import (
     drop_deprecated_inputs,
 )
@@ -132,38 +132,45 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
             use case and should usually be kept at its default setting.
     """
 
-    set_request_attribute("country_id", country_id)
+    set_attribute("country_id", country_id)
 
-    with timed_segment("request_parse"):
+    with segment("request_parse"):
         payload = request.json or {}
         household_json = payload.get("household", {})
         policy_json = payload.get("policy", {})
 
     country = COUNTRIES.get(country_id)
-    set_request_attribute(
+    set_attribute(
         "model_version",
         country.policyengine_bundle.get("model_version"),
     )
 
     # Validate inbound payload shape before reaching the compute layer.
     try:
-        with timed_segment("payload_validation"):
+        with segment("payload_validation"):
             _validate_household_payload(country_id, household_json)
             _validate_axes(household_json)
     except ValueError as e:
+        record_error(e, handled=True, status_code=400, include_stack=False)
         return _json_response(
             {"status": "error", "message": str(e)},
             status=400,
         )
 
-    with timed_segment("variable_validation"):
+    with segment("variable_validation"):
         variable_errors = validate_household_variables(
             household=household_json,
             system=country.tax_benefit_system,
             model_version=country.policyengine_bundle["model_version"],
         )
     if variable_errors:
-        set_request_attribute("variable_error_count", len(variable_errors))
+        set_attribute("variable_error_count", len(variable_errors))
+        record_error(
+            ValueError("Invalid household variables."),
+            handled=True,
+            status_code=400,
+            include_stack=False,
+        )
         return _json_response(
             {
                 "status": "error",
@@ -176,24 +183,25 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     # Strip deprecated inputs from a copy before period validation so
     # partners who still pass removed/renamed variables get a warning +
     # working response instead of a `VariableNotFoundError` HTTP 500.
-    with timed_segment("deprecated_input_filter"):
+    with segment("deprecated_input_filter"):
         deprecated_inputs = drop_deprecated_inputs(household_json)
     household_json = deprecated_inputs.household
     deprecation_warnings = deprecated_inputs.warnings
-    set_request_attribute(
+    set_attribute(
         "deprecated_warning_count",
         len(deprecation_warnings),
     )
 
     # Validate inbound period data before reaching the compute layer.
     try:
-        with timed_segment("period_validation"):
+        with segment("period_validation"):
             validate_period_keys(household_json, country.tax_benefit_system)
             validate_period_budgets(
                 household_json,
                 country.tax_benefit_system,
             )
     except ValueError as e:
+        record_error(e, handled=True, status_code=400, include_stack=False)
         return _json_response(
             {"status": "error", "message": str(e)},
             status=400,
@@ -202,16 +210,16 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     # Detect partial monthly input + annual output combinations so partners
     # see a heads-up that some months will read the engine's fallback. v1
     # has no such warning; this is purely additive diagnostic.
-    with timed_segment("period_warning_detection"):
+    with segment("period_warning_detection"):
         period_warnings = detect_period_warnings(
             household_json,
             country.tax_benefit_system,
         )
-    set_request_attribute("period_warning_count", len(period_warnings))
+    set_attribute("period_warning_count", len(period_warnings))
 
     try:
         result: dict
-        with timed_segment("calculation"):
+        with segment("calculation"):
             result = country.calculate(household_json, policy_json)
     except Exception as e:
         logging.exception(e)
@@ -244,6 +252,6 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
 
 def _json_response(payload: dict, *, status: int) -> Response:
-    with timed_segment("response_serialization"):
+    with segment("response_serialization"):
         body = json.dumps(payload)
     return Response(body, status, mimetype="application/json")

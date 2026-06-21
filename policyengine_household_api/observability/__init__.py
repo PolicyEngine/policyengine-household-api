@@ -6,22 +6,24 @@ from .request import (
     REQUEST_ID_HEADER,
     TRACEPARENT_HEADER,
     current_context,
-    current_traceparent_header,
     record_error,
     record_event,
-    set_request_attribute,
-    timed_segment,
+    segment,
+    set_attribute,
+    traceparent_header,
 )
+from .runtime import observability_runtime
 
 __all__ = [
     "OBSERVABILITY_INTERNAL_DISPATCH_HEADER",
     "REQUEST_ID_HEADER",
     "TRACEPARENT_HEADER",
     "current_context",
-    "current_traceparent_header",
     "init_observability",
+    "observability_runtime",
     "record_error",
     "record_event",
-    "set_request_attribute",
-    "timed_segment",
+    "segment",
+    "set_attribute",
+    "traceparent_header",
 ]
