@@ -12,11 +12,11 @@ from policyengine_household_api.observability import (
     REQUEST_ID_HEADER,
     TRACEPARENT_HEADER,
     current_context,
-    current_traceparent_header,
+    traceparent_header,
     init_observability,
     record_error,
-    set_request_attribute,
-    timed_segment,
+    set_attribute,
+    segment,
 )
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
@@ -102,13 +102,13 @@ def create_gateway_app(
     def route_request(path: str) -> Response:
         country_id, endpoint = _country_and_endpoint(path)
         body = request.get_data()
-        set_request_attribute("country_id", country_id)
-        set_request_attribute("endpoint", endpoint)
+        set_attribute("country_id", country_id)
+        set_attribute("endpoint", endpoint)
 
         try:
-            with timed_segment("manifest_load"):
+            with segment("manifest_load"):
                 manifest = validate_manifest(load_manifest())
-            with timed_segment("version_resolution"):
+            with segment("version_resolution"):
                 if country_id and endpoint in VERSIONED_ENDPOINTS:
                     body, requested_version = _extract_requested_version(body)
                 else:
@@ -118,14 +118,14 @@ def create_gateway_app(
                     country_id=country_id,
                     requested_version=requested_version,
                 )
-            set_request_attribute("backend", "modal")
-            set_request_attribute("modal_app_name", resolved_app.app_name)
-            set_request_attribute(
+            set_attribute("backend", "modal")
+            set_attribute("modal_app_name", resolved_app.app_name)
+            set_attribute(
                 "requested_version",
                 resolved_app.requested_version,
             )
-            set_request_attribute("resolved_channel", resolved_app.channel)
-            with timed_segment("worker_dispatch", backend="modal"):
+            set_attribute("resolved_channel", resolved_app.channel)
+            with segment("worker_dispatch", backend="modal"):
                 return route_to_worker_function(
                     resolved_app.app_name,
                     _request_payload(path, body, resolved_app),
@@ -203,16 +203,22 @@ def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
     # the pre-#1528 top-level `handle_household_request` function. Fall back
     # to that shape if the class is not present.
     try:
-        worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
-        return _response_from_dispatch_result(
-            worker_cls().handle_household_request.remote(payload)
-        )
+        with segment("modal_worker_lookup", backend="modal"):
+            worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
+        with segment("modal_remote_execution", backend="modal"):
+            return _response_from_dispatch_result(
+                worker_cls().handle_household_request.remote(payload)
+            )
     except modal.exception.NotFoundError:
-        worker_function = modal.Function.from_name(
-            app_name,
-            "handle_household_request",
-        )
-        return _response_from_dispatch_result(worker_function.remote(payload))
+        with segment("modal_worker_lookup", backend="modal"):
+            worker_function = modal.Function.from_name(
+                app_name,
+                "handle_household_request",
+            )
+        with segment("modal_remote_execution", backend="modal"):
+            return _response_from_dispatch_result(
+                worker_function.remote(payload)
+            )
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:
@@ -271,7 +277,7 @@ def _forward_headers() -> dict[str, str]:
     if context is not None:
         forwarded_headers[REQUEST_ID_HEADER] = context.request_id
         forwarded_headers[OBSERVABILITY_INTERNAL_DISPATCH_HEADER] = "1"
-    traceparent = current_traceparent_header()
+    traceparent = traceparent_header()
     if traceparent:
         forwarded_headers[TRACEPARENT_HEADER] = traceparent
     return forwarded_headers

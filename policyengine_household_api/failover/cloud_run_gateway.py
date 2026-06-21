@@ -38,8 +38,8 @@ from policyengine_household_api.failover.request_limits import (
 from policyengine_household_api.observability import init_observability
 from policyengine_household_api.observability import record_error
 from policyengine_household_api.observability import record_event
-from policyengine_household_api.observability import set_request_attribute
-from policyengine_household_api.observability import timed_segment
+from policyengine_household_api.observability import set_attribute
+from policyengine_household_api.observability import segment
 from policyengine_household_api.modal_release.gateway import (
     GatewayResolutionError,
     VERSIONED_ENDPOINTS,
@@ -453,18 +453,18 @@ def create_gateway_app(
     def route_request(path: str) -> Response:
         country_id, endpoint = _country_and_endpoint(path)
         body = request.get_data()
-        set_request_attribute("country_id", country_id)
-        set_request_attribute("endpoint", endpoint)
+        set_attribute("country_id", country_id)
+        set_attribute("endpoint", endpoint)
 
         try:
-            with timed_segment("manifest_load"):
+            with segment("manifest_load"):
                 manifest = validate_failover_manifest(load_manifest())
         except FailoverManifestError as exc:
             record_error(exc, handled=True, status_code=503)
             return _gateway_unavailable_response(str(exc))
 
         try:
-            with timed_segment("version_resolution"):
+            with segment("version_resolution"):
                 if country_id and endpoint in VERSIONED_ENDPOINTS:
                     body, requested_version = _extract_requested_version(body)
                 else:
@@ -474,10 +474,8 @@ def create_gateway_app(
                     country_id=country_id,
                     requested_version=requested_version,
                 )
-            set_request_attribute(
-                "requested_version", resolved.requested_version
-            )
-            set_request_attribute("resolved_channel", resolved.channel)
+            set_attribute("requested_version", resolved.requested_version)
+            set_attribute("resolved_channel", resolved.channel)
             payload = _request_payload(path, body, resolved)
             response, backend = _route_to_backend(
                 resolved,
@@ -494,7 +492,7 @@ def create_gateway_app(
                 modal_probe_timeout_seconds=probe_timeout,
                 modal_canary_timeout_seconds=canary_timeout,
             )
-            set_request_attribute("backend", backend)
+            set_attribute("backend", backend)
             return _with_gateway_headers(
                 response,
                 backend=backend,
@@ -543,12 +541,14 @@ def probe_modal_canary() -> None:
         MODAL_CANARY_FUNCTION_NAME,
     )
     try:
-        canary_function = _modal_lookup(
-            modal.Function.from_name,
-            app_name,
-            function_name,
-        )
-        result = canary_function.remote()
+        with segment("modal_worker_lookup", backend="modal"):
+            canary_function = _modal_lookup(
+                modal.Function.from_name,
+                app_name,
+                function_name,
+            )
+        with segment("modal_remote_execution", backend="modal"):
+            result = canary_function.remote()
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
     if not isinstance(result, dict) or result.get("ok") is not True:
@@ -562,20 +562,24 @@ def _call_modal_worker_dispatch(
     import modal
 
     try:
-        worker_cls = _modal_lookup(
-            modal.Cls.from_name,
-            app_name,
-            "HouseholdWorker",
-        )
-        return worker_cls().handle_household_request.remote(payload)
+        with segment("modal_worker_lookup", backend="modal"):
+            worker_cls = _modal_lookup(
+                modal.Cls.from_name,
+                app_name,
+                "HouseholdWorker",
+            )
+        with segment("modal_remote_execution", backend="modal"):
+            return worker_cls().handle_household_request.remote(payload)
     except modal.exception.NotFoundError:
         try:
-            worker_function = _modal_lookup(
-                modal.Function.from_name,
-                app_name,
-                "handle_household_request",
-            )
-            return worker_function.remote(payload)
+            with segment("modal_worker_lookup", backend="modal"):
+                worker_function = _modal_lookup(
+                    modal.Function.from_name,
+                    app_name,
+                    "handle_household_request",
+                )
+            with segment("modal_remote_execution", backend="modal"):
+                return worker_function.remote(payload)
         except Exception as exc:
             raise ModalBackendUnavailable(str(exc)) from exc
     except Exception as exc:
@@ -592,25 +596,28 @@ def call_cloud_run_worker(
     )
     body = json.dumps(encode_dispatch_request(payload)).encode("utf-8")
     try:
-        headers = {
-            "Content-Type": "application/json",
-            **_cloud_run_auth_header(resolved.cloud_run_worker_url),
-        }
+        with segment("cloud_run_auth", backend="cloud_run"):
+            headers = {
+                "Content-Type": "application/json",
+                **_cloud_run_auth_header(resolved.cloud_run_worker_url),
+            }
         req = urllib_request.Request(
             dispatch_url,
             data=body,
             headers=headers,
             method="POST",
         )
-        with urllib_request.urlopen(
-            req,
-            timeout=_operation_timeout_seconds(
-                "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS",
-                CLOUD_RUN_WORKER_TIMEOUT_SECONDS,
-            ),
-        ) as response:
-            response_payload = json.loads(response.read().decode("utf-8"))
-        dispatch_result = decode_dispatch_response(response_payload)
+        with segment("cloud_run_http_request", backend="cloud_run"):
+            with urllib_request.urlopen(
+                req,
+                timeout=_operation_timeout_seconds(
+                    "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS",
+                    CLOUD_RUN_WORKER_TIMEOUT_SECONDS,
+                ),
+            ) as response:
+                response_payload = json.loads(response.read().decode("utf-8"))
+        with segment("cloud_run_response_decode", backend="cloud_run"):
+            dispatch_result = decode_dispatch_response(response_payload)
     except (
         OSError,
         error.HTTPError,
@@ -627,9 +634,14 @@ def call_cloud_run_worker(
 def warm_cloud_run_worker(resolved: ResolvedFailoverChannel) -> None:
     health_url = _join_url(resolved.cloud_run_worker_url, "/liveness_check")
     try:
-        headers = _cloud_run_auth_header(resolved.cloud_run_worker_url)
-        req = urllib_request.Request(health_url, headers=headers, method="GET")
-        urllib_request.urlopen(req, timeout=5).close()
+        with segment("fallback_warmup", backend="cloud_run"):
+            headers = _cloud_run_auth_header(resolved.cloud_run_worker_url)
+            req = urllib_request.Request(
+                health_url,
+                headers=headers,
+                method="GET",
+            )
+            urllib_request.urlopen(req, timeout=5).close()
     except (
         OSError,
         error.HTTPError,
@@ -641,8 +653,9 @@ def warm_cloud_run_worker(resolved: ResolvedFailoverChannel) -> None:
 
 
 def fetch_modal_status() -> dict[str, Any]:
-    with urllib_request.urlopen(MODAL_STATUS_URL, timeout=5) as response:
-        return json.loads(response.read().decode("utf-8"))
+    with segment("modal_status_check", backend="modal"):
+        with urllib_request.urlopen(MODAL_STATUS_URL, timeout=5) as response:
+            return json.loads(response.read().decode("utf-8"))
 
 
 def _route_to_backend(
@@ -673,17 +686,18 @@ def _route_to_backend(
         )
 
     if force_backend != "modal":
-        _refresh_modal_circuit(
-            resolved,
-            circuits=circuits,
-            policy=policy,
-            probe_modal=probe_modal,
-            probe_canary=probe_canary,
-            check_modal_status=check_modal_status,
-            warm_fallback=warm_fallback,
-            modal_probe_timeout_seconds=modal_probe_timeout_seconds,
-            modal_canary_timeout_seconds=modal_canary_timeout_seconds,
-        )
+        with segment("circuit_refresh", backend="modal"):
+            _refresh_modal_circuit(
+                resolved,
+                circuits=circuits,
+                policy=policy,
+                probe_modal=probe_modal,
+                probe_canary=probe_canary,
+                check_modal_status=check_modal_status,
+                warm_fallback=warm_fallback,
+                modal_probe_timeout_seconds=modal_probe_timeout_seconds,
+                modal_canary_timeout_seconds=modal_canary_timeout_seconds,
+            )
         if circuits.is_open(resolved.channel):
             record_event(
                 "fallback_selected",
@@ -697,7 +711,7 @@ def _route_to_backend(
             )
 
     try:
-        with timed_segment("modal_request", backend="modal"):
+        with segment("modal_request", backend="modal"):
             response = _run_modal_operation(
                 lambda: call_modal(resolved.modal_app_name, payload),
                 timeout_seconds=modal_request_timeout_seconds,
@@ -779,7 +793,7 @@ def _refresh_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        with timed_segment("modal_probe", backend="modal"):
+        with segment("modal_probe", backend="modal"):
             _run_modal_probe(
                 lambda: probe_modal(resolved.modal_app_name),
                 timeout_seconds=modal_probe_timeout_seconds,
@@ -825,12 +839,12 @@ def _refresh_open_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        with timed_segment("modal_canary", backend="modal"):
+        with segment("modal_canary", backend="modal"):
             _run_modal_probe(
                 probe_canary,
                 timeout_seconds=modal_canary_timeout_seconds,
             )
-        with timed_segment("modal_probe", backend="modal"):
+        with segment("modal_probe", backend="modal"):
             _run_modal_probe(
                 lambda: probe_modal(resolved.modal_app_name),
                 timeout_seconds=modal_probe_timeout_seconds,
@@ -858,7 +872,7 @@ def _route_to_fallback_or_503(
     ],
 ) -> tuple[Response, str]:
     try:
-        with timed_segment("cloud_run_request", backend="cloud_run"):
+        with segment("cloud_run_request", backend="cloud_run"):
             return call_fallback(resolved, payload), "cloud_run"
     except FallbackBackendUnavailable:
         record_event(
@@ -875,7 +889,7 @@ def _modal_canary_confirms_outage(
     timeout_seconds: float,
 ) -> bool:
     try:
-        with timed_segment("modal_canary", backend="modal"):
+        with segment("modal_canary", backend="modal"):
             _run_modal_probe(
                 probe_canary,
                 timeout_seconds=timeout_seconds,
