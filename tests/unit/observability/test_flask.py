@@ -83,6 +83,36 @@ def test_request_log_contains_request_metadata_and_timing(monkeypatch):
     assert payload["timings_ms"]["request_parse"] >= 0
 
 
+def test_request_log_contains_runtime_metadata(monkeypatch):
+    monkeypatch.delenv("OBSERVABILITY_SERVICE_ROLE", raising=False)
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
+    monkeypatch.setenv("OBSERVABILITY_RUNTIME_ROLE", "cloud_run_gateway")
+    monkeypatch.setenv("K_SERVICE", "household-api-gateway")
+    monkeypatch.setenv("K_REVISION", "household-api-gateway-00001")
+    monkeypatch.setenv("K_CONFIGURATION", "household-api-gateway")
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "policyengine-test")
+
+    records = []
+    monkeypatch.setattr(REQUEST_LOGGER, "info", records.append)
+    app = Flask(__name__)
+    init_observability(app, service_role="failover_gateway")
+
+    @app.get("/metadata")
+    def metadata():
+        return {"status": "ok"}
+
+    response = app.test_client().get("/metadata")
+
+    assert response.status_code == 200
+    payload = json.loads(records[0])
+    assert payload["platform"] == "google_cloud_run"
+    assert payload["runtime_role"] == "cloud_run_gateway"
+    assert payload["cloud_run_service"] == "household-api-gateway"
+    assert payload["cloud_run_revision"] == "household-api-gateway-00001"
+    assert payload["cloud_run_configuration"] == "household-api-gateway"
+    assert payload["google_cloud_project"] == "policyengine-test"
+
+
 def _runtime_with_context(monkeypatch):
     context = RequestObservabilityContext(
         config=ObservabilityConfig(

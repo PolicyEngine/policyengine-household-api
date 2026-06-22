@@ -23,4 +23,4 @@ def test_canary_function_options_are_lightweight(monkeypatch):
     assert reloaded.CANARY_APP_NAME == "household-canary-test"
     assert options["timeout"] == 10
     assert options["scaledown_window"] == 300
-    assert "secrets" not in options
+    assert len(options["secrets"]) == 1

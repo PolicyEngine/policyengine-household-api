@@ -37,6 +37,7 @@ def household_api_gateway_image() -> modal.Image:
         .pip_install(
             "flask>=2.2",
             "modal>=1.3.0",
+            "policyengine-observability[flask,otel,otlp-grpc]>=0.2.0",
             "pyyaml>=6",
         )
         .add_local_python_source("policyengine_household_api", copy=True)
@@ -44,7 +45,9 @@ def household_api_gateway_image() -> modal.Image:
 
 
 def household_api_canary_image() -> modal.Image:
-    return modal.Image.debian_slim(python_version="3.13")
+    return modal.Image.debian_slim(python_version="3.13").pip_install(
+        "policyengine-observability[otel,otlp-grpc]>=0.2.0",
+    )
 
 
 def household_api_secret() -> modal.Secret:
