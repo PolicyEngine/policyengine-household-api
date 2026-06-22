@@ -18,6 +18,124 @@ class TestCalculateEndpoint:
         "Authorization": f"Bearer {get_config_value('auth.auth0.test_token')}",
     }
 
+    uk_single_adult_household = {
+        "people": {
+            "person": {
+                "age": {"2026": 30},
+                "employment_income": {"2026": 30_000},
+                "income_tax": {"2026": None},
+            }
+        },
+        "benunits": {
+            "benunit": {
+                "members": ["person"],
+            }
+        },
+        "households": {
+            "household": {
+                "members": ["person"],
+                "household_net_income": {"2026": None},
+            }
+        },
+    }
+
+    @pytest.mark.parametrize(
+        "country_id,household,result_path,expected_value",
+        [
+            (
+                "ca",
+                {
+                    "people": {
+                        "person": {
+                            "age": {"2026": 40},
+                            "employment_income": {"2026": 50_000},
+                            "climate_action_incentive_category": {
+                                "2026": "HEAD"
+                            },
+                            "individual_net_income": {"2026": None},
+                        }
+                    },
+                    "households": {
+                        "household": {
+                            "members": ["person"],
+                            "province": {"2026": "ONTARIO"},
+                            "household_net_income": {"2026": None},
+                        }
+                    },
+                },
+                (
+                    "households",
+                    "household",
+                    "household_net_income",
+                    "2026",
+                ),
+                47_693.266,
+            ),
+            (
+                "ng",
+                {
+                    "people": {
+                        "person": {
+                            "age": {"2026": 40},
+                            "employment_income": {"2026": 5_000_000},
+                            "tax": {"2026": None},
+                        }
+                    },
+                    "households": {
+                        "household": {
+                            "members": ["person"],
+                            "household_net_income": {"2026": None},
+                        }
+                    },
+                },
+                ("people", "person", "tax", "2026"),
+                704_000.0,
+            ),
+            (
+                "il",
+                {
+                    "people": {
+                        "person": {
+                            "age": {"2026": 40},
+                            "employment_income": {"2026": 200_000},
+                            "tax": {"2026": None},
+                        }
+                    },
+                    "households": {
+                        "household": {
+                            "members": ["person"],
+                            "household_net_income": {"2026": None},
+                        }
+                    },
+                },
+                ("people", "person", "tax", "2026"),
+                4_800.0,
+            ),
+        ],
+    )
+    def test__additional_supported_countries_calculate(
+        self, client, country_id, household, result_path, expected_value
+    ):
+        response = client.post(
+            f"/{country_id}/calculate",
+            json={"household": household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = json.loads(response.data)
+        assert payload["status"] == "ok"
+        assert payload["policyengine_bundle"] == {
+            "model_version": COUNTRY_PACKAGE_VERSIONS[country_id],
+            "data_version": None,
+            "dataset": None,
+        }
+
+        result_value = payload["result"]
+        for key in result_path:
+            result_value = result_value[key]
+        assert result_value == pytest.approx(expected_value)
+
     def test_returns_policyengine_bundle(self, client):
         response = client.post(
             "/us/calculate",
@@ -33,6 +151,52 @@ class TestCalculateEndpoint:
             "data_version": None,
             "dataset": None,
         }
+
+    def test__uk_calculate_returns_requested_results(self, client):
+        response = client.post(
+            "/uk/calculate",
+            json={"household": self.uk_single_adult_household},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = json.loads(response.data)
+        assert payload["status"] == "ok"
+        assert payload["result"]["people"]["person"]["income_tax"]["2026"] == (
+            pytest.approx(3486.0)
+        )
+        assert payload["result"]["households"]["household"][
+            "household_net_income"
+        ]["2026"] == pytest.approx(24960.55)
+        assert payload["policyengine_bundle"] == {
+            "model_version": COUNTRY_PACKAGE_VERSIONS["uk"],
+            "data_version": None,
+            "dataset": None,
+        }
+
+    def test__uk_calculate_applies_policy_reform(self, client):
+        response = client.post(
+            "/uk/calculate",
+            json={
+                "household": self.uk_single_adult_household,
+                "policy": {
+                    "gov.hmrc.income_tax.allowances.personal_allowance.amount": {
+                        "2026-01-01.2100-12-31": 15_000,
+                    }
+                },
+            },
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = json.loads(response.data)
+        assert payload["status"] == "ok"
+        assert payload["result"]["people"]["person"]["income_tax"]["2026"] == (
+            pytest.approx(3000.0)
+        )
+        assert payload["result"]["households"]["household"][
+            "household_net_income"
+        ]["2026"] == pytest.approx(25446.55)
 
     def test__given_invalid_household_shape__returns_400(self, client):
         response = client.post(
@@ -165,8 +329,8 @@ class TestCalculateEndpoint:
             **valid_household_requesting_ctc_calculation,
             "people": {
                 "you": {
-                    "age": {"2024": 40},
-                    "medical_out_of_pocket_expenses": {"2024": 0},
+                    "age": {"2026": 40},
+                    "medical_out_of_pocket_expenses": {"2026": 0},
                 }
             },
         }
@@ -182,7 +346,7 @@ class TestCalculateEndpoint:
         assert payload["status"] == "ok"
         # CTC still computes — non-medical outputs are unaffected.
         assert (
-            payload["result"]["tax_units"]["tax_unit"]["ctc"]["2024"]
+            payload["result"]["tax_units"]["tax_unit"]["ctc"]["2026"]
             is not None
         )
         # The deprecation warning is surfaced in the response.
@@ -199,7 +363,7 @@ class TestCalculateEndpoint:
                 [
                     {
                         "name": "medical_out_of_pocket_expenses",
-                        "period": "2024",
+                        "period": "2026",
                         "min": 0,
                         "max": 1000,
                         "count": 2,
@@ -218,7 +382,7 @@ class TestCalculateEndpoint:
         payload = json.loads(response.data)
         assert payload["status"] == "ok"
         assert (
-            payload["result"]["tax_units"]["tax_unit"]["ctc"]["2024"]
+            payload["result"]["tax_units"]["tax_unit"]["ctc"]["2026"]
             is not None
         )
         assert any(
@@ -231,8 +395,8 @@ class TestCalculateEndpoint:
             **valid_household_requesting_ctc_calculation,
             "people": {
                 "you": {
-                    "age": {"2024": 40},
-                    "definitely_not_a_variable": {"2024": 0},
+                    "age": {"2026": 40},
+                    "definitely_not_a_variable": {"2026": 0},
                 }
             },
         }
@@ -261,8 +425,8 @@ class TestCalculateEndpoint:
             **valid_household_requesting_ctc_calculation,
             "people": {
                 "you": {
-                    "age": {"2024": 40},
-                    "definitely_not_a_variable": {"2024": 0},
+                    "age": {"2026": 40},
+                    "definitely_not_a_variable": {"2026": 0},
                 }
             },
         }
@@ -382,8 +546,8 @@ class TestCalculateEndpoint:
             **valid_household_requesting_ctc_calculation,
             "people": {
                 "you": {
-                    "age": {"2024": 40},
-                    long_variable_name: {"2024": 0},
+                    "age": {"2026": 40},
+                    long_variable_name: {"2026": 0},
                 }
             },
         }
@@ -414,9 +578,9 @@ class TestCalculateEndpoint:
             **valid_household_requesting_ctc_calculation,
             "people": {
                 "you": {
-                    "age": {"2024": 40},
-                    first_variable_name: {"2024": 0},
-                    second_variable_name: {"2024": 1},
+                    "age": {"2026": 40},
+                    first_variable_name: {"2026": 0},
+                    second_variable_name: {"2026": 1},
                 }
             },
         }
@@ -445,22 +609,19 @@ class TestCalculateEndpoint:
             == 2
         )
 
-    def test__given_ai_explainer_tracer_fails__returns_500(
-        self, client, ai_explainer_tracer_failure
-    ):
+    def test__extraneous_request_key_is_ignored(self, client):
         response = client.post(
             "/us/calculate",
             json={
                 "household": valid_household_requesting_ctc_calculation,
-                "enable_ai_explainer": True,
+                "extraneous_key": True,
             },
             headers=self.auth_headers,
         )
 
-        assert response.status_code == 500
+        assert response.status_code == 200
         payload = json.loads(response.data)
-        assert payload["status"] == "error"
-        assert "tracer down" in payload["message"]
+        assert payload["status"] == "ok"
 
 
 class TestAxesValidation:

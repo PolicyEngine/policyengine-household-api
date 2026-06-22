@@ -21,8 +21,8 @@ class TestDropDeprecatedInputs:
         household = {
             "people": {
                 "you": {
-                    "age": {"2025": 49},
-                    "medical_out_of_pocket_expenses": {"2025": 0},
+                    "age": {"2026": 49},
+                    "medical_out_of_pocket_expenses": {"2026": 0},
                 }
             }
         }
@@ -34,7 +34,7 @@ class TestDropDeprecatedInputs:
 
         assert "medical_out_of_pocket_expenses" not in cleaned["people"]["you"]
         assert household == original
-        assert cleaned["people"]["you"]["age"] == {"2025": 49}
+        assert cleaned["people"]["you"]["age"] == {"2026": 49}
         assert len(warnings) == 1
         assert isinstance(result, DeprecatedInputsResult)
         assert isinstance(warnings[0], DeprecatedVariableWarning)
@@ -45,7 +45,7 @@ class TestDropDeprecatedInputs:
 
     def test__no_deprecated_variables__returns_empty(self):
         household = {
-            "people": {"you": {"age": {"2025": 49}}},
+            "people": {"you": {"age": {"2026": 49}}},
             "households": {"household": {"members": ["you"]}},
         }
         original = copy.deepcopy(household)
@@ -61,10 +61,10 @@ class TestDropDeprecatedInputs:
         household = {
             "people": {
                 "you": {
-                    "medical_out_of_pocket_expenses": {"2025": 100},
+                    "medical_out_of_pocket_expenses": {"2026": 100},
                 },
                 "spouse": {
-                    "medical_out_of_pocket_expenses": {"2025": 200},
+                    "medical_out_of_pocket_expenses": {"2026": 200},
                 },
             }
         }
@@ -84,7 +84,7 @@ class TestDropDeprecatedInputs:
         # `axes` is a list at the household level, not an entity dict.
         # The helper must skip it without raising.
         household = {
-            "people": {"you": {"age": {"2025": 49}}},
+            "people": {"you": {"age": {"2026": 49}}},
             "axes": [[{"name": "employment_income", "count": 5}]],
         }
         original = copy.deepcopy(household)
@@ -99,19 +99,19 @@ class TestDropDeprecatedInputs:
 
     def test__deprecated_axis_name__is_dropped_with_warning(self):
         household = {
-            "people": {"you": {"age": {"2025": 49}}},
+            "people": {"you": {"age": {"2026": 49}}},
             "axes": [
                 [
                     {
                         "name": "medical_out_of_pocket_expenses",
-                        "period": "2025",
+                        "period": "2026",
                         "min": 0,
                         "max": 100,
                         "count": 2,
                     },
                     {
                         "name": "employment_income",
-                        "period": "2025",
+                        "period": "2026",
                         "min": 0,
                         "max": 100,
                         "count": 2,
@@ -128,7 +128,7 @@ class TestDropDeprecatedInputs:
             [
                 {
                     "name": "employment_income",
-                    "period": "2025",
+                    "period": "2026",
                     "min": 0,
                     "max": 100,
                     "count": 2,
@@ -143,12 +143,12 @@ class TestDropDeprecatedInputs:
 
     def test__only_deprecated_axis_names__removes_axes_key(self):
         household = {
-            "people": {"you": {"age": {"2025": 49}}},
+            "people": {"you": {"age": {"2026": 49}}},
             "axes": [
                 [
                     {
                         "name": "medical_out_of_pocket_expenses",
-                        "period": "2025",
+                        "period": "2026",
                         "min": 0,
                         "max": 100,
                         "count": 2,
@@ -171,7 +171,7 @@ class TestDropDeprecatedInputs:
             "spm_units": {
                 "spm_unit": {
                     "members": ["you"],
-                    "snap": {"2025": None},
+                    "snap": {"2026": None},
                 }
             }
         }

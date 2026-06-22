@@ -9,14 +9,12 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.13.0",
-    "anthropic",
     "Authlib>=1.7.0",
     "cloud-sql-python-connector",
     "flask>=2.2",
     "flask-cors>=3",
     "flask-sqlalchemy>=3",
     "google-cloud-logging",
-    "google-cloud-storage",
     "gunicorn",
     "inflect",
     "joserfc>=1.6.0",

@@ -567,15 +567,15 @@ paths:
                     people:
                       you:
                         age:
-                          "2025": 30
+                          "2026": 30
                         employment_income:
-                          "2025": 50000
+                          "2026": 50000
                     households:
                       your household:
                         members:
                           - you
                         state_name:
-                          "2025": CA
+                          "2026": CA
                     families:
                       your family:
                         members:
@@ -599,9 +599,9 @@ paths:
                     people:
                       person:
                         age:
-                          "2025": 30
+                          "2026": 30
                         employment_income:
-                          "2025": 30000
+                          "2026": 30000
                     benunits:
                       benunit:
                         members:
@@ -627,13 +627,13 @@ paths:
                       people:
                         you:
                           age:
-                            "2025": 30
+                            "2026": 30
                           employment_income:
-                            "2025": 50000
+                            "2026": 50000
                       households:
                         your household:
                           household_net_income:
-                            "2025": 46375.0
+                            "2026": 46375.0
                     policyengine_bundle:
                       model_version: 1.687.0
                       data_version: null
@@ -686,143 +686,6 @@ paths:
                     type: string
                   message:
                     type: string
-  /analytics/calculate/requests:
-    get:
-      summary: Get calculate request variable analytics
-      operationId: get_calculate_analytics_requests
-      description: Returns value-free analytics records for inbound calculate requests. Requires a bearer token with the read:calculate-analytics scope. Each record includes request metadata and grouped variable keys, but not household values, household entity IDs, request bodies, response bodies, or client IDs.
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: start_time
-          in: query
-          description: "Optional inclusive ISO 8601 lower bound for request creation time. Alias: start."
-          required: false
-          schema:
-            type: string
-            format: date-time
-        - name: end_time
-          in: query
-          description: "Optional inclusive ISO 8601 upper bound for request creation time. Alias: end."
-          required: false
-          schema:
-            type: string
-            format: date-time
-        - name: requested_version
-          in: query
-          description: Optional filter for the Modal request version selector, such as current, frontier, or an exact package version.
-          required: false
-          schema:
-            type: string
-        - name: resolved_channel
-          in: query
-          description: Optional filter for the Modal channel that served the request.
-          required: false
-          schema:
-            $ref: "#/components/schemas/CalculateAnalyticsResolvedChannel"
-        - name: unique
-          in: query
-          description: When true, return one row per unique variable key instead of one row per calculate request.
-          required: false
-          schema:
-            type: boolean
-            default: false
-        - name: limit
-          in: query
-          description: Maximum number of request records returned when unique is false.
-          required: false
-          schema:
-            type: integer
-            default: 1000
-            minimum: 1
-            maximum: 10000
-      responses:
-        200:
-          description: Calculate request analytics.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CalculateAnalyticsResponse"
-              examples:
-                request_records:
-                  summary: Request records
-                  value:
-                    status: ok
-                    message: null
-                    start_time: "2026-05-07T00:00:00Z"
-                    end_time: "2026-05-13T00:00:00Z"
-                    requested_version: null
-                    resolved_channel: null
-                    unique: false
-                    requests:
-                      - request_uuid: "018f79e7-6ee3-7621-9eda-6d29cf0cf910"
-                        created_at: "2026-05-10T12:00:00Z"
-                        api_version: "0.17.0"
-                        country_id: us
-                        model_version: "1.691.1"
-                        requested_version: frontier
-                        resolved_channel: frontier
-                        endpoint: calculate
-                        method: POST
-                        response_status_code: 200
-                        distinct_variable_count: 2
-                        unsupported_variable_count: 0
-                        deprecated_allowlisted_variable_count: 0
-                        variables:
-                          - variable_name: employment_income
-                            entity_type: person
-                            source: household_input
-                            period_granularity: year
-                            entity_count: 1
-                            period_count: 1
-                            occurrence_count: 1
-                            availability_status: supported
-                            variable_name_truncated: false
-                unique_keys:
-                  summary: Unique variable keys
-                  value:
-                    status: ok
-                    message: null
-                    start_time: null
-                    end_time: null
-                    requested_version: null
-                    resolved_channel: null
-                    unique: true
-                    unique_keys:
-                      - variable_name: age
-                        entity_type: person
-                        source: household_input
-                        period_granularity: year
-                        availability_status: supported
-                        variable_name_truncated: false
-                        request_count: 12
-                        occurrence_count: 18
-                        first_seen: "2026-05-01T00:00:00Z"
-                        last_seen: "2026-05-13T00:00:00Z"
-        400:
-          description: Invalid analytics query parameter.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiErrorResponse"
-        401:
-          description: Missing or invalid bearer token.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        403:
-          description: The bearer token is valid but does not include the read:calculate-analytics scope.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        503:
-          description: Analytics storage is disabled or not ready.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiErrorResponse"
   /{country_id}/economy/{policy_id}/over/{baseline_policy_id}:
     get:
       summary: Calculate the economic impact of a policy
@@ -1113,7 +976,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Hosted API requests require an Auth0 bearer token. Local Docker requests usually run without authentication. Analytics endpoints may require additional OAuth scopes.
+      description: Hosted API requests require an Auth0 bearer token. Local Docker requests usually run without authentication.
   schemas:
     CalculateRequest:
       type: object
@@ -1126,10 +989,6 @@ components:
           type: object
           description: Optional policy reform object passed through to the country model.
           additionalProperties: true
-        enable_ai_explainer:
-          type: boolean
-          default: false
-          description: When true, the response includes a computation tree UUID that can be passed to the AI analysis endpoint.
       additionalProperties: false
     Household:
       type: object
@@ -1166,9 +1025,9 @@ components:
       example:
         you:
           age:
-            "2025": 30
+            "2026": 30
           employment_income:
-            "2025": 50000
+            "2026": 50000
     Entity:
       type: object
       description: Variables for one entity. The members property links group entities back to people.
@@ -1185,7 +1044,7 @@ components:
       additionalProperties:
         $ref: "#/components/schemas/HouseholdValue"
       example:
-        "2025": 50000
+        "2026": 50000
     HouseholdValue:
       description: A model input or output value for one period.
       nullable: true
@@ -1219,7 +1078,7 @@ components:
         period:
           type: string
           description: Period to scan.
-          example: "2025"
+          example: "2026"
         min:
           type: number
           example: 0
@@ -1255,10 +1114,6 @@ components:
           description: Non-fatal request warnings, such as deprecated variable inputs or surprising period shapes.
           items:
             type: string
-        computation_tree_uuid:
-          type: string
-          format: uuid
-          description: Returned only when enable_ai_explainer is true.
     CalculationResult:
       type: object
       description: Calculated household data, keyed by entity group, entity ID, variable name, and period.
@@ -1305,171 +1160,3 @@ components:
           type: string
         error_description:
           type: string
-    CalculateAnalyticsResponse:
-      type: object
-      required:
-        - status
-        - message
-        - start_time
-        - end_time
-        - unique
-      properties:
-        status:
-          type: string
-          enum:
-            - ok
-        message:
-          type: string
-          nullable: true
-        start_time:
-          type: string
-          format: date-time
-          nullable: true
-        end_time:
-          type: string
-          format: date-time
-          nullable: true
-        requested_version:
-          type: string
-          nullable: true
-        resolved_channel:
-          type: string
-          nullable: true
-          enum:
-            - current
-            - frontier
-        unique:
-          type: boolean
-        requests:
-          type: array
-          items:
-            $ref: "#/components/schemas/CalculateAnalyticsRequestRecord"
-        unique_keys:
-          type: array
-          items:
-            $ref: "#/components/schemas/CalculateAnalyticsVariableKeySummary"
-    CalculateAnalyticsRequestRecord:
-      type: object
-      properties:
-        request_uuid:
-          type: string
-          format: uuid
-        created_at:
-          type: string
-          format: date-time
-        api_version:
-          type: string
-          nullable: true
-        country_id:
-          type: string
-        model_version:
-          type: string
-          nullable: true
-        requested_version:
-          type: string
-          nullable: true
-        resolved_channel:
-          type: string
-          nullable: true
-          enum:
-            - current
-            - frontier
-        endpoint:
-          type: string
-          nullable: true
-        method:
-          type: string
-          enum:
-            - DELETE
-            - GET
-            - HEAD
-            - OPTIONS
-            - PATCH
-            - POST
-            - PUT
-        response_status_code:
-          type: integer
-          nullable: true
-        distinct_variable_count:
-          type: integer
-        unsupported_variable_count:
-          type: integer
-        deprecated_allowlisted_variable_count:
-          type: integer
-        variables:
-          type: array
-          items:
-            $ref: "#/components/schemas/CalculateAnalyticsVariableRecord"
-    CalculateAnalyticsVariableRecord:
-      type: object
-      properties:
-        variable_name:
-          type: string
-        entity_type:
-          type: string
-        source:
-          $ref: "#/components/schemas/CalculateAnalyticsVariableSource"
-        period_granularity:
-          $ref: "#/components/schemas/CalculateAnalyticsPeriodGranularity"
-        entity_count:
-          type: integer
-        period_count:
-          type: integer
-        occurrence_count:
-          type: integer
-        availability_status:
-          $ref: "#/components/schemas/CalculateAnalyticsAvailabilityStatus"
-        variable_name_truncated:
-          type: boolean
-    CalculateAnalyticsVariableKeySummary:
-      type: object
-      properties:
-        variable_name:
-          type: string
-        entity_type:
-          type: string
-        source:
-          $ref: "#/components/schemas/CalculateAnalyticsVariableSource"
-        period_granularity:
-          $ref: "#/components/schemas/CalculateAnalyticsPeriodGranularity"
-        availability_status:
-          $ref: "#/components/schemas/CalculateAnalyticsAvailabilityStatus"
-        variable_name_truncated:
-          type: boolean
-        request_count:
-          type: integer
-        occurrence_count:
-          type: integer
-        first_seen:
-          type: string
-          format: date-time
-        last_seen:
-          type: string
-          format: date-time
-    CalculateAnalyticsResolvedChannel:
-      type: string
-      enum:
-        - current
-        - frontier
-    CalculateAnalyticsVariableSource:
-      type: string
-      enum:
-        - household_input
-        - requested_output
-        - mixed
-        - axis
-    CalculateAnalyticsAvailabilityStatus:
-      type: string
-      enum:
-        - supported
-        - deprecated_allowlisted
-        - unsupported
-    CalculateAnalyticsPeriodGranularity:
-      type: string
-      enum:
-        - year
-        - month
-        - day
-        - mixed
-        - none
-        - unknown

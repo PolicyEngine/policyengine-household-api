@@ -64,12 +64,3 @@ def calculate_analytics_capture():
 
         mock_db.session.flush.side_effect = assign_ids_on_flush
         yield CalculateAnalyticsCapture(mock_db)
-
-
-@pytest.fixture
-def ai_explainer_tracer_failure():
-    with patch(
-        "policyengine_household_api.country.generate_computation_tree",
-        side_effect=RuntimeError("tracer down"),
-    ) as mock_tracer:
-        yield mock_tracer

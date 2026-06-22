@@ -4,11 +4,11 @@ from enum import Enum
 
 example_household_us = {
     "people": {
-        "you": {"age": {"2024": 40}, "employment_income": {"2024": 29000}},
+        "you": {"age": {"2026": 40}, "employment_income": {"2026": 29000}},
         "your first dependent": {
-            "age": {"2024": 5},
-            "employment_income": {"2024": 0},
-            "is_tax_unit_dependent": {"2024": True},
+            "age": {"2026": 5},
+            "employment_income": {"2026": 0},
+            "is_tax_unit_dependent": {"2026": True},
         },
     },
     "families": {"your family": {"members": ["you", "your first dependent"]}},
@@ -21,14 +21,14 @@ example_household_us = {
     "households": {
         "your household": {
             "members": ["you", "your first dependent"],
-            "state_name": {"2024": "CA"},
+            "state_name": {"2026": "CA"},
         }
     },
     "marital_units": {
         "your marital unit": {"members": ["you"]},
         "your first dependent's marital unit": {
             "members": ["your first dependent"],
-            "marital_unit_id": {"2024": 1},
+            "marital_unit_id": {"2026": 1},
         },
     },
 }

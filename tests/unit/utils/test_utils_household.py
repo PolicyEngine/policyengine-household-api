@@ -31,7 +31,7 @@ class TestFlattenVariablesFromHousehold:
 
     def test__given_three_periods__three_entries_returned(self):
         household = _build_household(
-            {"2024": 1000, "2025": 2000, "2026": 3000}
+            {"2026": 1000, "2027": 2000, "2028": 3000}
         )
 
         flattened = flatten_variables_from_household(household)
@@ -41,12 +41,12 @@ class TestFlattenVariablesFromHousehold:
         ]
         assert len(employment_income) == 3
         periods = {v.period for v in employment_income}
-        assert periods == {"2024", "2025", "2026"}
+        assert periods == {"2026", "2027", "2028"}
         values = {v.period: v.value for v in employment_income}
-        assert values == {"2024": 1000, "2025": 2000, "2026": 3000}
+        assert values == {"2026": 1000, "2027": 2000, "2028": 3000}
 
     def test__given_single_period__single_entry_returned(self):
-        household = _build_household({"2024": 5000})
+        household = _build_household({"2026": 5000})
 
         flattened = flatten_variables_from_household(household)
 
@@ -54,7 +54,7 @@ class TestFlattenVariablesFromHousehold:
             v for v in flattened if v.variable == "employment_income"
         ]
         assert len(employment_income) == 1
-        assert employment_income[0].period == "2024"
+        assert employment_income[0].period == "2026"
         assert employment_income[0].value == 5000
 
     def test__given_variable_with_zero_periods__no_entries_and_no_error(
@@ -89,12 +89,12 @@ class TestFlattenVariablesFromHousehold:
         assert employment_income == []
 
     def test__given_filter__only_matching_entries_returned(self):
-        household = _build_household({"2024": 1, "2025": 2})
+        household = _build_household({"2026": 1, "2027": 2})
 
         flattened = flatten_variables_from_household(
             household,
             filter=FlattenedVariableFilter(
-                filter_on="period", desired_value="2025"
+                filter_on="period", desired_value="2027"
             ),
         )
 
@@ -102,4 +102,4 @@ class TestFlattenVariablesFromHousehold:
             v for v in flattened if v.variable == "employment_income"
         ]
         assert len(employment_income) == 1
-        assert employment_income[0].period == "2025"
+        assert employment_income[0].period == "2027"

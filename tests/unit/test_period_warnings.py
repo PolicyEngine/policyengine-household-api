@@ -285,8 +285,8 @@ class TestEndpointAttachesWarnings:
             "spm_units": {
                 "spm_unit": {
                     "members": ["you"],
-                    "snap_earned_income": {"2024-01": 3000},
-                    "snap": {"2024": None},
+                    "snap_earned_income": {"2026-01": 3000},
+                    "snap": {"2026": None},
                 }
             },
         }
@@ -323,8 +323,8 @@ class TestEndpointAttachesWarnings:
             valid_household_requesting_ctc_calculation,
         )
 
-        explicit = {f"2024-{m:02d}": 50 for m in range(1, 13)}
-        explicit["2024"] = 1200  # monthlies sum to $600
+        explicit = {f"2026-{m:02d}": 50 for m in range(1, 13)}
+        explicit["2026"] = 1200  # monthlies sum to $600
         household = {
             **valid_household_requesting_ctc_calculation,
             "spm_units": {

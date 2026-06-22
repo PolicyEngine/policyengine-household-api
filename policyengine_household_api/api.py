@@ -32,7 +32,6 @@ from .endpoints import (
     get_home,
     get_calculate_analytics_requests,
     get_calculate,
-    generate_ai_explainer,
 )
 
 # Create the authentication decorator (will be either Auth0 or no-op based on config)
@@ -86,12 +85,6 @@ def calculate(country_id):
 @limiter.limit("60 per minute")
 def calculate_analytics_requests():
     return get_calculate_analytics_requests()
-
-
-@app.route("/<country_id>/ai-analysis", methods=["POST"])
-@require_auth_if_enabled()
-def ai_analysis(country_id: str):
-    return generate_ai_explainer(country_id)
 
 
 @app.route("/liveness_check", methods=["GET"])

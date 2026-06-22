@@ -9,6 +9,7 @@ pytest_plugins = [
     "tests.fixtures.decorators.analytics_patches",
     "tests.fixtures.endpoints.analytics",
     "tests.fixtures.endpoints.household",
+    "tests.fixtures.utils.config_loader",
 ]
 
 

@@ -53,3 +53,8 @@ class TestHomeEndpoint:
             == "#/components/schemas/CalculateRequest"
         )
         assert "bearerAuth" in payload["components"]["securitySchemes"]
+        assert "/analytics/calculate/requests" not in payload["paths"]
+        assert not any(
+            schema_name.startswith("CalculateAnalytics")
+            for schema_name in payload["components"]["schemas"]
+        )

@@ -2,10 +2,8 @@
 Unit tests for the ConfigLoader class.
 """
 
-import os
 import pytest
 import yaml
-from pathlib import Path
 from unittest.mock import patch
 import logging
 
@@ -17,34 +15,9 @@ from policyengine_household_api.utils.config_loader import (
 from tests.fixtures.utils.config_loader import (
     DEFAULT_CONFIG_DATA,
     EXTERNAL_CONFIG_DATA,
-    CUSTOM_CONFIG_DATA,
     ENV_VAR_TEST_DATA,
     DOUBLE_UNDERSCORE_ENV_VARS,
     TYPE_CONVERSION_TEST_CASES,
-    temp_custom_config,
-    temp_default_config,
-    temp_external_config,
-    temp_empty_config,
-    temp_invalid_yaml_config,
-    clean_env,
-    config_with_env_vars,
-    config_with_double_underscore,
-    config_with_mixed_env_vars,
-    # CONFIG_VALUE_SETTINGS fixtures
-    temp_valid_config_values_file,
-    temp_config_with_variables,
-    temp_missing_vars_config_values,
-    temp_config_with_missing_var,
-    temp_invalid_format_values_file,
-    temp_invalid_key_number_values_file,
-    temp_duplicate_keys_values_file,
-    temp_config_with_duplicate_key,
-    temp_empty_values_file,
-    temp_complex_values_file,
-    temp_config_with_complex_values,
-    temp_realistic_values_file,
-    temp_realistic_config_with_vars,
-    temp_no_read_permission_values_file,
 )
 
 
@@ -204,10 +177,6 @@ class TestEnvironmentVariableOverrides:
         assert (
             config["auth"]["auth0"]["test_token_scopes"]
             == ENV_VAR_TEST_DATA["AUTH0_TEST_TOKEN_SCOPES"]
-        )
-        assert (
-            config["ai"]["anthropic"]["api_key"]
-            == ENV_VAR_TEST_DATA["ANTHROPIC_API_KEY"]
         )
         assert config["server"]["port"] == int(ENV_VAR_TEST_DATA["PORT"])
 
@@ -978,5 +947,5 @@ class TestConfigValueSettings:
 
         # Verify non-substituted values remain
         assert config["app"]["name"] == "policyengine-household-api"
-        assert config["auth"]["enabled"] == True
-        assert config["analytics"]["enabled"] == True
+        assert config["auth"]["enabled"] is True
+        assert config["analytics"]["enabled"] is True

@@ -154,7 +154,7 @@ def mock_datetime_fixed():
     """Mock datetime to return a fixed (UTC-aware) time."""
     from datetime import timezone
 
-    fixed_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    fixed_time = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     with patch(
         "policyengine_household_api.decorators.analytics.datetime"
     ) as mock_dt:

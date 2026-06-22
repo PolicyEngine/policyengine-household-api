@@ -89,7 +89,7 @@ def mock_db_session():
 @pytest.fixture
 def mock_datetime():
     """Mock datetime to return a fixed time."""
-    fixed_time = datetime(2024, 1, 1, 12, 0, 0)
+    fixed_time = datetime(2026, 1, 1, 12, 0, 0)
     with patch(
         "policyengine_household_api.decorators.analytics.datetime"
     ) as mock_dt:

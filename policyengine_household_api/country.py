@@ -1,21 +1,11 @@
 import importlib
-import logging
+import inspect
 from flask import Response
 import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from typing import Union
-from policyengine_household_api.utils import (
-    get_safe_json,
-    generate_computation_tree,
-)
-from policyengine_household_api.models.computation_tree import (
-    ComputationTree,
-    EntityDescription,
-)
-from policyengine_household_api.utils.google_cloud import (
-    GoogleCloudStorageManager,
-)
+from policyengine_household_api.utils import get_safe_json
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
@@ -29,7 +19,6 @@ import copy
 import dpath
 import math
 from dataclasses import dataclass
-from uuid import UUID, uuid4
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +59,18 @@ def _month_key_year(period_key: str) -> str | None:
 def _is_numeric(value) -> bool:
     """True for int/float numerics; rejects bool because ``bool`` ⊂ ``int`` in Python."""
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _simulation_accepts_tax_benefit_system(simulation_class) -> bool:
+    try:
+        parameters = inspect.signature(simulation_class.__init__).parameters
+    except (TypeError, ValueError):
+        return True
+
+    return "tax_benefit_system" in parameters or any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -515,7 +516,7 @@ class PolicyEngineCountry:
         )
 
     def build_microsimulation_options(self) -> dict:
-        # { region: [{ name: "uk", label: "the UK" }], time_period: [{ name: 2022, label: "2022", ... }] }
+        # { region: [{ name: "uk", label: "the UK" }], time_period: [{ name: 2026, label: "2026", ... }] }
         options = dict()
         if self.country_id == "uk":
             region = [
@@ -526,9 +527,9 @@ class PolicyEngineCountry:
                 dict(name="ni", label="Northern Ireland"),
             ]
             time_period = [
-                dict(name=2023, label="2023"),
+                dict(name=2026, label="2026"),
+                dict(name=2025, label="2025"),
                 dict(name=2024, label="2024"),
-                dict(name=2022, label="2022"),
             ]
             options["region"] = region
             options["time_period"] = time_period
@@ -590,9 +591,9 @@ class PolicyEngineCountry:
                 dict(name="wy", label="Wyoming"),
             ]
             time_period = [
-                dict(name=2023, label="2023"),
-                dict(name=2022, label="2022"),
-                dict(name=2021, label="2021"),
+                dict(name=2026, label="2026"),
+                dict(name=2025, label="2025"),
+                dict(name=2024, label="2024"),
             ]
             options["region"] = region
             options["time_period"] = time_period
@@ -601,7 +602,7 @@ class PolicyEngineCountry:
                 dict(name="ca", label="Canada"),
             ]
             time_period = [
-                dict(name=2023, label="2023"),
+                dict(name=2026, label="2026"),
             ]
             options["region"] = region
             options["time_period"] = time_period
@@ -610,7 +611,7 @@ class PolicyEngineCountry:
                 dict(name="ng", label="Nigeria"),
             ]
             time_period = [
-                dict(name=2023, label="2023"),
+                dict(name=2026, label="2026"),
             ]
             options["region"] = region
             options["time_period"] = time_period
@@ -619,7 +620,7 @@ class PolicyEngineCountry:
                 dict(name="il", label="Israel"),
             ]
             time_period = [
-                dict(name=2023, label="2023"),
+                dict(name=2026, label="2026"),
             ]
             options["region"] = region
             options["time_period"] = time_period
@@ -748,10 +749,17 @@ class PolicyEngineCountry:
         self,
         household: dict,
         reform: Union[dict, None] = None,
-        enable_ai_explainer: bool = False,
     ):
-        if reform is not None and len(reform.keys()) > 0:
-            system = self.tax_benefit_system.clone()
+        simulation_class = self.country_package.Simulation
+        accepts_tax_benefit_system = _simulation_accepts_tax_benefit_system(
+            simulation_class
+        )
+
+        has_reform = reform is not None and len(reform.keys()) > 0
+        system = self.tax_benefit_system
+
+        if accepts_tax_benefit_system and has_reform:
+            system = system.clone()
             for parameter_name in reform:
                 for time_period, value in reform[parameter_name].items():
                     start_instant, end_instant = time_period.split(".")
@@ -770,8 +778,6 @@ class PolicyEngineCountry:
                         stop=instant(end_instant),
                         value=node_type(value),
                     )
-        else:
-            system = self.tax_benefit_system
 
         # Hand a normalized copy to the engine so YEAR-keyed inputs on
         # MONTH-defined variables behave like the hosted v1 API instead of
@@ -780,18 +786,23 @@ class PolicyEngineCountry:
         # can echo back the partner's keys.
         normalized_household = _normalize_period_keys(household, system)
 
-        simulation = self.country_package.Simulation(
-            tax_benefit_system=system,
-            situation=normalized_household,
-        )
+        if accepts_tax_benefit_system:
+            simulation = simulation_class(
+                tax_benefit_system=system,
+                situation=normalized_household,
+            )
+        else:
+            simulation_kwargs = {"situation": normalized_household}
+            if has_reform:
+                simulation_kwargs["reform"] = reform
+            simulation = simulation_class(**simulation_kwargs)
+            system = simulation.tax_benefit_system
 
         # Independent clone for the response-building loop below, which
         # mutates `household` to fill in computed values. Not related to
         # the normalizer above — that one's already a separate copy.
         household = json.loads(json.dumps(household))
 
-        # Run tracer on household
-        simulation.trace = True
         requested_computations = get_requested_computations(household)
 
         for (
@@ -854,43 +865,7 @@ class PolicyEngineCountry:
                         f"Error computing {variable_name} for {entity_id}: {e}"
                     )
 
-        # Execute all household tracer operations
-        try:
-            if enable_ai_explainer:
-                entity_description = EntityDescription.model_validate(
-                    simulation.describe_entities()
-                )
-
-                # Generate tracer output
-                log_lines: list = generate_computation_tree(simulation)
-
-                # Take the tracer output and create a new tracer object,
-                # storing in Google Cloud bucket
-                computation_tree_uuid: UUID = uuid4()
-                computation_tree_record: ComputationTree = ComputationTree(
-                    uuid=computation_tree_uuid,
-                    country_id=self.country_id,
-                    tree=log_lines,
-                    entity_description=entity_description,
-                )
-
-                storage_manager = GoogleCloudStorageManager()
-                storage_manager.store(
-                    uuid=computation_tree_uuid,
-                    data=computation_tree_record,
-                )
-
-                # Return the household and the tracer's UUID
-                return household, str(computation_tree_uuid)
-
-            return household, None
-
-        except Exception:
-            # Re-raise so endpoints/household.py (which unpacks
-            # ``(result, computation_tree_uuid)``) can surface a real
-            # 500 instead of a TypeError on ``None`` unpacking.
-            logging.exception("Tracer failed while computing household")
-            raise
+        return household
 
 
 def create_policy_reform(policy_data: dict) -> dict:

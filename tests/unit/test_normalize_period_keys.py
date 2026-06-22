@@ -618,10 +618,9 @@ class TestSnapInputOutputMatrix:
     ):
         household = _wa_household(income_map, output_key)
 
-        result, _ = us_country.calculate(
+        result = us_country.calculate(
             household=household,
             reform=None,
-            enable_ai_explainer=False,
         )
 
         snap = result["spm_units"]["spm_unit_1"]["snap"]
@@ -636,10 +635,9 @@ class TestSnapInputOutputMatrix:
         # though the engine internally sees the 12-month split.
         household = _wa_household({"2026": 31932}, "2026")
 
-        result, _ = us_country.calculate(
+        result = us_country.calculate(
             household=household,
             reform=None,
-            enable_ai_explainer=False,
         )
 
         echoed = result["spm_units"]["spm_unit_1"]["snap_gross_income"]
@@ -648,10 +646,9 @@ class TestSnapInputOutputMatrix:
     def test__monthly_input_keys_are_also_echoed_unchanged(self, us_country):
         household = _wa_household({"2026-01": 3000}, "2026-01")
 
-        result, _ = us_country.calculate(
+        result = us_country.calculate(
             household=household,
             reform=None,
-            enable_ai_explainer=False,
         )
 
         echoed = result["spm_units"]["spm_unit_1"]["snap_gross_income"]

@@ -2,7 +2,6 @@ import json
 import logging
 from flask import Response, request
 from pydantic import ValidationError
-from uuid import UUID
 from policyengine_household_api.country import (
     COUNTRIES,
     detect_period_warnings,
@@ -139,8 +138,6 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         payload = request.json or {}
         household_json = payload.get("household", {})
         policy_json = payload.get("policy", {})
-        enable_ai_explainer = payload.get("enable_ai_explainer", False)
-        set_attribute("enable_ai_explainer", enable_ai_explainer)
 
     country = COUNTRIES.get(country_id)
     set_attribute(
@@ -222,11 +219,8 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     try:
         result: dict
-        computation_tree_uuid: UUID | None
         with segment("calculation"):
-            result, computation_tree_uuid = country.calculate(
-                household_json, policy_json, enable_ai_explainer
-            )
+            result = country.calculate(household_json, policy_json)
     except Exception as e:
         logging.exception(e)
         record_error(e, handled=True, status_code=500)
@@ -253,9 +247,6 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         # Serialize to strings on the wire; the structured dataclasses
         # stay available for any future caller that wants the fields.
         response_body["warnings"] = warning_messages
-
-    if enable_ai_explainer:
-        response_body["computation_tree_uuid"] = str(computation_tree_uuid)
 
     return _json_response(response_body, status=200)
 
