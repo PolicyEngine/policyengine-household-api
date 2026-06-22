@@ -1,6 +1,7 @@
 import json
 
 from policyengine_household_api.api import get_api_version
+from policyengine_household_api.constants import COUNTRIES
 
 
 class TestHomeEndpoint:
@@ -46,12 +47,25 @@ class TestHomeEndpoint:
         assert payload["openapi"] == "3.0.0"
         assert payload["info"]["title"] == "PolicyEngine Household API"
         assert payload["info"]["version"] == get_api_version()
+        calculate = payload["paths"]["/{country_id}/calculate"]["post"]
         assert (
-            payload["paths"]["/{country_id}/calculate"]["post"]["requestBody"][
-                "content"
-            ]["application/json"]["schema"]["$ref"]
+            calculate["requestBody"]["content"]["application/json"]["schema"][
+                "$ref"
+            ]
             == "#/components/schemas/CalculateRequest"
         )
+
+        country_parameter = next(
+            parameter
+            for parameter in calculate["parameters"]
+            if parameter["name"] == "country_id"
+        )
+        assert country_parameter["schema"]["enum"] == list(COUNTRIES)
+
+        calculate_request = payload["components"]["schemas"]["CalculateRequest"]
+        assert calculate_request["properties"]["version"]["default"] == "current"
+        assert "403" not in calculate["responses"]
+
         assert "bearerAuth" in payload["components"]["securitySchemes"]
         assert "/analytics/calculate/requests" not in payload["paths"]
         assert not any(

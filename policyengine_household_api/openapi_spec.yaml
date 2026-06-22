@@ -551,8 +551,11 @@ paths:
           schema:
             type: string
             enum:
-              - us
               - uk
+              - us
+              - ca
+              - ng
+              - il
       requestBody:
         required: true
         content:
@@ -563,6 +566,7 @@ paths:
               us_single_adult:
                 summary: US single adult
                 value:
+                  version: current
                   household:
                     people:
                       you:
@@ -576,6 +580,8 @@ paths:
                           - you
                         state_name:
                           "2026": CA
+                        household_net_income:
+                          "2026": null
                     families:
                       your family:
                         members:
@@ -595,6 +601,7 @@ paths:
               uk_single_adult:
                 summary: UK single adult
                 value:
+                  version: current
                   household:
                     people:
                       person:
@@ -633,9 +640,9 @@ paths:
                       households:
                         your household:
                           household_net_income:
-                            "2026": 46375.0
+                            "2026": 40697.14
                     policyengine_bundle:
-                      model_version: 1.687.0
+                      model_version: 1.732.0
                       data_version: null
                       dataset: null
         400:
@@ -651,7 +658,7 @@ paths:
                     status: error
                     message: Invalid household variables.
                     errors:
-                      - Variable `not_a_variable` on `people/you` is not available in PolicyEngine model version 1.687.0 used by this API. Remove it or migrate to a supported variable.
+                      - Variable `not_a_variable` on `people/you` is not available in PolicyEngine model version 1.732.0 used by this API. Remove it or migrate to a supported variable.
                 invalid_payload:
                   summary: Invalid household payload
                   value:
@@ -659,12 +666,6 @@ paths:
                     message: "'household' must be a JSON object"
         401:
           description: Missing or invalid bearer token.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        403:
-          description: The bearer token is valid but not authorized for this API.
           content:
             application/json:
               schema:
@@ -983,6 +984,10 @@ components:
       required:
         - household
       properties:
+        version:
+          type: string
+          default: current
+          description: Hosted gateway release selector. Use current, frontier, or an exact numerical model version; local Docker requests may omit this field.
         household:
           $ref: "#/components/schemas/Household"
         policy:
