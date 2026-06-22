@@ -35,12 +35,12 @@ from policyengine_household_api.failover.manifest import (
 from policyengine_household_api.failover.request_limits import (
     max_content_length_bytes,
 )
-from policyengine_household_api.observability import SegmentName
-from policyengine_household_api.observability import init_observability
-from policyengine_household_api.observability import record_error
-from policyengine_household_api.observability import record_event
-from policyengine_household_api.observability import set_attribute
-from policyengine_household_api.observability import segment
+from policyengine_household_api.observability.flask import init_observability
+from policyengine_household_api.observability.segments import SegmentName
+from policyengine_observability import record_error
+from policyengine_observability import record_event
+from policyengine_observability import segment
+from policyengine_observability import set_attribute
 from policyengine_household_api.modal_release.gateway import (
     VERSIONED_ENDPOINTS,
     _country_and_endpoint,

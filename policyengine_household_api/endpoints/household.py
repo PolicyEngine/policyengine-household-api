@@ -1,6 +1,9 @@
 import json
 import logging
 from flask import Response, request
+from policyengine_observability import record_error
+from policyengine_observability import segment
+from policyengine_observability import set_attribute
 from pydantic import ValidationError
 from policyengine_household_api.country import (
     COUNTRIES,
@@ -13,10 +16,7 @@ from policyengine_household_api.models.household import (
     HouseholdModelUK,
     HouseholdModelUS,
 )
-from policyengine_household_api.observability import SegmentName
-from policyengine_household_api.observability import record_error
-from policyengine_household_api.observability import set_attribute
-from policyengine_household_api.observability import segment
+from policyengine_household_api.observability.segments import SegmentName
 from policyengine_household_api.utils.deprecated_inputs import (
     drop_deprecated_inputs,
 )

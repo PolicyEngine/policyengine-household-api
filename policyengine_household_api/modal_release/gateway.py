@@ -7,17 +7,17 @@ from typing import Any, Callable
 from flask import Flask, Response, jsonify, request
 
 from policyengine_household_api.constants import COUNTRIES
-from policyengine_household_api.observability import (
+from policyengine_household_api.observability.flask import init_observability
+from policyengine_household_api.observability.segments import SegmentName
+from policyengine_observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
     REQUEST_ID_HEADER,
-    SegmentName,
     TRACEPARENT_HEADER,
     current_context,
-    traceparent_header,
-    init_observability,
     record_error,
-    set_attribute,
     segment,
+    set_attribute,
+    traceparent_header,
 )
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,

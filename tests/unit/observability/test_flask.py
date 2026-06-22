@@ -4,27 +4,26 @@ from types import SimpleNamespace
 
 from flask import Flask
 import pytest
-
-from policyengine_household_api.observability import (
+from policyengine_observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
-    REQUEST_ID_HEADER,
-    SegmentName,
-    current_context,
-    init_observability,
-    observability_runtime,
-    segment,
-)
-import policyengine_household_api.observability as observability
-from policyengine_household_api.observability.runtime import (
-    INTERNAL_LOGGER,
-    REQUEST_LOGGER,
-    ObservabilityRuntime,
-    RequestObservabilityContext,
-    set_observability_runtime,
-)
-from policyengine_household_api.observability.config import (
     ObservabilityConfig,
+    ObservabilityRuntime,
+    REQUEST_ID_HEADER,
+    RequestObservabilityContext,
+    current_context,
+    observability_runtime,
+    record_error,
+    record_event,
+    segment,
+    set_attribute,
+    set_observability_runtime,
+    traceparent_header,
 )
+from policyengine_observability.runtime import INTERNAL_LOGGER
+from policyengine_observability.runtime import REQUEST_LOGGER
+from policyengine_household_api.observability.flask import init_observability
+from policyengine_household_api.observability.segments import SegmentName
+import policyengine_household_api.observability as household_observability
 
 
 class OTelFailure(BaseException):
@@ -75,7 +74,11 @@ def test_request_log_contains_request_metadata_and_timing(monkeypatch):
 
 def _runtime_with_context(monkeypatch):
     context = RequestObservabilityContext(
-        config=ObservabilityConfig(service_role="test_api"),
+        config=ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
         request_id="req-123",
         method="GET",
         route="/ok",
@@ -86,7 +89,12 @@ def _runtime_with_context(monkeypatch):
         inbound={},
     )
     runtime = ObservabilityRuntime(
-        ObservabilityConfig(service_role="test_api")
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
+        segment_registry=SegmentName,
     )
     runtime.enabled = True
     monkeypatch.setattr(runtime, "current_context", lambda: context)
@@ -113,7 +121,11 @@ def test_internal_dispatch_suppresses_external_request_log(monkeypatch):
 
 def test_metric_attributes_exclude_high_cardinality_request_fields():
     context = RequestObservabilityContext(
-        config=ObservabilityConfig(service_role="test_api"),
+        config=ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
         request_id="req-123",
         method="GET",
         route="/ok",
@@ -289,7 +301,12 @@ def test_segment_logs_and_swallows_otel_span_enter_failure(monkeypatch):
             return None
 
     runtime = ObservabilityRuntime(
-        ObservabilityConfig(service_role="test_api")
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
+        segment_registry=SegmentName,
     )
     runtime.enabled = True
     runtime.tracer = SimpleNamespace(
@@ -318,7 +335,12 @@ def test_segment_preserves_app_exception_when_otel_exit_fails(
             raise OTelFailure("otel exit failed")
 
     runtime = ObservabilityRuntime(
-        ObservabilityConfig(service_role="test_api")
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
+        segment_registry=SegmentName,
     )
     runtime.enabled = True
     runtime.tracer = SimpleNamespace(
@@ -340,7 +362,11 @@ def test_segment_preserves_app_exception_when_metric_recording_fails(
     internal_logs = []
     monkeypatch.setattr(INTERNAL_LOGGER, "error", internal_logs.append)
     context = RequestObservabilityContext(
-        config=ObservabilityConfig(service_role="test_api"),
+        config=ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
         request_id="req-123",
         method="GET",
         route="/ok",
@@ -351,7 +377,12 @@ def test_segment_preserves_app_exception_when_metric_recording_fails(
         inbound={},
     )
     runtime = ObservabilityRuntime(
-        ObservabilityConfig(service_role="test_api")
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
+        segment_registry=SegmentName,
     )
     runtime.enabled = True
     monkeypatch.setattr(runtime, "current_context", lambda: context)
@@ -378,7 +409,12 @@ def test_observability_failure_logging_falls_back_to_stderr(
     capsys,
 ):
     runtime = ObservabilityRuntime(
-        ObservabilityConfig(service_role="test_api")
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_api",
+            span_prefix="household",
+        ),
+        segment_registry=SegmentName,
     )
 
     def fail_logger(_record):
@@ -399,37 +435,34 @@ def test_observability_failure_logging_falls_back_to_stderr(
 def test_disabled_runtime_is_noop(monkeypatch):
     internal_logs = []
     monkeypatch.setattr(INTERNAL_LOGGER, "error", internal_logs.append)
-    runtime = ObservabilityRuntime(ObservabilityConfig(enabled=False))
+    runtime = ObservabilityRuntime(
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            enabled=False,
+        ),
+        segment_registry=SegmentName,
+    )
     set_observability_runtime(runtime)
 
     with segment("disabled"):
         pass
-    observability.set_attribute("country_id", "us")
-    observability.record_event("disabled_event")
-    observability.record_error(
+    set_attribute("country_id", "us")
+    record_event("disabled_event")
+    record_error(
         RuntimeError("disabled"),
         handled=True,
         status_code=500,
     )
 
     assert observability_runtime() is runtime
-    assert observability.traceparent_header() is None
+    assert traceparent_header() is None
     assert internal_logs == []
 
 
-def test_public_api_excludes_removed_helper_names():
-    assert "SegmentName" in observability.__all__
-    assert "segment" in observability.__all__
-    assert "set_attribute" in observability.__all__
-    assert "traceparent_header" in observability.__all__
-    removed_names = [
-        "timed" + "_segment",
-        "set_request" + "_attribute",
-        "current_traceparent" + "_header",
-    ]
-    for name in removed_names:
-        assert name not in observability.__all__
-        assert not hasattr(observability, name)
+def test_household_package_does_not_reexport_shared_runtime_helpers():
+    assert not hasattr(household_observability, "segment")
+    assert not hasattr(household_observability, "set_attribute")
+    assert not hasattr(household_observability, "traceparent_header")
 
 
 def test_production_segment_call_sites_use_registry():

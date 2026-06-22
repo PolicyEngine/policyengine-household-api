@@ -19,7 +19,7 @@ import yaml
 from policyengine_household_api.data.analytics_setup import (
     initialize_analytics_db_if_enabled,
 )
-from policyengine_household_api.observability import init_observability
+from policyengine_household_api.observability.flask import init_observability
 
 # Internal imports
 from .decorators.auth import ANALYTICS_READ_SCOPE, create_auth_decorator

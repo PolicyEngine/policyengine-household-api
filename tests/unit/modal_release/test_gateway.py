@@ -14,7 +14,7 @@ from policyengine_household_api.modal_release.manifest import (
 from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
-from policyengine_household_api.observability import (
+from policyengine_observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
     REQUEST_ID_HEADER,
 )

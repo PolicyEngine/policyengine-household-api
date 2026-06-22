@@ -14,11 +14,12 @@ from authlib.integrations.flask_oauth2.resource_protector import (
 )
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
+from policyengine_observability import record_error
+from policyengine_observability import segment
+from policyengine_observability import set_attribute
+
 from ..auth.validation import Auth0JWTBearerTokenValidator
-from ..observability import SegmentName
-from ..observability import record_error
-from ..observability import set_attribute
-from ..observability import segment
+from ..observability.segments import SegmentName
 from ..utils.config_loader import get_config_value
 
 ANALYTICS_READ_SCOPE = "read:calculate-analytics"

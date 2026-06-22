@@ -8,6 +8,8 @@ from flask import request
 from datetime import datetime, timezone
 import jwt
 import logging
+from policyengine_observability import segment
+from policyengine_observability import set_attribute
 from uuid import uuid4
 from policyengine_household_api.constants import VERSION
 from policyengine_household_api.data.analytics_setup import (
@@ -25,9 +27,7 @@ from policyengine_household_api.models.analytics import (
     ModalResolvedChannel,
     VariableUsageSummary,
 )
-from policyengine_household_api.observability import SegmentName
-from policyengine_household_api.observability import set_attribute
-from policyengine_household_api.observability import segment
+from policyengine_household_api.observability.segments import SegmentName
 from policyengine_household_api.modal_release.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,
