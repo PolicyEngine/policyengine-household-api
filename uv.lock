@@ -2311,7 +2311,7 @@ requires-dist = [
     { name = "policyengine-core", specifier = ">=3.26.0,<3.26.7" },
     { name = "policyengine-il", specifier = "==0.1.0" },
     { name = "policyengine-ng", specifier = "==0.5.1" },
-    { name = "policyengine-observability", extras = ["flask", "otel", "otlp-grpc"], git = "https://github.com/PolicyEngine/policyengine-observability.git?rev=42defa7" },
+    { name = "policyengine-observability", extras = ["flask", "otel", "otlp-grpc"], git = "https://github.com/PolicyEngine/policyengine-observability.git?rev=38be9bd" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
     { name = "policyengine-us", specifier = "==1.744.0" },
     { name = "pydantic" },
@@ -2355,7 +2355,7 @@ wheels = [
 [[package]]
 name = "policyengine-observability"
 version = "0.1.0"
-source = { git = "https://github.com/PolicyEngine/policyengine-observability.git?rev=42defa7#42defa7c75650500d250de8c5008228c0c5b7cba" }
+source = { git = "https://github.com/PolicyEngine/policyengine-observability.git?rev=38be9bd#38be9bd00b0d339a156ac93d3db4da089e1d7ea8" }
 
 [package.optional-dependencies]
 flask = [

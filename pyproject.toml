@@ -34,7 +34,7 @@ dependencies = [
     "pymysql",
     "Flask-Limiter",
     "pydantic",
-    "policyengine-observability[flask,otel,otlp-grpc] @ git+https://github.com/PolicyEngine/policyengine-observability.git@42defa7",
+    "policyengine-observability[flask,otel,otlp-grpc] @ git+https://github.com/PolicyEngine/policyengine-observability.git@38be9bd",
 ]
 
 [project.optional-dependencies]

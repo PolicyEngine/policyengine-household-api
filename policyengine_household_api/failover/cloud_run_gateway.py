@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+from contextvars import copy_context
 from dataclasses import dataclass
 import json
 import logging
@@ -1024,7 +1025,8 @@ def _run_modal_operation(
         raise ModalExecutorSaturated("Modal operation executor is saturated")
 
     try:
-        future = executor.submit(operation)
+        context = copy_context()
+        future = executor.submit(context.run, operation)
     except Exception:
         semaphore.release()
         raise

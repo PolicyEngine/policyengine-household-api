@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import sys
 import threading
@@ -5,6 +6,9 @@ import types
 
 from flask import Response
 import pytest
+from policyengine_observability import ObservabilityConfig
+from policyengine_observability import ObservabilityRuntime
+from policyengine_observability import RequestObservabilityContext
 
 from policyengine_household_api.failover.cloud_run_gateway import (
     CircuitRegistry,
@@ -237,6 +241,44 @@ def test_run_modal_operation_converts_timeout_to_modal_unavailable():
             )
     finally:
         release.set()
+
+
+def test_run_modal_operation_preserves_observability_context():
+    runtime = ObservabilityRuntime(
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_gateway",
+        )
+    )
+    context = RequestObservabilityContext(
+        config=runtime.config,
+        request_id="request-1",
+        method="POST",
+        route="/<path:path>",
+        path="/uk/calculate",
+        endpoint="route_request",
+        query_keys=[],
+        content_length_bytes=None,
+        inbound={},
+    )
+    runtime.begin_request(context)
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            result = _run_modal_operation(
+                lambda: (
+                    runtime.current_context() is context,
+                    runtime.current_operation().name,
+                    runtime.current_operation().flavor,
+                ),
+                timeout_seconds=1,
+                executor=executor,
+                semaphore=threading.BoundedSemaphore(1),
+            )
+    finally:
+        runtime.teardown_request(None)
+
+    assert result == (True, "/<path:path>", "http")
 
 
 def test_modal_request_timeout_is_separate_from_probe_timeout():

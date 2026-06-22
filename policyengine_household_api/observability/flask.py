@@ -17,6 +17,15 @@ from .segments import SegmentName
 
 SERVICE_NAME = "policyengine-household-api"
 SPAN_PREFIX = "household"
+HOUSEHOLD_METRIC_ATTRIBUTE_KEYS = (
+    "api_version",
+    "deprecated_warning_count",
+    "enable_ai_explainer",
+    "modal_app_name",
+    "model_version",
+    "period_warning_count",
+    "variable_error_count",
+)
 
 
 def _environment() -> str:
@@ -37,6 +46,7 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
             service_name=SERVICE_NAME,
             service_role=service_role,
             span_prefix=SPAN_PREFIX,
+            extra_metric_attribute_keys=HOUSEHOLD_METRIC_ATTRIBUTE_KEYS,
         ),
         environment=_environment(),
     )

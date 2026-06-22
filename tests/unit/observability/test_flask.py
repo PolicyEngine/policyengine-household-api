@@ -21,6 +21,9 @@ from policyengine_observability import (
 )
 from policyengine_observability.runtime import INTERNAL_LOGGER
 from policyengine_observability.runtime import REQUEST_LOGGER
+from policyengine_household_api.observability.flask import (
+    HOUSEHOLD_METRIC_ATTRIBUTE_KEYS,
+)
 from policyengine_household_api.observability.flask import init_observability
 from policyengine_household_api.observability.segments import SegmentName
 import policyengine_household_api.observability as household_observability
@@ -28,6 +31,14 @@ import policyengine_household_api.observability as household_observability
 
 class OTelFailure(BaseException):
     pass
+
+
+class RecordingHistogram:
+    def __init__(self):
+        self.records = []
+
+    def record(self, duration, attributes):
+        self.records.append((duration, attributes))
 
 
 def _observed_app():
@@ -152,6 +163,42 @@ def test_metric_attributes_exclude_high_cardinality_request_fields():
     assert "user_agent" not in attributes
 
 
+def test_household_metric_keys_include_household_dimensions():
+    app = Flask(__name__)
+    init_observability(app, service_role="test_api")
+    runtime = app.extensions["policyengine_observability"]
+
+    for key in HOUSEHOLD_METRIC_ATTRIBUTE_KEYS:
+        assert key in runtime.config.metric_attribute_keys
+
+
+def test_http_segment_metric_includes_operation_flavor_and_route(monkeypatch):
+    monkeypatch.setattr(REQUEST_LOGGER, "info", lambda _record: None)
+    app = Flask(__name__)
+    init_observability(app, service_role="test_api")
+    runtime = app.extensions["policyengine_observability"]
+    runtime.segment_duration = RecordingHistogram()
+
+    @app.get("/metric/<country_id>")
+    def metric_route(country_id):
+        set_attribute("country_id", country_id)
+        with segment(SegmentName.CALCULATION, backend="modal"):
+            pass
+        return {"status": "ok"}
+
+    response = app.test_client().get("/metric/uk")
+
+    assert response.status_code == 200
+    _duration, attributes = runtime.segment_duration.records[0]
+    assert attributes["operation"] == "/metric/<country_id>"
+    assert attributes["flavor"] == "http"
+    assert attributes["route"] == "/metric/<country_id>"
+    assert attributes["method"] == "GET"
+    assert attributes["segment"] == "calculation"
+    assert attributes["backend"] == "modal"
+    assert attributes["country_id"] == "uk"
+
+
 def test_current_context_is_available_during_request(monkeypatch):
     records = []
     monkeypatch.setattr(REQUEST_LOGGER, "info", records.append)
@@ -213,16 +260,9 @@ def test_start_request_extracts_trace_context_from_flask_headers(monkeypatch):
 
 
 def test_segment_metric_includes_explicit_backend_attributes(monkeypatch):
-    class Recorder:
-        def __init__(self):
-            self.records = []
-
-        def record(self, duration, attributes):
-            self.records.append((duration, attributes))
-
     runtime, context = _runtime_with_context(monkeypatch)
-    runtime.segment_duration = Recorder()
-    runtime.backend_duration = Recorder()
+    runtime.segment_duration = RecordingHistogram()
+    runtime.backend_duration = RecordingHistogram()
 
     with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
         pass
