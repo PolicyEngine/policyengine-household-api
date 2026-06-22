@@ -25,6 +25,7 @@ from policyengine_household_api.models.analytics import (
     ModalResolvedChannel,
     VariableUsageSummary,
 )
+from policyengine_household_api.observability import SegmentName
 from policyengine_household_api.observability import set_attribute
 from policyengine_household_api.observability import segment
 from policyengine_household_api.modal_release.routing_metadata import (
@@ -105,18 +106,18 @@ def log_analytics_if_enabled(func):
                 "not ready."
             )
 
-        with segment("analytics_context_build"):
+        with segment(SegmentName.ANALYTICS_CONTEXT_BUILD):
             analytics_context = _build_analytics_context(args, kwargs)
         _set_observability_context_attributes(analytics_context)
 
         try:
             response = func(*args, **kwargs)
         except Exception:
-            with segment("analytics_write"):
+            with segment(SegmentName.ANALYTICS_WRITE):
                 _record_analytics(analytics_context, 500)
             raise
 
-        with segment("analytics_write"):
+        with segment(SegmentName.ANALYTICS_WRITE):
             _record_analytics(
                 analytics_context,
                 getattr(response, "status_code", None),

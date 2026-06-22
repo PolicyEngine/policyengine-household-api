@@ -10,6 +10,7 @@ from policyengine_household_api.constants import COUNTRIES
 from policyengine_household_api.observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
     REQUEST_ID_HEADER,
+    SegmentName,
     TRACEPARENT_HEADER,
     current_context,
     traceparent_header,
@@ -112,9 +113,9 @@ def create_gateway_app(
         set_attribute("endpoint", endpoint)
 
         try:
-            with segment("manifest_load"):
+            with segment(SegmentName.MANIFEST_LOAD):
                 manifest = validate_manifest(load_manifest())
-            with segment("version_resolution"):
+            with segment(SegmentName.VERSION_RESOLUTION):
                 if country_id and endpoint in VERSIONED_ENDPOINTS:
                     body, requested_version = _extract_requested_version(body)
                 else:
@@ -131,7 +132,7 @@ def create_gateway_app(
                 resolved_app.requested_version,
             )
             set_attribute("resolved_channel", resolved_app.channel)
-            with segment("worker_dispatch", backend="modal"):
+            with segment(SegmentName.WORKER_DISPATCH, backend="modal"):
                 return route_to_worker_function(
                     resolved_app.app_name,
                     _request_payload(path, body, resolved_app),
@@ -224,19 +225,19 @@ def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
     # the pre-#1528 top-level `handle_household_request` function. Fall back
     # to that shape if the class is not present.
     try:
-        with segment("modal_worker_lookup", backend="modal"):
+        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
             worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
-        with segment("modal_remote_execution", backend="modal"):
+        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
             return _response_from_dispatch_result(
                 worker_cls().handle_household_request.remote(payload)
             )
     except modal.exception.NotFoundError:
-        with segment("modal_worker_lookup", backend="modal"):
+        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
             worker_function = modal.Function.from_name(
                 app_name,
                 "handle_household_request",
             )
-        with segment("modal_remote_execution", backend="modal"):
+        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
             return _response_from_dispatch_result(
                 worker_function.remote(payload)
             )

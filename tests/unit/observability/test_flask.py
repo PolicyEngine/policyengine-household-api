@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 from flask import Flask
@@ -7,6 +8,7 @@ import pytest
 from policyengine_household_api.observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
     REQUEST_ID_HEADER,
+    SegmentName,
     current_context,
     init_observability,
     observability_runtime,
@@ -35,7 +37,7 @@ def _observed_app():
 
     @app.get("/ok")
     def ok():
-        with segment("test_segment"):
+        with segment(SegmentName.REQUEST_PARSE):
             return {"status": "ok"}
 
     return app
@@ -68,7 +70,28 @@ def test_request_log_contains_request_metadata_and_timing(monkeypatch):
     assert "value" not in records[0]
     assert payload["client_ip"] == "203.0.113.1"
     assert payload["forwarded_for"] == ["203.0.113.1", "10.0.0.2"]
-    assert payload["timings_ms"]["test_segment"] >= 0
+    assert payload["timings_ms"]["request_parse"] >= 0
+
+
+def _runtime_with_context(monkeypatch):
+    context = RequestObservabilityContext(
+        config=ObservabilityConfig(service_role="test_api"),
+        request_id="req-123",
+        method="GET",
+        route="/ok",
+        path="/ok",
+        endpoint="ok",
+        query_keys=[],
+        content_length_bytes=None,
+        inbound={},
+    )
+    runtime = ObservabilityRuntime(
+        ObservabilityConfig(service_role="test_api")
+    )
+    runtime.enabled = True
+    monkeypatch.setattr(runtime, "current_context", lambda: context)
+    set_observability_runtime(runtime)
+    return runtime, context
 
 
 def test_internal_dispatch_suppresses_external_request_log(monkeypatch):
@@ -185,35 +208,73 @@ def test_segment_metric_includes_explicit_backend_attributes(monkeypatch):
         def record(self, duration, attributes):
             self.records.append((duration, attributes))
 
-    context = RequestObservabilityContext(
-        config=ObservabilityConfig(service_role="test_api"),
-        request_id="req-123",
-        method="GET",
-        route="/ok",
-        path="/ok",
-        endpoint="ok",
-        query_keys=[],
-        content_length_bytes=None,
-        inbound={},
-    )
-    runtime = ObservabilityRuntime(
-        ObservabilityConfig(service_role="test_api")
-    )
-    runtime.enabled = True
+    runtime, context = _runtime_with_context(monkeypatch)
     runtime.segment_duration = Recorder()
     runtime.backend_duration = Recorder()
-    monkeypatch.setattr(runtime, "current_context", lambda: context)
-    set_observability_runtime(runtime)
 
-    with segment("modal_remote_execution", backend="modal"):
+    with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
         pass
 
+    assert context.timings_ms["modal_remote_execution"] >= 0
     segment_attributes = runtime.segment_duration.records[0][1]
     backend_attributes = runtime.backend_duration.records[0][1]
     assert segment_attributes["segment"] == "modal_remote_execution"
     assert segment_attributes["backend"] == "modal"
     assert backend_attributes["segment"] == "modal_remote_execution"
     assert backend_attributes["backend"] == "modal"
+
+
+def test_unregistered_segment_string_logs_and_records_string(
+    monkeypatch,
+):
+    internal_logs = []
+    monkeypatch.setattr(INTERNAL_LOGGER, "error", internal_logs.append)
+    _runtime, context = _runtime_with_context(monkeypatch)
+
+    with segment("local_test_segment"):
+        pass
+
+    assert context.timings_ms["local_test_segment"] >= 0
+    assert any("segment.coerce" in log for log in internal_logs)
+    assert any("local_test_segment" in log for log in internal_logs)
+
+
+def test_non_string_segment_logs_and_records_string(
+    monkeypatch,
+):
+    internal_logs = []
+    monkeypatch.setattr(INTERNAL_LOGGER, "error", internal_logs.append)
+    _runtime, context = _runtime_with_context(monkeypatch)
+
+    class CustomSegment:
+        def __str__(self):
+            return "custom_segment"
+
+    with segment(CustomSegment()):
+        pass
+
+    assert context.timings_ms["custom_segment"] >= 0
+    assert any("segment.coerce" in log for log in internal_logs)
+    assert any("custom_segment" in log for log in internal_logs)
+
+
+def test_unprintable_segment_logs_and_records_unknown(
+    monkeypatch,
+):
+    internal_logs = []
+    monkeypatch.setattr(INTERNAL_LOGGER, "error", internal_logs.append)
+    _runtime, context = _runtime_with_context(monkeypatch)
+
+    class BrokenSegment:
+        def __str__(self):
+            raise OTelFailure("segment string failed")
+
+    with segment(BrokenSegment()):
+        pass
+
+    assert context.timings_ms["unknown_segment"] >= 0
+    assert any("segment.coerce" in log for log in internal_logs)
+    assert any("unknown_segment" in log for log in internal_logs)
 
 
 def test_segment_logs_and_swallows_otel_span_enter_failure(monkeypatch):
@@ -357,6 +418,7 @@ def test_disabled_runtime_is_noop(monkeypatch):
 
 
 def test_public_api_excludes_removed_helper_names():
+    assert "SegmentName" in observability.__all__
     assert "segment" in observability.__all__
     assert "set_attribute" in observability.__all__
     assert "traceparent_header" in observability.__all__
@@ -368,3 +430,13 @@ def test_public_api_excludes_removed_helper_names():
     for name in removed_names:
         assert name not in observability.__all__
         assert not hasattr(observability, name)
+
+
+def test_production_segment_call_sites_use_registry():
+    repo_root = Path(__file__).resolve().parents[3]
+    violations = []
+    for path in (repo_root / "policyengine_household_api").rglob("*.py"):
+        if 'segment("' in path.read_text():
+            violations.append(str(path.relative_to(repo_root)))
+
+    assert violations == []

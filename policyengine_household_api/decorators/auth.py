@@ -15,6 +15,7 @@ from authlib.integrations.flask_oauth2.resource_protector import (
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
 from ..auth.validation import Auth0JWTBearerTokenValidator
+from ..observability import SegmentName
 from ..observability import record_error
 from ..observability import set_attribute
 from ..observability import segment
@@ -222,7 +223,7 @@ class ObservedAuthDecorator:
         @wraps(func)
         def wrapper(*func_args: Any, **func_kwargs: Any) -> Any:
             optional_missing = False
-            with segment("auth"):
+            with segment(SegmentName.AUTH):
                 try:
                     self._decorator.acquire_token(**claims)
                 except MissingAuthorizationError as exc:

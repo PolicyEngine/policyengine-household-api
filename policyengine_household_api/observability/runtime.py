@@ -15,6 +15,8 @@ from flask import Flask, g, has_request_context, request
 
 from .config import ObservabilityConfig
 from .internal import PlainMessageFormatter
+from .segments import SegmentName
+from .segments import coerce_segment_name
 
 
 OBSERVABILITY_INTERNAL_DISPATCH_HEADER = "X-PolicyEngine-Internal-Dispatch"
@@ -263,21 +265,32 @@ class ObservabilityRuntime:
             )
 
     @contextmanager
-    def segment(self, name: str, **attrs: Any) -> Iterator[None]:
+    def segment(
+        self, name: SegmentName | str | Any, **attrs: Any
+    ) -> Iterator[None]:
         if not self.enabled:
             yield
             return
 
-        start = self._safe_perf_counter(f"segment.{name}.start")
+        segment_name, is_registered = coerce_segment_name(name)
+        if not is_registered:
+            self.log_observability_failure(
+                "segment.coerce",
+                ValueError("Unregistered observability segment."),
+                segment=segment_name,
+                segment_type=type(name).__name__,
+            )
+
+        start = self._safe_perf_counter(f"segment.{segment_name}.start")
         span_attrs = self._segment_span_attributes(attrs)
-        with self._safe_span(f"household.{name}", span_attrs):
+        with self._safe_span(f"household.{segment_name}", span_attrs):
             try:
                 yield
             except BaseException:
-                self._record_segment_safely(name, start, attrs)
+                self._record_segment_safely(segment_name, start, attrs)
                 raise
             else:
-                self._record_segment_safely(name, start, attrs)
+                self._record_segment_safely(segment_name, start, attrs)
 
     def record_error(
         self,

@@ -13,6 +13,7 @@ from policyengine_household_api.models.household import (
     HouseholdModelUK,
     HouseholdModelUS,
 )
+from policyengine_household_api.observability import SegmentName
 from policyengine_household_api.observability import record_error
 from policyengine_household_api.observability import set_attribute
 from policyengine_household_api.observability import segment
@@ -134,7 +135,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     set_attribute("country_id", country_id)
 
-    with segment("request_parse"):
+    with segment(SegmentName.REQUEST_PARSE):
         payload = request.json or {}
         household_json = payload.get("household", {})
         policy_json = payload.get("policy", {})
@@ -147,7 +148,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     # Validate inbound payload shape before reaching the compute layer.
     try:
-        with segment("payload_validation"):
+        with segment(SegmentName.PAYLOAD_VALIDATION):
             _validate_household_payload(country_id, household_json)
             _validate_axes(household_json)
     except ValueError as e:
@@ -157,7 +158,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
             status=400,
         )
 
-    with segment("variable_validation"):
+    with segment(SegmentName.VARIABLE_VALIDATION):
         variable_errors = validate_household_variables(
             household=household_json,
             system=country.tax_benefit_system,
@@ -183,7 +184,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     # Strip deprecated inputs from a copy before period validation so
     # partners who still pass removed/renamed variables get a warning +
     # working response instead of a `VariableNotFoundError` HTTP 500.
-    with segment("deprecated_input_filter"):
+    with segment(SegmentName.DEPRECATED_INPUT_FILTER):
         deprecated_inputs = drop_deprecated_inputs(household_json)
     household_json = deprecated_inputs.household
     deprecation_warnings = deprecated_inputs.warnings
@@ -194,7 +195,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     # Validate inbound period data before reaching the compute layer.
     try:
-        with segment("period_validation"):
+        with segment(SegmentName.PERIOD_VALIDATION):
             validate_period_keys(household_json, country.tax_benefit_system)
             validate_period_budgets(
                 household_json,
@@ -210,7 +211,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
     # Detect partial monthly input + annual output combinations so partners
     # see a heads-up that some months will read the engine's fallback. v1
     # has no such warning; this is purely additive diagnostic.
-    with segment("period_warning_detection"):
+    with segment(SegmentName.PERIOD_WARNING_DETECTION):
         period_warnings = detect_period_warnings(
             household_json,
             country.tax_benefit_system,
@@ -219,7 +220,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     try:
         result: dict
-        with segment("calculation"):
+        with segment(SegmentName.CALCULATION):
             result = country.calculate(household_json, policy_json)
     except Exception as e:
         logging.exception(e)
@@ -252,6 +253,6 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
 
 def _json_response(payload: dict, *, status: int) -> Response:
-    with segment("response_serialization"):
+    with segment(SegmentName.RESPONSE_SERIALIZATION):
         body = json.dumps(payload)
     return Response(body, status, mimetype="application/json")

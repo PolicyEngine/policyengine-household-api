@@ -4,6 +4,7 @@ from .flask import init_observability
 from .request import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
     REQUEST_ID_HEADER,
+    SegmentName,
     TRACEPARENT_HEADER,
     current_context,
     record_error,
@@ -17,6 +18,7 @@ from .runtime import observability_runtime
 __all__ = [
     "OBSERVABILITY_INTERNAL_DISPATCH_HEADER",
     "REQUEST_ID_HEADER",
+    "SegmentName",
     "TRACEPARENT_HEADER",
     "current_context",
     "init_observability",

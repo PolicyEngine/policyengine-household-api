@@ -8,10 +8,12 @@ from .runtime import REQUEST_ID_HEADER
 from .runtime import TRACEPARENT_HEADER
 from .runtime import RequestObservabilityContext
 from .runtime import observability_runtime
+from .segments import SegmentName
 
 __all__ = [
     "OBSERVABILITY_INTERNAL_DISPATCH_HEADER",
     "REQUEST_ID_HEADER",
+    "SegmentName",
     "TRACEPARENT_HEADER",
     "RequestObservabilityContext",
     "current_context",
@@ -55,6 +57,6 @@ def traceparent_header() -> str | None:
 
 
 @contextmanager
-def segment(name: str, **attrs: Any) -> Iterator[None]:
+def segment(name: SegmentName | str | Any, **attrs: Any) -> Iterator[None]:
     with observability_runtime().segment(name, **attrs):
         yield

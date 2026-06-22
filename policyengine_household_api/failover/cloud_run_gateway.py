@@ -35,6 +35,7 @@ from policyengine_household_api.failover.manifest import (
 from policyengine_household_api.failover.request_limits import (
     max_content_length_bytes,
 )
+from policyengine_household_api.observability import SegmentName
 from policyengine_household_api.observability import init_observability
 from policyengine_household_api.observability import record_error
 from policyengine_household_api.observability import record_event
@@ -457,14 +458,14 @@ def create_gateway_app(
         set_attribute("endpoint", endpoint)
 
         try:
-            with segment("manifest_load"):
+            with segment(SegmentName.MANIFEST_LOAD):
                 manifest = validate_failover_manifest(load_manifest())
         except FailoverManifestError as exc:
             record_error(exc, handled=True, status_code=503)
             return _gateway_unavailable_response(str(exc))
 
         try:
-            with segment("version_resolution"):
+            with segment(SegmentName.VERSION_RESOLUTION):
                 if country_id and endpoint in VERSIONED_ENDPOINTS:
                     body, requested_version = _extract_requested_version(body)
                 else:
@@ -552,13 +553,13 @@ def probe_modal_canary() -> None:
         MODAL_CANARY_FUNCTION_NAME,
     )
     try:
-        with segment("modal_worker_lookup", backend="modal"):
+        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
             canary_function = _modal_lookup(
                 modal.Function.from_name,
                 app_name,
                 function_name,
             )
-        with segment("modal_remote_execution", backend="modal"):
+        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
             result = canary_function.remote()
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
@@ -573,23 +574,23 @@ def _call_modal_worker_dispatch(
     import modal
 
     try:
-        with segment("modal_worker_lookup", backend="modal"):
+        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
             worker_cls = _modal_lookup(
                 modal.Cls.from_name,
                 app_name,
                 "HouseholdWorker",
             )
-        with segment("modal_remote_execution", backend="modal"):
+        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
             return worker_cls().handle_household_request.remote(payload)
     except modal.exception.NotFoundError:
         try:
-            with segment("modal_worker_lookup", backend="modal"):
+            with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
                 worker_function = _modal_lookup(
                     modal.Function.from_name,
                     app_name,
                     "handle_household_request",
                 )
-            with segment("modal_remote_execution", backend="modal"):
+            with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
                 return worker_function.remote(payload)
         except Exception as exc:
             raise ModalBackendUnavailable(str(exc)) from exc
@@ -607,7 +608,7 @@ def call_cloud_run_worker(
     )
     body = json.dumps(encode_dispatch_request(payload)).encode("utf-8")
     try:
-        with segment("cloud_run_auth", backend="cloud_run"):
+        with segment(SegmentName.CLOUD_RUN_AUTH, backend="cloud_run"):
             headers = {
                 "Content-Type": "application/json",
                 **_cloud_run_auth_header(resolved.cloud_run_worker_url),
@@ -618,7 +619,7 @@ def call_cloud_run_worker(
             headers=headers,
             method="POST",
         )
-        with segment("cloud_run_http_request", backend="cloud_run"):
+        with segment(SegmentName.CLOUD_RUN_HTTP_REQUEST, backend="cloud_run"):
             with urllib_request.urlopen(
                 req,
                 timeout=_operation_timeout_seconds(
@@ -627,7 +628,9 @@ def call_cloud_run_worker(
                 ),
             ) as response:
                 response_payload = json.loads(response.read().decode("utf-8"))
-        with segment("cloud_run_response_decode", backend="cloud_run"):
+        with segment(
+            SegmentName.CLOUD_RUN_RESPONSE_DECODE, backend="cloud_run"
+        ):
             dispatch_result = decode_dispatch_response(response_payload)
     except (
         OSError,
@@ -645,7 +648,7 @@ def call_cloud_run_worker(
 def warm_cloud_run_worker(resolved: ResolvedFailoverChannel) -> None:
     health_url = _join_url(resolved.cloud_run_worker_url, "/liveness_check")
     try:
-        with segment("fallback_warmup", backend="cloud_run"):
+        with segment(SegmentName.FALLBACK_WARMUP, backend="cloud_run"):
             headers = _cloud_run_auth_header(resolved.cloud_run_worker_url)
             req = urllib_request.Request(
                 health_url,
@@ -664,7 +667,7 @@ def warm_cloud_run_worker(resolved: ResolvedFailoverChannel) -> None:
 
 
 def fetch_modal_status() -> dict[str, Any]:
-    with segment("modal_status_check", backend="modal"):
+    with segment(SegmentName.MODAL_STATUS_CHECK, backend="modal"):
         with urllib_request.urlopen(MODAL_STATUS_URL, timeout=5) as response:
             return json.loads(response.read().decode("utf-8"))
 
@@ -697,7 +700,7 @@ def _route_to_backend(
         )
 
     if force_backend != "modal":
-        with segment("circuit_refresh", backend="modal"):
+        with segment(SegmentName.CIRCUIT_REFRESH, backend="modal"):
             _refresh_modal_circuit(
                 resolved,
                 circuits=circuits,
@@ -722,7 +725,7 @@ def _route_to_backend(
             )
 
     try:
-        with segment("modal_request", backend="modal"):
+        with segment(SegmentName.MODAL_REQUEST, backend="modal"):
             response = _run_modal_operation(
                 lambda: call_modal(resolved.modal_app_name, payload),
                 timeout_seconds=modal_request_timeout_seconds,
@@ -804,7 +807,7 @@ def _refresh_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        with segment("modal_probe", backend="modal"):
+        with segment(SegmentName.MODAL_PROBE, backend="modal"):
             _run_modal_probe(
                 lambda: probe_modal(resolved.modal_app_name),
                 timeout_seconds=modal_probe_timeout_seconds,
@@ -850,12 +853,12 @@ def _refresh_open_modal_circuit(
         return
     circuits.record_probe_attempt(resolved.channel)
     try:
-        with segment("modal_canary", backend="modal"):
+        with segment(SegmentName.MODAL_CANARY, backend="modal"):
             _run_modal_probe(
                 probe_canary,
                 timeout_seconds=modal_canary_timeout_seconds,
             )
-        with segment("modal_probe", backend="modal"):
+        with segment(SegmentName.MODAL_PROBE, backend="modal"):
             _run_modal_probe(
                 lambda: probe_modal(resolved.modal_app_name),
                 timeout_seconds=modal_probe_timeout_seconds,
@@ -883,7 +886,7 @@ def _route_to_fallback_or_503(
     ],
 ) -> tuple[Response, str]:
     try:
-        with segment("cloud_run_request", backend="cloud_run"):
+        with segment(SegmentName.CLOUD_RUN_REQUEST, backend="cloud_run"):
             return call_fallback(resolved, payload), "cloud_run"
     except FallbackBackendUnavailable:
         record_event(
@@ -900,7 +903,7 @@ def _modal_canary_confirms_outage(
     timeout_seconds: float,
 ) -> bool:
     try:
-        with segment("modal_canary", backend="modal"):
+        with segment(SegmentName.MODAL_CANARY, backend="modal"):
             _run_modal_probe(
                 probe_canary,
                 timeout_seconds=timeout_seconds,
