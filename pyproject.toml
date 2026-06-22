@@ -34,9 +34,7 @@ dependencies = [
     "pymysql",
     "Flask-Limiter",
     "pydantic",
-    "opentelemetry-api",
-    "opentelemetry-sdk",
-    "opentelemetry-exporter-otlp",
+    "policyengine-observability[flask,otel,otlp-grpc] @ git+https://github.com/PolicyEngine/policyengine-observability.git@42defa7",
 ]
 
 [project.optional-dependencies]
@@ -49,6 +47,9 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.ruff]
 line-length = 79

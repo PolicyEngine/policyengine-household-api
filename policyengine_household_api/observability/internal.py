@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import logging
+from policyengine_observability.logging import PlainMessageFormatter
 
 
-class PlainMessageFormatter(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        return record.getMessage()
+__all__ = ["PlainMessageFormatter"]

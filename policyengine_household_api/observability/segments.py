@@ -3,9 +3,12 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
+from policyengine_observability import UNKNOWN_SEGMENT
+from policyengine_observability import coerce_segment_name as _coerce_segment
+
 
 class SegmentName(StrEnum):
-    UNKNOWN = "unknown_segment"
+    UNKNOWN = UNKNOWN_SEGMENT
 
     REQUEST_PARSE = "request_parse"
     PAYLOAD_VALIDATION = "payload_validation"
@@ -37,15 +40,5 @@ class SegmentName(StrEnum):
     CLOUD_RUN_REQUEST = "cloud_run_request"
 
 
-_SEGMENT_VALUES = frozenset(segment.value for segment in SegmentName)
-
-
 def coerce_segment_name(value: Any) -> tuple[str, bool]:
-    if isinstance(value, SegmentName):
-        return value.value, True
-    if isinstance(value, str):
-        return value, value in _SEGMENT_VALUES
-    try:
-        return str(value), False
-    except BaseException:
-        return SegmentName.UNKNOWN.value, False
+    return _coerce_segment(value, registry=SegmentName)
