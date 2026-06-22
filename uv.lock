@@ -2311,7 +2311,7 @@ requires-dist = [
     { name = "policyengine-core", specifier = ">=3.26.0,<3.26.7" },
     { name = "policyengine-il", specifier = "==0.1.0" },
     { name = "policyengine-ng", specifier = "==0.5.1" },
-    { name = "policyengine-observability", extras = ["flask", "otel", "otlp-grpc"], git = "https://github.com/PolicyEngine/policyengine-observability.git?rev=38be9bd" },
+    { name = "policyengine-observability", extras = ["flask", "otel", "otlp-grpc"], specifier = ">=0.2.0" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
     { name = "policyengine-us", specifier = "==1.744.0" },
     { name = "pydantic" },
@@ -2354,8 +2354,12 @@ wheels = [
 
 [[package]]
 name = "policyengine-observability"
-version = "0.1.0"
-source = { git = "https://github.com/PolicyEngine/policyengine-observability.git?rev=38be9bd#38be9bd00b0d339a156ac93d3db4da089e1d7ea8" }
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/f0/c6b21598b8f6a68bcc6247bd695cc53057728ab21600811946c66067ff07/policyengine_observability-0.2.1.tar.gz", hash = "sha256:cbe43a6687eb3d0d31e59c76b85ffde23988e3229079abf19a7d0ac4cd62caae", size = 79298, upload-time = "2026-06-22T20:33:23.274Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/74/e0b988d85e833a4e1a686862b6b4a84b627aefe63476dc81d0700e450230/policyengine_observability-0.2.1-py3-none-any.whl", hash = "sha256:ffba07197c5e6d2193cba8492fe3724973a62041019a774ed29dd065569f0955", size = 21455, upload-time = "2026-06-22T20:33:22.078Z" },
+]
 
 [package.optional-dependencies]
 flask = [
