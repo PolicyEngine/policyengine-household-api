@@ -45,9 +45,7 @@ def household_api_gateway_image() -> modal.Image:
 
 
 def household_api_canary_image() -> modal.Image:
-    return modal.Image.debian_slim(python_version="3.13").pip_install(
-        "policyengine-observability[otel,otlp-grpc]>=0.2.0",
-    )
+    return modal.Image.debian_slim(python_version="3.13")
 
 
 def household_api_secret() -> modal.Secret:

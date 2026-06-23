@@ -6,6 +6,7 @@ based on configuration, allowing for easy local development without authenticati
 while maintaining security in production environments.
 """
 
+from contextvars import ContextVar
 from functools import wraps
 from typing import Optional, Any, Callable
 from authlib.integrations.flask_oauth2.resource_protector import (
@@ -23,6 +24,10 @@ from ..observability.segments import SegmentName
 from ..utils.config_loader import get_config_value
 
 ANALYTICS_READ_SCOPE = "read:calculate-analytics"
+_AUTH_OPTIONAL: ContextVar[bool] = ContextVar(
+    "policyengine_auth_optional",
+    default=False,
+)
 
 
 class StaticBearerToken:
@@ -190,59 +195,67 @@ class ObservedAuthDecorator:
 
     def __init__(self, decorator: Any):
         self._decorator = decorator
+        self._acquire_token = decorator.acquire_token
+        self._decorator.acquire_token = self._observed_acquire_token
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._decorator, name)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Callable:
-        if args and callable(args[0]):
-            return self._decorate(args[0], scopes=None, optional=False)
-        scopes = args[0] if args else kwargs.pop("scopes", None)
-        optional = bool(kwargs.pop("optional", False))
-        claims = dict(kwargs)
-        claims["scopes"] = scopes
-        for claim in claims:
-            if isinstance(claims[claim], str):
-                claims[claim] = [claims[claim]]
+        optional = self._optional_from_call(args, kwargs)
+        decorated = self._decorator(*args, **kwargs)
 
-        def decorator(func: Callable) -> Callable:
-            return self._decorate(
-                func,
+        if args and callable(args[0]):
+            return self._with_optional_context(decorated, optional=optional)
+
+        @wraps(decorated)
+        def observed_decorator(func: Callable) -> Callable:
+            return self._with_optional_context(
+                decorated(func),
                 optional=optional,
-                **claims,
             )
 
-        return decorator
+        return observed_decorator
 
-    def _decorate(
-        self,
-        func: Callable,
-        *,
-        optional: bool,
-        **claims: Any,
+    def _observed_acquire_token(self, *args: Any, **kwargs: Any) -> Any:
+        with segment(SegmentName.AUTH):
+            try:
+                token = self._acquire_token(*args, **kwargs)
+            except MissingAuthorizationError as exc:
+                if _AUTH_OPTIONAL.get():
+                    set_attribute("auth_result", "optional_missing")
+                else:
+                    self._record_auth_error(exc)
+                raise
+            except OAuth2Error as exc:
+                self._record_auth_error(exc)
+                raise
+        set_attribute("auth_result", "success")
+        return token
+
+    def _with_optional_context(
+        self, func: Callable, *, optional: bool
     ) -> Callable:
         @wraps(func)
         def wrapper(*func_args: Any, **func_kwargs: Any) -> Any:
-            optional_missing = False
-            with segment(SegmentName.AUTH):
-                try:
-                    self._decorator.acquire_token(**claims)
-                except MissingAuthorizationError as exc:
-                    if optional:
-                        set_attribute("auth_result", "optional_missing")
-                        optional_missing = True
-                    else:
-                        self._record_auth_error(exc)
-                        self._decorator.raise_error_response(exc)
-                except OAuth2Error as exc:
-                    self._record_auth_error(exc)
-                    self._decorator.raise_error_response(exc)
-            if optional_missing:
+            token = _AUTH_OPTIONAL.set(optional)
+            try:
                 return func(*func_args, **func_kwargs)
-            set_attribute("auth_result", "success")
-            return func(*func_args, **func_kwargs)
+            finally:
+                _AUTH_OPTIONAL.reset(token)
 
         return wrapper
+
+    def _optional_from_call(
+        self,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> bool:
+        if "optional" in kwargs:
+            return bool(kwargs["optional"])
+        if len(args) >= 2:
+            return bool(args[1])
+        return False
 
     def _record_auth_error(self, exc: Exception) -> None:
         set_attribute("auth_result", "failed")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any, Callable
 
 from flask import Flask, Response, jsonify, request
@@ -24,9 +23,6 @@ from policyengine_household_api.observability.flask import (
     configure_process_observability,
 )
 from policyengine_household_api.observability.flask import init_observability
-
-
-logger = logging.getLogger(__name__)
 
 
 def create_worker_app(
@@ -105,9 +101,9 @@ def _load_household_app() -> Flask:
 
 def _set_dispatch_attribute(key: str, value: Any) -> None:
     set_attribute(key, value)
-    try:
-        active_operation = current_operation()
-        if active_operation is not None:
-            active_operation.set_attribute(key, value)
-    except BaseException as exc:
-        logger.warning("Failed to record dispatch attribute %s: %s", key, exc)
+    active_operation = current_operation()
+    if active_operation is None:
+        return
+    if active_operation.attributes.get(key) == value:
+        return
+    active_operation.set_attribute(key, value)
