@@ -34,7 +34,7 @@ dependencies = [
     "pymysql",
     "Flask-Limiter",
     "pydantic",
-    "policyengine-observability[flask,otel,otlp-grpc]>=0.2.0",
+    "policyengine-observability[flask]>=1.0.0",
 ]
 
 [project.optional-dependencies]

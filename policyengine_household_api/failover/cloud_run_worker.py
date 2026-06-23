@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from flask import Flask, Response, jsonify, request
-from policyengine_observability import current_operation
 from policyengine_observability import operation
 from policyengine_observability import record_error
 from policyengine_observability import set_attribute
@@ -101,9 +100,3 @@ def _load_household_app() -> Flask:
 
 def _set_dispatch_attribute(key: str, value: Any) -> None:
     set_attribute(key, value)
-    active_operation = current_operation()
-    if active_operation is None:
-        return
-    if active_operation.attributes.get(key) == value:
-        return
-    active_operation.set_attribute(key, value)

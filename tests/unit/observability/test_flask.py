@@ -202,6 +202,17 @@ def test_household_metric_keys_include_household_dimensions():
         assert key in runtime.config.metric_attribute_keys
 
 
+def test_household_observability_uses_shared_otel_default(monkeypatch):
+    monkeypatch.delenv("OTEL_ENABLED", raising=False)
+    monkeypatch.setenv("OBSERVABILITY_OTEL_ENABLED", "false")
+
+    app = Flask(__name__)
+    init_observability(app, service_role="test_api")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.otel_enabled is True
+
+
 def test_http_segment_metric_includes_operation_flavor_and_route(monkeypatch):
     monkeypatch.setattr(REQUEST_LOGGER, "info", lambda _record: None)
     app = Flask(__name__)
