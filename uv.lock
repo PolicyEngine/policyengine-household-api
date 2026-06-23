@@ -2354,11 +2354,11 @@ wheels = [
 
 [[package]]
 name = "policyengine-observability"
-version = "0.2.1"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a0/f0/c6b21598b8f6a68bcc6247bd695cc53057728ab21600811946c66067ff07/policyengine_observability-0.2.1.tar.gz", hash = "sha256:cbe43a6687eb3d0d31e59c76b85ffde23988e3229079abf19a7d0ac4cd62caae", size = 79298, upload-time = "2026-06-22T20:33:23.274Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/ef/ba0ef4ae929a8d57b580bd3084638eac5127b7013cbe084bcb715d0d345d/policyengine_observability-0.3.0.tar.gz", hash = "sha256:80ab30786925b45902cbd19e1a3b56885d9600ec0cbe9359d95dab9b1f1aedbb", size = 83004, upload-time = "2026-06-23T14:05:58.847Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/74/e0b988d85e833a4e1a686862b6b4a84b627aefe63476dc81d0700e450230/policyengine_observability-0.2.1-py3-none-any.whl", hash = "sha256:ffba07197c5e6d2193cba8492fe3724973a62041019a774ed29dd065569f0955", size = 21455, upload-time = "2026-06-22T20:33:22.078Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/be/f98f626472ca7f0a5341155cb1289150349c4cae9c247a6a7d08b6a8d374/policyengine_observability-0.3.0-py3-none-any.whl", hash = "sha256:36ffceccde6a6035f1cf023837ae220ff8c160856aa6202c973032ced72dec39", size = 21496, upload-time = "2026-06-23T14:05:57.735Z" },
 ]
 
 [package.optional-dependencies]
