@@ -17,6 +17,14 @@ from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
 )
+from policyengine_household_api.version_routing import (
+    DeprecatedVersionError,
+    UnsupportedVersionError,
+    VERSION_CHANNELS,
+    VersionRoutingError,
+    active_versions_for_country,
+    retired_version_exists,
+)
 
 
 VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
@@ -29,68 +37,8 @@ class ResolvedApp:
     channel: str
 
 
-class GatewayResolutionError(ValueError):
-    status_code: int = 400
-    code: str | None = None
-    requested_version: str | None = None
-    country_id: str | None = None
-    available_versions: dict[str, str] | None = None
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        status_code: int | None = None,
-        code: str | None = None,
-        requested_version: str | None = None,
-        country_id: str | None = None,
-        available_versions: dict[str, str] | None = None,
-    ) -> None:
-        super().__init__(message)
-        if status_code is not None:
-            self.status_code = status_code
-        self.code = code
-        self.requested_version = requested_version
-        self.country_id = country_id
-        self.available_versions = available_versions
-
-
-class UnsupportedVersionError(GatewayResolutionError):
-    def __init__(
-        self,
-        *,
-        country_id: str,
-        requested_version: str,
-        available_versions: dict[str, str],
-    ) -> None:
-        super().__init__(
-            f"No active household API app serves `{country_id}` package "
-            f"version `{requested_version}`",
-            status_code=422,
-            code="unsupported_version",
-            requested_version=requested_version,
-            country_id=country_id,
-            available_versions=available_versions,
-        )
-
-
-class DeprecatedVersionError(GatewayResolutionError):
-    def __init__(
-        self,
-        *,
-        country_id: str,
-        requested_version: str,
-        available_versions: dict[str, str],
-    ) -> None:
-        super().__init__(
-            f"Household API `{country_id}` package version "
-            f"`{requested_version}` is deprecated",
-            status_code=422,
-            code="deprecated_version",
-            requested_version=requested_version,
-            country_id=country_id,
-            available_versions=available_versions,
-        )
+class GatewayResolutionError(VersionRoutingError):
+    pass
 
 
 def create_gateway_app(
@@ -129,7 +77,7 @@ def create_gateway_app(
 
         manifest = validate_manifest(load_manifest())
         country_versions = {}
-        for channel in ("current", "frontier"):
+        for channel in VERSION_CHANNELS:
             app_reference = manifest.get(channel)
             if not app_reference:
                 continue
@@ -166,7 +114,7 @@ def create_gateway_app(
                 resolved_app.app_name,
                 _request_payload(path, body, resolved_app),
             )
-        except GatewayResolutionError as e:
+        except VersionRoutingError as e:
             return _json_error(
                 str(e),
                 e.status_code,
@@ -218,7 +166,7 @@ def resolve_app_for_request(
             "Exact package version routing requires a country endpoint"
         )
 
-    for channel in ("current", "frontier"):
+    for channel in VERSION_CHANNELS:
         app_reference = manifest.get(channel)
         if not app_reference:
             continue
@@ -230,8 +178,10 @@ def resolve_app_for_request(
                 channel=channel,
             )
 
-    available_versions = _available_versions(manifest, country_id)
-    if _retired_version_exists(manifest, country_id, requested):
+    available_versions = active_versions_for_country(manifest, country_id)
+    if retired_version_exists(
+        manifest.get("retired", []), country_id, requested
+    ):
         raise DeprecatedVersionError(
             country_id=country_id,
             requested_version=requested,
@@ -242,6 +192,7 @@ def resolve_app_for_request(
         country_id=country_id,
         requested_version=requested,
         available_versions=available_versions,
+        active_target_label="household API app",
     )
 
 
@@ -330,36 +281,6 @@ def _response_from_dispatch_result(result: dict[str, Any]) -> Response:
         status=int(result["status_code"]),
         headers=list(result.get("headers") or []),
     )
-
-
-def _available_versions(
-    manifest: dict[str, Any],
-    country_id: str,
-) -> dict[str, str]:
-    available_versions = {}
-    for channel in ("current", "frontier"):
-        app_reference = manifest.get(channel)
-        if not app_reference:
-            continue
-        package_version = app_reference["package_versions"].get(country_id)
-        if package_version:
-            available_versions[channel] = package_version
-    return available_versions
-
-
-def _retired_version_exists(
-    manifest: dict[str, Any],
-    country_id: str,
-    requested_version: str,
-) -> bool:
-    for app_reference in manifest.get("retired", []):
-        if not isinstance(app_reference, dict):
-            continue
-        if app_reference.get("package_versions", {}).get(country_id) == (
-            requested_version
-        ):
-            return True
-    return False
 
 
 def _json_error(

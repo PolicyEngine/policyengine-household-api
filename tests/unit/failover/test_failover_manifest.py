@@ -2,12 +2,12 @@ import pytest
 
 from policyengine_household_api.failover.manifest import (
     FailoverManifestError,
-    FailoverRoutingError,
     build_failover_manifest,
     public_versions_view,
     resolve_failover_channel_for_request,
     validate_failover_manifest,
 )
+from policyengine_household_api.version_routing import VersionRoutingError
 
 
 def _modal_manifest():
@@ -117,7 +117,7 @@ def test_resolves_exact_package_version():
 
 
 def test_rejects_unknown_exact_package_version():
-    with pytest.raises(FailoverRoutingError, match="9.9.9") as exc_info:
+    with pytest.raises(VersionRoutingError, match="9.9.9") as exc_info:
         resolve_failover_channel_for_request(
             _manifest(),
             country_id="us",
@@ -143,7 +143,7 @@ def test_rejects_retired_exact_package_version():
         }
     ]
 
-    with pytest.raises(FailoverRoutingError, match="0.9.0") as exc_info:
+    with pytest.raises(VersionRoutingError, match="0.9.0") as exc_info:
         resolve_failover_channel_for_request(
             manifest,
             country_id="us",

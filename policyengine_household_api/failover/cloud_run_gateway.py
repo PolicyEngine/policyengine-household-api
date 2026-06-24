@@ -36,7 +36,6 @@ from policyengine_household_api.failover.request_limits import (
     max_content_length_bytes,
 )
 from policyengine_household_api.modal_release.gateway import (
-    GatewayResolutionError,
     VERSIONED_ENDPOINTS,
     _country_and_endpoint,
     _extract_requested_version,
@@ -44,6 +43,7 @@ from policyengine_household_api.modal_release.gateway import (
     _request_payload,
     _response_from_dispatch_result,
 )
+from policyengine_household_api.version_routing import VersionRoutingError
 
 
 LOGGER = logging.getLogger(__name__)
@@ -487,7 +487,7 @@ def create_gateway_app(
             )
         except FailoverManifestUnavailable as exc:
             return _gateway_unavailable_response(str(exc))
-        except (FailoverRoutingError, GatewayResolutionError) as exc:
+        except (FailoverRoutingError, VersionRoutingError) as exc:
             return _json_error(
                 str(exc),
                 getattr(exc, "status_code", 400),

@@ -5,11 +5,20 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
+from policyengine_household_api.version_routing import (
+    DeprecatedVersionError,
+    UnsupportedVersionError,
+    VERSION_CHANNELS,
+    active_versions_for_country,
+    package_versions_from_mapping,
+    retired_version_exists,
+)
+
 
 FAILOVER_MANIFEST_SCHEMA_VERSION = 1
 FAILOVER_MANIFEST_BUCKET_ENV = "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET"
 FAILOVER_MANIFEST_BLOB_ENV = "HOUSEHOLD_FAILOVER_MANIFEST_BLOB"
-FAILOVER_CHANNELS = ("current", "frontier")
+FAILOVER_CHANNELS = VERSION_CHANNELS
 
 CHANNEL_REQUIRED_KEYS = {
     "modal_app_name",
@@ -62,67 +71,7 @@ class FailoverManifestReadError(FailoverManifestUnavailable):
 
 
 class FailoverRoutingError(FailoverManifestError):
-    status_code: int = 400
-    code: str | None = None
-    requested_version: str | None = None
-    country_id: str | None = None
-    available_versions: dict[str, str] | None = None
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        status_code: int | None = None,
-        code: str | None = None,
-        requested_version: str | None = None,
-        country_id: str | None = None,
-        available_versions: dict[str, str] | None = None,
-    ) -> None:
-        super().__init__(message)
-        if status_code is not None:
-            self.status_code = status_code
-        self.code = code
-        self.requested_version = requested_version
-        self.country_id = country_id
-        self.available_versions = available_versions
-
-
-class UnsupportedFailoverVersionError(FailoverRoutingError):
-    def __init__(
-        self,
-        *,
-        country_id: str,
-        requested_version: str,
-        available_versions: dict[str, str],
-    ) -> None:
-        super().__init__(
-            f"No active failover channel serves `{country_id}` package "
-            f"version `{requested_version}`",
-            status_code=422,
-            code="unsupported_version",
-            requested_version=requested_version,
-            country_id=country_id,
-            available_versions=available_versions,
-        )
-
-
-class DeprecatedFailoverVersionError(FailoverRoutingError):
-    def __init__(
-        self,
-        *,
-        country_id: str,
-        requested_version: str,
-        available_versions: dict[str, str],
-    ) -> None:
-        super().__init__(
-            f"Household API `{country_id}` package version "
-            f"`{requested_version}` is deprecated",
-            status_code=422,
-            code="deprecated_version",
-            requested_version=requested_version,
-            country_id=country_id,
-            available_versions=available_versions,
-        )
+    pass
 
 
 def current_timestamp() -> str:
@@ -240,18 +189,23 @@ def resolve_failover_channel_for_request(
         if reference["package_versions"].get(country_id) == requested:
             return _resolved_channel(channel, requested, reference)
 
-    available_versions = _available_versions(channels, country_id)
-    if _retired_version_exists(validated["retired"], country_id, requested):
-        raise DeprecatedFailoverVersionError(
+    available_versions = active_versions_for_country(
+        channels,
+        country_id,
+        FAILOVER_CHANNELS,
+    )
+    if retired_version_exists(validated["retired"], country_id, requested):
+        raise DeprecatedVersionError(
             country_id=country_id,
             requested_version=requested,
             available_versions=available_versions,
         )
 
-    raise UnsupportedFailoverVersionError(
+    raise UnsupportedVersionError(
         country_id=country_id,
         requested_version=requested,
         available_versions=available_versions,
+        active_target_label="failover channel",
     )
 
 
@@ -315,7 +269,9 @@ def _validate_channel_reference(
         raise FailoverManifestError(
             f"Failover channel `{channel}` package_versions must be a mapping"
         )
-    validated["package_versions"] = _package_versions(package_versions)
+    validated["package_versions"] = package_versions_from_mapping(
+        package_versions
+    )
     if not validated["package_versions"]:
         raise FailoverManifestError(
             f"Failover channel `{channel}` has no package versions"
@@ -360,7 +316,9 @@ def _validate_retired_reference(reference: Any) -> dict[str, Any]:
         raise FailoverManifestError(
             "Failover retired channel package_versions must be a mapping"
         )
-    validated["package_versions"] = _package_versions(package_versions)
+    validated["package_versions"] = package_versions_from_mapping(
+        package_versions
+    )
     if not validated["package_versions"]:
         raise FailoverManifestError(
             "Failover retired channel has no package versions"
@@ -380,32 +338,6 @@ def _validate_keys(
         )
 
 
-def _available_versions(
-    channels: Mapping[str, dict[str, Any] | None],
-    country_id: str,
-) -> dict[str, str]:
-    available_versions = {}
-    for channel in FAILOVER_CHANNELS:
-        reference = channels.get(channel)
-        if not reference:
-            continue
-        package_version = reference["package_versions"].get(country_id)
-        if package_version:
-            available_versions[channel] = package_version
-    return available_versions
-
-
-def _retired_version_exists(
-    references: list[dict[str, Any]],
-    country_id: str,
-    requested_version: str,
-) -> bool:
-    for reference in references:
-        if reference["package_versions"].get(country_id) == requested_version:
-            return True
-    return False
-
-
 def _retired_references(references: Any) -> list[dict[str, Any]]:
     retired = []
     if not isinstance(references, list):
@@ -417,7 +349,7 @@ def _retired_references(references: Any) -> list[dict[str, Any]]:
         modal_app_name = reference.get("app_name")
         if not isinstance(modal_app_name, str) or not modal_app_name:
             continue
-        package_versions = _package_versions(
+        package_versions = package_versions_from_mapping(
             reference.get("package_versions", {}),
         )
         if not package_versions:
@@ -432,17 +364,6 @@ def _retired_references(references: Any) -> list[dict[str, Any]]:
                 retired_reference[key] = value
         retired.append(retired_reference)
     return retired
-
-
-def _package_versions(package_versions: Mapping[str, Any]) -> dict[str, str]:
-    return {
-        country: version
-        for country, version in package_versions.items()
-        if isinstance(country, str)
-        and isinstance(version, str)
-        and country
-        and version
-    }
 
 
 def _resolved_channel(
