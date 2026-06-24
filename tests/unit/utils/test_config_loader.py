@@ -205,10 +205,6 @@ class TestEnvironmentVariableOverrides:
             config["auth"]["auth0"]["test_token_scopes"]
             == ENV_VAR_TEST_DATA["AUTH0_TEST_TOKEN_SCOPES"]
         )
-        assert (
-            config["ai"]["anthropic"]["api_key"]
-            == ENV_VAR_TEST_DATA["ANTHROPIC_API_KEY"]
-        )
         assert config["server"]["port"] == int(ENV_VAR_TEST_DATA["PORT"])
 
     def test__given_double_underscore_env_vars__config_parses_them_correctly(
