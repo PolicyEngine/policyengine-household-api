@@ -669,6 +669,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
+        422:
+          description: The requested exact package version is not active or has been deprecated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionRoutingErrorResponse"
+              examples:
+                unsupported_version:
+                  summary: Exact package version is not active
+                  value:
+                    status: error
+                    code: unsupported_version
+                    message: "No active household API app serves `us` package version `9.9.9`"
+                    requested_version: "9.9.9"
+                    country_id: us
+                    available_versions:
+                      current: "1.0.0"
+                      frontier: "2.0.0"
+                deprecated_version:
+                  summary: Exact package version has been retired
+                  value:
+                    status: error
+                    code: deprecated_version
+                    message: "Household API `us` package version `0.9.0` is deprecated"
+                    requested_version: "0.9.0"
+                    country_id: us
+                    available_versions:
+                      current: "1.0.0"
+                      frontier: "2.0.0"
         500:
           description: Error calculating household under policy.
           content:
@@ -1126,6 +1155,9 @@ components:
           type: object
           description: Optional policy reform object passed through to the country model.
           additionalProperties: true
+        version:
+          type: string
+          description: Optional API version selector. Omit this field to use the current release, pass current or frontier to select an active release channel, or pass an exact active country package version.
       additionalProperties: false
     Household:
       type: object
@@ -1289,6 +1321,36 @@ components:
           type: array
           description: Field-level or variable-level validation messages.
           items:
+            type: string
+    VersionRoutingErrorResponse:
+      type: object
+      required:
+        - status
+        - code
+        - message
+        - requested_version
+        - country_id
+        - available_versions
+      properties:
+        status:
+          type: string
+          enum:
+            - error
+        code:
+          type: string
+          enum:
+            - unsupported_version
+            - deprecated_version
+        message:
+          type: string
+        requested_version:
+          type: string
+        country_id:
+          type: string
+        available_versions:
+          type: object
+          description: Active package versions for the requested country, keyed by release channel.
+          additionalProperties:
             type: string
     AuthErrorResponse:
       type: object
