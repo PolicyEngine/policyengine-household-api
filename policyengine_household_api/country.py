@@ -1,5 +1,4 @@
 import importlib
-import logging
 from flask import Response
 import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
@@ -7,14 +6,6 @@ from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from typing import Union
 from policyengine_household_api.utils import (
     get_safe_json,
-    generate_computation_tree,
-)
-from policyengine_household_api.models.computation_tree import (
-    ComputationTree,
-    EntityDescription,
-)
-from policyengine_household_api.utils.google_cloud import (
-    GoogleCloudStorageManager,
 )
 from policyengine_core.parameters import (
     ParameterNode,
@@ -29,7 +20,6 @@ import copy
 import dpath
 import math
 from dataclasses import dataclass
-from uuid import UUID, uuid4
 
 
 # ---------------------------------------------------------------------------
@@ -748,7 +738,6 @@ class PolicyEngineCountry:
         self,
         household: dict,
         reform: Union[dict, None] = None,
-        enable_ai_explainer: bool = False,
     ):
         if reform is not None and len(reform.keys()) > 0:
             system = self.tax_benefit_system.clone()
@@ -790,8 +779,6 @@ class PolicyEngineCountry:
         # the normalizer above — that one's already a separate copy.
         household = json.loads(json.dumps(household))
 
-        # Run tracer on household
-        simulation.trace = True
         requested_computations = get_requested_computations(household)
 
         for (
@@ -854,43 +841,7 @@ class PolicyEngineCountry:
                         f"Error computing {variable_name} for {entity_id}: {e}"
                     )
 
-        # Execute all household tracer operations
-        try:
-            if enable_ai_explainer:
-                entity_description = EntityDescription.model_validate(
-                    simulation.describe_entities()
-                )
-
-                # Generate tracer output
-                log_lines: list = generate_computation_tree(simulation)
-
-                # Take the tracer output and create a new tracer object,
-                # storing in Google Cloud bucket
-                computation_tree_uuid: UUID = uuid4()
-                computation_tree_record: ComputationTree = ComputationTree(
-                    uuid=computation_tree_uuid,
-                    country_id=self.country_id,
-                    tree=log_lines,
-                    entity_description=entity_description,
-                )
-
-                storage_manager = GoogleCloudStorageManager()
-                storage_manager.store(
-                    uuid=computation_tree_uuid,
-                    data=computation_tree_record,
-                )
-
-                # Return the household and the tracer's UUID
-                return household, str(computation_tree_uuid)
-
-            return household, None
-
-        except Exception:
-            # Re-raise so endpoints/household.py (which unpacks
-            # ``(result, computation_tree_uuid)``) can surface a real
-            # 500 instead of a TypeError on ``None`` unpacking.
-            logging.exception("Tracer failed while computing household")
-            raise
+        return household
 
 
 def create_policy_reform(policy_data: dict) -> dict:

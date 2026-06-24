@@ -445,23 +445,6 @@ class TestCalculateEndpoint:
             == 2
         )
 
-    def test__given_ai_explainer_tracer_fails__returns_500(
-        self, client, ai_explainer_tracer_failure
-    ):
-        response = client.post(
-            "/us/calculate",
-            json={
-                "household": valid_household_requesting_ctc_calculation,
-                "enable_ai_explainer": True,
-            },
-            headers=self.auth_headers,
-        )
-
-        assert response.status_code == 500
-        payload = json.loads(response.data)
-        assert payload["status"] == "error"
-        assert "tracer down" in payload["message"]
-
 
 class TestAxesValidation:
     @pytest.mark.parametrize(
