@@ -30,7 +30,67 @@ class ResolvedApp:
 
 
 class GatewayResolutionError(ValueError):
-    pass
+    status_code: int = 400
+    code: str | None = None
+    requested_version: str | None = None
+    country_id: str | None = None
+    available_versions: dict[str, str] | None = None
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        code: str | None = None,
+        requested_version: str | None = None,
+        country_id: str | None = None,
+        available_versions: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(message)
+        if status_code is not None:
+            self.status_code = status_code
+        self.code = code
+        self.requested_version = requested_version
+        self.country_id = country_id
+        self.available_versions = available_versions
+
+
+class UnsupportedVersionError(GatewayResolutionError):
+    def __init__(
+        self,
+        *,
+        country_id: str,
+        requested_version: str,
+        available_versions: dict[str, str],
+    ) -> None:
+        super().__init__(
+            f"No active household API app serves `{country_id}` package "
+            f"version `{requested_version}`",
+            status_code=422,
+            code="unsupported_version",
+            requested_version=requested_version,
+            country_id=country_id,
+            available_versions=available_versions,
+        )
+
+
+class DeprecatedVersionError(GatewayResolutionError):
+    def __init__(
+        self,
+        *,
+        country_id: str,
+        requested_version: str,
+        available_versions: dict[str, str],
+    ) -> None:
+        super().__init__(
+            f"Household API `{country_id}` package version "
+            f"`{requested_version}` is deprecated",
+            status_code=422,
+            code="deprecated_version",
+            requested_version=requested_version,
+            country_id=country_id,
+            available_versions=available_versions,
+        )
 
 
 def create_gateway_app(
@@ -107,7 +167,14 @@ def create_gateway_app(
                 _request_payload(path, body, resolved_app),
             )
         except GatewayResolutionError as e:
-            return _json_error(str(e), 400)
+            return _json_error(
+                str(e),
+                e.status_code,
+                code=e.code,
+                requested_version=e.requested_version,
+                country_id=e.country_id,
+                available_versions=e.available_versions,
+            )
 
     return app
 
@@ -163,9 +230,18 @@ def resolve_app_for_request(
                 channel=channel,
             )
 
-    raise GatewayResolutionError(
-        f"No active household API app serves `{country_id}` package "
-        f"version `{requested}`"
+    available_versions = _available_versions(manifest, country_id)
+    if _retired_version_exists(manifest, country_id, requested):
+        raise DeprecatedVersionError(
+            country_id=country_id,
+            requested_version=requested,
+            available_versions=available_versions,
+        )
+
+    raise UnsupportedVersionError(
+        country_id=country_id,
+        requested_version=requested,
+        available_versions=available_versions,
     )
 
 
@@ -256,7 +332,54 @@ def _response_from_dispatch_result(result: dict[str, Any]) -> Response:
     )
 
 
-def _json_error(message: str, status: int) -> Response:
-    response = jsonify({"status": "error", "message": message})
+def _available_versions(
+    manifest: dict[str, Any],
+    country_id: str,
+) -> dict[str, str]:
+    available_versions = {}
+    for channel in ("current", "frontier"):
+        app_reference = manifest.get(channel)
+        if not app_reference:
+            continue
+        package_version = app_reference["package_versions"].get(country_id)
+        if package_version:
+            available_versions[channel] = package_version
+    return available_versions
+
+
+def _retired_version_exists(
+    manifest: dict[str, Any],
+    country_id: str,
+    requested_version: str,
+) -> bool:
+    for app_reference in manifest.get("retired", []):
+        if not isinstance(app_reference, dict):
+            continue
+        if app_reference.get("package_versions", {}).get(country_id) == (
+            requested_version
+        ):
+            return True
+    return False
+
+
+def _json_error(
+    message: str,
+    status: int,
+    *,
+    code: str | None = None,
+    requested_version: str | None = None,
+    country_id: str | None = None,
+    available_versions: dict[str, str] | None = None,
+) -> Response:
+    payload: dict[str, Any] = {"status": "error", "message": message}
+    if code is not None:
+        payload["code"] = code
+    if requested_version is not None:
+        payload["requested_version"] = requested_version
+    if country_id is not None:
+        payload["country_id"] = country_id
+    if available_versions is not None:
+        payload["available_versions"] = available_versions
+    response = jsonify(payload)
     response.status_code = status
     return response
