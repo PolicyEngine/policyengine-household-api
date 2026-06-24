@@ -488,7 +488,14 @@ def create_gateway_app(
         except FailoverManifestUnavailable as exc:
             return _gateway_unavailable_response(str(exc))
         except (FailoverRoutingError, GatewayResolutionError) as exc:
-            return _json_error(str(exc), 400)
+            return _json_error(
+                str(exc),
+                getattr(exc, "status_code", 400),
+                code=getattr(exc, "code", None),
+                requested_version=getattr(exc, "requested_version", None),
+                country_id=getattr(exc, "country_id", None),
+                available_versions=getattr(exc, "available_versions", None),
+            )
 
     return app
 

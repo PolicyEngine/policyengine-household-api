@@ -84,9 +84,10 @@ def _client(
     modal_request_timeout_seconds=None,
     modal_probe_timeout_seconds=None,
     modal_canary_timeout_seconds=None,
+    manifest_loader=None,
 ):
     app = create_gateway_app(
-        manifest_loader=_manifest,
+        manifest_loader=manifest_loader or _manifest,
         modal_request=modal_request
         or (lambda app_name, payload: _json_response({"backend": "modal"})),
         modal_health_probe=modal_health_probe or (lambda app_name: None),
@@ -454,15 +455,50 @@ def test_probe_modal_canary_uses_configured_modal_app(monkeypatch):
     }
 
 
-def test_unknown_exact_package_version_stays_bad_request():
+def test_unknown_exact_package_version_returns_unprocessable_entity():
     response = _client().post(
         "/us/calculate",
         json={"version": "9.9.9", "household": {}},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert "Retry-After" not in response.headers
-    assert response.get_json()["status"] == "error"
+    assert response.get_json() == {
+        "status": "error",
+        "code": "unsupported_version",
+        "message": (
+            "No active failover channel serves `us` package version `9.9.9`"
+        ),
+        "requested_version": "9.9.9",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
+
+
+def test_retired_exact_package_version_returns_unprocessable_entity():
+    manifest = _manifest()
+    manifest["retired"] = [
+        {
+            "modal_app_name": "modal-retired",
+            "package_versions": {"uk": "2.20.0", "us": "0.9.0"},
+        }
+    ]
+
+    response = _client(manifest_loader=lambda: manifest).post(
+        "/us/calculate",
+        json={"version": "0.9.0", "household": {}},
+    )
+
+    assert response.status_code == 422
+    assert "Retry-After" not in response.headers
+    assert response.get_json() == {
+        "status": "error",
+        "code": "deprecated_version",
+        "message": "Household API `us` package version `0.9.0` is deprecated",
+        "requested_version": "0.9.0",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
 
 
 def test_non_string_version_stays_bad_request():
