@@ -1,3 +1,10 @@
+## [0.23.0] - 2026-06-25
+
+### Removed
+
+- Removed the deprecated AI explainer endpoint and calculate-time computation tree tracing support.
+
+
 ## [0.22.5] - 2026-06-25
 
 ### Changed
