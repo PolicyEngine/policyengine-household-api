@@ -18,14 +18,10 @@ required = [
     "GCP_CREDENTIALS_JSON",
 ]
 optional = [
-    "ANTHROPIC_API_KEY",
     "USER_ANALYTICS_DB_CONNECTION_NAME",
     "USER_ANALYTICS_DB_USERNAME",
     "USER_ANALYTICS_DB_PASSWORD",
 ]
-if os.getenv("AI__ENABLED", "true").lower() not in {"0", "false", "no"}:
-    required.append("ANTHROPIC_API_KEY")
-    optional = [key for key in optional if key != "ANTHROPIC_API_KEY"]
 
 if os.getenv("ANALYTICS__ENABLED", "true").lower() not in {"0", "false", "no"}:
     required.extend(
@@ -57,7 +53,6 @@ settings = {
     "APP__ENVIRONMENT": os.getenv("APP__ENVIRONMENT", "production"),
     "AUTH__ENABLED": os.getenv("AUTH__ENABLED", "true"),
     "ANALYTICS__ENABLED": os.getenv("ANALYTICS__ENABLED", "true"),
-    "AI__ENABLED": os.getenv("AI__ENABLED", "true"),
 }
 for key in required + optional:
     value = os.getenv(key)

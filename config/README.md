@@ -351,7 +351,6 @@ docker run -e FLASK_DEBUG=1 \
            -p 8080:8080 \
            -e AUTH__ENABLED=false \    # Disable Auth0 for local dev
            -e ANALYTICS__ENABLED=false \ # Disable analytics for local dev
-           -e AI__ENABLED=false \
            -e DATABASE__PROVIDER=sqlite \
            ghcr.io/policyengine/policyengine-household-api:latest
 ```
