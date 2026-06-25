@@ -13,7 +13,6 @@ from policyengine_household_api.modal_release.manifest import (
     apply_release_config,
     build_app_reference,
     cleanup_app_names_for_target,
-    prune_cleaned_retired_apps,
     validate_manifest,
 )
 from policyengine_household_api.modal_release.release_config import (
@@ -53,18 +52,10 @@ def main() -> None:
         previous_manifest=current_manifest,
     )
 
-    # Drop the apps scheduled for cleanup from the manifest's retired history so
-    # they are not re-listed for cleanup on every future release. The deferred
-    # cleanup still receives the full list via `cleanup_app_names` (written to
-    # the cleanup output before this prune); only the stored manifest shrinks.
-    # The actual `modal app stop` happens later in the same release run and is
-    # idempotent, so pruning here does not strand an app. Without this, a
-    # long-since-deleted app lingers in `retired` forever and every release
-    # keeps trying to stop it. See issue #1569.
-    updated_manifest = prune_cleaned_retired_apps(
-        updated_manifest, set(cleanup_app_names)
-    )
-
+    # The retired apps recorded here are pruned from the manifest only after the
+    # deferred cleanup job confirms they were stopped (see prune_manifest.py).
+    # Pruning here would drop them before the stop runs, so a transient stop
+    # failure would never be retried. See issue #1569.
     manifest_dict[MANIFEST_DICT_KEY] = updated_manifest
 
     if args.cleanup_output:

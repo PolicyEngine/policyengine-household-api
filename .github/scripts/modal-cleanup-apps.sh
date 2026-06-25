@@ -20,11 +20,12 @@ for app_name in payload.get("app_names", []):
     echo "${output}"
     # Stopping a retired app is idempotent: an app that is already stopped or
     # already deleted is the desired end state, so treat both as success and
-    # keep going instead of aborting the whole job. Modal reports a missing app
-    # as: No App with name '<name>' found in the '<env>' environment.
+    # keep going instead of aborting the whole job. Match Modal's specific
+    # missing-app message (No App with name '<name>' found in the '<env>'
+    # environment.) rather than a generic "not found", which would also swallow
+    # unrelated failures like a missing uv/modal CLI or Modal environment.
     if [[ "${output}" == *"already stopped"* \
-       || "${output}" == *"No App with name"* \
-       || "${output}" == *"not found"* ]]; then
+       || "${output}" == *"No App with name"* ]]; then
       continue
     fi
     exit 1

@@ -1,8 +1,6 @@
 import json
 import sys
 
-import modal
-
 from policyengine_household_api.modal_release import update_manifest
 from policyengine_household_api.modal_release.manifest import MANIFEST_DICT_KEY
 
@@ -38,12 +36,14 @@ def _fake_dict_type(instance):
     return _FakeDictType
 
 
-def test_update_manifest_prunes_cleaned_retired_apps(tmp_path, monkeypatch):
+def test_update_manifest_emits_cleanup_without_pruning(tmp_path, monkeypatch):
+    # The deploy job must NOT prune retired apps: pruning happens only after the
+    # deferred cleanup job confirms the stop succeeded (see prune_manifest.py).
     initial_manifest = {
         "schema_version": 1,
         "current": _app("current-app", us="1.726.0"),
         "frontier": _app("frontier-app", us="1.732.0"),
-        # A long-since-deleted app that keeps getting re-listed for cleanup.
+        # A long-since-deleted app still tracked in the retired history.
         "retired": [_app("ghost-app", us="1.691.1")],
     }
     fake_dict = _FakeModalDict({MANIFEST_DICT_KEY: initial_manifest})
@@ -59,7 +59,6 @@ def test_update_manifest_prunes_cleaned_retired_apps(tmp_path, monkeypatch):
         }
     )
     cleanup_output = tmp_path / "modal-cleanup.json"
-    manifest_output = tmp_path / "modal-manifest.json"
     monkeypatch.setattr(
         sys,
         "argv",
@@ -75,66 +74,22 @@ def test_update_manifest_prunes_cleaned_retired_apps(tmp_path, monkeypatch):
             "testing",
             "--cleanup-output",
             str(cleanup_output),
-            "--manifest-output",
-            str(manifest_output),
         ],
     )
 
     update_manifest.main()
 
-    # The deferred cleanup still receives the full list: the long-gone ghost app
-    # plus the current app this release just retired.
+    # The cleanup list carries the long-gone ghost app plus the current app this
+    # release just retired.
     cleanup = json.loads(cleanup_output.read_text())
     assert set(cleanup["app_names"]) == {"ghost-app", "current-app"}
 
-    # The stored manifest no longer tracks the cleaned-up retired apps, so they
-    # are not re-listed for cleanup on the next release.
+    # The stored manifest still tracks those retired apps; nothing is pruned
+    # until the cleanup job confirms the stop.
     stored = fake_dict[MANIFEST_DICT_KEY]
-    assert stored["retired"] == []
+    assert {app["app_name"] for app in stored["retired"]} == {
+        "ghost-app",
+        "current-app",
+    }
     assert stored["current"]["app_name"] == "frontier-app"
     assert stored["frontier"]["app_name"] == "new-frontier-app"
-
-
-def test_update_manifest_keeps_retired_when_cleanup_target_none(
-    tmp_path, monkeypatch
-):
-    # cleanup_target: none must preserve retired history (nothing scheduled for
-    # cleanup means nothing pruned).
-    initial_manifest = {
-        "schema_version": 1,
-        "current": _app("current-app", us="1.726.0"),
-        "frontier": _app("frontier-app", us="1.732.0"),
-        "retired": [_app("ghost-app", us="1.691.1")],
-    }
-    fake_dict = _FakeModalDict({MANIFEST_DICT_KEY: initial_manifest})
-    monkeypatch.setattr(
-        update_manifest.modal, "Dict", _fake_dict_type(fake_dict)
-    )
-
-    config = json.dumps(
-        {
-            "new_app_target": "none",
-            "promote_existing_frontier": False,
-            "cleanup_target": "none",
-        }
-    )
-    cleanup_output = tmp_path / "modal-cleanup.json"
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "update_manifest.py",
-            "--config-json",
-            config,
-            "--modal-environment",
-            "testing",
-            "--cleanup-output",
-            str(cleanup_output),
-        ],
-    )
-
-    update_manifest.main()
-
-    assert json.loads(cleanup_output.read_text())["app_names"] == []
-    stored = fake_dict[MANIFEST_DICT_KEY]
-    assert [app["app_name"] for app in stored["retired"]] == ["ghost-app"]

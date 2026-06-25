@@ -450,6 +450,18 @@ jobs:
             echo "No deferred Modal cleanup manifest; nothing to stop."
           fi
 
+      - name: Prune cleaned apps from release manifest
+        # Runs only after the stop step above succeeds, so a failed stop leaves
+        # the retired entries in the manifest for retry on the next release.
+        run: |
+          if [ -f modal-cleanup.json ]; then
+            uv run python -m policyengine_household_api.modal_release.prune_manifest \
+              --cleanup-json modal-cleanup.json \
+              --modal-environment "${MODAL_ENVIRONMENT}"
+          else
+            echo "No deferred Modal cleanup manifest; nothing to prune."
+          fi
+
   deploy-modal-production:
     name: Deploy Modal release to production
     runs-on: ubuntu-latest
@@ -608,6 +620,18 @@ jobs:
             bash .github/scripts/modal-cleanup-apps.sh modal-cleanup.json
           else
             echo "No deferred Modal cleanup manifest; nothing to stop."
+          fi
+
+      - name: Prune cleaned apps from release manifest
+        # Runs only after the stop step above succeeds, so a failed stop leaves
+        # the retired entries in the manifest for retry on the next release.
+        run: |
+          if [ -f modal-cleanup.json ]; then
+            uv run python -m policyengine_household_api.modal_release.prune_manifest \
+              --cleanup-json modal-cleanup.json \
+              --modal-environment "${MODAL_ENVIRONMENT}"
+          else
+            echo "No deferred Modal cleanup manifest; nothing to prune."
           fi
 
   publish:
