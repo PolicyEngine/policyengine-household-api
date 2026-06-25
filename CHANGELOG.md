@@ -1,3 +1,10 @@
+## [0.23.1] - 2026-06-25
+
+### Changed
+
+- Relax the PolicyEngine Core upper bound for the current US model.
+
+
 ## [0.23.0] - 2026-06-25
 
 ### Removed
