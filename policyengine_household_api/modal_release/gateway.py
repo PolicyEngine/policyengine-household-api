@@ -17,9 +17,9 @@ from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
 )
+from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
 from policyengine_household_api.version_routing import (
     UnsupportedVersionError,
-    VERSION_CHANNELS,
     VersionRoutingError,
     active_versions_for_country,
 )
@@ -75,7 +75,7 @@ def create_gateway_app(
 
         manifest = validate_manifest(load_manifest())
         country_versions = {}
-        for channel in VERSION_CHANNELS:
+        for channel in ACTIVE_RELEASE_CHANNELS:
             app_reference = manifest.get(channel)
             if not app_reference:
                 continue
@@ -164,7 +164,7 @@ def resolve_app_for_request(
             "Exact package version routing requires a country endpoint"
         )
 
-    for channel in VERSION_CHANNELS:
+    for channel in ACTIVE_RELEASE_CHANNELS:
         app_reference = manifest.get(channel)
         if not app_reference:
             continue

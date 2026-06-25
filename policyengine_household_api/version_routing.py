@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-
-VERSION_CHANNELS = ("current", "frontier")
+from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
 
 
 class VersionRoutingError(ValueError):
@@ -55,7 +54,7 @@ class UnsupportedVersionError(VersionRoutingError):
 def active_versions_for_country(
     channel_references: Mapping[str, Mapping[str, Any] | None],
     country_id: str,
-    channels: Iterable[str] = VERSION_CHANNELS,
+    channels: Iterable[str] = ACTIVE_RELEASE_CHANNELS,
 ) -> dict[str, str]:
     active_versions = {}
     for channel in channels:
