@@ -1,3 +1,10 @@
+## [0.23.2] - 2026-06-25
+
+### Fixed
+
+- Pinned policyengine-core below the formula-time randomness guard while the Medicaid/SSI calculation failure is investigated.
+
+
 ## [0.23.1] - 2026-06-25
 
 ### Changed
