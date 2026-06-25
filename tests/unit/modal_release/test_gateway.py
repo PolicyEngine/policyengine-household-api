@@ -230,18 +230,18 @@ def test_gateway_routing_metadata_is_not_taken_from_inbound_headers():
     }
 
 
-def test_ai_analysis_routes_to_current_worker():
+def test_non_versioned_country_route_routes_to_current_worker():
     client, worker_requests = _client_with_dispatch()
 
     response = client.post(
-        "/us/ai-analysis",
+        "/us/metadata",
         json={"version": "frontier", "household": {}},
     )
 
     assert response.status_code == 200
     app_name, payload = worker_requests[0]
     assert app_name == "current-app"
-    assert payload["path"] == "us/ai-analysis"
+    assert payload["path"] == "us/metadata"
     assert "version" in json.loads(payload["body"])
     assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
         "requested_version": "current",

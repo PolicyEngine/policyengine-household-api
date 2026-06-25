@@ -166,8 +166,6 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AI__ENABLED: "true"
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
           # Defer stopping retired Modal apps until cleanup-modal-staging runs,
           # after the Cloud Run failover manifest has been refreshed.
@@ -276,8 +274,6 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AI__ENABLED: "true"
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT }}
           HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
         run: bash .github/scripts/cloud-run-deploy-failover.sh
@@ -498,8 +494,6 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AI__ENABLED: "true"
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
           # Defer stopping retired Modal apps until cleanup-modal-production
           # runs, after the Cloud Run failover manifest has been refreshed.
@@ -565,8 +559,6 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AI__ENABLED: "true"
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT }}
           HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
         run: bash .github/scripts/cloud-run-deploy-failover.sh

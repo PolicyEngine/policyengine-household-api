@@ -16,10 +16,3 @@ analytics:
 
 auth:
   enabled: false  # No auth in development
-
-ai:
-  enabled: false  # Disabled to avoid API costs in dev
-  # Or enable with API key:
-  # enabled: true
-  # anthropic:
-  #   api_key: ${ANTHROPIC_API_KEY}  # From env var if needed

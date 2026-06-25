@@ -49,9 +49,3 @@ auth:
     test_token: "" # Override with AUTH0_TEST_TOKEN_NO_DOMAIN
     # Space-delimited OAuth scopes for the static test token
     test_token_scopes: "" # Override with AUTH0_TEST_TOKEN_SCOPES
-
-# AI services configuration
-ai:
-  enabled: false
-  anthropic:
-    api_key: ""  # Override with ANTHROPIC_API_KEY

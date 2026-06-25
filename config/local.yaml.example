@@ -14,7 +14,3 @@ analytics:
 auth:
   enabled: false
   # All endpoints accessible without authentication
-
-ai:
-  enabled: false
-  # Returns mock responses for AI endpoints
