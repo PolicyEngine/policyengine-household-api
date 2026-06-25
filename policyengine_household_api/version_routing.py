@@ -52,25 +52,6 @@ class UnsupportedVersionError(VersionRoutingError):
         )
 
 
-class DeprecatedVersionError(VersionRoutingError):
-    def __init__(
-        self,
-        *,
-        country_id: str,
-        requested_version: str,
-        available_versions: dict[str, str],
-    ) -> None:
-        super().__init__(
-            f"Household API `{country_id}` package version "
-            f"`{requested_version}` is deprecated",
-            status_code=422,
-            code="deprecated_version",
-            requested_version=requested_version,
-            country_id=country_id,
-            available_versions=available_versions,
-        )
-
-
 def active_versions_for_country(
     channel_references: Mapping[str, Mapping[str, Any] | None],
     country_id: str,
@@ -85,20 +66,6 @@ def active_versions_for_country(
         if package_version:
             active_versions[channel] = package_version
     return active_versions
-
-
-def retired_version_exists(
-    references: Iterable[Mapping[str, Any]],
-    country_id: str,
-    requested_version: str,
-) -> bool:
-    for reference in references:
-        package_versions = reference.get("package_versions", {})
-        if not isinstance(package_versions, Mapping):
-            continue
-        if package_versions.get(country_id) == requested_version:
-            return True
-    return False
 
 
 def package_versions_from_mapping(

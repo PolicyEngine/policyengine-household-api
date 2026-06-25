@@ -475,16 +475,8 @@ def test_unknown_exact_package_version_returns_unprocessable_entity():
     }
 
 
-def test_retired_exact_package_version_returns_unprocessable_entity():
-    manifest = _manifest()
-    manifest["retired"] = [
-        {
-            "modal_app_name": "modal-retired",
-            "package_versions": {"uk": "2.20.0", "us": "0.9.0"},
-        }
-    ]
-
-    response = _client(manifest_loader=lambda: manifest).post(
+def test_inactive_exact_package_version_returns_unprocessable_entity():
+    response = _client().post(
         "/us/calculate",
         json={"version": "0.9.0", "household": {}},
     )
@@ -493,8 +485,10 @@ def test_retired_exact_package_version_returns_unprocessable_entity():
     assert "Retry-After" not in response.headers
     assert response.get_json() == {
         "status": "error",
-        "code": "deprecated_version",
-        "message": "Household API `us` package version `0.9.0` is deprecated",
+        "code": "unsupported_version",
+        "message": (
+            "No active failover channel serves `us` package version `0.9.0`"
+        ),
         "requested_version": "0.9.0",
         "country_id": "us",
         "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
@@ -711,15 +705,7 @@ def test_exact_package_version_routes_to_matching_channel():
 
 
 def test_versions_endpoint_omits_worker_urls_and_matches_modal_schema():
-    manifest = _manifest()
-    manifest["retired"] = [
-        {
-            "modal_app_name": "modal-retired",
-            "package_versions": {"uk": "2.20.0", "us": "0.9.0"},
-        }
-    ]
-
-    response = _client(manifest_loader=lambda: manifest).get("/versions")
+    response = _client().get("/versions")
 
     assert response.status_code == 200
     assert response.get_json() == {
@@ -737,8 +723,6 @@ def test_versions_endpoint_omits_worker_urls_and_matches_modal_schema():
     assert "cloud_run_worker_url" not in body
     assert "run.app" not in body
     assert "retired" not in body
-    assert "modal-retired" not in body
-    assert "0.9.0" not in body
 
 
 def test_gateway_rejects_request_body_over_limit(monkeypatch):

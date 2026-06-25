@@ -670,7 +670,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
         422:
-          description: The requested exact package version is not active or has been deprecated.
+          description: The requested exact package version is not active.
           content:
             application/json:
               schema:
@@ -683,17 +683,6 @@ paths:
                     code: unsupported_version
                     message: "No active household API app serves `us` package version `9.9.9`"
                     requested_version: "9.9.9"
-                    country_id: us
-                    available_versions:
-                      current: "1.0.0"
-                      frontier: "2.0.0"
-                deprecated_version:
-                  summary: Exact package version has been retired
-                  value:
-                    status: error
-                    code: deprecated_version
-                    message: "Household API `us` package version `0.9.0` is deprecated"
-                    requested_version: "0.9.0"
                     country_id: us
                     available_versions:
                       current: "1.0.0"
@@ -1340,7 +1329,6 @@ components:
           type: string
           enum:
             - unsupported_version
-            - deprecated_version
         message:
           type: string
         requested_version:

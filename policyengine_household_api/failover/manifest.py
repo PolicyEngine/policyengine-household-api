@@ -6,12 +6,10 @@ from datetime import datetime, timezone
 from typing import Any, Mapping
 
 from policyengine_household_api.version_routing import (
-    DeprecatedVersionError,
     UnsupportedVersionError,
     VERSION_CHANNELS,
     active_versions_for_country,
     package_versions_from_mapping,
-    retired_version_exists,
 )
 
 
@@ -31,21 +29,11 @@ CHANNEL_OPTIONAL_KEYS = {
     "analytics_database_revision",
 }
 CHANNEL_KEYS = CHANNEL_REQUIRED_KEYS | CHANNEL_OPTIONAL_KEYS
-RETIRED_REQUIRED_KEYS = {
-    "modal_app_name",
-    "package_versions",
-}
-RETIRED_OPTIONAL_KEYS = CHANNEL_OPTIONAL_KEYS | {
-    "retired_at",
-    "retirement_reason",
-}
-RETIRED_KEYS = RETIRED_REQUIRED_KEYS | RETIRED_OPTIONAL_KEYS
 MANIFEST_KEYS = {
     "schema_version",
     "environment",
     "generated_at",
     "channels",
-    "retired",
 }
 
 
@@ -115,9 +103,6 @@ def validate_failover_manifest(
                 reference,
             )
     validated["channels"] = validated_channels
-    validated["retired"] = _validate_retired_references(
-        validated.get("retired", []),
-    )
     return validated
 
 
@@ -146,15 +131,12 @@ def build_failover_manifest(
                 channel_reference[key] = value
         channels[channel] = channel_reference
 
-    retired = _retired_references(modal_manifest.get("retired", []))
-
     return validate_failover_manifest(
         {
             "schema_version": FAILOVER_MANIFEST_SCHEMA_VERSION,
             "environment": environment,
             "generated_at": generated_at or current_timestamp(),
             "channels": channels,
-            "retired": retired,
         }
     )
 
@@ -194,13 +176,6 @@ def resolve_failover_channel_for_request(
         country_id,
         FAILOVER_CHANNELS,
     )
-    if retired_version_exists(validated["retired"], country_id, requested):
-        raise DeprecatedVersionError(
-            country_id=country_id,
-            requested_version=requested,
-            available_versions=available_versions,
-        )
-
     raise UnsupportedVersionError(
         country_id=country_id,
         requested_version=requested,
@@ -279,53 +254,6 @@ def _validate_channel_reference(
     return validated
 
 
-def _validate_retired_references(references: Any) -> list[dict[str, Any]]:
-    if not isinstance(references, list):
-        raise FailoverManifestError("Failover manifest retired is invalid")
-
-    retired = []
-    for reference in references:
-        retired.append(_validate_retired_reference(reference))
-    return retired
-
-
-def _validate_retired_reference(reference: Any) -> dict[str, Any]:
-    if not isinstance(reference, Mapping):
-        raise FailoverManifestError(
-            "Failover retired channel must be a mapping"
-        )
-
-    validated = deepcopy(dict(reference))
-    _validate_keys(validated, RETIRED_KEYS, "Failover retired channel")
-    missing = RETIRED_REQUIRED_KEYS - validated.keys()
-    if missing:
-        raise FailoverManifestError(
-            f"Failover retired channel is missing: {sorted(missing)}"
-        )
-
-    if (
-        not isinstance(validated["modal_app_name"], str)
-        or not validated["modal_app_name"]
-    ):
-        raise FailoverManifestError(
-            "Failover retired channel has invalid `modal_app_name`"
-        )
-
-    package_versions = validated["package_versions"]
-    if not isinstance(package_versions, Mapping):
-        raise FailoverManifestError(
-            "Failover retired channel package_versions must be a mapping"
-        )
-    validated["package_versions"] = package_versions_from_mapping(
-        package_versions
-    )
-    if not validated["package_versions"]:
-        raise FailoverManifestError(
-            "Failover retired channel has no package versions"
-        )
-    return validated
-
-
 def _validate_keys(
     mapping: Mapping[str, Any],
     allowed: set[str],
@@ -336,34 +264,6 @@ def _validate_keys(
         raise FailoverManifestError(
             f"{label} contains unsupported keys: {sorted(extra)}"
         )
-
-
-def _retired_references(references: Any) -> list[dict[str, Any]]:
-    retired = []
-    if not isinstance(references, list):
-        return retired
-
-    for reference in references:
-        if not isinstance(reference, Mapping):
-            continue
-        modal_app_name = reference.get("app_name")
-        if not isinstance(modal_app_name, str) or not modal_app_name:
-            continue
-        package_versions = package_versions_from_mapping(
-            reference.get("package_versions", {}),
-        )
-        if not package_versions:
-            continue
-        retired_reference = {
-            "modal_app_name": modal_app_name,
-            "package_versions": package_versions,
-        }
-        for key in RETIRED_OPTIONAL_KEYS:
-            value = reference.get(key)
-            if value:
-                retired_reference[key] = value
-        retired.append(retired_reference)
-    return retired
 
 
 def _resolved_channel(

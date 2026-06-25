@@ -122,7 +122,7 @@ def test_calculate_rejects_unknown_version():
     }
 
 
-def test_calculate_rejects_retired_version():
+def test_calculate_rejects_retired_version_as_unsupported():
     manifest = _manifest()
     manifest["retired"] = [
         {
@@ -144,8 +144,10 @@ def test_calculate_rejects_retired_version():
     assert not worker_requests
     assert response.get_json() == {
         "status": "error",
-        "code": "deprecated_version",
-        "message": "Household API `us` package version `0.9.0` is deprecated",
+        "code": "unsupported_version",
+        "message": (
+            "No active household API app serves `us` package version `0.9.0`"
+        ),
         "requested_version": "0.9.0",
         "country_id": "us",
         "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},

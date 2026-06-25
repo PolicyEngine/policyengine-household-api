@@ -18,12 +18,10 @@ from policyengine_household_api.modal_release.routing_metadata import (
     modal_routing_payload,
 )
 from policyengine_household_api.version_routing import (
-    DeprecatedVersionError,
     UnsupportedVersionError,
     VERSION_CHANNELS,
     VersionRoutingError,
     active_versions_for_country,
-    retired_version_exists,
 )
 
 
@@ -179,15 +177,6 @@ def resolve_app_for_request(
             )
 
     available_versions = active_versions_for_country(manifest, country_id)
-    if retired_version_exists(
-        manifest.get("retired", []), country_id, requested
-    ):
-        raise DeprecatedVersionError(
-            country_id=country_id,
-            requested_version=requested,
-            available_versions=available_versions,
-        )
-
     raise UnsupportedVersionError(
         country_id=country_id,
         requested_version=requested,
