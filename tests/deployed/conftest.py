@@ -11,8 +11,31 @@ BASE_URL_ENV_VAR = "HOUSEHOLD_API_BASE_URL"
 AUTH_TOKEN_ENV_VAR = "HOUSEHOLD_API_AUTH_TOKEN"
 REQUEST_VERSION_ENV_VAR = "HOUSEHOLD_API_REQUEST_VERSION"
 EXPECTED_CHANNEL_ENV_VAR = "HOUSEHOLD_API_EXPECTED_CHANNEL"
+EXPECTED_BACKEND_ENV_VAR = "HOUSEHOLD_API_EXPECTED_BACKEND"
 ROUTE_MODE_ENV_VAR = "HOUSEHOLD_API_ROUTE_MODE"
 DEFAULT_TIMEOUT_SECONDS = 90
+
+
+class CaseInsensitiveHeaders(dict):
+    """Response headers with case-insensitive lookups.
+
+    Cloud Run serves responses over HTTP/2, which lowercases all header names,
+    while Modal serves HTTP/1.1 with the original casing. Normalising keys keeps
+    assertions such as ``headers["X-PolicyEngine-Backend"]`` working regardless
+    of which gateway answered.
+    """
+
+    def __init__(self, items=()):
+        super().__init__((key.lower(), value) for key, value in items)
+
+    def __getitem__(self, key: str):
+        return super().__getitem__(key.lower())
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and super().__contains__(key.lower())
+
+    def get(self, key: str, default=None):
+        return super().get(key.lower(), default)
 
 
 @dataclass
@@ -76,13 +99,13 @@ class DeployedApiClient:
             ) as response:
                 return DeployedResponse(
                     status_code=response.status,
-                    headers=dict(response.headers.items()),
+                    headers=CaseInsensitiveHeaders(response.headers.items()),
                     text=response.read().decode("utf-8"),
                 )
         except error.HTTPError as exc:
             return DeployedResponse(
                 status_code=exc.code,
-                headers=dict(exc.headers.items()),
+                headers=CaseInsensitiveHeaders(exc.headers.items()),
                 text=exc.read().decode("utf-8"),
             )
 
@@ -112,6 +135,11 @@ def request_version() -> str | None:
 @pytest.fixture(scope="session")
 def expected_channel() -> str | None:
     return os.getenv(EXPECTED_CHANNEL_ENV_VAR, "").strip() or None
+
+
+@pytest.fixture(scope="session")
+def expected_backend() -> str | None:
+    return os.getenv(EXPECTED_BACKEND_ENV_VAR, "").strip() or None
 
 
 @pytest.fixture(scope="session")

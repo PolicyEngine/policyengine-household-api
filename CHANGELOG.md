@@ -1,3 +1,46 @@
+## [0.22.5] - 2026-06-25
+
+### Changed
+
+- Update PolicyEngine US to 1.744.0.
+
+
+## [0.22.4] - 2026-06-17
+
+### Changed
+
+- Update PolicyEngine US to 1.732.0.
+
+
+## [0.22.3] - 2026-06-17
+
+### Fixed
+
+- Raise the Cloud Run gateway's Modal request timeout to 90 seconds so a cold Modal worker's first calculation is no longer cut off and returned as a 503, and warm the Modal worker through the gateway before the staging gateway integration tests so they exercise a warm backend.
+
+
+## [0.22.2] - 2026-06-16
+
+### Fixed
+
+- Warmed the Cloud Run fallback workers before the forced-fallback staging test so it no longer times out on `min-instances=0` cold starts.
+
+
+## [0.22.1] - 2026-06-16
+
+### Fixed
+
+- Made deployed-test response header lookups case-insensitive so Cloud Run (HTTP/2) integration tests no longer fail on the lowercased `X-PolicyEngine-Backend` header.
+
+
+## [0.22.0] - 2026-06-16
+
+### Added
+
+- Added a Cloud Run failover gateway and private fallback worker deployment path
+  for Modal current/frontier household API releases.
+
+
 ## [0.21.4] - 2026-06-11
 
 ### Changed
