@@ -67,6 +67,72 @@ def test_modal_cleanup_treats_already_stopped_app_as_success(tmp_path):
     assert "already stopped" in result.stdout
 
 
+def test_modal_cleanup_treats_missing_app_as_success(tmp_path):
+    cleanup_file = tmp_path / "cleanup.json"
+    cleanup_file.write_text('{"app_names":["old-app"]}\n')
+    _write_fake_uv(
+        tmp_path,
+        exit_code=1,
+        output="No App with name 'old-app' found in the 'main' environment.",
+    )
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-cleanup-apps.sh",
+            str(cleanup_file),
+        ],
+        capture_output=True,
+        env={
+            **os.environ,
+            "PATH": f"{tmp_path}:{os.environ['PATH']}",
+            "MODAL_ENVIRONMENT": "testing",
+        },
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "No App with name" in result.stdout
+
+
+def test_modal_cleanup_continues_past_missing_app(tmp_path):
+    # A missing first app must not abort the job: the genuinely-retired apps
+    # later in the manifest still need to be stopped.
+    cleanup_file = tmp_path / "cleanup.json"
+    cleanup_file.write_text('{"app_names":["gone-app","next-app"]}\n')
+    calls_file = tmp_path / "calls.txt"
+    uv = tmp_path / "uv"
+    uv.write_text(
+        f"""#!/usr/bin/env bash
+# Record the stopped app name (last positional arg) for each invocation, then
+# report it as already deleted.
+for arg in "$@"; do last="$arg"; done
+printf '%s\\n' "$last" >> "{calls_file}"
+echo "No App with name '$last' found in the 'testing' environment." >&2
+exit 1
+"""
+    )
+    uv.chmod(0o755)
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-cleanup-apps.sh",
+            str(cleanup_file),
+        ],
+        capture_output=True,
+        env={
+            **os.environ,
+            "PATH": f"{tmp_path}:{os.environ['PATH']}",
+            "MODAL_ENVIRONMENT": "testing",
+        },
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert calls_file.read_text().splitlines() == ["gone-app", "next-app"]
+
+
 def test_modal_cleanup_fails_on_other_stop_errors(tmp_path):
     cleanup_file = tmp_path / "cleanup.json"
     cleanup_file.write_text('{"app_names":["old-app"]}\n')
