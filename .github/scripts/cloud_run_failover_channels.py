@@ -8,7 +8,6 @@ from typing import Any, Mapping
 import modal
 
 from policyengine_household_api.failover.manifest import (
-    FAILOVER_CHANNELS,
     build_failover_manifest,
 )
 from policyengine_household_api.modal_release.manifest import (
@@ -16,6 +15,7 @@ from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_NAME,
     require_active_current_and_frontier,
 )
+from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
 
 
 def active_failover_channels(
@@ -23,7 +23,7 @@ def active_failover_channels(
 ) -> list[dict[str, Any]]:
     manifest = require_active_current_and_frontier(modal_manifest)
     channels = []
-    for channel in FAILOVER_CHANNELS:
+    for channel in ACTIVE_RELEASE_CHANNELS:
         reference = manifest[channel]
         channels.append(
             {
@@ -55,7 +55,7 @@ def parse_worker_urls(values: list[str] | None) -> dict[str, str]:
         channel, separator, url = value.partition("=")
         if separator != "=" or not channel or not url:
             raise ValueError("--worker-url values must use CHANNEL=URL format")
-        if channel not in FAILOVER_CHANNELS:
+        if channel not in ACTIVE_RELEASE_CHANNELS:
             raise ValueError(f"Unsupported failover channel: {channel}")
         if channel in worker_urls:
             raise ValueError(f"Duplicate worker URL for channel: {channel}")

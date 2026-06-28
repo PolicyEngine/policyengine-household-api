@@ -108,9 +108,50 @@ def test_calculate_rejects_unknown_version():
         json={"version": "9.9.9", "household": {}},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert not worker_requests
-    assert "9.9.9" in response.get_json()["message"]
+    assert response.get_json() == {
+        "status": "error",
+        "code": "unsupported_version",
+        "message": (
+            "No active household API app serves `us` package version `9.9.9`"
+        ),
+        "requested_version": "9.9.9",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
+
+
+def test_calculate_rejects_retired_version_as_unsupported():
+    manifest = _manifest()
+    manifest["retired"] = [
+        {
+            "app_name": "retired-app",
+            "package_versions": {"uk": "2.30.0", "us": "0.9.0"},
+            "deployed_at": "2025-12-25T00:00:00+00:00",
+            "retired_at": "2026-01-01T00:00:00+00:00",
+            "retirement_reason": "replaced-current",
+        }
+    ]
+    client, worker_requests = _client_with_dispatch(manifest=lambda: manifest)
+
+    response = client.post(
+        "/us/calculate",
+        json={"version": "0.9.0", "household": {}},
+    )
+
+    assert response.status_code == 422
+    assert not worker_requests
+    assert response.get_json() == {
+        "status": "error",
+        "code": "unsupported_version",
+        "message": (
+            "No active household API app serves `us` package version `0.9.0`"
+        ),
+        "requested_version": "0.9.0",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
 
 
 def test_calculate_rejects_non_string_version():

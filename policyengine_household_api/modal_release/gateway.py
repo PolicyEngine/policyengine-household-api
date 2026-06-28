@@ -17,6 +17,12 @@ from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
 )
+from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
+from policyengine_household_api.version_routing import (
+    UnsupportedVersionError,
+    VersionRoutingError,
+    active_versions_for_country,
+)
 
 
 VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
@@ -29,7 +35,7 @@ class ResolvedApp:
     channel: str
 
 
-class GatewayResolutionError(ValueError):
+class GatewayResolutionError(VersionRoutingError):
     pass
 
 
@@ -69,7 +75,7 @@ def create_gateway_app(
 
         manifest = validate_manifest(load_manifest())
         country_versions = {}
-        for channel in ("current", "frontier"):
+        for channel in ACTIVE_RELEASE_CHANNELS:
             app_reference = manifest.get(channel)
             if not app_reference:
                 continue
@@ -106,8 +112,15 @@ def create_gateway_app(
                 resolved_app.app_name,
                 _request_payload(path, body, resolved_app),
             )
-        except GatewayResolutionError as e:
-            return _json_error(str(e), 400)
+        except VersionRoutingError as e:
+            return _json_error(
+                str(e),
+                e.status_code,
+                code=e.code,
+                requested_version=e.requested_version,
+                country_id=e.country_id,
+                available_versions=e.available_versions,
+            )
 
     return app
 
@@ -134,7 +147,7 @@ def resolve_app_for_request(
 ) -> ResolvedApp:
     requested = requested_version or "current"
 
-    if requested in {"current", "frontier"}:
+    if requested in ACTIVE_RELEASE_CHANNELS:
         app_reference = manifest.get(requested)
         if not app_reference:
             raise GatewayResolutionError(
@@ -151,7 +164,7 @@ def resolve_app_for_request(
             "Exact package version routing requires a country endpoint"
         )
 
-    for channel in ("current", "frontier"):
+    for channel in ACTIVE_RELEASE_CHANNELS:
         app_reference = manifest.get(channel)
         if not app_reference:
             continue
@@ -163,9 +176,12 @@ def resolve_app_for_request(
                 channel=channel,
             )
 
-    raise GatewayResolutionError(
-        f"No active household API app serves `{country_id}` package "
-        f"version `{requested}`"
+    available_versions = active_versions_for_country(manifest, country_id)
+    raise UnsupportedVersionError(
+        country_id=country_id,
+        requested_version=requested,
+        available_versions=available_versions,
+        active_target_label="household API app",
     )
 
 
@@ -256,7 +272,24 @@ def _response_from_dispatch_result(result: dict[str, Any]) -> Response:
     )
 
 
-def _json_error(message: str, status: int) -> Response:
-    response = jsonify({"status": "error", "message": message})
+def _json_error(
+    message: str,
+    status: int,
+    *,
+    code: str | None = None,
+    requested_version: str | None = None,
+    country_id: str | None = None,
+    available_versions: dict[str, str] | None = None,
+) -> Response:
+    payload: dict[str, Any] = {"status": "error", "message": message}
+    if code is not None:
+        payload["code"] = code
+    if requested_version is not None:
+        payload["requested_version"] = requested_version
+    if country_id is not None:
+        payload["country_id"] = country_id
+    if available_versions is not None:
+        payload["available_versions"] = available_versions
+    response = jsonify(payload)
     response.status_code = status
     return response

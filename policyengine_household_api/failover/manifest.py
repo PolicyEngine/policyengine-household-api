@@ -5,11 +5,17 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
+from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
+from policyengine_household_api.version_routing import (
+    UnsupportedVersionError,
+    active_versions_for_country,
+    package_versions_from_mapping,
+)
+
 
 FAILOVER_MANIFEST_SCHEMA_VERSION = 1
 FAILOVER_MANIFEST_BUCKET_ENV = "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET"
 FAILOVER_MANIFEST_BLOB_ENV = "HOUSEHOLD_FAILOVER_MANIFEST_BLOB"
-FAILOVER_CHANNELS = ("current", "frontier")
 
 CHANNEL_REQUIRED_KEYS = {
     "modal_app_name",
@@ -86,7 +92,7 @@ def validate_failover_manifest(
         raise FailoverManifestError("Failover manifest channels are invalid")
 
     validated_channels = {}
-    for channel in FAILOVER_CHANNELS:
+    for channel in ACTIVE_RELEASE_CHANNELS:
         reference = channels.get(channel)
         if reference is None:
             validated_channels[channel] = None
@@ -107,7 +113,7 @@ def build_failover_manifest(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     channels: dict[str, dict[str, Any] | None] = {}
-    for channel in FAILOVER_CHANNELS:
+    for channel in ACTIVE_RELEASE_CHANNELS:
         modal_reference = modal_manifest.get(channel)
         if not modal_reference:
             channels[channel] = None
@@ -144,7 +150,7 @@ def resolve_failover_channel_for_request(
     requested = requested_version or "current"
     channels = validated["channels"]
 
-    if requested in FAILOVER_CHANNELS:
+    if requested in ACTIVE_RELEASE_CHANNELS:
         reference = channels.get(requested)
         if not reference:
             raise FailoverManifestUnavailable(
@@ -157,16 +163,23 @@ def resolve_failover_channel_for_request(
             "Exact package version routing requires a country endpoint"
         )
 
-    for channel in FAILOVER_CHANNELS:
+    for channel in ACTIVE_RELEASE_CHANNELS:
         reference = channels.get(channel)
         if not reference:
             continue
         if reference["package_versions"].get(country_id) == requested:
             return _resolved_channel(channel, requested, reference)
 
-    raise FailoverRoutingError(
-        f"No active failover channel serves `{country_id}` package "
-        f"version `{requested}`"
+    available_versions = active_versions_for_country(
+        channels,
+        country_id,
+        ACTIVE_RELEASE_CHANNELS,
+    )
+    raise UnsupportedVersionError(
+        country_id=country_id,
+        requested_version=requested,
+        available_versions=available_versions,
+        active_target_label="failover channel",
     )
 
 
@@ -183,7 +196,7 @@ def public_versions_view(manifest: Mapping[str, Any]) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "schema_version": validated["schema_version"],
     }
-    for channel in FAILOVER_CHANNELS:
+    for channel in ACTIVE_RELEASE_CHANNELS:
         reference = validated["channels"].get(channel)
         payload[channel] = (
             _public_channel_view(reference) if reference else None
@@ -230,14 +243,9 @@ def _validate_channel_reference(
         raise FailoverManifestError(
             f"Failover channel `{channel}` package_versions must be a mapping"
         )
-    validated["package_versions"] = {
-        country: version
-        for country, version in package_versions.items()
-        if isinstance(country, str)
-        and isinstance(version, str)
-        and country
-        and version
-    }
+    validated["package_versions"] = package_versions_from_mapping(
+        package_versions
+    )
     if not validated["package_versions"]:
         raise FailoverManifestError(
             f"Failover channel `{channel}` has no package versions"
