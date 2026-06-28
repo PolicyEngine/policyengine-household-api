@@ -1,3 +1,10 @@
+## [0.23.3] - 2026-06-28
+
+### Changed
+
+- Return 422 responses when calculate requests specify deprecated or unsupported exact package versions.
+
+
 ## [0.23.2] - 2026-06-25
 
 ### Fixed
