@@ -147,7 +147,7 @@ def resolve_app_for_request(
 ) -> ResolvedApp:
     requested = requested_version or "current"
 
-    if requested in {"current", "frontier"}:
+    if requested in ACTIVE_RELEASE_CHANNELS:
         app_reference = manifest.get(requested)
         if not app_reference:
             raise GatewayResolutionError(
