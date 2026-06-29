@@ -1,3 +1,10 @@
+## [0.25.2] - 2026-06-29
+
+### Fixed
+
+- Hardened Cloud Run fallback tests against analytics write failures and cold fallback paths.
+
+
 ## [0.25.1] - 2026-06-29
 
 ### Fixed
