@@ -6,13 +6,28 @@ based on configuration, allowing for easy local development without authenticati
 while maintaining security in production environments.
 """
 
+from contextvars import ContextVar
+from functools import wraps
 from typing import Optional, Any, Callable
+from authlib.integrations.flask_oauth2.resource_protector import (
+    MissingAuthorizationError,
+    OAuth2Error,
+)
 from authlib.integrations.flask_oauth2 import ResourceProtector
 from authlib.oauth2.rfc6750 import BearerTokenValidator
+from policyengine_observability import record_error
+from policyengine_observability import segment
+from policyengine_observability import set_attribute
+
 from ..auth.validation import Auth0JWTBearerTokenValidator
+from ..observability.segments import SegmentName
 from ..utils.config_loader import get_config_value
 
 ANALYTICS_READ_SCOPE = "read:calculate-analytics"
+_AUTH_OPTIONAL: ContextVar[bool] = ContextVar(
+    "policyengine_auth_optional",
+    default=False,
+)
 
 
 class StaticBearerToken:
@@ -169,4 +184,89 @@ def create_auth_decorator() -> Any:
         An authentication decorator (ResourceProtector or NoOpDecorator)
     """
     conditional_auth = ConditionalAuthDecorator()
-    return conditional_auth.get_decorator()
+    decorator = conditional_auth.get_decorator()
+    if not conditional_auth.is_enabled:
+        return decorator
+    return ObservedAuthDecorator(decorator)
+
+
+class ObservedAuthDecorator:
+    """Wrap an auth decorator with coarse request-path observability."""
+
+    def __init__(self, decorator: Any):
+        self._decorator = decorator
+        self._acquire_token = decorator.acquire_token
+        self._decorator.acquire_token = self._observed_acquire_token
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._decorator, name)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Callable:
+        optional = self._optional_from_call(args, kwargs)
+        decorated = self._decorator(*args, **kwargs)
+
+        if args and callable(args[0]):
+            return self._with_optional_context(decorated, optional=optional)
+
+        @wraps(decorated)
+        def observed_decorator(func: Callable) -> Callable:
+            return self._with_optional_context(
+                decorated(func),
+                optional=optional,
+            )
+
+        return observed_decorator
+
+    def _observed_acquire_token(self, *args: Any, **kwargs: Any) -> Any:
+        with segment(SegmentName.AUTH):
+            try:
+                token = self._acquire_token(*args, **kwargs)
+            except MissingAuthorizationError as exc:
+                if _AUTH_OPTIONAL.get():
+                    set_attribute("auth_result", "optional_missing")
+                else:
+                    self._record_auth_error(exc)
+                raise
+            except OAuth2Error as exc:
+                self._record_auth_error(exc)
+                raise
+        set_attribute("auth_result", "success")
+        return token
+
+    def _with_optional_context(
+        self, func: Callable, *, optional: bool
+    ) -> Callable:
+        @wraps(func)
+        def wrapper(*func_args: Any, **func_kwargs: Any) -> Any:
+            token = _AUTH_OPTIONAL.set(optional)
+            try:
+                return func(*func_args, **func_kwargs)
+            finally:
+                _AUTH_OPTIONAL.reset(token)
+
+        return wrapper
+
+    def _optional_from_call(
+        self,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> bool:
+        if "optional" in kwargs:
+            return bool(kwargs["optional"])
+        if len(args) >= 2:
+            return bool(args[1])
+        return False
+
+    def _record_auth_error(self, exc: Exception) -> None:
+        set_attribute("auth_result", "failed")
+        status_code = getattr(
+            exc,
+            "status_code",
+            getattr(exc, "code", 401),
+        )
+        record_error(
+            exc,
+            handled=True,
+            status_code=status_code,
+            include_stack=False,
+        )

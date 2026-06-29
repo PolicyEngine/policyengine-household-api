@@ -14,6 +14,10 @@ from policyengine_household_api.modal_release.manifest import (
 from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
+from policyengine_observability import (
+    OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
+    REQUEST_ID_HEADER,
+)
 
 
 def _manifest():
@@ -108,9 +112,50 @@ def test_calculate_rejects_unknown_version():
         json={"version": "9.9.9", "household": {}},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert not worker_requests
-    assert "9.9.9" in response.get_json()["message"]
+    assert response.get_json() == {
+        "status": "error",
+        "code": "unsupported_version",
+        "message": (
+            "No active household API app serves `us` package version `9.9.9`"
+        ),
+        "requested_version": "9.9.9",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
+
+
+def test_calculate_rejects_retired_version_as_unsupported():
+    manifest = _manifest()
+    manifest["retired"] = [
+        {
+            "app_name": "retired-app",
+            "package_versions": {"uk": "2.30.0", "us": "0.9.0"},
+            "deployed_at": "2025-12-25T00:00:00+00:00",
+            "retired_at": "2026-01-01T00:00:00+00:00",
+            "retirement_reason": "replaced-current",
+        }
+    ]
+    client, worker_requests = _client_with_dispatch(manifest=lambda: manifest)
+
+    response = client.post(
+        "/us/calculate",
+        json={"version": "0.9.0", "household": {}},
+    )
+
+    assert response.status_code == 422
+    assert not worker_requests
+    assert response.get_json() == {
+        "status": "error",
+        "code": "unsupported_version",
+        "message": (
+            "No active household API app serves `us` package version `0.9.0`"
+        ),
+        "requested_version": "0.9.0",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
 
 
 def test_calculate_rejects_non_string_version():
@@ -204,6 +249,8 @@ def test_calculate_forwards_request_metadata_to_worker():
     assert payload["path"] == "us/calculate"
     assert payload["query_string"] == "trace=true"
     assert payload["headers"]["Authorization"] == "Bearer token"
+    assert payload["headers"][REQUEST_ID_HEADER]
+    assert payload["headers"][OBSERVABILITY_INTERNAL_DISPATCH_HEADER] == "1"
     assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
         "requested_version": "current",
         "resolved_channel": "current",
@@ -230,18 +277,18 @@ def test_gateway_routing_metadata_is_not_taken_from_inbound_headers():
     }
 
 
-def test_ai_analysis_routes_to_current_worker():
+def test_non_versioned_country_route_routes_to_current_worker():
     client, worker_requests = _client_with_dispatch()
 
     response = client.post(
-        "/us/ai-analysis",
+        "/us/metadata",
         json={"version": "frontier", "household": {}},
     )
 
     assert response.status_code == 200
     app_name, payload = worker_requests[0]
     assert app_name == "current-app"
-    assert payload["path"] == "us/ai-analysis"
+    assert payload["path"] == "us/metadata"
     assert "version" in json.loads(payload["body"])
     assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
         "requested_version": "current",

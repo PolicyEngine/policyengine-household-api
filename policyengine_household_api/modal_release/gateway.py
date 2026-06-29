@@ -7,6 +7,18 @@ from typing import Any, Callable
 from flask import Flask, Response, jsonify, request
 
 from policyengine_household_api.constants import COUNTRIES
+from policyengine_household_api.observability.flask import init_observability
+from policyengine_household_api.observability.segments import SegmentName
+from policyengine_observability import (
+    OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
+    REQUEST_ID_HEADER,
+    TRACEPARENT_HEADER,
+    current_context,
+    record_error,
+    segment,
+    set_attribute,
+    traceparent_header,
+)
 from policyengine_household_api.modal_release.manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
@@ -16,6 +28,12 @@ from policyengine_household_api.modal_release.manifest import (
 from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
+)
+from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
+from policyengine_household_api.version_routing import (
+    UnsupportedVersionError,
+    VersionRoutingError,
+    active_versions_for_country,
 )
 
 
@@ -29,7 +47,7 @@ class ResolvedApp:
     channel: str
 
 
-class GatewayResolutionError(ValueError):
+class GatewayResolutionError(VersionRoutingError):
     pass
 
 
@@ -39,6 +57,7 @@ def create_gateway_app(
     worker_request: Callable[[str, dict[str, Any]], Response] | None = None,
 ) -> Flask:
     app = Flask(__name__)
+    init_observability(app, service_role="modal_gateway")
     load_manifest = manifest_loader or load_modal_manifest
     route_to_worker_function = worker_request or call_worker_function
 
@@ -69,7 +88,7 @@ def create_gateway_app(
 
         manifest = validate_manifest(load_manifest())
         country_versions = {}
-        for channel in ("current", "frontier"):
+        for channel in ACTIVE_RELEASE_CHANNELS:
             app_reference = manifest.get(channel)
             if not app_reference:
                 continue
@@ -90,24 +109,49 @@ def create_gateway_app(
     def route_request(path: str) -> Response:
         country_id, endpoint = _country_and_endpoint(path)
         body = request.get_data()
+        set_attribute("country_id", country_id)
+        set_attribute("endpoint", endpoint)
 
         try:
-            manifest = validate_manifest(load_manifest())
-            if country_id and endpoint in VERSIONED_ENDPOINTS:
-                body, requested_version = _extract_requested_version(body)
-            else:
-                requested_version = "current"
-            resolved_app = resolve_app_for_request(
-                manifest,
-                country_id=country_id,
-                requested_version=requested_version,
+            with segment(SegmentName.MANIFEST_LOAD):
+                manifest = validate_manifest(load_manifest())
+            with segment(SegmentName.VERSION_RESOLUTION):
+                if country_id and endpoint in VERSIONED_ENDPOINTS:
+                    body, requested_version = _extract_requested_version(body)
+                else:
+                    requested_version = "current"
+                resolved_app = resolve_app_for_request(
+                    manifest,
+                    country_id=country_id,
+                    requested_version=requested_version,
+                )
+            set_attribute("backend", "modal")
+            set_attribute("modal_app_name", resolved_app.app_name)
+            set_attribute(
+                "requested_version",
+                resolved_app.requested_version,
             )
-            return route_to_worker_function(
-                resolved_app.app_name,
-                _request_payload(path, body, resolved_app),
+            set_attribute("resolved_channel", resolved_app.channel)
+            with segment(SegmentName.WORKER_DISPATCH, backend="modal"):
+                return route_to_worker_function(
+                    resolved_app.app_name,
+                    _request_payload(path, body, resolved_app),
+                )
+        except VersionRoutingError as e:
+            record_error(
+                e,
+                handled=True,
+                status_code=e.status_code,
+                include_stack=False,
             )
-        except GatewayResolutionError as e:
-            return _json_error(str(e), 400)
+            return _json_error(
+                str(e),
+                e.status_code,
+                code=e.code,
+                requested_version=e.requested_version,
+                country_id=e.country_id,
+                available_versions=e.available_versions,
+            )
 
     return app
 
@@ -134,7 +178,7 @@ def resolve_app_for_request(
 ) -> ResolvedApp:
     requested = requested_version or "current"
 
-    if requested in {"current", "frontier"}:
+    if requested in ACTIVE_RELEASE_CHANNELS:
         app_reference = manifest.get(requested)
         if not app_reference:
             raise GatewayResolutionError(
@@ -151,7 +195,7 @@ def resolve_app_for_request(
             "Exact package version routing requires a country endpoint"
         )
 
-    for channel in ("current", "frontier"):
+    for channel in ACTIVE_RELEASE_CHANNELS:
         app_reference = manifest.get(channel)
         if not app_reference:
             continue
@@ -163,9 +207,12 @@ def resolve_app_for_request(
                 channel=channel,
             )
 
-    raise GatewayResolutionError(
-        f"No active household API app serves `{country_id}` package "
-        f"version `{requested}`"
+    available_versions = active_versions_for_country(manifest, country_id)
+    raise UnsupportedVersionError(
+        country_id=country_id,
+        requested_version=requested,
+        available_versions=available_versions,
+        active_target_label="household API app",
     )
 
 
@@ -178,16 +225,22 @@ def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
     # the pre-#1528 top-level `handle_household_request` function. Fall back
     # to that shape if the class is not present.
     try:
-        worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
-        return _response_from_dispatch_result(
-            worker_cls().handle_household_request.remote(payload)
-        )
+        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
+            worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
+        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
+            return _response_from_dispatch_result(
+                worker_cls().handle_household_request.remote(payload)
+            )
     except modal.exception.NotFoundError:
-        worker_function = modal.Function.from_name(
-            app_name,
-            "handle_household_request",
-        )
-        return _response_from_dispatch_result(worker_function.remote(payload))
+        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
+            worker_function = modal.Function.from_name(
+                app_name,
+                "handle_household_request",
+            )
+        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
+            return _response_from_dispatch_result(
+                worker_function.remote(payload)
+            )
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:
@@ -242,6 +295,13 @@ def _forward_headers() -> dict[str, str]:
     }
     if request.content_type:
         forwarded_headers["Content-Type"] = request.content_type
+    context = current_context()
+    if context is not None:
+        forwarded_headers[REQUEST_ID_HEADER] = context.request_id
+        forwarded_headers[OBSERVABILITY_INTERNAL_DISPATCH_HEADER] = "1"
+    traceparent = traceparent_header()
+    if traceparent:
+        forwarded_headers[TRACEPARENT_HEADER] = traceparent
     return forwarded_headers
 
 
@@ -256,7 +316,24 @@ def _response_from_dispatch_result(result: dict[str, Any]) -> Response:
     )
 
 
-def _json_error(message: str, status: int) -> Response:
-    response = jsonify({"status": "error", "message": message})
+def _json_error(
+    message: str,
+    status: int,
+    *,
+    code: str | None = None,
+    requested_version: str | None = None,
+    country_id: str | None = None,
+    available_versions: dict[str, str] | None = None,
+) -> Response:
+    payload: dict[str, Any] = {"status": "error", "message": message}
+    if code is not None:
+        payload["code"] = code
+    if requested_version is not None:
+        payload["requested_version"] = requested_version
+    if country_id is not None:
+        payload["country_id"] = country_id
+    if available_versions is not None:
+        payload["available_versions"] = available_versions
+    response = jsonify(payload)
     response.status_code = status
     return response

@@ -4,6 +4,8 @@ import os
 from typing import Any
 
 import modal
+from policyengine_observability import operation
+from policyengine_observability import set_attribute
 
 from policyengine_household_api.modal_release.google_credentials import (
     configure_google_credentials,
@@ -16,11 +18,16 @@ from policyengine_household_api.modal_release.manifest import build_app_name
 from policyengine_household_api.modal_release.worker_dispatch import (
     dispatch_to_flask_app,
 )
-
-
-app = modal.App(
-    os.getenv("HOUSEHOLD_MODAL_WORKER_APP_NAME", build_app_name()),
+from policyengine_household_api.observability.flask import (
+    configure_process_observability,
 )
+
+
+WORKER_APP_NAME = os.getenv(
+    "HOUSEHOLD_MODAL_WORKER_APP_NAME", build_app_name()
+)
+
+app = modal.App(WORKER_APP_NAME)
 
 
 def worker_modal_environment(
@@ -87,6 +94,12 @@ class HouseholdWorker:
 
     @modal.enter(snap=True)
     def load_flask_app(self) -> None:
+        configure_process_observability(
+            platform="modal",
+            service_role="modal_worker",
+            modal_app_name=WORKER_APP_NAME,
+            modal_function_name="HouseholdWorker.handle_household_request",
+        )
         # Importing `policyengine_household_api.api` runs
         # `initialize_analytics_db_if_enabled` at module level, which opens a
         # Cloud SQL connection in environments where analytics is enabled.
@@ -140,4 +153,16 @@ class HouseholdWorker:
     def handle_household_request(
         self, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        return dispatch_to_flask_app(self.flask_app, payload)
+        with operation(
+            "modal_worker_dispatch",
+            flavor="modal_worker",
+            platform="modal",
+            runtime_role="modal_worker",
+            modal_app_name=WORKER_APP_NAME,
+            modal_function_name="HouseholdWorker.handle_household_request",
+        ):
+            set_attribute("method", str(payload.get("method") or "GET"))
+            set_attribute("path", str(payload.get("path") or ""))
+            result = dispatch_to_flask_app(self.flask_app, payload)
+            set_attribute("status_code", str(result.get("status_code")))
+            return result

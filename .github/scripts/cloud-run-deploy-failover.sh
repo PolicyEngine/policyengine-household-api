@@ -54,6 +54,16 @@ ${value}
 EOF
 }
 
+append_observability_env() {
+  local env_file="${1:?env file is required}"
+
+  append_env_value "${env_file}" OBSERVABILITY_ENVIRONMENT "${environment}"
+  append_env_value "${env_file}" OBSERVABILITY_PLATFORM "google_cloud_run"
+  append_env_if_set "${env_file}" OBSERVABILITY_ENABLED
+  append_env_if_set "${env_file}" OBSERVABILITY_REQUEST_LOGS_ENABLED
+  append_env_if_set "${env_file}" OBSERVABILITY_LOG_RAW_IP
+}
+
 env_args_from_file() {
   local env_file="${1:?env file is required}"
   if [ ! -s "${env_file}" ]; then
@@ -251,6 +261,7 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   : > "${worker_env_file}"
   : > "${worker_secrets_file}"
   append_env_value "${worker_env_file}" APP__ENVIRONMENT "${environment}"
+  append_observability_env "${worker_env_file}"
   append_env_value "${worker_env_file}" WEB_THREADS "${worker_threads}"
   append_env_value "${worker_env_file}" WEB_TIMEOUT "${worker_timeout}"
   append_env_value "${worker_env_file}" HOUSEHOLD_FAILOVER_CHANNEL "${channel}"
@@ -264,13 +275,9 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   append_env_if_set "${worker_env_file}" AUTH__ENABLED
   append_env_if_set "${worker_env_file}" AUTH0_ADDRESS_NO_DOMAIN
   append_env_if_set "${worker_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
-  append_env_if_set "${worker_env_file}" AI__ENABLED
   sync_secret_if_set \
     "${worker_secrets_file}" \
     USER_ANALYTICS_DB_PASSWORD
-  sync_secret_if_set \
-    "${worker_secrets_file}" \
-    ANTHROPIC_API_KEY
 
   worker_env_arg=""
   worker_secret_arg=""
@@ -347,6 +354,7 @@ done < "${worker_urls_tsv}"
 : > "${gateway_env_file}"
 : > "${gateway_secrets_file}"
 append_env_value "${gateway_env_file}" APP__ENVIRONMENT "${environment}"
+append_observability_env "${gateway_env_file}"
 append_env_value "${gateway_env_file}" MODAL_ENVIRONMENT "${MODAL_ENVIRONMENT}"
 append_env_value \
   "${gateway_env_file}" \

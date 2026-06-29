@@ -1,6 +1,6 @@
 [project]
 name = "policyengine-household-api"
-version = "0.22.5"
+version = "0.25.0"
 description = "PolicyEngine Household API"
 readme = "README.md"
 authors = [
@@ -9,7 +9,6 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.13.0",
-    "anthropic",
     "Authlib>=1.7.0",
     "cloud-sql-python-connector",
     "flask>=2.2",
@@ -21,7 +20,7 @@ dependencies = [
     "inflect",
     "joserfc>=1.6.0",
     "modal>=1.3.0",
-    "policyengine-core>=3.26.0,<3.26.8",
+    "policyengine-core>=3.26.0,<3.26.7",
     "policyengine_canada==0.96.3",
     "policyengine-ng==0.5.1",
     "policyengine-il==0.1.0",
@@ -35,6 +34,7 @@ dependencies = [
     "pymysql",
     "Flask-Limiter",
     "pydantic",
+    "policyengine-observability[flask]>=1.0.0",
 ]
 
 [project.optional-dependencies]

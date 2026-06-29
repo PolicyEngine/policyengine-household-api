@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import sys
 import threading
@@ -5,6 +6,9 @@ import types
 
 from flask import Response
 import pytest
+from policyengine_observability import ObservabilityConfig
+from policyengine_observability import ObservabilityRuntime
+from policyengine_observability import RequestObservabilityContext
 
 from policyengine_household_api.failover.cloud_run_gateway import (
     CircuitRegistry,
@@ -84,9 +88,10 @@ def _client(
     modal_request_timeout_seconds=None,
     modal_probe_timeout_seconds=None,
     modal_canary_timeout_seconds=None,
+    manifest_loader=None,
 ):
     app = create_gateway_app(
-        manifest_loader=_manifest,
+        manifest_loader=manifest_loader or _manifest,
         modal_request=modal_request
         or (lambda app_name, payload: _json_response({"backend": "modal"})),
         modal_health_probe=modal_health_probe or (lambda app_name: None),
@@ -236,6 +241,44 @@ def test_run_modal_operation_converts_timeout_to_modal_unavailable():
             )
     finally:
         release.set()
+
+
+def test_run_modal_operation_preserves_observability_context():
+    runtime = ObservabilityRuntime(
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_gateway",
+        )
+    )
+    context = RequestObservabilityContext(
+        config=runtime.config,
+        request_id="request-1",
+        method="POST",
+        route="/<path:path>",
+        path="/uk/calculate",
+        endpoint="route_request",
+        query_keys=[],
+        content_length_bytes=None,
+        inbound={},
+    )
+    runtime.begin_request(context)
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            result = _run_modal_operation(
+                lambda: (
+                    runtime.current_context() is context,
+                    runtime.current_operation().name,
+                    runtime.current_operation().flavor,
+                ),
+                timeout_seconds=1,
+                executor=executor,
+                semaphore=threading.BoundedSemaphore(1),
+            )
+    finally:
+        runtime.teardown_request(None)
+
+    assert result == (True, "/<path:path>", "http")
 
 
 def test_modal_request_timeout_is_separate_from_probe_timeout():
@@ -454,15 +497,44 @@ def test_probe_modal_canary_uses_configured_modal_app(monkeypatch):
     }
 
 
-def test_unknown_exact_package_version_stays_bad_request():
+def test_unknown_exact_package_version_returns_unprocessable_entity():
     response = _client().post(
         "/us/calculate",
         json={"version": "9.9.9", "household": {}},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert "Retry-After" not in response.headers
-    assert response.get_json()["status"] == "error"
+    assert response.get_json() == {
+        "status": "error",
+        "code": "unsupported_version",
+        "message": (
+            "No active failover channel serves `us` package version `9.9.9`"
+        ),
+        "requested_version": "9.9.9",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
+
+
+def test_inactive_exact_package_version_returns_unprocessable_entity():
+    response = _client().post(
+        "/us/calculate",
+        json={"version": "0.9.0", "household": {}},
+    )
+
+    assert response.status_code == 422
+    assert "Retry-After" not in response.headers
+    assert response.get_json() == {
+        "status": "error",
+        "code": "unsupported_version",
+        "message": (
+            "No active failover channel serves `us` package version `0.9.0`"
+        ),
+        "requested_version": "0.9.0",
+        "country_id": "us",
+        "available_versions": {"current": "1.0.0", "frontier": "2.0.0"},
+    }
 
 
 def test_non_string_version_stays_bad_request():
@@ -692,6 +764,7 @@ def test_versions_endpoint_omits_worker_urls_and_matches_modal_schema():
     body = response.get_data(as_text=True)
     assert "cloud_run_worker_url" not in body
     assert "run.app" not in body
+    assert "retired" not in body
 
 
 def test_gateway_rejects_request_body_over_limit(monkeypatch):

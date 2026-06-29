@@ -43,9 +43,6 @@ USER_ANALYTICS_DB_PASSWORD=secret
 AUTH0_ADDRESS_NO_DOMAIN=my-auth0-domain
 AUTH0_AUDIENCE_NO_DOMAIN=my-audience
 
-# AI configuration
-ANTHROPIC_API_KEY=sk-ant-...
-
 # Debug mode
 FLASK_DEBUG=1
 
@@ -77,7 +74,7 @@ CONFIG_FILE=config/local.yaml make debug
 # Mount a custom config file
 docker run -v /path/to/your/config.yaml:/custom/config.yaml \
            -e CONFIG_FILE=/custom/config.yaml \
-           ghcr.io/policyengine/policyengine-household-api:latest
+           ghcr.io/policyengine/policyengine-household-api:current
 ```
 
 #### Docker Compose
@@ -85,14 +82,13 @@ docker run -v /path/to/your/config.yaml:/custom/config.yaml \
 version: '3.13'
 services:
   household-api:
-    image: ghcr.io/policyengine/policyengine-household-api:latest
+    image: ghcr.io/policyengine/policyengine-household-api:current
     volumes:
       - ./my-config.yaml:/app/config/custom.yaml
     environment:
       - CONFIG_FILE=/app/config/custom.yaml
       # Still provide secrets via env vars
       - DATABASE__PASSWORD=${DB_PASSWORD}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 ```
 
 Or, alternately, use the `docker/docker-compose.yml` file and create a `.env` file in your root directory
@@ -102,7 +98,6 @@ to set all environment variables. Example:
 % cat .env
 CONFIG_FILE=/code/config/custom.yaml
 DATABASE__PASSWORD=your-secret-password
-ANTHROPIC_API_KEY=your-key-here
 ```
 
 #### Kubernetes ConfigMap
@@ -123,7 +118,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: ghcr.io/policyengine/policyengine-household-api:latest
+        image: ghcr.io/policyengine/policyengine-household-api:current
         env:
         - name: CONFIG_FILE
           value: /config/config.yaml
@@ -169,11 +164,6 @@ auth:
     audience: Auth0 audience/API identifier
     test_token: JWT token used only for pre-deployment GitHub Actions tests
     test_token_scopes: Space-delimited OAuth scopes for the static test token
-
-ai:
-  enabled: Whether AI features are enabled (true/false) (these features are only used in the alpha-mode AI explainer endpoint)
-  anthropic:
-    api_key: Anthropic API key
 
 ```
 
@@ -308,7 +298,6 @@ AUTH0_AUDIENCE_NO_DOMAIN=https://your-api-identifier
 
 When Auth0 is enabled, the following endpoints require valid JWT tokens:
 - `/<country_id>/calculate` - Main calculation endpoint
-- `/<country_id>/ai-analysis` - AI analysis endpoint (remains in alpha)
 - `/analytics/calculate/requests` - Calculate analytics endpoint; additionally requires the `read:calculate-analytics` scope
 
 The following endpoints remain unprotected:
@@ -351,8 +340,6 @@ USER_ANALYTICS_DB_USERNAME=${{ secrets.USER_ANALYTICS_DB_USERNAME }}
 USER_ANALYTICS_DB_PASSWORD=${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
 USER_ANALYTICS_DB_CONNECTION_NAME=${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
 
-# AI services
-ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
 ### Local Development
@@ -360,13 +347,13 @@ ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
 Use environment variables to override specific settings:
 
 ```bash
+# AUTH__ENABLED and ANALYTICS__ENABLED are disabled for local dev
 docker run -e FLASK_DEBUG=1 \
            -p 8080:8080 \
-           -e AUTH__ENABLED=false \    # Disable Auth0 for local dev
-           -e ANALYTICS__ENABLED=false \ # Disable analytics for local dev
-           -e AI__ENABLED=false \
+           -e AUTH__ENABLED=false \
+           -e ANALYTICS__ENABLED=false \
            -e DATABASE__PROVIDER=sqlite \
-           ghcr.io/policyengine/policyengine-household-api:latest
+           ghcr.io/policyengine/policyengine-household-api:current
 ```
 
 #### Template Variable Substitution
@@ -381,7 +368,6 @@ The configuration loader supports template variable substitution using `${VAR}` 
 AUTH0_DOMAIN=your-domain.auth0.com
 AUTH0_AUDIENCE=https://your-api.example.com
 AUTH0_TOKEN=your-test-token
-ANTHROPIC_API_KEY=your-api-key
 ANALYTICS_PASSWORD=secure-password
 ```
 
@@ -395,11 +381,6 @@ auth:
     audience: ${AUTH0_AUDIENCE}
     test_token: ${AUTH0_TOKEN}
     test_token_scopes: ${AUTH0_TOKEN_SCOPES}
-
-ai:
-  enabled: true
-  anthropic:
-    api_key: $ANTHROPIC_API_KEY  # With or without brackets works
 
 analytics:
   enabled: true
@@ -421,7 +402,7 @@ docker run -v /path/to/config.yaml:/app/config/custom.yaml \
            -v /path/to/values.env:/app/config/values.env \
            -e CONFIG_FILE=/app/config/custom.yaml \
            -e CONFIG_VALUE_SETTINGS=/app/config/values.env \
-           ghcr.io/policyengine/policyengine-household-api:latest
+           ghcr.io/policyengine/policyengine-household-api:current
 ```
 
 Or with Docker Compose:
@@ -429,7 +410,7 @@ Or with Docker Compose:
 version: '3.13'
 services:
   household-api:
-    image: ghcr.io/policyengine/policyengine-household-api:latest
+    image: ghcr.io/policyengine/policyengine-household-api:current
     volumes:
       - ./my-config.yaml:/app/config/custom.yaml
       - ./my-values.env:/app/config/values.env
@@ -451,7 +432,6 @@ stringData:
   values.env: |
     AUTH0_DOMAIN=your-domain.auth0.com
     AUTH0_AUDIENCE=https://your-api.example.com
-    ANTHROPIC_API_KEY=your-api-key
 ---
 apiVersion: v1
 kind: ConfigMap

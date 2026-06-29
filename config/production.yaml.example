@@ -24,8 +24,3 @@ auth:
     audience: ${AUTH0_AUDIENCE_NO_DOMAIN}  # From env var
     test_token: "" # Used only for executing pre-deploy integration tests
     test_token_scopes: "" # Used only for executing pre-deploy integration tests
-
-ai:
-  enabled: true
-  anthropic:
-    api_key: ${ANTHROPIC_API_KEY}  # From env var

@@ -669,6 +669,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthErrorResponse"
+        422:
+          description: The requested exact package version is not active.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionRoutingErrorResponse"
+              examples:
+                unsupported_version:
+                  summary: Exact package version is not active
+                  value:
+                    status: error
+                    code: unsupported_version
+                    message: "No active household API app serves `us` package version `9.9.9`"
+                    requested_version: "9.9.9"
+                    country_id: us
+                    available_versions:
+                      current: "1.0.0"
+                      frontier: "2.0.0"
         500:
           description: Error calculating household under policy.
           content:
@@ -1126,10 +1144,9 @@ components:
           type: object
           description: Optional policy reform object passed through to the country model.
           additionalProperties: true
-        enable_ai_explainer:
-          type: boolean
-          default: false
-          description: When true, the response includes a computation tree UUID that can be passed to the AI analysis endpoint.
+        version:
+          type: string
+          description: Optional API version selector. Omit this field to use the current release, pass current or frontier to select an active release channel, or pass an exact active country package version.
       additionalProperties: false
     Household:
       type: object
@@ -1255,10 +1272,6 @@ components:
           description: Non-fatal request warnings, such as deprecated variable inputs or surprising period shapes.
           items:
             type: string
-        computation_tree_uuid:
-          type: string
-          format: uuid
-          description: Returned only when enable_ai_explainer is true.
     CalculationResult:
       type: object
       description: Calculated household data, keyed by entity group, entity ID, variable name, and period.
@@ -1297,6 +1310,35 @@ components:
           type: array
           description: Field-level or variable-level validation messages.
           items:
+            type: string
+    VersionRoutingErrorResponse:
+      type: object
+      required:
+        - status
+        - code
+        - message
+        - requested_version
+        - country_id
+        - available_versions
+      properties:
+        status:
+          type: string
+          enum:
+            - error
+        code:
+          type: string
+          enum:
+            - unsupported_version
+        message:
+          type: string
+        requested_version:
+          type: string
+        country_id:
+          type: string
+        available_versions:
+          type: object
+          description: Active package versions for the requested country, keyed by release channel.
+          additionalProperties:
             type: string
     AuthErrorResponse:
       type: object

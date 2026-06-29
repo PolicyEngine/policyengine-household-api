@@ -13,6 +13,3 @@ auth:
     audience: ${AUTH0_AUDIENCE_NO_DOMAIN}  # From env var
     test_token: ${AUTH0_TEST_TOKEN_NO_DOMAIN}  # From env var
     test_token_scopes: ${AUTH0_TEST_TOKEN_SCOPES}  # From env var
-
-ai:
-  enabled: false

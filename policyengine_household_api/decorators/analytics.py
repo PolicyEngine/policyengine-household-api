@@ -8,6 +8,8 @@ from flask import request
 from datetime import datetime, timezone
 import jwt
 import logging
+from policyengine_observability import segment
+from policyengine_observability import set_attribute
 from uuid import uuid4
 from policyengine_household_api.constants import VERSION
 from policyengine_household_api.data.analytics_setup import (
@@ -25,6 +27,7 @@ from policyengine_household_api.models.analytics import (
     ModalResolvedChannel,
     VariableUsageSummary,
 )
+from policyengine_household_api.observability.segments import SegmentName
 from policyengine_household_api.modal_release.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,
@@ -103,18 +106,22 @@ def log_analytics_if_enabled(func):
                 "not ready."
             )
 
-        analytics_context = _build_analytics_context(args, kwargs)
+        with segment(SegmentName.ANALYTICS_CONTEXT_BUILD):
+            analytics_context = _build_analytics_context(args, kwargs)
+        _set_observability_context_attributes(analytics_context)
 
         try:
             response = func(*args, **kwargs)
         except Exception:
-            _record_analytics(analytics_context, 500)
+            with segment(SegmentName.ANALYTICS_WRITE):
+                _record_analytics(analytics_context, 500)
             raise
 
-        _record_analytics(
-            analytics_context,
-            getattr(response, "status_code", None),
-        )
+        with segment(SegmentName.ANALYTICS_WRITE):
+            _record_analytics(
+                analytics_context,
+                getattr(response, "status_code", None),
+            )
         return response
 
     return decorated_function
@@ -260,6 +267,23 @@ def _record_analytics(
         db.session.rollback()
         logger.error(f"Failed to log analytics: {e}")
         raise
+
+
+def _set_observability_context_attributes(
+    context: AnalyticsContext | None,
+) -> None:
+    if context is None:
+        return
+    set_attribute("country_id", context.country_id)
+    set_attribute("api_version", context.api_version)
+    set_attribute("model_version", context.model_version)
+    set_attribute("requested_version", context.requested_version)
+    if context.resolved_channel is not None:
+        set_attribute("resolved_channel", context.resolved_channel)
+    set_attribute(
+        "distinct_variable_count",
+        len({summary.variable_name for summary in context.variable_summaries}),
+    )
 
 
 def _build_visit(context: AnalyticsContext) -> Visit:

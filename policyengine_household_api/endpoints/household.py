@@ -1,8 +1,10 @@
 import json
 import logging
 from flask import Response, request
+from policyengine_observability import record_error
+from policyengine_observability import segment
+from policyengine_observability import set_attribute
 from pydantic import ValidationError
-from uuid import UUID
 from policyengine_household_api.country import (
     COUNTRIES,
     detect_period_warnings,
@@ -14,6 +16,7 @@ from policyengine_household_api.models.household import (
     HouseholdModelUK,
     HouseholdModelUS,
 )
+from policyengine_household_api.observability.segments import SegmentName
 from policyengine_household_api.utils.deprecated_inputs import (
     drop_deprecated_inputs,
 )
@@ -130,83 +133,105 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
             use case and should usually be kept at its default setting.
     """
 
-    payload = request.json or {}
-    household_json = payload.get("household", {})
-    policy_json = payload.get("policy", {})
-    enable_ai_explainer = payload.get("enable_ai_explainer", False)
+    set_attribute("country_id", country_id)
+
+    with segment(SegmentName.REQUEST_PARSE):
+        payload = request.json or {}
+        household_json = payload.get("household", {})
+        policy_json = payload.get("policy", {})
 
     country = COUNTRIES.get(country_id)
+    set_attribute(
+        "model_version",
+        country.policyengine_bundle.get("model_version"),
+    )
 
     # Validate inbound payload shape before reaching the compute layer.
     try:
-        _validate_household_payload(country_id, household_json)
-        _validate_axes(household_json)
+        with segment(SegmentName.PAYLOAD_VALIDATION):
+            _validate_household_payload(country_id, household_json)
+            _validate_axes(household_json)
     except ValueError as e:
-        return Response(
-            json.dumps({"status": "error", "message": str(e)}),
+        record_error(e, handled=True, status_code=400, include_stack=False)
+        return _json_response(
+            {"status": "error", "message": str(e)},
             status=400,
-            mimetype="application/json",
         )
 
-    variable_errors = validate_household_variables(
-        household=household_json,
-        system=country.tax_benefit_system,
-        model_version=country.policyengine_bundle["model_version"],
-    )
+    with segment(SegmentName.VARIABLE_VALIDATION):
+        variable_errors = validate_household_variables(
+            household=household_json,
+            system=country.tax_benefit_system,
+            model_version=country.policyengine_bundle["model_version"],
+        )
     if variable_errors:
-        return Response(
-            json.dumps(
-                {
-                    "status": "error",
-                    "message": "Invalid household variables.",
-                    "errors": [error.message for error in variable_errors],
-                }
-            ),
+        set_attribute("variable_error_count", len(variable_errors))
+        record_error(
+            ValueError("Invalid household variables."),
+            handled=True,
+            status_code=400,
+            include_stack=False,
+        )
+        return _json_response(
+            {
+                "status": "error",
+                "message": "Invalid household variables.",
+                "errors": [error.message for error in variable_errors],
+            },
             status=400,
-            mimetype="application/json",
         )
 
     # Strip deprecated inputs from a copy before period validation so
     # partners who still pass removed/renamed variables get a warning +
     # working response instead of a `VariableNotFoundError` HTTP 500.
-    deprecated_inputs = drop_deprecated_inputs(household_json)
+    with segment(SegmentName.DEPRECATED_INPUT_FILTER):
+        deprecated_inputs = drop_deprecated_inputs(household_json)
     household_json = deprecated_inputs.household
     deprecation_warnings = deprecated_inputs.warnings
+    set_attribute(
+        "deprecated_warning_count",
+        len(deprecation_warnings),
+    )
 
     # Validate inbound period data before reaching the compute layer.
     try:
-        validate_period_keys(household_json, country.tax_benefit_system)
-        validate_period_budgets(household_json, country.tax_benefit_system)
+        with segment(SegmentName.PERIOD_VALIDATION):
+            validate_period_keys(household_json, country.tax_benefit_system)
+            validate_period_budgets(
+                household_json,
+                country.tax_benefit_system,
+            )
     except ValueError as e:
-        return Response(
-            json.dumps({"status": "error", "message": str(e)}),
+        record_error(e, handled=True, status_code=400, include_stack=False)
+        return _json_response(
+            {"status": "error", "message": str(e)},
             status=400,
-            mimetype="application/json",
         )
 
     # Detect partial monthly input + annual output combinations so partners
     # see a heads-up that some months will read the engine's fallback. v1
     # has no such warning; this is purely additive diagnostic.
-    period_warnings = detect_period_warnings(
-        household_json, country.tax_benefit_system
-    )
+    with segment(SegmentName.PERIOD_WARNING_DETECTION):
+        period_warnings = detect_period_warnings(
+            household_json,
+            country.tax_benefit_system,
+        )
+    set_attribute("period_warning_count", len(period_warnings))
 
     try:
         result: dict
-        computation_tree_uuid: UUID | None
-        result, computation_tree_uuid = country.calculate(
-            household_json, policy_json, enable_ai_explainer
-        )
+        with segment(SegmentName.CALCULATION):
+            result = country.calculate(household_json, policy_json)
     except Exception as e:
         logging.exception(e)
+        record_error(e, handled=True, status_code=500)
         response_body = dict(
             status="error",
             message=f"Error calculating household under policy: {e}",
         )
-        return Response(
-            json.dumps(response_body),
+        return _json_response(
+            response_body,
             status=500,
-            mimetype="application/json",
         )
 
     response_body = dict(
@@ -224,13 +249,10 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         # stay available for any future caller that wants the fields.
         response_body["warnings"] = warning_messages
 
-    if enable_ai_explainer:
-        response_body["computation_tree_uuid"] = str(computation_tree_uuid)
+    return _json_response(response_body, status=200)
 
-    return Response(
-        json.dumps(
-            response_body,
-        ),
-        200,
-        mimetype="application/json",
-    )
+
+def _json_response(payload: dict, *, status: int) -> Response:
+    with segment(SegmentName.RESPONSE_SERIALIZATION):
+        body = json.dumps(payload)
+    return Response(body, status, mimetype="application/json")

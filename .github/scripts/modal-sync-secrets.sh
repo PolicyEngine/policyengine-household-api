@@ -2,6 +2,7 @@
 set -euo pipefail
 
 environment="${MODAL_ENVIRONMENT:-main}"
+export MODAL_ENVIRONMENT="${environment}"
 secret_name="${HOUSEHOLD_MODAL_SECRET_NAME:-household-api}"
 secret_file="$(mktemp)"
 trap 'rm -f "${secret_file}"' EXIT
@@ -18,14 +19,13 @@ required = [
     "GCP_CREDENTIALS_JSON",
 ]
 optional = [
-    "ANTHROPIC_API_KEY",
+    "OBSERVABILITY_ENABLED",
+    "OBSERVABILITY_LOG_RAW_IP",
+    "OBSERVABILITY_REQUEST_LOGS_ENABLED",
     "USER_ANALYTICS_DB_CONNECTION_NAME",
     "USER_ANALYTICS_DB_USERNAME",
     "USER_ANALYTICS_DB_PASSWORD",
 ]
-if os.getenv("AI__ENABLED", "true").lower() not in {"0", "false", "no"}:
-    required.append("ANTHROPIC_API_KEY")
-    optional = [key for key in optional if key != "ANTHROPIC_API_KEY"]
 
 if os.getenv("ANALYTICS__ENABLED", "true").lower() not in {"0", "false", "no"}:
     required.extend(
@@ -57,7 +57,12 @@ settings = {
     "APP__ENVIRONMENT": os.getenv("APP__ENVIRONMENT", "production"),
     "AUTH__ENABLED": os.getenv("AUTH__ENABLED", "true"),
     "ANALYTICS__ENABLED": os.getenv("ANALYTICS__ENABLED", "true"),
-    "AI__ENABLED": os.getenv("AI__ENABLED", "true"),
+    "MODAL_ENVIRONMENT": os.getenv("MODAL_ENVIRONMENT", "main"),
+    "OBSERVABILITY_ENVIRONMENT": os.getenv(
+        "OBSERVABILITY_ENVIRONMENT",
+        os.getenv("APP__ENVIRONMENT", "production"),
+    ),
+    "OBSERVABILITY_PLATFORM": os.getenv("OBSERVABILITY_PLATFORM", "modal"),
 }
 for key in required + optional:
     value = os.getenv(key)

@@ -1,3 +1,60 @@
+## [0.25.0] - 2026-06-29
+
+### Added
+
+- Add OTel-aligned operational observability for household API requests, gateways, timing breakdowns, and structured request logs, backed by the shared `policyengine-observability` runtime.
+  Propagate observability context through Modal gateway executor calls so backend lookup and remote execution segments remain attached to the originating request.
+
+
+## [0.24.1] - 2026-06-29
+
+### Changed
+
+- Updated GitHub Actions workflows for Node 24-compatible action runtimes.
+
+
+## [0.24.0] - 2026-06-29
+
+### Added
+
+- Publish versioned Docker images to GHCR after each Modal release, with `current`/`frontier` channel tags, exact `us-<version>` tags, and a build arg for arbitrary policyengine-us versions.
+
+
+## [0.23.4] - 2026-06-29
+
+### Fixed
+
+- Raise the deployed API test request timeout so forced Cloud Run fallback checks can tolerate cold-start and model warmup latency.
+
+
+## [0.23.3] - 2026-06-28
+
+### Changed
+
+- Return 422 responses when calculate requests specify deprecated or unsupported exact package versions.
+
+
+## [0.23.2] - 2026-06-25
+
+### Fixed
+
+- Pinned policyengine-core below the formula-time randomness guard while the Medicaid/SSI calculation failure is investigated.
+
+
+## [0.23.1] - 2026-06-25
+
+### Changed
+
+- Relax the PolicyEngine Core upper bound for the current US model.
+
+
+## [0.23.0] - 2026-06-25
+
+### Removed
+
+- Removed the deprecated AI explainer endpoint and calculate-time computation tree tracing support.
+
+
 ## [0.22.5] - 2026-06-25
 
 ### Changed

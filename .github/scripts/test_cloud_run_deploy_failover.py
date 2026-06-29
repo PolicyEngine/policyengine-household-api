@@ -36,7 +36,6 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "AUTH__ENABLED": "true",
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
-        "ANTHROPIC_API_KEY": "sk-ant@test,secret",
         "ANALYTICS__ENABLED": "true",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
         "USER_ANALYTICS_DB_USERNAME": "analytics-user",
@@ -51,6 +50,16 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_MODAL_FAILURE_WINDOW_SECONDS": "60",
         "HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS": "60",
         "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES": "3",
+        "OBSERVABILITY_ENABLED": "true",
+        "OBSERVABILITY_LOG_RAW_IP": "false",
+        "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS": "ignored",
+        "OBSERVABILITY_REQUEST_LOGS_ENABLED": "true",
+        "OTEL_ENABLED": "true",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "https://otel.example.com",
+        "OTEL_EXPORTER_OTLP_HEADERS": "api-key=ignored",
+        "OTEL_EXPORTER_OTLP_INSECURE": "false",
+        "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+        "OTEL_SERVICE_NAME": "ignored",
     }
 
     result = subprocess.run(
@@ -73,6 +82,20 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "--concurrency 5" in log
     assert log.count("--timeout 1200") == 3
     assert "WEB_TIMEOUT: |-" in log
+    assert "OBSERVABILITY_ENVIRONMENT: |-" in log
+    assert "  staging" in log
+    assert "OBSERVABILITY_PLATFORM: |-" in log
+    assert "  google_cloud_run" in log
+    assert "OBSERVABILITY_ENABLED: |-" in log
+    assert "OBSERVABILITY_LOG_RAW_IP: |-" in log
+    assert "OBSERVABILITY_REQUEST_LOGS_ENABLED: |-" in log
+    assert "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS" not in log
+    assert "OTEL_ENABLED" not in log
+    assert "OTEL_EXPORTER_OTLP_ENDPOINT" not in log
+    assert "OTEL_EXPORTER_OTLP_HEADERS" not in log
+    assert "OTEL_EXPORTER_OTLP_INSECURE" not in log
+    assert "OTEL_EXPORTER_OTLP_PROTOCOL" not in log
+    assert "OTEL_SERVICE_NAME" not in log
     assert "cloud_run_apply_scaling_controls.py" in log
     assert "--scaling-concurrency-target 0.3" in log
     assert "gcloud run services replace" in log
@@ -80,9 +103,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "--set-env-vars" not in log
     assert (
         "--set-secrets=USER_ANALYTICS_DB_PASSWORD="
-        "household-api-staging-USER_ANALYTICS_DB_PASSWORD:latest,"
-        "ANTHROPIC_API_KEY=household-api-staging-ANTHROPIC_API_KEY:latest"
-        in log
+        "household-api-staging-USER_ANALYTICS_DB_PASSWORD:latest" in log
     )
     assert (
         "--set-secrets=MODAL_TOKEN_ID="
@@ -94,7 +115,6 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "add-iam-policy-binding" not in log
     assert "analytics@password,with,comma" not in log
     assert "modal-token,secret@example" not in log
-    assert "sk-ant@test,secret" not in log
     assert "gcloud storage cp" in log
     assert "gs://manifest-bucket/staging/failover-manifest.json" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
@@ -235,10 +255,7 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
     }
-    for key in (
-        "ANTHROPIC_API_KEY",
-        "USER_ANALYTICS_DB_PASSWORD",
-    ):
+    for key in ("USER_ANALYTICS_DB_PASSWORD",):
         env.pop(key, None)
 
     result = subprocess.run(

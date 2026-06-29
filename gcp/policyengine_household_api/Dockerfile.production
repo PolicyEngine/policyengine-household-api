@@ -1,5 +1,7 @@
 #----------------- Build stage -----------------
-FROM --platform=linux/amd64 python:3.12-slim AS builder
+# Python 3.13 matches the Modal production workers. No --platform pin so
+# buildx can produce multi-arch (amd64 + arm64) images.
+FROM python:3.13-slim AS builder
 WORKDIR /build
 COPY . .
 
@@ -12,32 +14,42 @@ RUN pip install --no-cache-dir -U uv
 
 # Install Python dependencies from uv.lock for reproducible builds
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-editable
+
+# Optional override of the locked policyengine-us pin, so one Dockerfile can
+# build an image for any published model version (the Modal worker image does
+# the same: uv sync from the lock, then install exact country package specs).
+# Pairings other than the locked pin are not covered by CI.
+ARG POLICYENGINE_US_VERSION=""
+RUN if [ -n "$POLICYENGINE_US_VERSION" ]; then \
+        uv pip install --python /opt/venv/bin/python \
+            "policyengine_us==${POLICYENGINE_US_VERSION}"; \
+    fi
 
 #----------------- Production stage -----------------
-FROM --platform=linux/amd64 python:3.12-slim AS production
+FROM python:3.13-slim AS production
 WORKDIR /app
 
 # Install runtime system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends curl
-RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create the runtime user before COPY --chown can reference it. A standalone
+# `chown -R` after copying would duplicate the whole venv into an extra
+# image layer.
+RUN groupadd policyapi && \
+    useradd --gid policyapi --create-home policyapi
 
 # Copy artifacts from build stage
-COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
+COPY --from=builder --chown=policyapi:policyapi /opt/venv /opt/venv
+COPY --from=builder --chown=policyapi:policyapi /build/policyengine_household_api /app/policyengine_household_api
 
 # Copy default configuration
-RUN mkdir -p /app/config
-COPY ./config/default.yaml /app/config/default.yaml
+COPY --chown=policyapi:policyapi ./config/default.yaml /app/config/default.yaml
 
 # Copy startup script
-COPY ./gcp/policyengine_household_api/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
-# Drop root privileges in the runtime image.
-RUN groupadd policyapi && \
-    useradd --gid policyapi --create-home policyapi && \
-    chown -R policyapi:policyapi /app /opt/venv
+COPY --chown=policyapi:policyapi ./gcp/policyengine_household_api/start.sh /app/start.sh
+RUN chmod +x /app/start.sh && chown policyapi:policyapi /app /app/config
 
 # Configure runtime environment.
 ENV PATH="/opt/venv/bin:$PATH"
