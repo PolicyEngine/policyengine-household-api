@@ -162,6 +162,9 @@ jobs:
         id: deploy
         env:
           APP__ENVIRONMENT: staging
+          OBSERVABILITY_ENABLED: ${{ vars.OBSERVABILITY_ENABLED }}
+          OBSERVABILITY_LOG_RAW_IP: ${{ vars.OBSERVABILITY_LOG_RAW_IP }}
+          OBSERVABILITY_REQUEST_LOGS_ENABLED: ${{ vars.OBSERVABILITY_REQUEST_LOGS_ENABLED }}
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
@@ -270,6 +273,9 @@ jobs:
         id: deploy
         env:
           APP__ENVIRONMENT: staging
+          OBSERVABILITY_ENABLED: ${{ vars.OBSERVABILITY_ENABLED }}
+          OBSERVABILITY_LOG_RAW_IP: ${{ vars.OBSERVABILITY_LOG_RAW_IP }}
+          OBSERVABILITY_REQUEST_LOGS_ENABLED: ${{ vars.OBSERVABILITY_REQUEST_LOGS_ENABLED }}
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
@@ -490,6 +496,9 @@ jobs:
         id: deploy
         env:
           APP__ENVIRONMENT: production
+          OBSERVABILITY_ENABLED: ${{ vars.OBSERVABILITY_ENABLED }}
+          OBSERVABILITY_LOG_RAW_IP: ${{ vars.OBSERVABILITY_LOG_RAW_IP }}
+          OBSERVABILITY_REQUEST_LOGS_ENABLED: ${{ vars.OBSERVABILITY_REQUEST_LOGS_ENABLED }}
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
@@ -555,6 +564,9 @@ jobs:
         id: deploy
         env:
           APP__ENVIRONMENT: production
+          OBSERVABILITY_ENABLED: ${{ vars.OBSERVABILITY_ENABLED }}
+          OBSERVABILITY_LOG_RAW_IP: ${{ vars.OBSERVABILITY_LOG_RAW_IP }}
+          OBSERVABILITY_REQUEST_LOGS_ENABLED: ${{ vars.OBSERVABILITY_REQUEST_LOGS_ENABLED }}
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}

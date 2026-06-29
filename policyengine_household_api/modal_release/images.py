@@ -37,6 +37,7 @@ def household_api_gateway_image() -> modal.Image:
         .pip_install(
             "flask>=2.2",
             "modal>=1.3.0",
+            "policyengine-observability[flask]>=1.0.0",
             "pyyaml>=6",
         )
         .add_local_python_source("policyengine_household_api", copy=True)

@@ -14,6 +14,10 @@ from policyengine_household_api.modal_release.manifest import (
 from policyengine_household_api.modal_release.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
+from policyengine_observability import (
+    OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
+    REQUEST_ID_HEADER,
+)
 
 
 def _manifest():
@@ -245,6 +249,8 @@ def test_calculate_forwards_request_metadata_to_worker():
     assert payload["path"] == "us/calculate"
     assert payload["query_string"] == "trace=true"
     assert payload["headers"]["Authorization"] == "Bearer token"
+    assert payload["headers"][REQUEST_ID_HEADER]
+    assert payload["headers"][OBSERVABILITY_INTERNAL_DISPATCH_HEADER] == "1"
     assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
         "requested_version": "current",
         "resolved_channel": "current",

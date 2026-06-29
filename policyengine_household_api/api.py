@@ -19,6 +19,7 @@ import yaml
 from policyengine_household_api.data.analytics_setup import (
     initialize_analytics_db_if_enabled,
 )
+from policyengine_household_api.observability.flask import init_observability
 
 # Internal imports
 from .decorators.auth import ANALYTICS_READ_SCOPE, create_auth_decorator
@@ -43,6 +44,7 @@ app = application = flask.Flask(__name__)
 OPENAPI_SPEC_PATH = Path(__file__).with_name("openapi_spec.yaml")
 PACKAGE_NAME = "policyengine-household-api"
 PYPROJECT_PATH = Path(__file__).resolve().parents[1] / "pyproject.toml"
+init_observability(app, service_role="api")
 
 # Reject absurdly large request bodies before any view runs. 10 MiB is
 # well above the largest legitimate household payload we have seen

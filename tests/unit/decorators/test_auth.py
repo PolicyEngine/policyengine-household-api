@@ -2,17 +2,56 @@
 Unit tests for the conditional authentication decorator.
 """
 
+from contextlib import nullcontext
+from functools import wraps
 from unittest.mock import Mock
+import policyengine_household_api.decorators.auth as auth_module
 from policyengine_household_api.decorators.auth import (
     ANALYTICS_READ_SCOPE,
     NoOpDecorator,
     ConditionalAuthDecorator,
+    ObservedAuthDecorator,
     create_auth_decorator,
     StaticBearerTokenValidator,
 )
 from tests.fixtures.decorators.auth import (
     AUTH0_CONFIG_DATA,
 )
+
+
+class _FakeResourceProtector:
+    def __init__(self, error=None):
+        self.error = error
+        self.call_args = None
+        self.acquire_token_calls = []
+
+    def acquire_token(self, **claims):
+        self.acquire_token_calls.append(claims)
+        if self.error is not None:
+            raise self.error
+        return object()
+
+    def __call__(self, scopes=None, optional=False, **kwargs):
+        self.call_args = (scopes, optional, dict(kwargs))
+        claims = dict(kwargs)
+        claims["scopes"] = None if callable(scopes) else scopes
+
+        def decorator(func):
+            @wraps(func)
+            def decorated(*args, **inner_kwargs):
+                try:
+                    self.acquire_token(**claims)
+                except auth_module.MissingAuthorizationError:
+                    if optional:
+                        return func(*args, **inner_kwargs)
+                    raise
+                return func(*args, **inner_kwargs)
+
+            return decorated
+
+        if callable(scopes):
+            return decorator(scopes)
+        return decorator
 
 
 class TestNoOpDecorator:
@@ -179,18 +218,19 @@ class TestConditionalAuthDecoratorWithAuthDisabled:
 class TestCreateAuthDecorator:
     """Test the factory function create_auth_decorator."""
 
-    def test__given_auth_enabled__returns_resource_protector(
+    def test__given_auth_enabled__returns_observed_resource_protector(
         self,
         auth_enabled_environment,
         mock_resource_protector,
         mock_auth0_validator,
     ):
-        """Test that factory returns ResourceProtector when auth is enabled."""
+        """Factory wraps ResourceProtector with observability when enabled."""
         _, mock_protector_instance = mock_resource_protector
 
         decorator = create_auth_decorator()
 
-        assert decorator is mock_protector_instance
+        assert isinstance(decorator, ObservedAuthDecorator)
+        assert decorator._decorator is mock_protector_instance
 
     def test__given_auth_disabled__returns_noop_decorator(
         self,
@@ -202,6 +242,83 @@ class TestCreateAuthDecorator:
         decorator = create_auth_decorator()
 
         assert isinstance(decorator, NoOpDecorator)
+
+
+class TestObservedAuthDecorator:
+    def test__given_scoped_decorator__delegates_call_and_records_success(
+        self,
+        monkeypatch,
+    ):
+        attributes = []
+        monkeypatch.setattr(
+            auth_module,
+            "segment",
+            lambda _name: nullcontext(),
+        )
+        monkeypatch.setattr(
+            auth_module,
+            "set_attribute",
+            lambda key, value: attributes.append((key, value)),
+        )
+        fake = _FakeResourceProtector()
+        decorator = ObservedAuthDecorator(fake)
+        view = Mock(return_value="ok")
+
+        decorated = decorator(
+            [ANALYTICS_READ_SCOPE],
+            optional=True,
+            custom_claim="value",
+        )(view)
+        result = decorated("arg", key="value")
+
+        assert result == "ok"
+        assert fake.call_args == (
+            [ANALYTICS_READ_SCOPE],
+            True,
+            {"custom_claim": "value"},
+        )
+        assert fake.acquire_token_calls == [
+            {
+                "custom_claim": "value",
+                "scopes": [ANALYTICS_READ_SCOPE],
+            }
+        ]
+        assert attributes == [("auth_result", "success")]
+        view.assert_called_once_with("arg", key="value")
+
+    def test__given_optional_missing_auth__records_optional_missing(
+        self,
+        monkeypatch,
+    ):
+        attributes = []
+        errors = []
+        monkeypatch.setattr(
+            auth_module,
+            "segment",
+            lambda _name: nullcontext(),
+        )
+        monkeypatch.setattr(
+            auth_module,
+            "set_attribute",
+            lambda key, value: attributes.append((key, value)),
+        )
+        monkeypatch.setattr(
+            auth_module,
+            "record_error",
+            lambda *args, **kwargs: errors.append((args, kwargs)),
+        )
+        fake = _FakeResourceProtector(
+            error=auth_module.MissingAuthorizationError()
+        )
+        decorator = ObservedAuthDecorator(fake)
+        view = Mock(return_value="ok")
+
+        result = decorator(optional=True)(view)()
+
+        assert result == "ok"
+        assert attributes == [("auth_result", "optional_missing")]
+        assert errors == []
+        view.assert_called_once_with()
 
 
 class TestStaticBearerTokenValidator:
