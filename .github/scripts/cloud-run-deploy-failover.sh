@@ -264,13 +264,9 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   append_env_if_set "${worker_env_file}" AUTH__ENABLED
   append_env_if_set "${worker_env_file}" AUTH0_ADDRESS_NO_DOMAIN
   append_env_if_set "${worker_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
-  append_env_if_set "${worker_env_file}" AI__ENABLED
   sync_secret_if_set \
     "${worker_secrets_file}" \
     USER_ANALYTICS_DB_PASSWORD
-  sync_secret_if_set \
-    "${worker_secrets_file}" \
-    ANTHROPIC_API_KEY
 
   worker_env_arg=""
   worker_secret_arg=""

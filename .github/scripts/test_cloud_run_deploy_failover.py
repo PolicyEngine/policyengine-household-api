@@ -36,7 +36,6 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "AUTH__ENABLED": "true",
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
-        "ANTHROPIC_API_KEY": "sk-ant@test,secret",
         "ANALYTICS__ENABLED": "true",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
         "USER_ANALYTICS_DB_USERNAME": "analytics-user",
@@ -80,9 +79,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "--set-env-vars" not in log
     assert (
         "--set-secrets=USER_ANALYTICS_DB_PASSWORD="
-        "household-api-staging-USER_ANALYTICS_DB_PASSWORD:latest,"
-        "ANTHROPIC_API_KEY=household-api-staging-ANTHROPIC_API_KEY:latest"
-        in log
+        "household-api-staging-USER_ANALYTICS_DB_PASSWORD:latest" in log
     )
     assert (
         "--set-secrets=MODAL_TOKEN_ID="
@@ -94,7 +91,6 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "add-iam-policy-binding" not in log
     assert "analytics@password,with,comma" not in log
     assert "modal-token,secret@example" not in log
-    assert "sk-ant@test,secret" not in log
     assert "gcloud storage cp" in log
     assert "gs://manifest-bucket/staging/failover-manifest.json" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
@@ -235,10 +231,7 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
     }
-    for key in (
-        "ANTHROPIC_API_KEY",
-        "USER_ANALYTICS_DB_PASSWORD",
-    ):
+    for key in ("USER_ANALYTICS_DB_PASSWORD",):
         env.pop(key, None)
 
     result = subprocess.run(

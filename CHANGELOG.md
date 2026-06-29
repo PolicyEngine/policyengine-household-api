@@ -1,3 +1,52 @@
+## [0.23.4] - 2026-06-29
+
+### Fixed
+
+- Raise the deployed API test request timeout so forced Cloud Run fallback checks can tolerate cold-start and model warmup latency.
+
+
+## [0.23.3] - 2026-06-28
+
+### Changed
+
+- Return 422 responses when calculate requests specify deprecated or unsupported exact package versions.
+
+
+## [0.23.2] - 2026-06-25
+
+### Fixed
+
+- Pinned policyengine-core below the formula-time randomness guard while the Medicaid/SSI calculation failure is investigated.
+
+
+## [0.23.1] - 2026-06-25
+
+### Changed
+
+- Relax the PolicyEngine Core upper bound for the current US model.
+
+
+## [0.23.0] - 2026-06-25
+
+### Removed
+
+- Removed the deprecated AI explainer endpoint and calculate-time computation tree tracing support.
+
+
+## [0.22.5] - 2026-06-25
+
+### Changed
+
+- Update PolicyEngine US to 1.744.0.
+
+
+## [0.22.4] - 2026-06-17
+
+### Changed
+
+- Update PolicyEngine US to 1.732.0.
+
+
 ## [0.22.3] - 2026-06-17
 
 ### Fixed
