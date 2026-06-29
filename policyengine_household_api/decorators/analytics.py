@@ -91,8 +91,8 @@ def log_analytics_if_enabled(func):
     Decorator that logs analytics only if analytics is enabled in configuration.
 
     If analytics is disabled, this passes through without logging. If
-    analytics is enabled, analytics is required: schema readiness and
-    database write failures propagate like other API failures.
+    analytics is enabled, schema readiness is required at request time, but
+    database write failures are logged and do not fail the user request.
     """
 
     @wraps(func)
@@ -263,10 +263,12 @@ def _record_analytics(
                 )
 
         db.session.commit()
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        logger.error(f"Failed to log analytics: {e}")
-        raise
+        logger.warning(
+            "Failed to log analytics; continuing without analytics",
+            exc_info=True,
+        )
 
 
 def _set_observability_context_attributes(

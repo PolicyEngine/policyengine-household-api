@@ -148,7 +148,7 @@ class TestAnalyticsDecorator:
         # Verify client_id preserved as-is
         assert visit_instance.client_id == "test-client"
 
-    def test__given_database_error__decorator_raises(
+    def test__given_database_error__decorator_logs_warning_and_continues(
         self,
         sample_function,
         mock_analytics_enabled,
@@ -158,18 +158,23 @@ class TestAnalyticsDecorator:
         mock_datetime_fixed,
         mock_version,
         mock_db_session_with_error,
+        caplog,
     ):
-        """Enabled analytics should fail the request on database errors."""
+        """Enabled analytics write failures should not fail the request."""
         from policyengine_household_api.decorators.analytics import (
             log_analytics_if_enabled,
         )
 
         decorated = log_analytics_if_enabled(sample_function)
 
-        with pytest.raises(Exception, match="Database error"):
-            decorated("arg1", "arg2", kwarg1="test")
+        result = decorated("arg1", "arg2", kwarg1="test")
 
+        assert result == "Result: arg1, arg2, test"
         mock_db_session_with_error.rollback.assert_called_once()
+        assert (
+            "Failed to log analytics; continuing without analytics"
+            in caplog.text
+        )
 
     def test__given_analytics_check_raises_error__decorator_raises(
         self, sample_function, mock_analytics_error

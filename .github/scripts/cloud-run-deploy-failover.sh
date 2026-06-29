@@ -211,6 +211,7 @@ worker_max_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MAX_INSTANCES:-100}"
 worker_concurrency="${HOUSEHOLD_CLOUD_RUN_WORKER_CONCURRENCY:-5}"
 worker_threads="${HOUSEHOLD_CLOUD_RUN_WORKER_THREADS:-${worker_concurrency}}"
 worker_timeout="${HOUSEHOLD_CLOUD_RUN_WORKER_TIMEOUT_SECONDS:-1200}"
+gateway_worker_timeout="${HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS:-900}"
 worker_cpu="${HOUSEHOLD_CLOUD_RUN_WORKER_CPU:-1}"
 worker_memory="${HOUSEHOLD_CLOUD_RUN_WORKER_MEMORY:-4Gi}"
 worker_scaling_concurrency_target="$(
@@ -398,7 +399,7 @@ append_env_if_set \
 append_env_value \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS \
-  "${worker_timeout}"
+  "${gateway_worker_timeout}"
 sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_ID

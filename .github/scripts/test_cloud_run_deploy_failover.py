@@ -135,7 +135,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS: |-" in log
     assert "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES: |-" in log
     assert "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS: |-" in log
-    assert "  1200" in log
+    assert "  900" in log
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (
