@@ -1,3 +1,11 @@
+## [0.25.0] - 2026-06-29
+
+### Added
+
+- Add OTel-aligned operational observability for household API requests, gateways, timing breakdowns, and structured request logs, backed by the shared `policyengine-observability` runtime.
+  Propagate observability context through Modal gateway executor calls so backend lookup and remote execution segments remain attached to the originating request.
+
+
 ## [0.24.1] - 2026-06-29
 
 ### Changed
