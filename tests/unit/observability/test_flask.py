@@ -134,6 +134,7 @@ def test_request_log_contains_runtime_metadata(monkeypatch):
     monkeypatch.setenv("K_SERVICE", "household-api-gateway")
     monkeypatch.setenv("K_REVISION", "household-api-gateway-00001")
     monkeypatch.setenv("K_CONFIGURATION", "household-api-gateway")
+    monkeypatch.setenv("OBSERVABILITY_GOOGLE_CLOUD_PROJECT", "central-logs")
     monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "policyengine-test")
 
     records = []
@@ -154,7 +155,7 @@ def test_request_log_contains_runtime_metadata(monkeypatch):
     assert payload["cloud_run_service"] == "household-api-gateway"
     assert payload["cloud_run_revision"] == "household-api-gateway-00001"
     assert payload["cloud_run_configuration"] == "household-api-gateway"
-    assert payload["google_cloud_project"] == "policyengine-test"
+    assert payload["google_cloud_project"] == "central-logs"
 
 
 def test_local_observability_defaults_to_stdout_logs(monkeypatch):

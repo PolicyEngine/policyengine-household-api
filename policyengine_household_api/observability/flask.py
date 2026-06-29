@@ -82,7 +82,8 @@ def _metadata(service_role: str, platform: str) -> dict[str, str]:
         "cloud_run_service": os.getenv("K_SERVICE"),
         "cloud_run_revision": os.getenv("K_REVISION"),
         "cloud_run_configuration": os.getenv("K_CONFIGURATION"),
-        "google_cloud_project": os.getenv("GOOGLE_CLOUD_PROJECT")
+        "google_cloud_project": os.getenv("OBSERVABILITY_GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GOOGLE_CLOUD_PROJECT")
         or os.getenv("GCP_PROJECT")
         or os.getenv("GCLOUD_PROJECT"),
         "modal_environment": os.getenv("MODAL_ENVIRONMENT"),
