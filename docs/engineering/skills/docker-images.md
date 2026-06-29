@@ -39,10 +39,13 @@ push-triggered `Release to Modal` run. It checks out the release commit and:
 
 1. Builds the exact-version image from `uv.lock` and pushes `us-<version>`,
    `<api-version>`, and `sha-<commit>` tags (linux/amd64 + linux/arm64).
-2. Reads the live gateway `/versions/us` endpoint — the source of truth for
-   channel state — and repoints `current`, `latest`, and `frontier` at the
-   matching exact-version images with `docker buildx imagetools create`
-   (a registry-level retag, no rebuild).
+2. After the build finishes, re-reads the live gateway `/versions/us`
+   endpoint — the source of truth for channel state — and repoints `current`,
+   `latest`, and `frontier` at the matching exact-version images with
+   `docker buildx imagetools create` (a registry-level retag, no rebuild).
+   Channel state is read at this point, not before the slow build, and only
+   channels whose exact-version image is already published are repointed, so a
+   release that lands mid-build never moves a channel tag backward.
 3. Backfills any channel version whose exact-version image does not exist
    yet, using the `POLICYENGINE_US_VERSION` build arg. Backfilled images
    carry the release commit's API code, which may be newer than the code the

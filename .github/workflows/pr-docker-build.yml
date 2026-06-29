@@ -15,8 +15,15 @@ on:
       - .dockerignore
       - .github/workflows/publish-docker-image.yml
       - .github/workflows/pr-docker-build.yml
+      - .github/scripts/plan_docker_tags.py
       - pyproject.toml
       - uv.lock
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
 
 concurrency:
   group: household-api-pr-docker-${{ github.event.pull_request.number || github.ref }}
@@ -29,24 +36,15 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      # Read the pin through the same parser the publish planner uses, so the
+      # exact policyengine_us==... extraction lives in one place.
       - name: Read pinned policyengine-us version
         id: pin
         run: |
-          version=$(python3 - <<'EOF'
-          import tomllib
-          from pathlib import Path
-
-          deps = tomllib.loads(Path("pyproject.toml").read_text())["project"][
-              "dependencies"
-          ]
-          for dep in deps:
-              name, _, version = dep.replace(" ", "").partition("==")
-              if name.replace("-", "_") == "policyengine_us" and version:
-                  print(version)
-                  break
-          EOF
-          )
-          test -n "$version"
+          version="$(python .github/scripts/plan_docker_tags.py --print-us-pin)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

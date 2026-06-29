@@ -157,17 +157,39 @@ jobs:
       needs.plan.outputs.has_retags == 'true' &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     permissions:
+      contents: read
       packages: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.checkout_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      # Re-read channel state now that the (slow) build job has finished. The
+      # plan job read it before the build, so a release completing mid-build
+      # could otherwise make this step repoint a channel backward or at a
+      # not-yet-built image. Recomputing here, and emitting retags only for
+      # already-published images, keeps the channel tags monotonic; the
+      # serialized next publish run repoints anything skipped.
+      - name: Recompute channel tags from live gateway state
+        id: live
+        run: |
+          python .github/scripts/plan_docker_tags.py \
+            --live-retags \
+            --repository "$IMAGE_REPOSITORY" \
+            --github-output "$GITHUB_OUTPUT"
       - name: Log in to GitHub Container Registry
+        if: steps.live.outputs.has_retags == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Repoint channel tags at exact-version images
+        if: steps.live.outputs.has_retags == 'true'
         env:
-          RETAGS: ${{ needs.plan.outputs.retags }}
+          RETAGS: ${{ steps.live.outputs.retags }}
         run: |
           echo "$RETAGS" | jq -c '.[]' | while read -r entry; do
             source=$(jq -r '.source' <<<"$entry")
@@ -175,7 +197,7 @@ jobs:
             for target in $(jq -r '.targets[]' <<<"$entry"); do
               args="$args --tag $IMAGE:$target"
             done
-            echo "Repointing$(jq -r '.targets | join(", ")' <<<"$entry") -> $source"
+            echo "Repointing $(jq -r '.targets | join(", ")' <<<"$entry") -> $source"
             # shellcheck disable=SC2086
             docker buildx imagetools create $args "$IMAGE:$source"
           done
