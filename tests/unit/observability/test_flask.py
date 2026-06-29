@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+import subprocess
+import sys
 from types import SimpleNamespace
 
 from flask import Flask
@@ -51,6 +53,30 @@ def _observed_app():
             return {"status": "ok"}
 
     return app
+
+
+def test_observability_import_does_not_load_household_json_utils():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "import policyengine_household_api.observability.flask; "
+                "loaded = sorted("
+                "name for name in sys.modules "
+                "if name.startswith('policyengine_household_api.utils')"
+                "); "
+                "assert 'policyengine_household_api.utils.json' "
+                "not in loaded, loaded; "
+                "assert 'numpy' not in sys.modules"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_request_log_contains_request_metadata_and_timing(monkeypatch):
