@@ -36,6 +36,12 @@ from policyengine_household_api.failover.manifest import (
 from policyengine_household_api.failover.request_limits import (
     max_content_length_bytes,
 )
+from policyengine_household_api.failover.slack_notifications import (
+    ALERT_EVENTS as SLACK_ALERT_EVENTS,
+)
+from policyengine_household_api.failover.slack_notifications import (
+    notify_failover_lifecycle_event,
+)
 from policyengine_household_api.observability.flask import init_observability
 from policyengine_household_api.observability.segments import SegmentName
 from policyengine_observability import record_error
@@ -693,7 +699,7 @@ def _route_to_backend(
 ) -> tuple[Response, str]:
     force_backend = os.getenv(FORCE_BACKEND_ENV, "").strip().lower()
     if force_backend == "cloud_run":
-        record_event("fallback_selected", reason="forced_cloud_run")
+        _record_failover_event("fallback_selected", reason="forced_cloud_run")
         return _route_to_fallback_or_503(
             resolved,
             payload,
@@ -714,7 +720,7 @@ def _route_to_backend(
                 modal_canary_timeout_seconds=modal_canary_timeout_seconds,
             )
         if circuits.is_open(resolved.channel):
-            record_event(
+            _record_failover_event(
                 "fallback_selected",
                 reason="modal_circuit_open",
                 channel=resolved.channel,
@@ -762,12 +768,12 @@ def _route_to_backend(
                 timeout_seconds=modal_canary_timeout_seconds,
             ):
                 circuits.open(resolved.channel)
-                record_event(
+                _record_failover_event(
                     "modal_circuit_opened",
                     channel=resolved.channel,
                 )
                 warm_fallback(resolved)
-                record_event(
+                _record_failover_event(
                     "fallback_selected",
                     reason="modal_canary_confirmed",
                     channel=resolved.channel,
@@ -830,7 +836,7 @@ def _refresh_modal_circuit(
                 timeout_seconds=modal_canary_timeout_seconds,
             ):
                 circuits.open(resolved.channel)
-                record_event(
+                _record_failover_event(
                     "modal_circuit_opened",
                     channel=resolved.channel,
                     source="probe",
@@ -866,7 +872,7 @@ def _refresh_open_modal_circuit(
             )
         recovered = circuits.record_recovery_success(resolved.channel, policy)
         if recovered:
-            record_event(
+            _record_failover_event(
                 "modal_circuit_recovered",
                 channel=resolved.channel,
             )
@@ -890,12 +896,25 @@ def _route_to_fallback_or_503(
         with segment(SegmentName.CLOUD_RUN_REQUEST, backend="cloud_run"):
             return call_fallback(resolved, payload), "cloud_run"
     except FallbackBackendUnavailable:
-        record_event(
+        _record_failover_event(
             "backend_unavailable",
             backend="cloud_run",
             channel=resolved.channel,
         )
         return _backend_unavailable_response(resolved), "none"
+
+
+def _record_failover_event(event: str, **fields: Any) -> None:
+    record_event(event, **fields)
+    if event not in SLACK_ALERT_EVENTS:
+        return
+    try:
+        notify_failover_lifecycle_event(event, **fields)
+    except Exception as exc:
+        LOGGER.warning(
+            "Failed to submit Slack failover alert",
+            extra={"error_type": type(exc).__name__},
+        )
 
 
 def _modal_canary_confirms_outage(

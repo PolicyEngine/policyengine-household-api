@@ -154,6 +154,164 @@ def test_gateway_routes_to_fallback_after_threshold_and_canary_failure():
     assert warmups == ["current"]
 
 
+def test_gateway_sends_slack_alerts_for_confirmed_fallback(monkeypatch):
+    alerts = []
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "notify_failover_lifecycle_event",
+        lambda event, **fields: alerts.append((event, fields)),
+    )
+    client = _client(
+        modal_request=lambda app_name, payload: (_ for _ in ()).throw(
+            ModalBackendUnavailable("modal failed")
+        ),
+        modal_canary_probe=_canary_failure,
+    )
+
+    for _ in range(9):
+        client.post("/us/calculate", json={"household": {}})
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 200
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+    assert alerts == [
+        ("modal_circuit_opened", {"channel": "current"}),
+        (
+            "fallback_selected",
+            {"reason": "modal_canary_confirmed", "channel": "current"},
+        ),
+    ]
+
+
+def test_gateway_sends_slack_alert_for_forced_cloud_run_fallback(monkeypatch):
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_FORCE_BACKEND", "cloud_run")
+    alerts = []
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "notify_failover_lifecycle_event",
+        lambda event, **fields: alerts.append((event, fields)),
+    )
+
+    response = _client().post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 200
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+    assert alerts == [
+        ("fallback_selected", {"reason": "forced_cloud_run"}),
+    ]
+
+
+def test_gateway_sends_slack_alert_when_fallback_is_unavailable(monkeypatch):
+    alerts = []
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "notify_failover_lifecycle_event",
+        lambda event, **fields: alerts.append((event, fields)),
+    )
+    client = _client(
+        modal_request=lambda app_name, payload: (_ for _ in ()).throw(
+            ModalBackendUnavailable("modal failed")
+        ),
+        modal_canary_probe=_canary_failure,
+        fallback_request=lambda resolved, payload: (_ for _ in ()).throw(
+            FallbackBackendUnavailable("fallback failed")
+        ),
+    )
+
+    for _ in range(10):
+        response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 503
+    assert response.get_json()["code"] == "backend_unavailable"
+    assert alerts[-1] == (
+        "backend_unavailable",
+        {"backend": "cloud_run", "channel": "current"},
+    )
+
+
+def test_gateway_does_not_send_slack_alert_for_modal_request_failure(
+    monkeypatch,
+):
+    alerts = []
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "notify_failover_lifecycle_event",
+        lambda event, **fields: alerts.append((event, fields)),
+    )
+
+    response = _client(
+        modal_request=lambda app_name, payload: (_ for _ in ()).throw(
+            ModalBackendUnavailable("modal failed")
+        ),
+    ).post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 503
+    assert alerts == []
+
+
+def test_gateway_sends_slack_alert_when_probe_opens_modal_circuit(monkeypatch):
+    clock = [100.0]
+    alerts = []
+
+    def fail_probe(app_name):
+        raise ModalBackendUnavailable("modal probe failed")
+
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "notify_failover_lifecycle_event",
+        lambda event, **fields: alerts.append((event, fields)),
+    )
+    client = _client(
+        clock=lambda: clock[0],
+        modal_health_probe=fail_probe,
+        modal_canary_probe=_canary_failure,
+        circuit_policy=ModalCircuitPolicy(
+            failure_min_count=1,
+            failure_rate=1,
+            failure_window_seconds=60,
+        ),
+    )
+
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 200
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+    assert alerts == [
+        (
+            "modal_circuit_opened",
+            {"channel": "current", "source": "probe"},
+        ),
+        (
+            "fallback_selected",
+            {"reason": "modal_circuit_open", "channel": "current"},
+        ),
+    ]
+
+
+def test_gateway_swallows_slack_alert_failure(monkeypatch):
+    def fail_notification(event, **fields):
+        raise RuntimeError("slack unavailable")
+
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "notify_failover_lifecycle_event",
+        fail_notification,
+    )
+    client = _client(
+        modal_request=lambda app_name, payload: (_ for _ in ()).throw(
+            ModalBackendUnavailable("modal failed")
+        ),
+        modal_canary_probe=_canary_failure,
+    )
+
+    for _ in range(9):
+        client.post("/us/calculate", json={"household": {}})
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 200
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+
+
 def test_app_level_500_does_not_trigger_fallback_or_status_page_check():
     status_checks = []
     fallback_calls = []
@@ -747,6 +905,45 @@ def test_open_circuit_recovers_after_repeated_canary_and_worker_successes():
 
     assert response.headers["X-PolicyEngine-Backend"] == "modal"
     assert len(canary_calls) == 3
+
+
+def test_gateway_sends_slack_alert_when_modal_circuit_recovers(monkeypatch):
+    clock = [100.0]
+    registry = CircuitRegistry(time_source=lambda: clock[0])
+    registry.open("current")
+    alerts = []
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway."
+        "notify_failover_lifecycle_event",
+        lambda event, **fields: alerts.append((event, fields)),
+    )
+    client = create_gateway_app(
+        manifest_loader=_manifest,
+        modal_request=lambda app_name, payload: _json_response(
+            {"backend": "modal"}
+        ),
+        modal_health_probe=lambda app_name: None,
+        modal_canary_probe=lambda: None,
+        fallback_request=lambda resolved, payload: _json_response(
+            {"backend": "cloud_run"}
+        ),
+        modal_status_checker=lambda: {},
+        fallback_warmup=lambda resolved: None,
+        circuit_registry=registry,
+        circuit_policy=ModalCircuitPolicy(
+            min_open_seconds=60,
+            recovery_successes=1,
+        ),
+    ).test_client()
+
+    clock[0] = 200.0
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 200
+    assert response.headers["X-PolicyEngine-Backend"] == "modal"
+    assert alerts == [
+        ("modal_circuit_recovered", {"channel": "current"}),
+    ]
 
 
 def test_modal_status_summary_keeps_only_relevant_status_fields():
