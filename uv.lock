@@ -2370,7 +2370,6 @@ dependencies = [
     { name = "flask-cors" },
     { name = "flask-limiter" },
     { name = "flask-sqlalchemy" },
-    { name = "google-cloud-logging" },
     { name = "google-cloud-storage" },
     { name = "gunicorn" },
     { name = "inflect" },
@@ -2380,7 +2379,7 @@ dependencies = [
     { name = "policyengine-core" },
     { name = "policyengine-il" },
     { name = "policyengine-ng" },
-    { name = "policyengine-observability", extra = ["flask"] },
+    { name = "policyengine-observability", extra = ["flask", "google"] },
     { name = "policyengine-uk" },
     { name = "policyengine-us" },
     { name = "pydantic" },
@@ -2408,7 +2407,6 @@ requires-dist = [
     { name = "flask-cors", specifier = ">=3" },
     { name = "flask-limiter" },
     { name = "flask-sqlalchemy", specifier = ">=3" },
-    { name = "google-cloud-logging" },
     { name = "google-cloud-storage" },
     { name = "gunicorn" },
     { name = "inflect" },
@@ -2418,7 +2416,7 @@ requires-dist = [
     { name = "policyengine-core", specifier = ">=3.26.0,<3.26.7" },
     { name = "policyengine-il", specifier = "==0.1.0" },
     { name = "policyengine-ng", specifier = "==0.5.1" },
-    { name = "policyengine-observability", extras = ["flask"], specifier = ">=1.0.0" },
+    { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.2.0,<2" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
     { name = "policyengine-us", specifier = "==1.744.0" },
     { name = "pydantic" },
@@ -2461,7 +2459,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-observability"
-version = "1.0.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "opentelemetry-api" },
@@ -2471,14 +2469,17 @@ dependencies = [
     { name = "opentelemetry-instrumentation-httpx" },
     { name = "opentelemetry-sdk" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9b/50/121780ac96b8e958ad32037144ceb89aa86b2d3ff1128d983ac32edd0c20/policyengine_observability-1.0.0.tar.gz", hash = "sha256:1fcafdf4585660e42a7336cdfb3be323c925136f69b2aff5e514b5e4a2b8c36f", size = 84131, upload-time = "2026-06-23T20:49:23.988Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/07/112119febdc5509ff212e5bde1f89a94f5cf0f932b33a1a5e76be4707b64/policyengine_observability-1.2.0.tar.gz", hash = "sha256:33573bf18d0742239352cb1ad5bd09635272a536f4e4b99ccf80b56b6dd9ad91", size = 103735, upload-time = "2026-06-29T19:19:02.523Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/aa/28f4c112fb7b618ab61b028c64174283f8f9773d8f065c1a3c3e90e0135e/policyengine_observability-1.0.0-py3-none-any.whl", hash = "sha256:deb0cdd2792852972f1091177040c97c3ef727865d59489d127375e7498cda8e", size = 21844, upload-time = "2026-06-23T20:49:22.816Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/2b/f46bb33f4b9f44da2e850d96770a284c0721d9a810e25562277df50f5df1/policyengine_observability-1.2.0-py3-none-any.whl", hash = "sha256:0592434930312ce8b5e889973bf264a613a9dc6a57e6cd3825aa994419363831", size = 29584, upload-time = "2026-06-29T19:19:01.408Z" },
 ]
 
 [package.optional-dependencies]
 flask = [
     { name = "flask" },
+]
+google = [
+    { name = "google-cloud-logging" },
 ]
 
 [[package]]
