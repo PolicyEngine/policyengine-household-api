@@ -24,7 +24,6 @@ HOUSEHOLD_METRIC_ATTRIBUTE_KEYS = (
     "cloud_run_revision",
     "cloud_run_service",
     "deprecated_warning_count",
-    "enable_ai_explainer",
     "google_cloud_project",
     "modal_app_name",
     "modal_environment",

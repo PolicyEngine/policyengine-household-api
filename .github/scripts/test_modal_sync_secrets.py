@@ -18,7 +18,6 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "GCP_CREDENTIALS_JSON": "{}",
-        "AI__ENABLED": "false",
         "ANALYTICS__ENABLED": "false",
         "OBSERVABILITY_ENABLED": "true",
         "OBSERVABILITY_LOG_RAW_IP": "false",
