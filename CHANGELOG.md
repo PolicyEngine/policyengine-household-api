@@ -1,3 +1,10 @@
+## [0.24.0] - 2026-06-29
+
+### Added
+
+- Publish versioned Docker images to GHCR after each Modal release, with `current`/`frontier` channel tags, exact `us-<version>` tags, and a build arg for arbitrary policyengine-us versions.
+
+
 ## [0.23.4] - 2026-06-29
 
 ### Fixed
