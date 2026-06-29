@@ -1,3 +1,10 @@
+## [0.25.1] - 2026-06-29
+
+### Fixed
+
+- Fix lightweight Modal and Cloud Run gateway startup after observability instrumentation.
+
+
 ## [0.25.0] - 2026-06-29
 
 ### Added
