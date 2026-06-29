@@ -55,6 +55,23 @@ def _observed_app():
     return app
 
 
+def _stderr_json_records(capture):
+    captured = capture.readouterr()
+    records = []
+    for line in captured.err.splitlines():
+        line = line.strip()
+        if line.startswith("{"):
+            records.append(json.loads(line))
+    return records
+
+
+def _find_record(records, **matches):
+    for record in records:
+        if all(record.get(key) == value for key, value in matches.items()):
+            return record
+    raise AssertionError(f"No stderr JSON record matched {matches}: {records}")
+
+
 def test_observability_import_does_not_load_household_json_utils():
     result = subprocess.run(
         [
@@ -511,9 +528,9 @@ def test_segment_preserves_app_exception_when_metric_recording_fails(
     assert any("metrics failed" in log for log in internal_logs)
 
 
-def test_observability_failure_logging_falls_back_to_stderr(
+def test_observability_failure_logging_destination_failure_reaches_stderr(
     monkeypatch,
-    capsys,
+    capfd,
 ):
     runtime = ObservabilityRuntime(
         ObservabilityConfig(
@@ -534,9 +551,17 @@ def test_observability_failure_logging_falls_back_to_stderr(
         OTelFailure("otel failed"),
     )
 
-    captured = capsys.readouterr()
-    assert "otel.test_operation" in captured.err
-    assert "otel failed" in captured.err
+    record = _find_record(
+        _stderr_json_records(capfd),
+        event="observability_internal_error",
+    )
+    assert record["error"]["type"] == "OTelFailure"
+    if record["operation"] == "otel.test_operation":
+        assert record["error"]["message"] == "otel failed"
+    elif record["operation"] == "logging.destination_emit":
+        assert record["error"]["message"] == "logger failed"
+    else:
+        raise AssertionError(record)
 
 
 def test_disabled_runtime_is_noop(monkeypatch):

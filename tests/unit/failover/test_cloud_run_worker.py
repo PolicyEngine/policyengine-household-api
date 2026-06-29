@@ -2,7 +2,6 @@ import json
 
 from flask import Flask, jsonify
 from policyengine_observability.runtime import OPERATION_LOGGER
-from policyengine_observability.runtime import REQUEST_LOGGER
 
 from policyengine_household_api.failover.cloud_run_worker import (
     create_worker_app,
@@ -117,14 +116,22 @@ def test_worker_rejects_invalid_dispatch_payload():
 def test_worker_invalid_payload_logs_handled_error(monkeypatch):
     monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
     records = []
-    monkeypatch.setattr(REQUEST_LOGGER, "info", records.append)
     app = create_worker_app(flask_app=_household_app())
+    runtime = app.extensions["policyengine_observability"]
+
+    def capture_request_log(context):
+        records.append(
+            context.as_log_record(trace_id="test-trace", span_id="test-span")
+        )
+
+    monkeypatch.setattr(runtime, "emit_request_log", capture_request_log)
 
     response = app.test_client().post("/_internal/dispatch", json=[])
 
     assert response.status_code == 400
-    request_log = json.loads(records[0])
+    request_log = records[0]
     assert request_log["event"] == "http_request_failed"
+    assert request_log["path"] == "/_internal/dispatch"
     assert request_log["service_role"] == "cloud_run_worker"
     assert request_log["platform"] == "google_cloud_run"
     assert request_log["runtime_role"] == "cloud_run_worker"
