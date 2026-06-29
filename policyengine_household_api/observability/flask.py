@@ -11,8 +11,6 @@ from policyengine_observability.adapters.flask import (
     init_flask_observability,
 )
 
-from policyengine_household_api.utils.config_loader import get_config_value
-
 from .segments import SegmentName
 
 
@@ -41,7 +39,8 @@ def _environment() -> str:
         os.getenv("OBSERVABILITY_ENVIRONMENT")
         or os.getenv("DEPLOYMENT_ENVIRONMENT")
         or os.getenv("APP_ENV")
-        or str(get_config_value("app.environment", "development"))
+        or os.getenv("APP__ENVIRONMENT")
+        or "local"
     )
 
 

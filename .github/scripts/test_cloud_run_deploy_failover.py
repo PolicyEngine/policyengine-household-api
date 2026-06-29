@@ -3,6 +3,13 @@ from pathlib import Path
 import subprocess
 
 
+def test_cloud_run_gateway_image_installs_observability_dependency():
+    dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
+
+    assert '"policyengine-observability[flask]>=1.0.0"' in dockerfile
+    assert "numpy" not in dockerfile
+
+
 def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     tmp_path,
 ):
