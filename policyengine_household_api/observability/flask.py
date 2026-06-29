@@ -16,6 +16,7 @@ from .segments import SegmentName
 
 SERVICE_NAME = "policyengine-household-api"
 SPAN_PREFIX = "household"
+DEPLOYED_PLATFORMS = frozenset(("google_cloud_run", "modal"))
 HOUSEHOLD_METRIC_ATTRIBUTE_KEYS = (
     "api_version",
     "cloud_run_configuration",
@@ -67,9 +68,15 @@ def _platform() -> str:
     return "local"
 
 
-def _metadata(service_role: str) -> dict[str, str]:
+def _default_log_destinations(platform: str) -> tuple[str, ...]:
+    if platform in DEPLOYED_PLATFORMS:
+        return ("google_cloud_logging",)
+    return ("stdout",)
+
+
+def _metadata(service_role: str, platform: str) -> dict[str, str]:
     values = {
-        "platform": _platform(),
+        "platform": platform,
         "runtime_role": os.getenv("OBSERVABILITY_RUNTIME_ROLE")
         or service_role,
         "cloud_run_service": os.getenv("K_SERVICE"),
@@ -113,12 +120,14 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
         return
 
     service_role = _service_role(service_role)
+    platform = _platform()
     config = replace(
         ObservabilityConfig.from_env(
             service_name=SERVICE_NAME,
             service_role=service_role,
             span_prefix=SPAN_PREFIX,
             extra_metric_attribute_keys=HOUSEHOLD_METRIC_ATTRIBUTE_KEYS,
+            default_log_destinations=_default_log_destinations(platform),
         ),
         environment=_environment(),
     )
@@ -132,7 +141,7 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
         segment_registry=SegmentName,
     )
 
-    metadata = _metadata(service_role)
+    metadata = _metadata(service_role, platform)
 
     @app.before_request
     def _set_observability_metadata() -> None:

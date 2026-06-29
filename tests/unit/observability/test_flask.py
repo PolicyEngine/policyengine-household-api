@@ -128,6 +128,7 @@ def test_request_log_contains_request_metadata_and_timing(monkeypatch):
 
 def test_request_log_contains_runtime_metadata(monkeypatch):
     monkeypatch.delenv("OBSERVABILITY_SERVICE_ROLE", raising=False)
+    monkeypatch.delenv("OBSERVABILITY_LOG_DESTINATIONS", raising=False)
     monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
     monkeypatch.setenv("OBSERVABILITY_RUNTIME_ROLE", "cloud_run_gateway")
     monkeypatch.setenv("K_SERVICE", "household-api-gateway")
@@ -154,6 +155,67 @@ def test_request_log_contains_runtime_metadata(monkeypatch):
     assert payload["cloud_run_revision"] == "household-api-gateway-00001"
     assert payload["cloud_run_configuration"] == "household-api-gateway"
     assert payload["google_cloud_project"] == "policyengine-test"
+
+
+def test_local_observability_defaults_to_stdout_logs(monkeypatch):
+    monkeypatch.delenv("OBSERVABILITY_LOG_DESTINATIONS", raising=False)
+    monkeypatch.delenv("OBSERVABILITY_PLATFORM", raising=False)
+    monkeypatch.delenv("K_SERVICE", raising=False)
+    monkeypatch.delenv("K_REVISION", raising=False)
+    monkeypatch.delenv("MODAL_ENVIRONMENT", raising=False)
+    monkeypatch.delenv("MODAL_TASK_ID", raising=False)
+    monkeypatch.delenv("OBSERVABILITY_MODAL_APP_NAME", raising=False)
+
+    app = Flask(__name__)
+    init_observability(app, service_role="test_api")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_destinations == ("stdout",)
+
+
+def test_cloud_run_observability_defaults_to_google_logs(monkeypatch):
+    monkeypatch.delenv("OBSERVABILITY_LOG_DESTINATIONS", raising=False)
+    monkeypatch.delenv("OBSERVABILITY_PLATFORM", raising=False)
+    monkeypatch.setenv("K_SERVICE", "household-api-gateway")
+
+    app = Flask(__name__)
+    init_observability(app, service_role="failover_gateway")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_destinations == ("google_cloud_logging",)
+
+
+def test_modal_observability_defaults_to_google_logs(monkeypatch):
+    monkeypatch.delenv("OBSERVABILITY_LOG_DESTINATIONS", raising=False)
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "modal")
+    monkeypatch.setenv("OBSERVABILITY_SERVICE_ROLE", "modal_worker")
+    monkeypatch.setenv(
+        "OBSERVABILITY_MODAL_APP_NAME",
+        "policyengine-household-api-current",
+    )
+    monkeypatch.setenv(
+        "OBSERVABILITY_MODAL_FUNCTION_NAME",
+        "HouseholdWorker.handle_household_request",
+    )
+
+    app = Flask(__name__)
+    init_observability(app, service_role="api")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_destinations == ("google_cloud_logging",)
+
+
+def test_observability_log_destination_env_overrides_deployed_default(
+    monkeypatch,
+):
+    monkeypatch.setenv("OBSERVABILITY_LOG_DESTINATIONS", "stdout")
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
+
+    app = Flask(__name__)
+    init_observability(app, service_role="failover_gateway")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_destinations == ("stdout",)
 
 
 def _runtime_with_context(monkeypatch):
