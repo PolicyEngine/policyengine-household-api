@@ -91,15 +91,18 @@ workflow to stand up the standby gateway and fallback workers. Keep those steps
 scoped to the failover gateway, the failover workers, and the GCS failover
 manifest; they must not change how the Modal gateway serves current/frontier
 traffic, and Modal remains the primary backend until an explicit traffic
-cutover. The release workflow deploys the full Modal app set to the `staging`
-Modal environment, runs the same deployed integration test suite as separate
-matrix jobs for both `current` and `frontier`, then deploys the same release
-config to the `main` Modal environment after all staging jobs pass. Each channel
-is tested by channel name and by the exact US package version from
-`/versions/us`. Google credentials in the release workflow are used for Cloud
-SQL analytics database access, for syncing the Modal worker secret needed to
-reach that database, and for deploying the Cloud Run failover gateway and
-workers.
+cutover. Public GHCR Docker images are a distribution artifact, not a deployment
+target: the separate `Publish Docker image` workflow observes completed `Release
+to Modal` runs and publishes images after the fact, and must never gate or
+modify Modal deployments (see `docker-images.md`). The release workflow deploys
+the full Modal app set to the `staging` Modal environment, runs the same
+deployed integration test suite as separate matrix jobs for both `current` and
+`frontier`, then deploys the same release config to the `main` Modal environment
+after all staging jobs pass. Each channel is tested by channel name and by the
+exact US package version from `/versions/us`. Google credentials in the release
+workflow are used for Cloud SQL analytics database access, for syncing the Modal
+worker secret needed to reach that database, and for deploying the Cloud Run
+failover gateway and workers.
 
 Only the US and UK package versions are release-significant. Do not include
 Canada, Nigeria, or Israel package versions in Modal worker app names, manifest

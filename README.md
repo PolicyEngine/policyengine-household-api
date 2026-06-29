@@ -4,11 +4,23 @@ A version of the PolicyEngine API that runs the `calculate` endpoint over househ
 
 ## Quick self-hosted run
 
-If you want to try the API without requesting hosted credentials, run the published Docker image:
+If you want to try the API without requesting hosted credentials, run a published Docker image:
 
 ```
-docker run --rm -p 8080:8080 ghcr.io/policyengine/policyengine-household-api:latest
+docker run --rm -p 8080:8080 ghcr.io/policyengine/policyengine-household-api:current
 ```
+
+Image tags mirror the hosted API's release channels:
+
+| Tag | Meaning |
+| --- | --- |
+| `current` (also `latest`) | Same model version as the hosted API's default channel |
+| `frontier` | Next week's model version, same as the hosted `frontier` channel |
+| `us-<version>` | Exact policyengine-us version, e.g. `us-1.726.0` |
+
+`current` and `frontier` move weekly — `docker pull` to refresh. A container
+serves exactly one model version; the hosted API's request-body `version`
+routing does not exist locally, so run one container per version to compare.
 
 The image can take a little time to initialize on first start and is best run on a machine with roughly
 4 GB of RAM available.
@@ -23,6 +35,15 @@ and send calculations to:
 
 ```
 http://localhost:8080/us/calculate
+```
+
+To run a policyengine-us version that has no published tag, build and run it
+yourself:
+
+```
+docker build -f gcp/policyengine_household_api/Dockerfile.production \
+  --build-arg POLICYENGINE_US_VERSION=1.725.0 -t household-api:us-1.725.0 .
+docker run --rm -p 8080:8080 household-api:us-1.725.0
 ```
 
 Hosted API docs live at https://www.policyengine.org/us/api.

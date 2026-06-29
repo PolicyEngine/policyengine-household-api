@@ -14,6 +14,9 @@ When changing analytics database models or Alembic migrations, read
 When changing Modal current/frontier release behavior, PR release settings, or
 deployment workflows, read `docs/engineering/skills/modal-release-prs.md`.
 
+When changing Docker image publishing, image tags, or the published
+Dockerfile, read `docs/engineering/skills/docker-images.md`.
+
 When changing Cloud Run gateway failover, Cloud Run fallback workers, or
 Modal-to-Cloud-Run fallback deployment workflows, read
 `docs/engineering/skills/modal-cloud-run-failover.md`.
