@@ -10,9 +10,15 @@ from datetime import datetime
 @pytest.fixture
 def mock_analytics_enabled():
     """Mock analytics as enabled."""
-    with patch(
-        "policyengine_household_api.decorators.analytics.is_analytics_enabled",
-        return_value=True,
+    with (
+        patch(
+            "policyengine_household_api.decorators.analytics.is_analytics_enabled",
+            return_value=True,
+        ),
+        patch(
+            "policyengine_household_api.decorators.analytics._collect_variable_usage",
+            return_value=False,
+        ),
     ):
         yield
 

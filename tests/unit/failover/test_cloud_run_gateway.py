@@ -179,6 +179,24 @@ def test_app_level_500_does_not_trigger_fallback_or_status_page_check():
     assert status_checks == []
 
 
+def test_forced_cloud_run_app_level_500_returns_response(monkeypatch):
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_FORCE_BACKEND", "cloud_run")
+
+    client = _client(
+        fallback_request=lambda resolved, payload: _json_response(
+            {"status": "error"},
+            status=500,
+        ),
+    )
+
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 500
+    assert response.get_json() == {"status": "error"}
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+    assert response.headers["X-PolicyEngine-Primary-State"] == "healthy"
+
+
 def test_modal_call_failure_needs_canary_failure_before_fallback():
     status_checks = []
 
@@ -401,7 +419,7 @@ def test_cloud_run_worker_timeout_uses_env(monkeypatch):
     monkeypatch.setenv("HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH", "1")
     monkeypatch.setenv(
         "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS",
-        "1200",
+        "900",
     )
     monkeypatch.setattr(
         "policyengine_household_api.failover.cloud_run_gateway.urllib_request.urlopen",
@@ -420,7 +438,50 @@ def test_cloud_run_worker_timeout_uses_env(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert captured["timeout"] == 1200
+    assert captured["timeout"] == 900
+
+
+def test_cloud_run_worker_returns_dispatched_500_response(monkeypatch):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def read(self):
+            return json.dumps(
+                encode_dispatch_response(
+                    {
+                        "status_code": 500,
+                        "body": b'{"status":"error"}',
+                        "headers": [("Content-Type", "application/json")],
+                    }
+                )
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        return FakeResponse()
+
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH", "1")
+    monkeypatch.setattr(
+        "policyengine_household_api.failover.cloud_run_gateway.urllib_request.urlopen",
+        fake_urlopen,
+    )
+
+    response = call_cloud_run_worker(
+        _resolved_channel(),
+        {
+            "method": "POST",
+            "path": "/us/calculate",
+            "query_string": "",
+            "headers": {},
+            "body": b"{}",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.get_data(as_text=True) == '{"status":"error"}'
 
 
 def test_cloud_run_worker_warmup_swallows_auth_failure(monkeypatch):
