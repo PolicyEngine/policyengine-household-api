@@ -1,3 +1,10 @@
+## [0.23.4] - 2026-06-29
+
+### Fixed
+
+- Raise the deployed API test request timeout so forced Cloud Run fallback checks can tolerate cold-start and model warmup latency.
+
+
 ## [0.23.3] - 2026-06-28
 
 ### Changed
