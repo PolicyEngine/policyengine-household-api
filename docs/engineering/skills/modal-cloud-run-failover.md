@@ -111,6 +111,14 @@ Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
 secret values through `--set-env-vars` or delimiter-joined command arguments.
 
+The gateway can send best-effort Slack alerts for failover lifecycle events.
+Set `HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL` in the deploy environment to sync it
+to Secret Manager and bind it only to the public gateway service. Do not pass
+the webhook URL as a raw env var or expose it to fallback workers. Optional
+non-secret tuning knobs are `HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS` and
+`HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS`. Slack delivery must never block or
+fail household API routing.
+
 IAM is one-time infrastructure setup and must stay outside the release
 workflow. The Cloud Run deploy wrapper should not call
 `add-iam-policy-binding` or otherwise grant roles. Configure these bindings
