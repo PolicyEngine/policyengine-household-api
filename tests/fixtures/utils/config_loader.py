@@ -34,7 +34,6 @@ CUSTOM_CONFIG_DATA = {
         "database": "custom_db",
     },
     "auth": {"enabled": True, "provider": "auth0"},
-    "ai": {"enabled": True, "provider": "anthropic"},
 }
 
 # Environment variable test data
@@ -49,7 +48,6 @@ ENV_VAR_TEST_DATA = {
     "AUTH0_ADDRESS_NO_DOMAIN": "test-auth0-address",
     "AUTH0_AUDIENCE_NO_DOMAIN": "test-auth0-audience",
     "AUTH0_TEST_TOKEN_SCOPES": "read:calculate-analytics",
-    "ANTHROPIC_API_KEY": "sk-ant-test-key",
     "PORT": "9090",
 }
 
@@ -200,7 +198,6 @@ def clean_env(monkeypatch):
         "USER_ANALYTICS_DB_PASSWORD",
         "AUTH0_ADDRESS_NO_DOMAIN",
         "AUTH0_AUDIENCE_NO_DOMAIN",
-        "ANTHROPIC_API_KEY",
         "FLASK_DEBUG",
         "PORT",
     ]

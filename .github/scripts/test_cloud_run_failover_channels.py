@@ -75,6 +75,31 @@ def test_build_manifest_for_worker_urls_preserves_modal_metadata():
     )
 
 
+def test_build_manifest_for_worker_urls_omits_retired_metadata():
+    module = _load_script_module()
+    modal_manifest = _modal_manifest()
+    modal_manifest["retired"] = [
+        {
+            "app_name": "modal-retired",
+            "package_versions": {"uk": "2.20.0", "us": "0.9.0"},
+            "deployed_at": "2025-12-25T00:00:00+00:00",
+            "retired_at": "2026-01-01T00:00:00+00:00",
+            "retirement_reason": "replaced-current",
+        }
+    ]
+
+    manifest = module.build_manifest_for_worker_urls(
+        environment="staging",
+        modal_manifest=modal_manifest,
+        worker_urls={
+            "current": "https://current.run.app",
+            "frontier": "https://frontier.run.app",
+        },
+    )
+
+    assert "retired" not in manifest
+
+
 def test_parse_worker_urls_rejects_bad_values():
     module = _load_script_module()
 

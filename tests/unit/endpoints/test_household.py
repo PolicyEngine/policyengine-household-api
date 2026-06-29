@@ -34,6 +34,31 @@ class TestCalculateEndpoint:
             "dataset": None,
         }
 
+    def test__given_removed_ai_analysis_endpoint__returns_404(self, client):
+        response = client.post(
+            "/us/ai-analysis",
+            json={},
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 404
+
+    def test__given_legacy_ai_explainer_flag__does_not_return_tree_uuid(
+        self, client
+    ):
+        response = client.post(
+            "/us/calculate",
+            json={
+                "household": valid_household_requesting_ctc_calculation,
+                "enable_ai_explainer": True,
+            },
+            headers=self.auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = json.loads(response.data)
+        assert "computation_tree_uuid" not in payload
+
     def test__given_invalid_household_shape__returns_400(self, client):
         response = client.post(
             "/us/calculate",
@@ -444,23 +469,6 @@ class TestCalculateEndpoint:
             calculate_analytics_capture.calculate_request.unsupported_variable_count
             == 2
         )
-
-    def test__given_ai_explainer_tracer_fails__returns_500(
-        self, client, ai_explainer_tracer_failure
-    ):
-        response = client.post(
-            "/us/calculate",
-            json={
-                "household": valid_household_requesting_ctc_calculation,
-                "enable_ai_explainer": True,
-            },
-            headers=self.auth_headers,
-        )
-
-        assert response.status_code == 500
-        payload = json.loads(response.data)
-        assert payload["status"] == "error"
-        assert "tracer down" in payload["message"]
 
 
 class TestAxesValidation:
