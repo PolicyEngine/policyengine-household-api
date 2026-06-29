@@ -22,6 +22,29 @@ require_env() {
   fi
 }
 
+is_truthy() {
+  case "${1:-}" in
+    1 | true | True | TRUE | yes | Yes | YES)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+require_analytics_cloud_tasks_env() {
+  if ! is_truthy "${ANALYTICS__ENABLED:-false}"; then
+    return
+  fi
+
+  require_env \
+    ANALYTICS__CLOUD_TASKS__PROJECT \
+    ANALYTICS__CLOUD_TASKS__LOCATION \
+    ANALYTICS__CLOUD_TASKS__QUEUE \
+    ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL
+}
+
 cloud_run_environment() {
   if [ -n "${HOUSEHOLD_CLOUD_RUN_ENVIRONMENT:-}" ]; then
     printf '%s\n' "${HOUSEHOLD_CLOUD_RUN_ENVIRONMENT}"
@@ -180,6 +203,10 @@ require_env \
   HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT \
   HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT
 
+if is_truthy "${ANALYTICS__ENABLED:-false}"; then
+  require_env HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT
+fi
+
 project="${GOOGLE_CLOUD_PROJECT}"
 region="${HOUSEHOLD_CLOUD_RUN_REGION:-us-central1}"
 repository="${HOUSEHOLD_CLOUD_RUN_ARTIFACT_REPOSITORY:-household-api}"
@@ -196,6 +223,12 @@ image_base="${artifact_host}/${project}/${repository}"
 # back to the broad Compute Engine default service account for a public deploy.
 gateway_service_account="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT}"
 worker_service_account="${HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT}"
+analytics_writer_service_account=""
+if is_truthy "${ANALYTICS__ENABLED:-false}"; then
+  analytics_writer_service_account="$(
+    printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT}"
+  )"
+fi
 
 gateway_service="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE:-$(service_name gateway)}"
 gateway_image="${image_base}/${gateway_service}:${image_tag}"
@@ -205,6 +238,8 @@ gateway_concurrency="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CONCURRENCY:-32}"
 gateway_timeout="${HOUSEHOLD_CLOUD_RUN_GATEWAY_TIMEOUT_SECONDS:-1200}"
 gateway_cpu="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CPU:-1}"
 gateway_memory="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MEMORY:-512Mi}"
+gateway_ingress="${HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS:-}"
+gateway_public_url="${HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL:-}"
 
 worker_min_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MIN_INSTANCES:-0}"
 worker_max_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MAX_INSTANCES:-100}"
@@ -218,14 +253,46 @@ worker_scaling_concurrency_target="$(
   printf '%s' "${HOUSEHOLD_CLOUD_RUN_WORKER_SCALING_CONCURRENCY_TARGET:-0.3}"
 )"
 
+analytics_writer_service="$(
+  printf '%s' \
+    "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE:-$(service_name analytics-writer)}"
+)"
+analytics_writer_image="${image_base}/${analytics_writer_service}:${image_tag}"
+analytics_writer_min_instances="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_MIN_INSTANCES:-0}"
+)"
+analytics_writer_max_instances="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_MAX_INSTANCES:-20}"
+)"
+analytics_writer_concurrency="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_CONCURRENCY:-20}"
+)"
+analytics_writer_threads="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_THREADS:-8}"
+)"
+analytics_writer_timeout="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_TIMEOUT_SECONDS:-300}"
+)"
+analytics_writer_cpu="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_CPU:-1}"
+)"
+analytics_writer_memory="$(
+  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_MEMORY:-512Mi}"
+)"
+analytics_writer_ingress="${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_INGRESS:-}"
+
+require_analytics_cloud_tasks_env
+
 channels_tsv="$(mktemp)"
 manifest_json="$(mktemp)"
 worker_urls_tsv="$(mktemp)"
+analytics_writer_env_file="$(mktemp)"
+analytics_writer_secrets_file="$(mktemp)"
 worker_env_file="$(mktemp)"
 worker_secrets_file="$(mktemp)"
 gateway_env_file="$(mktemp)"
 gateway_secrets_file="$(mktemp)"
-trap 'rm -f "${channels_tsv}" "${manifest_json}" "${worker_urls_tsv}" "${worker_env_file}" "${worker_secrets_file}" "${gateway_env_file}" "${gateway_secrets_file}"' EXIT
+trap 'rm -f "${channels_tsv}" "${manifest_json}" "${worker_urls_tsv}" "${analytics_writer_env_file}" "${analytics_writer_secrets_file}" "${worker_env_file}" "${worker_secrets_file}" "${gateway_env_file}" "${gateway_secrets_file}"' EXIT
 
 "${uv_bin}" run python "${channels_script}" \
   --modal-environment "${MODAL_ENVIRONMENT}" \
@@ -242,6 +309,90 @@ if ! "${gcloud_bin}" artifacts repositories describe "${repository}" \
     --repository-format docker \
     --description "PolicyEngine household API Cloud Run images" \
     --quiet
+fi
+
+analytics_writer_url=""
+cloud_tasks_target_url=""
+if is_truthy "${ANALYTICS__ENABLED:-false}"; then
+  "${docker_bin}" build \
+    --file gcp/cloud_run/analytics_writer.Dockerfile \
+    --tag "${analytics_writer_image}" \
+    .
+  "${docker_bin}" push "${analytics_writer_image}"
+
+  : > "${analytics_writer_env_file}"
+  : > "${analytics_writer_secrets_file}"
+  append_env_value "${analytics_writer_env_file}" APP__ENVIRONMENT "${environment}"
+  append_observability_env "${analytics_writer_env_file}"
+  append_env_value \
+    "${analytics_writer_env_file}" \
+    WEB_THREADS \
+    "${analytics_writer_threads}"
+  append_env_value \
+    "${analytics_writer_env_file}" \
+    WEB_TIMEOUT \
+    "${analytics_writer_timeout}"
+  append_env_if_set "${analytics_writer_env_file}" ANALYTICS__ENABLED
+  append_env_if_set "${analytics_writer_env_file}" USER_ANALYTICS_DB_CONNECTION_NAME
+  append_env_if_set "${analytics_writer_env_file}" USER_ANALYTICS_DB_USERNAME
+  sync_secret_if_set \
+    "${analytics_writer_secrets_file}" \
+    USER_ANALYTICS_DB_PASSWORD
+  analytics_writer_env_arg=""
+  analytics_writer_secret_arg=""
+  if analytics_writer_env_arg="$(
+    env_args_from_file "${analytics_writer_env_file}"
+  )"; then
+    :
+  fi
+  if analytics_writer_secret_arg="$(
+    secret_args_from_file "${analytics_writer_secrets_file}"
+  )"; then
+    :
+  fi
+
+  analytics_writer_deploy_cmd=(
+    "${gcloud_bin}" run deploy "${analytics_writer_service}"
+    --image "${analytics_writer_image}"
+    --region "${region}"
+    --project "${project}"
+    --platform managed
+    --no-allow-unauthenticated
+    --min-instances "${analytics_writer_min_instances}"
+    --max-instances "${analytics_writer_max_instances}"
+    --concurrency "${analytics_writer_concurrency}"
+    --timeout "${analytics_writer_timeout}"
+    --cpu "${analytics_writer_cpu}"
+    --memory "${analytics_writer_memory}"
+    --service-account "${analytics_writer_service_account}"
+  )
+  if [ -n "${analytics_writer_env_arg}" ]; then
+    analytics_writer_deploy_cmd+=("${analytics_writer_env_arg}")
+  fi
+  if [ -n "${analytics_writer_secret_arg}" ]; then
+    analytics_writer_deploy_cmd+=("${analytics_writer_secret_arg}")
+  fi
+  if [ -n "${analytics_writer_ingress}" ]; then
+    analytics_writer_deploy_cmd+=(--ingress "${analytics_writer_ingress}")
+  fi
+  analytics_writer_deploy_cmd+=(--quiet)
+
+  deploy_run_service "${analytics_writer_deploy_cmd[@]}"
+
+  analytics_writer_url="$(
+    "${gcloud_bin}" run services describe "${analytics_writer_service}" \
+      --region "${region}" \
+      --project "${project}" \
+      --format='value(status.url)'
+  )"
+  analytics_writer_target_url="$(
+    printf '%s/internal/analytics/calculate/write' \
+      "${analytics_writer_url%/}"
+  )"
+  cloud_tasks_target_url="$(
+    printf '%s' "${ANALYTICS__CLOUD_TASKS__TARGET_URL:-${analytics_writer_target_url}}"
+  )"
+  echo "Deployed Cloud Run analytics writer: ${analytics_writer_url}"
 fi
 
 while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
@@ -273,13 +424,38 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   append_env_if_set "${worker_env_file}" ANALYTICS__ENABLED
   append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_CONNECTION_NAME
   append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_USERNAME
+  if is_truthy "${ANALYTICS__ENABLED:-false}"; then
+    append_env_if_set "${worker_env_file}" ANALYTICS__CLOUD_TASKS__PROJECT
+    append_env_if_set "${worker_env_file}" ANALYTICS__CLOUD_TASKS__LOCATION
+    append_env_if_set "${worker_env_file}" ANALYTICS__CLOUD_TASKS__QUEUE
+    append_env_value \
+      "${worker_env_file}" \
+      ANALYTICS__CLOUD_TASKS__TARGET_URL \
+      "${cloud_tasks_target_url}"
+    append_env_if_set \
+      "${worker_env_file}" \
+      ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL
+    if [ -n "${ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE:-}" ]; then
+      append_env_value \
+        "${worker_env_file}" \
+        ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE \
+        "${ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE}"
+    else
+      append_env_value \
+        "${worker_env_file}" \
+        ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE \
+        "${analytics_writer_url}"
+    fi
+    append_env_if_set \
+      "${worker_env_file}" \
+      ANALYTICS__CLOUD_TASKS__DISPATCH_DEADLINE_SECONDS
+  fi
   append_env_if_set "${worker_env_file}" AUTH__ENABLED
   append_env_if_set "${worker_env_file}" AUTH0_ADDRESS_NO_DOMAIN
   append_env_if_set "${worker_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
   sync_secret_if_set \
     "${worker_secrets_file}" \
     USER_ANALYTICS_DB_PASSWORD
-
   worker_env_arg=""
   worker_secret_arg=""
   if worker_env_arg="$(env_args_from_file "${worker_env_file}")"; then
@@ -406,7 +582,6 @@ sync_secret_if_set \
 sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_SECRET
-
 gateway_env_arg=""
 gateway_secret_arg=""
 if gateway_env_arg="$(env_args_from_file "${gateway_env_file}")"; then
@@ -431,6 +606,9 @@ gateway_deploy_cmd=(
   --memory "${gateway_memory}"
   --service-account "${gateway_service_account}"
 )
+if [ -n "${gateway_ingress}" ]; then
+  gateway_deploy_cmd+=(--ingress "${gateway_ingress}")
+fi
 if [ -n "${gateway_env_arg}" ]; then
   gateway_deploy_cmd+=("${gateway_env_arg}")
 fi
@@ -447,9 +625,17 @@ gateway_url="$(
     --project "${project}" \
     --format='value(status.url)'
 )"
+gateway_check_url="${gateway_public_url:-${gateway_url}}"
+gateway_check_url="${gateway_check_url%/}"
 
-"${curl_bin}" -fsS "${gateway_url}/liveness_check"
-github_output "gateway_url" "${gateway_url}"
+"${curl_bin}" -fsS "${gateway_check_url}/liveness_check"
+github_output "gateway_url" "${gateway_check_url}"
 github_output "manifest_uri" "gs://${manifest_bucket}/${manifest_blob}"
+if [ -n "${analytics_writer_url}" ]; then
+  github_output "analytics_writer_url" "${analytics_writer_url}"
+fi
 
 echo "Cloud Run failover gateway deployed: ${gateway_url}"
+if [ "${gateway_check_url}" != "${gateway_url}" ]; then
+  echo "Cloud Run failover gateway public URL: ${gateway_check_url}"
+fi

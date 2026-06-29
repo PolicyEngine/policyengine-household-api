@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import logging
 from typing import Any
 
-from flask import Response, request
+from flask import Response, current_app, request
 from sqlalchemy import func
 
 from policyengine_household_api.data.analytics_setup import (
+    initialize_analytics_db_if_enabled,
     is_analytics_enabled,
     is_analytics_schema_ready,
 )
@@ -23,6 +25,11 @@ DEFAULT_REQUEST_LIMIT = 1_000
 MAX_REQUEST_LIMIT = 10_000
 TRUE_VALUES = {"1", "true", "yes"}
 FALSE_VALUES = {"0", "false", "no"}
+ANALYTICS_STORAGE_INITIALIZED_CONFIG_KEY = (
+    "POLICYENGINE_ANALYTICS_STORAGE_INITIALIZED"
+)
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -75,6 +82,21 @@ def _analytics_storage_error_response() -> Response | None:
             status=503,
         )
 
+    try:
+        _ensure_analytics_storage_initialized()
+    except Exception:
+        logger.warning(
+            "Analytics storage is unavailable.",
+            exc_info=True,
+        )
+        return _json_response(
+            {
+                "status": "error",
+                "message": "Analytics storage is not ready.",
+            },
+            status=503,
+        )
+
     if not is_analytics_schema_ready():
         return _json_response(
             {
@@ -85,6 +107,16 @@ def _analytics_storage_error_response() -> Response | None:
         )
 
     return None
+
+
+def _ensure_analytics_storage_initialized() -> None:
+    app = current_app._get_current_object()
+    if app.config.get(ANALYTICS_STORAGE_INITIALIZED_CONFIG_KEY):
+        return
+
+    initialize_analytics_db_if_enabled(app)
+
+    app.config[ANALYTICS_STORAGE_INITIALIZED_CONFIG_KEY] = True
 
 
 def _parse_query_args() -> CalculateAnalyticsQuery:
