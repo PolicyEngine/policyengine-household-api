@@ -1,0 +1,1 @@
+Route deployed household API observability logs to Google Cloud Logging through `policyengine-observability`.
