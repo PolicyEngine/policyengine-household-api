@@ -56,13 +56,10 @@ EOF
 
 append_observability_env() {
   local env_file="${1:?env file is required}"
-  local observability_project="${OBSERVABILITY_GOOGLE_CLOUD_PROJECT:-${GOOGLE_CLOUD_PROJECT:-}}"
 
   append_env_value "${env_file}" OBSERVABILITY_ENVIRONMENT "${environment}"
   append_env_value "${env_file}" OBSERVABILITY_PLATFORM "google_cloud_run"
-  append_env_value "${env_file}" OBSERVABILITY_GOOGLE_CLOUD_PROJECT "${observability_project}"
   append_env_if_set "${env_file}" OBSERVABILITY_ENABLED
-  append_env_if_set "${env_file}" OBSERVABILITY_LOG_DESTINATIONS
   append_env_if_set "${env_file}" OBSERVABILITY_REQUEST_LOGS_ENABLED
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_RAW_IP
 }

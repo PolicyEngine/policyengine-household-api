@@ -16,7 +16,6 @@ from .segments import SegmentName
 
 SERVICE_NAME = "policyengine-household-api"
 SPAN_PREFIX = "household"
-DEPLOYED_PLATFORMS = frozenset(("google_cloud_run", "modal"))
 HOUSEHOLD_METRIC_ATTRIBUTE_KEYS = (
     "api_version",
     "cloud_run_configuration",
@@ -68,22 +67,15 @@ def _platform() -> str:
     return "local"
 
 
-def _default_log_destinations(platform: str) -> tuple[str, ...]:
-    if platform in DEPLOYED_PLATFORMS:
-        return ("google_cloud_logging",)
-    return ("stdout",)
-
-
-def _metadata(service_role: str, platform: str) -> dict[str, str]:
+def _metadata(service_role: str) -> dict[str, str]:
     values = {
-        "platform": platform,
+        "platform": _platform(),
         "runtime_role": os.getenv("OBSERVABILITY_RUNTIME_ROLE")
         or service_role,
         "cloud_run_service": os.getenv("K_SERVICE"),
         "cloud_run_revision": os.getenv("K_REVISION"),
         "cloud_run_configuration": os.getenv("K_CONFIGURATION"),
-        "google_cloud_project": os.getenv("OBSERVABILITY_GOOGLE_CLOUD_PROJECT")
-        or os.getenv("GOOGLE_CLOUD_PROJECT")
+        "google_cloud_project": os.getenv("GOOGLE_CLOUD_PROJECT")
         or os.getenv("GCP_PROJECT")
         or os.getenv("GCLOUD_PROJECT"),
         "modal_environment": os.getenv("MODAL_ENVIRONMENT"),
@@ -121,14 +113,12 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
         return
 
     service_role = _service_role(service_role)
-    platform = _platform()
     config = replace(
         ObservabilityConfig.from_env(
             service_name=SERVICE_NAME,
             service_role=service_role,
             span_prefix=SPAN_PREFIX,
             extra_metric_attribute_keys=HOUSEHOLD_METRIC_ATTRIBUTE_KEYS,
-            default_log_destinations=_default_log_destinations(platform),
         ),
         environment=_environment(),
     )
@@ -142,7 +132,7 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
         segment_registry=SegmentName,
     )
 
-    metadata = _metadata(service_role, platform)
+    metadata = _metadata(service_role)
 
     @app.before_request
     def _set_observability_metadata() -> None:

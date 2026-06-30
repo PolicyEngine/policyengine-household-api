@@ -1,7 +1,14 @@
 from __future__ import annotations
 
-from policyengine_observability import configure_google_application_credentials
+import os
+from pathlib import Path
 
 
 def configure_google_credentials() -> None:
-    configure_google_application_credentials()
+    credentials_json = os.getenv("GCP_CREDENTIALS_JSON")
+    if not credentials_json or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+        return
+
+    credentials_path = Path("/tmp/policyengine-household-api-gcp.json")
+    credentials_path.write_text(credentials_json)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(credentials_path)

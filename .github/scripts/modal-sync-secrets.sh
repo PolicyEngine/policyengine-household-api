@@ -19,10 +19,6 @@ required = [
     "GCP_CREDENTIALS_JSON",
 ]
 optional = [
-    "OBSERVABILITY_GOOGLE_CLOUD_PROJECT",
-    "OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL",
-    "OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER",
-    "OBSERVABILITY_LOG_DESTINATIONS",
     "OBSERVABILITY_ENABLED",
     "OBSERVABILITY_LOG_RAW_IP",
     "OBSERVABILITY_REQUEST_LOGS_ENABLED",
@@ -68,12 +64,6 @@ settings = {
     ),
     "OBSERVABILITY_PLATFORM": os.getenv("OBSERVABILITY_PLATFORM", "modal"),
 }
-observability_project = os.getenv(
-    "OBSERVABILITY_GOOGLE_CLOUD_PROJECT",
-    os.getenv("GOOGLE_CLOUD_PROJECT"),
-)
-if observability_project:
-    settings["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"] = observability_project
 for key in required + optional:
     value = os.getenv(key)
     if value:

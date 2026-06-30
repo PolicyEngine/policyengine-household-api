@@ -65,7 +65,6 @@ def test_worker_dispatch_operation_log_contains_runtime_metadata(
     monkeypatch,
 ):
     monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
-    monkeypatch.setenv("OBSERVABILITY_LOG_DESTINATIONS", "stdout")
     records = []
     monkeypatch.setattr(OPERATION_LOGGER, "info", records.append)
     app = create_worker_app(flask_app=_household_app())
