@@ -350,6 +350,8 @@ jobs:
       MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
       MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
       CLOUD_RUN_GATEWAY_SERVICE: ${{ vars.HOUSEHOLD_CLOUD_RUN_STAGING_GATEWAY_SERVICE || 'household-api-staging-gateway' }}
+      HOUSEHOLD_CLOUD_RUN_WARM_TIMEOUT_SECONDS: "900"
+      HOUSEHOLD_CLOUD_RUN_WARM_ATTEMPT_TIMEOUT_SECONDS: "240"
 
     steps:
       - name: Checkout code
@@ -399,9 +401,13 @@ jobs:
 
       - name: Run deployed fallback tests
         run: |
-          bash .github/scripts/run-deployed-tests-for-modal-route.sh \
-            current \
-            channel
+          status=0
+          for channel in current frontier; do
+            bash .github/scripts/run-deployed-tests-for-modal-route.sh \
+              "${channel}" \
+              channel || status=$?
+          done
+          exit "${status}"
 
       - name: Restore Modal-primary routing
         if: always()
