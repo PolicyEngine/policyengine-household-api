@@ -59,6 +59,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES": "3",
         "OBSERVABILITY_ENABLED": "true",
         "OBSERVABILITY_GOOGLE_CLOUD_PROJECT": "policyengine-observability",
+        "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME": "policyengine-observability",
         "OBSERVABILITY_LOG_RAW_IP": "false",
         "OBSERVABILITY_LOG_DESTINATIONS": "stdout",
         "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS": "ignored",
@@ -97,6 +98,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "  google_cloud_run" in log
     assert "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-" in log
     assert "  policyengine-observability" in log
+    assert "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME: |-" in log
     assert "OBSERVABILITY_ENABLED: |-" in log
     assert "OBSERVABILITY_LOG_DESTINATIONS: |-" in log
     assert "OBSERVABILITY_LOG_RAW_IP: |-" in log

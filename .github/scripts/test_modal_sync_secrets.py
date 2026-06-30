@@ -21,11 +21,13 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         "GOOGLE_CLOUD_PROJECT": "policyengine-household-api",
         "ANALYTICS__ENABLED": "false",
         "OBSERVABILITY_ENABLED": "true",
+        "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME": ("policyengine-observability"),
         "OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL": (
-            "observability-writer@policyengine-api.iam.gserviceaccount.com"
+            "observability-writer@policyengine-observability."
+            "iam.gserviceaccount.com"
         ),
         "OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER": (
-            "projects/389282473430/locations/global/"
+            "projects/790230211054/locations/global/"
             "workloadIdentityPools/modal/providers/modal"
         ),
         "OBSERVABILITY_LOG_DESTINATIONS": "google_cloud_logging",
@@ -54,15 +56,20 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
     assert payload["OBSERVABILITY_PLATFORM"] == "modal"
     assert (
         payload["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"]
-        == "policyengine-household-api"
+        == "policyengine-observability"
+    )
+    assert (
+        payload["OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME"]
+        == "policyengine-observability"
     )
     assert payload["OBSERVABILITY_LOG_DESTINATIONS"] == "google_cloud_logging"
     assert (
         payload["OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL"]
-        == "observability-writer@policyengine-api.iam.gserviceaccount.com"
+        == "observability-writer@policyengine-observability."
+        "iam.gserviceaccount.com"
     )
     assert payload["OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER"] == (
-        "projects/389282473430/locations/global/"
+        "projects/790230211054/locations/global/"
         "workloadIdentityPools/modal/providers/modal"
     )
     assert payload["OBSERVABILITY_ENABLED"] == "true"
