@@ -11,6 +11,7 @@ from policyengine_household_api.modal_release.manifest import (
     build_app_name,
     cleanup_app_names_for_target,
     current_package_versions,
+    prune_cleaned_retired_apps,
     require_active_current_and_frontier,
     rewrite_existing_manifest_for_storage,
     rewrite_manifest_for_storage,
@@ -192,6 +193,55 @@ def test_previous_active_cleanup_refuses_still_active_app():
             CleanupTarget.FRONTIER,
             previous_manifest=previous,
         )
+
+
+def test_prune_cleaned_retired_apps_removes_listed_apps():
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app"),
+        "retired": [_app("old-app"), _app("older-app")],
+    }
+
+    pruned = prune_cleaned_retired_apps(manifest, {"old-app"})
+
+    assert [app["app_name"] for app in pruned["retired"]] == ["older-app"]
+    # Active channels are never touched by a retired-history prune.
+    assert pruned["current"]["app_name"] == "current-app"
+    assert pruned["frontier"]["app_name"] == "frontier-app"
+
+
+def test_prune_cleaned_retired_apps_is_noop_when_no_names():
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app"),
+        "retired": [_app("old-app")],
+    }
+
+    pruned = prune_cleaned_retired_apps(manifest, set())
+
+    assert [app["app_name"] for app in pruned["retired"]] == ["old-app"]
+
+
+def test_prune_after_retired_cleanup_clears_handled_history():
+    # The release path computes the retired cleanup list, then prunes exactly
+    # those apps from the stored manifest so they are not re-listed next time.
+    manifest = {
+        "schema_version": 1,
+        "current": _app("current-app"),
+        "frontier": _app("frontier-app"),
+        "retired": [_app("ghost-app"), _app("recently-retired-app")],
+    }
+
+    cleanup_app_names = cleanup_app_names_for_target(
+        manifest, CleanupTarget.RETIRED
+    )
+    assert cleanup_app_names == ["ghost-app", "recently-retired-app"]
+
+    pruned = prune_cleaned_retired_apps(manifest, set(cleanup_app_names))
+
+    assert pruned["retired"] == []
 
 
 def test_app_reference_includes_analytics_migration_metadata():

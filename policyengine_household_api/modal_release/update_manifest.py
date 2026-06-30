@@ -52,6 +52,10 @@ def main() -> None:
         previous_manifest=current_manifest,
     )
 
+    # The retired apps recorded here are pruned from the manifest only after the
+    # deferred cleanup job confirms they were stopped (see prune_manifest.py).
+    # Pruning here would drop them before the stop runs, so a transient stop
+    # failure would never be retried. See issue #1569.
     manifest_dict[MANIFEST_DICT_KEY] = updated_manifest
 
     if args.cleanup_output:

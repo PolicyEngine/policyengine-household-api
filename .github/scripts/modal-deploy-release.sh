@@ -150,6 +150,9 @@ if [ "${deploy_mode}" = "release" ]; then
       echo "Deferring Modal app cleanup until after the Cloud Run failover manifest refresh."
     else
       bash "${modal_cleanup_apps_script}" modal-cleanup.json
+      uv run python -m policyengine_household_api.modal_release.prune_manifest \
+        --cleanup-json modal-cleanup.json \
+        --modal-environment "${modal_environment}"
     fi
   fi
 fi

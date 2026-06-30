@@ -100,6 +100,7 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "-m policyengine_household_api.modal_release.update_manifest" in log
     assert "--source-commit" not in log
     assert "cleanup-called" in log
+    assert "-m policyengine_household_api.modal_release.prune_manifest" in log
 
 
 def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
@@ -130,6 +131,9 @@ def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
     # Cleanup must be deferred to the post-failover-refresh job, so the
     # in-script cleanup hook never fires.
     assert "cleanup-called" not in log
+    assert (
+        "-m policyengine_household_api.modal_release.prune_manifest" not in log
+    )
     assert "Deferring Modal app cleanup" in result.stdout
 
 
