@@ -1,3 +1,10 @@
+## [0.25.6] - 2026-06-30
+
+### Fixed
+
+- Rolled back Google Cloud Logging observability routing while deployed staging test timeouts are investigated.
+
+
 ## [0.25.5] - 2026-06-30
 
 ### Changed
