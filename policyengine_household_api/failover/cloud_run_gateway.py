@@ -699,7 +699,11 @@ def _route_to_backend(
 ) -> tuple[Response, str]:
     force_backend = os.getenv(FORCE_BACKEND_ENV, "").strip().lower()
     if force_backend == "cloud_run":
-        _record_failover_event("fallback_selected", reason="forced_cloud_run")
+        _record_failover_event(
+            "fallback_selected",
+            reason="forced_cloud_run",
+            channel=resolved.channel,
+        )
         return _route_to_fallback_or_503(
             resolved,
             payload,

@@ -197,7 +197,10 @@ def test_gateway_sends_slack_alert_for_forced_cloud_run_fallback(monkeypatch):
     assert response.status_code == 200
     assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
     assert alerts == [
-        ("fallback_selected", {"reason": "forced_cloud_run"}),
+        (
+            "fallback_selected",
+            {"reason": "forced_cloud_run", "channel": "current"},
+        ),
     ]
 
 
