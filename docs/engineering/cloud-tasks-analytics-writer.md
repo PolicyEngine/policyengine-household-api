@@ -1,116 +1,135 @@
-# Cloud Tasks Analytics Writer
+# Cloud Tasks Analytics Writer Architecture
 
-This runbook moves calculate analytics writes out of the user-facing request
-path. Calculation workers enqueue value-free analytics events to Cloud Tasks;
-Cloud Tasks dispatches each event to a private Cloud Run analytics writer,
-which persists the existing `visits`, `calculate_requests`, and
-`calculate_request_variables` rows.
+The Cloud Tasks analytics writer moves calculate analytics persistence out of
+the user-facing `/calculate` response path. Household API workers still observe
+requests and build value-free analytics metadata, but they enqueue that metadata
+to Cloud Tasks instead of writing directly to the analytics database.
 
-## One-Time GCP Setup
+Cloud Tasks then dispatches the event to a private Cloud Run writer. The writer
+validates the event and persists the existing analytics tables:
 
-Do this before deploying with `ANALYTICS__ENABLED=true`. Keep this work outside
-CI/CD; the release workflow deploys service revisions, but it must not create
-queues, service accounts, or IAM bindings.
+- `visits`
+- `calculate_requests`
+- `calculate_request_variables`
 
-1. Enable the Cloud Tasks API in the household API project.
-2. Create the queue:
+## Purpose
 
-   ```bash
-   gcloud tasks queues create analytics-writes \
-     --project policyengine-household-api \
-     --location us-central1 \
-     --max-dispatches-per-second 5 \
-     --max-concurrent-dispatches 20 \
-     --max-attempts 10 \
-     --min-backoff 10s \
-     --max-backoff 300s
-   ```
+The original analytics path made the Household API request wait for database
+persistence. That created three concerns:
 
-3. Provision service accounts:
-   - `household-api-worker@policyengine-household-api.iam.gserviceaccount.com`:
-     Cloud Run calculation runtime that can enqueue tasks on `analytics-writes`
-   - `github-deployment@policyengine-household-api.iam.gserviceaccount.com`
-     and `github-deployment-621@policyengine-household-api.iam.gserviceaccount.com`:
-     Modal credential accounts that can enqueue tasks on `analytics-writes`
-   - `household-analytics-tasks@policyengine-household-api.iam.gserviceaccount.com`:
-     Cloud Tasks dispatcher identity
-   - `household-api-analytics-writer@policyengine-household-api.iam.gserviceaccount.com`:
-     analytics writer runtime that can access Cloud SQL and mounted secrets
-4. Grant IAM manually:
-   - Modal GCP credentials service account: Cloud Tasks enqueuer on the queue
-   - Cloud Run fallback worker service account: Cloud Tasks enqueuer on the queue
-   - Modal GCP credentials service account and Cloud Run fallback worker service
-     account: Service Account User on
-     `household-analytics-tasks@policyengine-household-api.iam.gserviceaccount.com`
-     so they can create tasks that ask Cloud Tasks to mint OIDC tokens with
-     that dispatcher identity
-   - Cloud Tasks service agent: Service Account Token Creator on
-     `household-analytics-tasks@policyengine-household-api.iam.gserviceaccount.com`
-   - Cloud Tasks dispatcher service account: Cloud Run invoker on the writer.
-     Before the writer service exists, grant this at project level; after both
-     writer services exist, this can be narrowed to service-level bindings.
-   - analytics writer service account: Cloud SQL client and Secret Manager access
-5. Configure GitHub environment vars:
-   - `HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT`
-   - `ANALYTICS_CLOUD_TASKS_PROJECT`
-   - `ANALYTICS_CLOUD_TASKS_LOCATION`
-   - `ANALYTICS_CLOUD_TASKS_QUEUE`
-   - `ANALYTICS_CLOUD_TASKS_TARGET_URL`
-   - `ANALYTICS_CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL`
-   - `ANALYTICS_CLOUD_TASKS_OIDC_AUDIENCE`
+- User-facing latency included analytics database write time.
+- Analytics database failures could affect `/calculate` reliability.
+- Retrying analytics writes was difficult to do cleanly from a synchronous API
+  request.
 
-Manually bootstrap the staging and production writer services before cutting
-Modal workers over to Cloud Tasks analytics. The Cloud Run fallback deployment
-can derive the writer target URL from the deployed writer service when
-`ANALYTICS_CLOUD_TASKS_TARGET_URL` is unset, but Modal workers cannot derive
-that value during `modal-sync-secrets.sh`. Modal deploys therefore require a
-concrete writer target URL and OIDC audience in the GitHub environment.
+The async writer separates request handling from persistence. The API remains
+responsible for deciding what should be observed. The writer is responsible for
+storing that observation and letting Cloud Tasks retry transient write failures.
 
-After the writer service exists, set `ANALYTICS_CLOUD_TASKS_TARGET_URL` to:
+## Request Flow
 
-```text
-https://WRITER_SERVICE_URL/internal/analytics/calculate/write
-```
+1. A Modal or Cloud Run household worker receives a `/calculate` request.
+2. The Household API builds an `AnalyticsContext` before running the endpoint.
+3. The calculate endpoint runs normally.
+4. After the endpoint returns, the worker enqueues a Cloud Tasks HTTP task with
+   the analytics event and response status code.
+5. Cloud Tasks calls the private writer endpoint with a Google OIDC token.
+6. The writer validates the event schema and persists analytics rows.
+7. If persistence fails, the writer returns `500` so Cloud Tasks can retry.
 
-Set `ANALYTICS_CLOUD_TASKS_OIDC_AUDIENCE` to the writer service base URL.
-Cloud Tasks automatically mints a Google OIDC token for
-`household-analytics-tasks@policyengine-household-api.iam.gserviceaccount.com`;
-it does not mint Auth0 tokens. The writer is therefore protected by private
-Cloud Run IAM rather than an in-process Auth0 scope check.
+Analytics is best-effort from the user's point of view. If analytics context
+building or Cloud Tasks enqueueing fails, the worker logs the failure and returns
+the original `/calculate` response.
 
-## CI/CD Behavior
+## Service Responsibilities
 
-When `ANALYTICS__ENABLED=true`,
-`.github/scripts/cloud-run-deploy-failover.sh` builds and deploys a dedicated
-Cloud Run analytics writer image before fallback workers. It then passes the
-writer target URL and Cloud Tasks settings into fallback worker environment
-variables. When analytics is disabled, failover deployment skips the writer and
-does not require writer service-account or Cloud Tasks configuration. Modal
-workers receive the same Cloud Tasks settings through
-`.github/scripts/modal-sync-secrets.sh`.
+The Household API worker:
 
-When `ANALYTICS__ENABLED=true`, deploy scripts fail before deployment if the
-required Cloud Tasks producer configuration is missing. Runtime analytics
-failures do not fail `/calculate`: workers log a warning if analytics context
-building or task enqueueing fails, then return the original endpoint response.
-The writer returns `500` on persistence failures so Cloud Tasks retries.
+- Checks whether analytics is enabled.
+- Builds value-free request metadata.
+- Extracts grouped variable usage metadata from the request shape.
+- Enqueues a Cloud Tasks event after `/calculate` completes.
+- Never fails a successful calculation because analytics enqueueing failed.
 
-The writer service is private (`--no-allow-unauthenticated`). Cloud Run IAM is
-the authentication boundary; the Flask writer only validates event shape and
-persists analytics.
+The Cloud Tasks queue:
 
-## Rollout
+- Holds pending analytics write events.
+- Authenticates writer calls with a Google OIDC token.
+- Retries writer calls that return retryable failures.
 
-1. Bootstrap the writer service without changing Modal worker configuration.
-2. Confirm `/liveness_check` and `/readiness_check` through authenticated Cloud
-   Run access.
-3. Create one test task against the writer in staging and confirm it persists a
-   single analytics row.
-4. Set the staging GitHub environment's Cloud Tasks target URL and OIDC audience
-   to the bootstrapped writer service.
-5. Deploy staging and send one `/calculate` request. Confirm:
-   - Cloud Tasks dispatches one task
-   - queue depth returns to zero
-   - one analytics row appears with the expected request UUID
-   - duplicate dispatch of the same event does not create another row
-6. Repeat in production after staging is clean.
+The Cloud Run writer:
+
+- Accepts only analytics write events.
+- Validates the event schema.
+- Writes analytics rows to the analytics database.
+- Returns `400` for invalid events.
+- Returns `500` for persistence failures so Cloud Tasks retries.
+
+The writer does not run calculations, expose the public Household API, serve the
+analytics read endpoint, or load country packages as part of normal operation.
+
+## Setup Model
+
+This feature requires infrastructure outside the Python application:
+
+- A Cloud Tasks queue.
+- Producer permissions for each runtime that can serve `/calculate`.
+- A dispatcher identity that Cloud Tasks uses for OIDC-authenticated calls.
+- A private Cloud Run writer service.
+- Analytics database credentials for the writer.
+
+The deploy scripts deploy service revisions and pass runtime configuration. They
+do not create queues, service accounts, IAM bindings, or database resources.
+Those are intentional one-time infrastructure responsibilities.
+
+When analytics is enabled, each calculation runtime needs enough configuration
+to enqueue Cloud Tasks events. The writer needs enough configuration to connect
+to the analytics database. When analytics is disabled, calculation runtimes
+should not receive Cloud Tasks configuration or analytics database credentials.
+
+## Critical Concerns
+
+The writer is private. Cloud Run IAM is the authentication boundary, and Cloud
+Tasks authenticates by minting a Google OIDC token for the dispatcher identity.
+The Flask writer validates event shape, but it does not perform Auth0
+authorization.
+
+Cloud Tasks may deliver the same event more than once. Duplicate delivery must
+be safe. The task identity and persisted request UUID are used to avoid duplicate
+calculate request rows.
+
+Analytics data must remain value-free. The event stores metadata and grouped
+variable usage only. It must not store household values, entity IDs, exact member
+relationships, or enough period detail to reconstruct a household payload.
+
+Database schema readiness is still a release concern. Migrations must run before
+the writer receives traffic, and the writer should fail loudly if the analytics
+schema is not ready.
+
+## System Constraints
+
+This is still part of the Household API system. It is not an independent
+analytics product with a separate release process, schema ownership model, or
+public API contract.
+
+Analytics request capture is still part of the main Household API service.
+Workers still do a small amount of request-path analytics work: checking config,
+building context, extracting value-free variable usage metadata, and enqueueing
+the task. Only database persistence moves off the request path.
+
+The public analytics read endpoint remains on the main Household API service.
+The writer only handles asynchronous persistence.
+
+Every runtime that can serve `/calculate` must be able to enqueue analytics tasks
+when analytics is enabled. This includes Modal workers and Cloud Run fallback
+workers.
+
+The writer image is intentionally smaller than calculation worker images. It
+should avoid importing country packages or calculation code unless persistence
+starts requiring them.
+
+## Related Operations
+
+Environment-specific queue names, service account identities, IAM commands,
+writer URLs, and rollout smoke-test steps belong in the operational runbook, not
+in this architecture note. See `docs/runbooks/cloud-tasks-analytics-writer.md`.
