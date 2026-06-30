@@ -14,7 +14,6 @@ dependencies = [
     "flask>=2.2",
     "flask-cors>=3",
     "flask-sqlalchemy>=3",
-    "google-cloud-logging",
     "google-cloud-storage",
     "gunicorn",
     "inflect",
@@ -34,7 +33,7 @@ dependencies = [
     "pymysql",
     "Flask-Limiter",
     "pydantic",
-    "policyengine-observability[flask]>=1.0.0",
+    "policyengine-observability[flask,google]>=1.2.1,<2",
 ]
 
 [project.optional-dependencies]
