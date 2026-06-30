@@ -26,8 +26,8 @@ gateway_service="${CLOUD_RUN_GATEWAY_SERVICE:-}"
 base_url="${HOUSEHOLD_API_BASE_URL:-}"
 auth_token="${HOUSEHOLD_API_AUTH_TOKEN:-}"
 channels="${HOUSEHOLD_CLOUD_RUN_WARM_CHANNELS:-current frontier}"
-total_timeout="${HOUSEHOLD_CLOUD_RUN_WARM_TIMEOUT_SECONDS:-300}"
-attempt_timeout="${HOUSEHOLD_CLOUD_RUN_WARM_ATTEMPT_TIMEOUT_SECONDS:-120}"
+total_timeout="${HOUSEHOLD_CLOUD_RUN_WARM_TIMEOUT_SECONDS:-900}"
+attempt_timeout="${HOUSEHOLD_CLOUD_RUN_WARM_ATTEMPT_TIMEOUT_SECONDS:-240}"
 
 if [ -z "${project}" ] || [ -z "${gateway_service}" ]; then
   echo "::warning::GOOGLE_CLOUD_PROJECT and CLOUD_RUN_GATEWAY_SERVICE are required to warm workers; skipping."
@@ -141,7 +141,10 @@ for channel in "${warm_channels[@]}"; do
 done
 wait "${pids[@]}"
 
+pids=()
 for channel in "${warm_channels[@]}"; do
-  warm_gateway_calculate "${channel}"
+  warm_gateway_calculate "${channel}" &
+  pids+=("$!")
 done
+wait "${pids[@]}"
 exit 0
