@@ -19,40 +19,28 @@ required = [
     "GCP_CREDENTIALS_JSON",
 ]
 optional = [
+    "OBSERVABILITY_ENABLED",
+    "OBSERVABILITY_LOG_RAW_IP",
+    "OBSERVABILITY_REQUEST_LOGS_ENABLED",
+]
+analytics_required = [
+    "USER_ANALYTICS_DB_CONNECTION_NAME",
+    "USER_ANALYTICS_DB_USERNAME",
+    "USER_ANALYTICS_DB_PASSWORD",
     "ANALYTICS__CLOUD_TASKS__PROJECT",
     "ANALYTICS__CLOUD_TASKS__LOCATION",
     "ANALYTICS__CLOUD_TASKS__QUEUE",
     "ANALYTICS__CLOUD_TASKS__TARGET_URL",
     "ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL",
     "ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE",
+]
+analytics_optional = [
     "ANALYTICS__CLOUD_TASKS__DISPATCH_DEADLINE_SECONDS",
-    "OBSERVABILITY_ENABLED",
-    "OBSERVABILITY_LOG_RAW_IP",
-    "OBSERVABILITY_REQUEST_LOGS_ENABLED",
-    "USER_ANALYTICS_DB_CONNECTION_NAME",
-    "USER_ANALYTICS_DB_USERNAME",
-    "USER_ANALYTICS_DB_PASSWORD",
 ]
 
 if os.getenv("ANALYTICS__ENABLED", "true").lower() not in {"0", "false", "no"}:
-    required.extend(
-        [
-            "USER_ANALYTICS_DB_CONNECTION_NAME",
-            "USER_ANALYTICS_DB_USERNAME",
-            "USER_ANALYTICS_DB_PASSWORD",
-            "ANALYTICS__CLOUD_TASKS__PROJECT",
-            "ANALYTICS__CLOUD_TASKS__LOCATION",
-            "ANALYTICS__CLOUD_TASKS__QUEUE",
-            "ANALYTICS__CLOUD_TASKS__TARGET_URL",
-            "ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL",
-            "ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE",
-        ]
-    )
-    optional = [
-        key
-        for key in optional
-        if key not in set(required)
-    ]
+    required.extend(analytics_required)
+    optional.extend(analytics_optional)
 
 missing = [key for key in required if not os.getenv(key)]
 if missing:

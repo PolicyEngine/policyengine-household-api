@@ -441,9 +441,21 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "ANALYTICS__ENABLED": "false",
+        "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
+        "USER_ANALYTICS_DB_USERNAME": "analytics-user",
+        "USER_ANALYTICS_DB_PASSWORD": "analytics@password,with,comma",
+        "ANALYTICS__CLOUD_TASKS__PROJECT": "policyengine-test",
+        "ANALYTICS__CLOUD_TASKS__LOCATION": "us-central1",
+        "ANALYTICS__CLOUD_TASKS__QUEUE": "analytics-writes",
+        "ANALYTICS__CLOUD_TASKS__TARGET_URL": (
+            "https://writer.run.app/internal/analytics/calculate/write"
+        ),
+        "ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL": (
+            "tasks@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE": "https://writer.run.app",
     }
-    for key in ("USER_ANALYTICS_DB_PASSWORD",):
-        env.pop(key, None)
 
     result = subprocess.run(
         ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
@@ -458,7 +470,12 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
     assert (
         "gcloud run deploy household-api-staging-analytics-writer" not in log
     )
+    assert "ANALYTICS__ENABLED: |-" in log
     assert "ANALYTICS__CLOUD_TASKS__QUEUE" not in log
+    assert "USER_ANALYTICS_DB_CONNECTION_NAME" not in log
+    assert "USER_ANALYTICS_DB_USERNAME" not in log
+    assert "USER_ANALYTICS_DB_PASSWORD" not in log
+    assert "analytics@password,with,comma" not in log
     assert "gcloud run deploy household-api-staging-current-worker" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
     assert (

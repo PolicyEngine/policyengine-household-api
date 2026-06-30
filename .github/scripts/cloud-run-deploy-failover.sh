@@ -422,9 +422,9 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
     HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON \
     "${package_versions_json}"
   append_env_if_set "${worker_env_file}" ANALYTICS__ENABLED
-  append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_CONNECTION_NAME
-  append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_USERNAME
   if is_truthy "${ANALYTICS__ENABLED:-false}"; then
+    append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_CONNECTION_NAME
+    append_env_if_set "${worker_env_file}" USER_ANALYTICS_DB_USERNAME
     append_env_if_set "${worker_env_file}" ANALYTICS__CLOUD_TASKS__PROJECT
     append_env_if_set "${worker_env_file}" ANALYTICS__CLOUD_TASKS__LOCATION
     append_env_if_set "${worker_env_file}" ANALYTICS__CLOUD_TASKS__QUEUE
@@ -449,13 +449,13 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
     append_env_if_set \
       "${worker_env_file}" \
       ANALYTICS__CLOUD_TASKS__DISPATCH_DEADLINE_SECONDS
+    sync_secret_if_set \
+      "${worker_secrets_file}" \
+      USER_ANALYTICS_DB_PASSWORD
   fi
   append_env_if_set "${worker_env_file}" AUTH__ENABLED
   append_env_if_set "${worker_env_file}" AUTH0_ADDRESS_NO_DOMAIN
   append_env_if_set "${worker_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
-  sync_secret_if_set \
-    "${worker_secrets_file}" \
-    USER_ANALYTICS_DB_PASSWORD
   worker_env_arg=""
   worker_secret_arg=""
   if worker_env_arg="$(env_args_from_file "${worker_env_file}")"; then

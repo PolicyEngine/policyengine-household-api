@@ -19,6 +19,19 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "GCP_CREDENTIALS_JSON": "{}",
         "ANALYTICS__ENABLED": "false",
+        "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
+        "USER_ANALYTICS_DB_USERNAME": "analytics-user",
+        "USER_ANALYTICS_DB_PASSWORD": "analytics-password",
+        "ANALYTICS__CLOUD_TASKS__PROJECT": "policyengine-test",
+        "ANALYTICS__CLOUD_TASKS__LOCATION": "us-central1",
+        "ANALYTICS__CLOUD_TASKS__QUEUE": "analytics-writes",
+        "ANALYTICS__CLOUD_TASKS__TARGET_URL": (
+            "https://writer.run.app/internal/analytics/calculate/write"
+        ),
+        "ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL": (
+            "tasks@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE": "https://writer.run.app",
         "OBSERVABILITY_ENABLED": "true",
         "OBSERVABILITY_LOG_RAW_IP": "false",
         "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS": "ignored",
@@ -46,6 +59,12 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
     assert payload["OBSERVABILITY_ENABLED"] == "true"
     assert payload["OBSERVABILITY_LOG_RAW_IP"] == "false"
     assert payload["OBSERVABILITY_REQUEST_LOGS_ENABLED"] == "true"
+    assert payload["ANALYTICS__ENABLED"] == "false"
+    assert "USER_ANALYTICS_DB_CONNECTION_NAME" not in payload
+    assert "USER_ANALYTICS_DB_USERNAME" not in payload
+    assert "USER_ANALYTICS_DB_PASSWORD" not in payload
+    assert "ANALYTICS__CLOUD_TASKS__QUEUE" not in payload
+    assert "ANALYTICS__CLOUD_TASKS__TARGET_URL" not in payload
     assert "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS" not in payload
     assert "OTEL_ENABLED" not in payload
     assert "OTEL_EXPORTER_OTLP_ENDPOINT" not in payload
