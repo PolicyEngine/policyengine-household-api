@@ -6,6 +6,7 @@ This is the main Flask app for the PolicyEngine API.
 from functools import lru_cache
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
+import logging
 import os
 from pathlib import Path
 import tomllib
@@ -16,13 +17,13 @@ import flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import yaml
-from policyengine_household_api.data.analytics_setup import (
-    initialize_analytics_db_if_enabled,
-)
 from policyengine_household_api.observability.flask import init_observability
 
 # Internal imports
 from .decorators.auth import ANALYTICS_READ_SCOPE, create_auth_decorator
+from policyengine_household_api.data.analytics_setup import (
+    configure_analytics_db_if_enabled,
+)
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
@@ -40,6 +41,7 @@ require_auth_if_enabled = create_auth_decorator()
 
 print("Initialising API...")
 
+logger = logging.getLogger(__name__)
 app = application = flask.Flask(__name__)
 OPENAPI_SPEC_PATH = Path(__file__).with_name("openapi_spec.yaml")
 PACKAGE_NAME = "policyengine-household-api"
@@ -55,6 +57,15 @@ app.config["MAX_CONTENT_LENGTH"] = int(
     os.getenv("MAX_CONTENT_LENGTH", 10 * 1024 * 1024)
 )
 
+try:
+    configure_analytics_db_if_enabled(app)
+except Exception:
+    logger.warning(
+        "Analytics database registration failed; analytics read endpoints "
+        "will report storage unavailable.",
+        exc_info=True,
+    )
+
 CORS(app)
 
 # Use in-memory storage for rate limiting
@@ -66,8 +77,6 @@ limiter = Limiter(
     default_limits=[],
     storage_uri="memory://",
 )
-
-initialize_analytics_db_if_enabled(app)
 
 app.route("/", methods=["GET"])(get_home)
 

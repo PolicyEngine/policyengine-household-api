@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AnalyticsHttpMethod(StrEnum):
@@ -66,6 +67,7 @@ class AnalyticsContext(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     client_id: str | None
+    request_uuid: str = Field(default_factory=lambda: str(uuid4()))
     api_version: str
     endpoint: str | None
     method: AnalyticsHttpMethod
