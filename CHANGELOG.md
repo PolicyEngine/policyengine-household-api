@@ -1,3 +1,10 @@
+## [0.25.3] - 2026-06-30
+
+### Fixed
+
+- Parallelized Cloud Run fallback warmup and tested both current and frontier fallback channels.
+
+
 ## [0.25.2] - 2026-06-29
 
 ### Fixed
