@@ -1,6 +1,8 @@
 import json
 import sys
 
+import pytest
+
 from policyengine_household_api.modal_release import prune_manifest
 from policyengine_household_api.modal_release.manifest import MANIFEST_DICT_KEY
 
@@ -158,3 +160,24 @@ def test_prune_manifest_refuses_missing_manifest(
 
     assert prune_manifest.main() == 1
     assert "refusing to prune" in capsys.readouterr().err
+
+
+def test_prune_manifest_requires_modal_environment(
+    tmp_path, monkeypatch, capsys
+):
+    cleanup_json = _cleanup_json(tmp_path, {"app_names": ["ghost-app"]})
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prune_manifest.py",
+            "--cleanup-json",
+            str(cleanup_json),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as error:
+        prune_manifest.main()
+
+    assert error.value.code == 2
+    assert "--modal-environment" in capsys.readouterr().err

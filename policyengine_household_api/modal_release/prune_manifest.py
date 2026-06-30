@@ -79,7 +79,7 @@ def _parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument("--cleanup-json", required=True)
-    parser.add_argument("--modal-environment")
+    parser.add_argument("--modal-environment", required=True)
     return parser.parse_args()
 
 
