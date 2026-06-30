@@ -128,7 +128,7 @@ def test_request_log_contains_request_metadata_and_timing(monkeypatch):
 
 def test_request_log_contains_runtime_metadata(monkeypatch):
     monkeypatch.delenv("OBSERVABILITY_SERVICE_ROLE", raising=False)
-    monkeypatch.delenv("OBSERVABILITY_LOG_DESTINATIONS", raising=False)
+    monkeypatch.setenv("OBSERVABILITY_LOG_DESTINATIONS", "stdout")
     monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
     monkeypatch.setenv("OBSERVABILITY_RUNTIME_ROLE", "cloud_run_gateway")
     monkeypatch.setenv("K_SERVICE", "household-api-gateway")
