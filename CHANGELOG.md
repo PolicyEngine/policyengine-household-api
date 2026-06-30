@@ -1,3 +1,10 @@
+## [0.25.4] - 2026-06-30
+
+### Fixed
+
+- Made retired Modal app cleanup idempotent: stopping an already-deleted app is now treated as success so it no longer aborts the cleanup job, and cleaned-up apps are pruned from the release manifest only after the stop succeeds so they are not re-listed for cleanup on every release.
+
+
 ## [0.25.3] - 2026-06-30
 
 ### Fixed
