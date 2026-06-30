@@ -1,6 +1,6 @@
 [project]
 name = "policyengine-household-api"
-version = "0.25.4"
+version = "0.25.5"
 description = "PolicyEngine Household API"
 readme = "README.md"
 authors = [

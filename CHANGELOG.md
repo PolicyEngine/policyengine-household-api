@@ -1,3 +1,10 @@
+## [0.25.5] - 2026-06-30
+
+### Changed
+
+- Route deployed household API observability logs to Google Cloud Logging through `policyengine-observability`.
+
+
 ## [0.25.4] - 2026-06-30
 
 ### Fixed
