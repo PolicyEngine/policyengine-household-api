@@ -6,7 +6,7 @@ import subprocess
 def test_cloud_run_gateway_image_installs_observability_dependency():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
 
-    assert '"policyengine-observability[flask]>=1.0.0"' in dockerfile
+    assert '"policyengine-observability[flask,google]>=1.2.1,<2"' in dockerfile
     assert "numpy" not in dockerfile
 
 
@@ -58,7 +58,9 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS": "60",
         "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES": "3",
         "OBSERVABILITY_ENABLED": "true",
+        "OBSERVABILITY_GOOGLE_CLOUD_PROJECT": "policyengine-observability",
         "OBSERVABILITY_LOG_RAW_IP": "false",
+        "OBSERVABILITY_LOG_DESTINATIONS": "stdout",
         "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS": "ignored",
         "OBSERVABILITY_REQUEST_LOGS_ENABLED": "true",
         "OTEL_ENABLED": "true",
@@ -93,7 +95,10 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "  staging" in log
     assert "OBSERVABILITY_PLATFORM: |-" in log
     assert "  google_cloud_run" in log
+    assert "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-" in log
+    assert "  policyengine-observability" in log
     assert "OBSERVABILITY_ENABLED: |-" in log
+    assert "OBSERVABILITY_LOG_DESTINATIONS: |-" in log
     assert "OBSERVABILITY_LOG_RAW_IP: |-" in log
     assert "OBSERVABILITY_REQUEST_LOGS_ENABLED: |-" in log
     assert "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS" not in log

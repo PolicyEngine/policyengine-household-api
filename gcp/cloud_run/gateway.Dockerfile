@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir \
     "google-cloud-storage" \
     "gunicorn" \
     "modal>=1.3.0" \
-    "policyengine-observability[flask]>=1.0.0" \
+    "policyengine-observability[flask,google]>=1.2.1,<2" \
     "pyyaml>=6"
 
 COPY ./policyengine_household_api /app/policyengine_household_api
