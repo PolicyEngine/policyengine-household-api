@@ -2359,7 +2359,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-household-api"
-version = "0.25.5"
+version = "0.25.6"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -2420,7 +2420,7 @@ requires-dist = [
     { name = "policyengine-ng", specifier = "==0.5.1" },
     { name = "policyengine-observability", extras = ["flask"], specifier = ">=1.0.0" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
-    { name = "policyengine-us", specifier = "==1.744.0" },
+    { name = "policyengine-us", specifier = "==1.755.0" },
     { name = "pydantic" },
     { name = "pyjwt" },
     { name = "pymysql" },
@@ -2498,7 +2498,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-us"
-version = "1.744.0"
+version = "1.755.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "microdf-python" },
@@ -2508,9 +2508,9 @@ dependencies = [
     { name = "tables" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/2e/3b5473c30d22a3c242194740dda0b61dac7b60b3306241f061fe64b08bbd/policyengine_us-1.744.0.tar.gz", hash = "sha256:934490d7d3c8313de4dea6d9b90ef878403680d49f2c54ab7453c06f0f694085", size = 10560896, upload-time = "2026-06-24T23:59:09.139Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/7d/20708b169c9c6b918c3453b91f49910df55daa393afc84f878505897e908/policyengine_us-1.755.0.tar.gz", hash = "sha256:b451a3733f3d4a545dacf3e4a783abc63f33f006fcc4c3d24f0c3109d6005bc5", size = 10787173, upload-time = "2026-07-01T23:28:49.977Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/b8/a1471eb8f80a0600de804f312acca8d1e22c7f3ba28428ee05712fbde2a3/policyengine_us-1.744.0-py3-none-any.whl", hash = "sha256:1514fd36e05ad8133f097e648b0969cb95644d318e910c21d8f5f787ddb2627b", size = 12298610, upload-time = "2026-06-24T23:59:05.807Z" },
+    { url = "https://files.pythonhosted.org/packages/54/d3/15ee85d73266e2c2645fcdab9865445e7123543129145cc9f1e8231e8a68/policyengine_us-1.755.0-py3-none-any.whl", hash = "sha256:7751af383460f22d74c04a4f3f07b8f96afd4a011eb59316db22df1b1d50f92f", size = 12681455, upload-time = "2026-07-01T23:28:47.061Z" },
 ]
 
 [[package]]
