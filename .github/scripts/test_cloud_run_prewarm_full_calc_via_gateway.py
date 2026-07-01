@@ -6,7 +6,7 @@ import threading
 import time
 
 
-def test_cloud_run_prewarm_mfb_succeeds_after_retry():
+def test_cloud_run_prewarm_full_calc_succeeds_after_retry():
     handler = _handler(status_codes=[503, 200])
     server, thread = _start_server(handler)
 
@@ -14,7 +14,7 @@ def test_cloud_run_prewarm_mfb_succeeds_after_retry():
         result = subprocess.run(
             [
                 sys.executable,
-                ".github/scripts/cloud_run_prewarm_mfb_via_gateway.py",
+                ".github/scripts/cloud_run_prewarm_full_calc_via_gateway.py",
                 "current",
                 "--base-url",
                 f"http://127.0.0.1:{server.server_port}",
@@ -45,7 +45,7 @@ def test_cloud_run_prewarm_mfb_succeeds_after_retry():
     assert handler.authorization_headers == ["Bearer token", "Bearer token"]
 
 
-def test_cloud_run_prewarm_mfb_rejects_slow_success():
+def test_cloud_run_prewarm_full_calc_rejects_slow_success():
     handler = _handler(status_codes=[200], sleep_seconds=0.05)
     server, thread = _start_server(handler)
 
@@ -53,7 +53,7 @@ def test_cloud_run_prewarm_mfb_rejects_slow_success():
         result = subprocess.run(
             [
                 sys.executable,
-                ".github/scripts/cloud_run_prewarm_mfb_via_gateway.py",
+                ".github/scripts/cloud_run_prewarm_full_calc_via_gateway.py",
                 "frontier",
                 "--base-url",
                 f"http://127.0.0.1:{server.server_port}",

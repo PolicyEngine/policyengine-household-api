@@ -22,7 +22,7 @@ RELEASE_PACKAGE_DEPENDENCIES = {
 MODAL_RELEASE_PATH_PREFIXES = (
     ".github/scripts/modal",
     ".github/scripts/check_modal_release_",
-    ".github/scripts/cloud_run_prewarm_mfb_via_gateway.py",
+    ".github/scripts/cloud_run_prewarm_full_calc_via_gateway.py",
     ".github/scripts/resolve_modal_release_config.py",
     ".github/scripts/run-deployed-tests-for-modal-route.sh",
     ".github/workflows/deploy-staged.yml",

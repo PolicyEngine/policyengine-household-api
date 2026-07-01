@@ -321,7 +321,7 @@ jobs:
         # before the route-mode matrix starts, otherwise the first matrix job
         # can time out while the underlying Modal call eventually succeeds.
         run: |
-          uv run python .github/scripts/cloud_run_prewarm_mfb_via_gateway.py \
+          uv run python .github/scripts/cloud_run_prewarm_full_calc_via_gateway.py \
             current \
             --max-attempts 5 \
             --max-elapsed-seconds 90
@@ -363,7 +363,7 @@ jobs:
         # before the route-mode matrix starts, otherwise the first matrix job
         # can time out while the underlying Modal call eventually succeeds.
         run: |
-          uv run python .github/scripts/cloud_run_prewarm_mfb_via_gateway.py \
+          uv run python .github/scripts/cloud_run_prewarm_full_calc_via_gateway.py \
             frontier \
             --max-attempts 5 \
             --max-elapsed-seconds 90

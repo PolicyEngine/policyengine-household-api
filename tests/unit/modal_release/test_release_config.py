@@ -122,7 +122,7 @@ def test_changed_files_require_config_for_modal_channel_test_script():
 
 def test_changed_files_require_config_for_cloud_run_prewarm_script():
     assert changed_files_require_modal_release_config(
-        [".github/scripts/cloud_run_prewarm_mfb_via_gateway.py"]
+        [".github/scripts/cloud_run_prewarm_full_calc_via_gateway.py"]
     )
 
 
