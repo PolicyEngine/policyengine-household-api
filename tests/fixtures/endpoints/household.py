@@ -1,66 +1,67 @@
 from dataclasses import dataclass
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from policyengine_household_api.data.models import (
-    CalculateRequest,
-    CalculateRequestVariable,
-    Visit,
+from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
+from policyengine_household_api.models.analytics import (
+    AnalyticsContext,
+    AvailabilityStatus,
+    VariableUsageSummary,
 )
 
 
 @dataclass
 class CalculateAnalyticsCapture:
-    db: MagicMock
+    events: list[CalculateAnalyticsEvent]
 
     @property
-    def added(self):
-        return [call.args[0] for call in self.db.session.add.call_args_list]
+    def event(self) -> CalculateAnalyticsEvent:
+        return self.events[-1]
 
     @property
-    def calculate_request(self) -> CalculateRequest:
-        return next(
-            item for item in self.added if isinstance(item, CalculateRequest)
+    def context(self) -> AnalyticsContext:
+        return self.event.context
+
+    @property
+    def variable_summaries(self) -> tuple[VariableUsageSummary, ...]:
+        return self.context.variable_summaries
+
+    @property
+    def unsupported_variable_count(self) -> int:
+        return len(
+            {
+                item.variable_name
+                for item in self.variable_summaries
+                if item.availability_status is AvailabilityStatus.UNSUPPORTED
+            }
         )
 
-    @property
-    def variable_rows(self) -> list[CalculateRequestVariable]:
-        return [
-            item
-            for item in self.added
-            if isinstance(item, CalculateRequestVariable)
-        ]
-
-    def variable_row(self, variable_name: str) -> CalculateRequestVariable:
+    def variable_summary(self, variable_name: str) -> VariableUsageSummary:
         return next(
             item
-            for item in self.variable_rows
+            for item in self.variable_summaries
             if item.variable_name == variable_name
         )
 
 
 @pytest.fixture
 def calculate_analytics_capture():
+    events: list[CalculateAnalyticsEvent] = []
     with (
         patch(
             "policyengine_household_api.decorators.analytics.is_analytics_enabled",
             return_value=True,
         ),
         patch(
-            "policyengine_household_api.decorators.analytics._verified_sub_claim",
+            "policyengine_household_api.decorators.analytics."
+            "_sub_claim_from_validated_token",
             return_value="test-client@clients",
         ),
-        patch("policyengine_household_api.decorators.analytics.db") as mock_db,
+        patch(
+            "policyengine_household_api.decorators.analytics."
+            "enqueue_calculate_analytics_event",
+            side_effect=events.append,
+        ),
     ):
-
-        def assign_ids_on_flush():
-            for added_call in mock_db.session.add.call_args_list:
-                added_item = added_call.args[0]
-                if isinstance(added_item, Visit):
-                    added_item.id = 1
-                if isinstance(added_item, CalculateRequest):
-                    added_item.id = 2
-
-        mock_db.session.flush.side_effect = assign_ids_on_flush
-        yield CalculateAnalyticsCapture(mock_db)
+        yield CalculateAnalyticsCapture(events)

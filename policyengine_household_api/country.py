@@ -4,9 +4,7 @@ import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from typing import Union
-from policyengine_household_api.utils import (
-    get_safe_json,
-)
+from policyengine_household_api.utils.json import get_safe_json
 from policyengine_core.parameters import (
     ParameterNode,
     Parameter,
