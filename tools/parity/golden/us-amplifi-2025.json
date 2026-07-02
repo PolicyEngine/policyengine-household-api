@@ -1,0 +1,744 @@
+{
+ "captured_at": "2026-07-02T12:59:31.387078+00:00",
+ "case": "us-amplifi-2025",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "families": {
+    "family": {
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ]
+    }
+   },
+   "households": {
+    "household": {
+     "ca_care": {
+      "2025": null
+     },
+     "ca_care_eligible": {
+      "2025": null
+     },
+     "ca_fera": {
+      "2025": null
+     },
+     "ca_fera_eligible": {
+      "2025": null
+     },
+     "ca_la_ez_save": {
+      "2025-3": null
+     },
+     "ca_la_ez_save_eligible": {
+      "2025-3": null
+     },
+     "ca_tanf_region1": {
+      "2025": true
+     },
+     "household_vehicles_owned": {
+      "2025": 1
+     },
+     "household_vehicles_value": {
+      "2025": "33501"
+     },
+     "in_ala": {
+      "2025": false
+     },
+     "in_la": {
+      "2025": true
+     },
+     "in_riv": {
+      "2025": false
+     },
+     "lives_in_vehicle": {
+      "2025": false
+     },
+     "living_arrangements_allow_for_food_preparation": {
+      "2025": true
+     },
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ],
+     "state_code_str": {
+      "2025": "CA"
+     },
+     "tenant_pays_utilities": {
+      "2025": true
+     },
+     "zip_code": {
+      "2025": "91367"
+     }
+    }
+   },
+   "people": {
+    "member1": {
+     "age": {
+      "2025": 3
+     },
+     "ca_ala_general_assistance_eligible_person": {
+      "2025": null
+     },
+     "ca_calworks_child_care_time_category": {
+      "2025": "MONTHLY"
+     },
+     "ca_state_supplement_eligible_person": {
+      "2025": null
+     },
+     "immigration_status_str": {
+      "2025": "CITIZEN"
+     },
+     "is_aca_eshi_eligible": {
+      "2025": false
+     },
+     "is_aca_ptc_eligible": {
+      "2025": null
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_medicaid_eligible": {
+      "2025": null
+     },
+     "is_ssi_aged": {
+      "2025": null
+     },
+     "is_ssi_eligible": {
+      "2025": null
+     },
+     "medicaid": {
+      "2025": null
+     },
+     "ssi": {
+      "2025": null
+     },
+     "wic": {
+      "2025": null
+     }
+    },
+    "member2": {
+     "age": {
+      "2025": 1
+     },
+     "ca_ala_general_assistance_eligible_person": {
+      "2025": null
+     },
+     "ca_calworks_child_care_time_category": {
+      "2025": "MONTHLY"
+     },
+     "ca_state_supplement_eligible_person": {
+      "2025": null
+     },
+     "immigration_status_str": {
+      "2025": "CITIZEN"
+     },
+     "is_aca_eshi_eligible": {
+      "2025": false
+     },
+     "is_aca_ptc_eligible": {
+      "2025": null
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_medicaid_eligible": {
+      "2025": null
+     },
+     "is_ssi_aged": {
+      "2025": null
+     },
+     "is_ssi_eligible": {
+      "2025": null
+     },
+     "medicaid": {
+      "2025": null
+     },
+     "ssi": {
+      "2025": null
+     },
+     "wic": {
+      "2025": null
+     }
+    },
+    "you": {
+     "age": {
+      "2025": 30
+     },
+     "ca_ala_general_assistance_eligible_person": {
+      "2025": null
+     },
+     "ca_calworks_child_care_time_category": {
+      "2025": "MONTHLY"
+     },
+     "ca_state_supplement_eligible_person": {
+      "2025": null
+     },
+     "employment_income": {
+      "2025": 48000
+     },
+     "immigration_status_str": {
+      "2025": "UNDOCUMENTED"
+     },
+     "is_aca_eshi_eligible": {
+      "2025": false
+     },
+     "is_aca_ptc_eligible": {
+      "2025": null
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_medicaid_eligible": {
+      "2025": null
+     },
+     "is_pregnant": {
+      "2025": false
+     },
+     "is_ssi_aged": {
+      "2025": null
+     },
+     "is_ssi_eligible": {
+      "2025": null
+     },
+     "medicaid": {
+      "2025": null
+     },
+     "receives_medicaid": {
+      "2025": false
+     },
+     "rent": {
+      "2025": 38748
+     },
+     "ssi": {
+      "2025": null
+     },
+     "wic": {
+      "2025": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm_unit": {
+     "ca_ala_general_assistance": {
+      "2025": null
+     },
+     "ca_ala_general_assistance_income_eligible": {
+      "2025": null
+     },
+     "ca_calworks_child_care": {
+      "2025": null
+     },
+     "ca_calworks_child_care_eligible": {
+      "2025": null
+     },
+     "ca_riv_general_relief": {
+      "2025": null
+     },
+     "ca_riv_general_relief_eligible": {
+      "2025": null
+     },
+     "ca_riv_share_eligible": {
+      "2025": null
+     },
+     "ca_riv_share_payment": {
+      "2025": null
+     },
+     "ca_state_supplement": {
+      "2025": null
+     },
+     "ca_tanf": {
+      "2025": null
+     },
+     "ca_tanf_eligible": {
+      "2025": null
+     },
+     "heating_cooling_expense": {
+      "2025": 1
+     },
+     "is_lifeline_eligible": {
+      "2025": null
+     },
+     "is_snap_eligible": {
+      "2025": null
+     },
+     "la_general_relief": {
+      "2025": null
+     },
+     "la_general_relief_eligible": {
+      "2025": null
+     },
+     "lifeline": {
+      "2025": null
+     },
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ],
+     "phone_cost": {
+      "2025": 999
+     },
+     "pre_subsidy_electricity_expense": {
+      "2025": 6000
+     },
+     "snap": {
+      "2025": null
+     }
+    }
+   },
+   "tax_units": {
+    "tax_unit": {
+     "aca_ptc": {
+      "2025": null
+     },
+     "ca_cdcc": {
+      "2025": null
+     },
+     "ca_eitc": {
+      "2025": null
+     },
+     "ca_eitc_eligible": {
+      "2025": null
+     },
+     "ca_foster_youth_tax_credit": {
+      "2025": null
+     },
+     "ca_income_tax_before_credits": {
+      "2025": null
+     },
+     "ca_income_tax_before_refundable_credits": {
+      "2025": null
+     },
+     "ca_renter_credit": {
+      "2025": null
+     },
+     "ca_yctc": {
+      "2025": null
+     },
+     "cdcc": {
+      "2025": null
+     },
+     "ctc": {
+      "2025": null
+     },
+     "eitc": {
+      "2025": null
+     },
+     "eitc_eligible": {
+      "2025": null
+     },
+     "income_tax": {
+      "2025": null
+     },
+     "income_tax_before_credits": {
+      "2025": null
+     },
+     "income_tax_before_refundable_credits": {
+      "2025": null
+     },
+     "income_tax_capped_non_refundable_credits": {
+      "2025": null
+     },
+     "income_tax_non_refundable_credits": {
+      "2025": null
+     },
+     "income_tax_refundable_credits": {
+      "2025": null
+     },
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ],
+     "premium_tax_credit": {
+      "2025": null
+     },
+     "refundable_ctc": {
+      "2025": null
+     },
+     "tax_unit_is_joint": {
+      "2025": false
+     }
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "families": {
+    "family": {
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ]
+    }
+   },
+   "households": {
+    "household": {
+     "ca_care": {
+      "2025": 1950.0
+     },
+     "ca_care_eligible": {
+      "2025": true
+     },
+     "ca_fera": {
+      "2025": 0.0
+     },
+     "ca_fera_eligible": {
+      "2025": false
+     },
+     "ca_la_ez_save": {
+      "2025-3": 8.17
+     },
+     "ca_la_ez_save_eligible": {
+      "2025-3": true
+     },
+     "ca_tanf_region1": {
+      "2025": true
+     },
+     "household_vehicles_owned": {
+      "2025": 1
+     },
+     "household_vehicles_value": {
+      "2025": "33501"
+     },
+     "in_ala": {
+      "2025": false
+     },
+     "in_la": {
+      "2025": true
+     },
+     "in_riv": {
+      "2025": false
+     },
+     "lives_in_vehicle": {
+      "2025": false
+     },
+     "living_arrangements_allow_for_food_preparation": {
+      "2025": true
+     },
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ],
+     "state_code_str": {
+      "2025": "CA"
+     },
+     "tenant_pays_utilities": {
+      "2025": true
+     },
+     "zip_code": {
+      "2025": "91367"
+     }
+    }
+   },
+   "people": {
+    "member1": {
+     "age": {
+      "2025": 3
+     },
+     "ca_ala_general_assistance_eligible_person": {
+      "2025": false
+     },
+     "ca_calworks_child_care_time_category": {
+      "2025": "MONTHLY"
+     },
+     "ca_state_supplement_eligible_person": {
+      "2025": false
+     },
+     "immigration_status_str": {
+      "2025": "CITIZEN"
+     },
+     "is_aca_eshi_eligible": {
+      "2025": false
+     },
+     "is_aca_ptc_eligible": {
+      "2025": false
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_medicaid_eligible": {
+      "2025": true
+     },
+     "is_ssi_aged": {
+      "2025": false
+     },
+     "is_ssi_eligible": {
+      "2025": false
+     },
+     "medicaid": {
+      "2025": 7954.026
+     },
+     "ssi": {
+      "2025": 0.0
+     },
+     "wic": {
+      "2025": 711.42633
+     }
+    },
+    "member2": {
+     "age": {
+      "2025": 1
+     },
+     "ca_ala_general_assistance_eligible_person": {
+      "2025": false
+     },
+     "ca_calworks_child_care_time_category": {
+      "2025": "MONTHLY"
+     },
+     "ca_state_supplement_eligible_person": {
+      "2025": false
+     },
+     "immigration_status_str": {
+      "2025": "CITIZEN"
+     },
+     "is_aca_eshi_eligible": {
+      "2025": false
+     },
+     "is_aca_ptc_eligible": {
+      "2025": false
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_medicaid_eligible": {
+      "2025": true
+     },
+     "is_ssi_aged": {
+      "2025": false
+     },
+     "is_ssi_eligible": {
+      "2025": false
+     },
+     "medicaid": {
+      "2025": 7954.026
+     },
+     "ssi": {
+      "2025": 0.0
+     },
+     "wic": {
+      "2025": 711.27057
+     }
+    },
+    "you": {
+     "age": {
+      "2025": 30
+     },
+     "ca_ala_general_assistance_eligible_person": {
+      "2025": false
+     },
+     "ca_calworks_child_care_time_category": {
+      "2025": "MONTHLY"
+     },
+     "ca_state_supplement_eligible_person": {
+      "2025": false
+     },
+     "employment_income": {
+      "2025": 48000
+     },
+     "immigration_status_str": {
+      "2025": "UNDOCUMENTED"
+     },
+     "is_aca_eshi_eligible": {
+      "2025": false
+     },
+     "is_aca_ptc_eligible": {
+      "2025": false
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_medicaid_eligible": {
+      "2025": false
+     },
+     "is_pregnant": {
+      "2025": false
+     },
+     "is_ssi_aged": {
+      "2025": false
+     },
+     "is_ssi_eligible": {
+      "2025": false
+     },
+     "medicaid": {
+      "2025": 0.0
+     },
+     "receives_medicaid": {
+      "2025": false
+     },
+     "rent": {
+      "2025": 38748
+     },
+     "ssi": {
+      "2025": 0.0
+     },
+     "wic": {
+      "2025": 0.0
+     }
+    }
+   },
+   "spm_units": {
+    "spm_unit": {
+     "ca_ala_general_assistance": {
+      "2025": 0.0
+     },
+     "ca_ala_general_assistance_income_eligible": {
+      "2025": false
+     },
+     "ca_calworks_child_care": {
+      "2025": 0.0
+     },
+     "ca_calworks_child_care_eligible": {
+      "2025": false
+     },
+     "ca_riv_general_relief": {
+      "2025": 0.0
+     },
+     "ca_riv_general_relief_eligible": {
+      "2025": false
+     },
+     "ca_riv_share_eligible": {
+      "2025": false
+     },
+     "ca_riv_share_payment": {
+      "2025": 0.0
+     },
+     "ca_state_supplement": {
+      "2025": 0.0
+     },
+     "ca_tanf": {
+      "2025": 0.0
+     },
+     "ca_tanf_eligible": {
+      "2025": false
+     },
+     "heating_cooling_expense": {
+      "2025": 1
+     },
+     "is_lifeline_eligible": {
+      "2025": true
+     },
+     "is_snap_eligible": {
+      "2025": false
+     },
+     "la_general_relief": {
+      "2025": 0.0
+     },
+     "la_general_relief_eligible": {
+      "2025": false
+     },
+     "lifeline": {
+      "2025": 228.0
+     },
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ],
+     "phone_cost": {
+      "2025": 999
+     },
+     "pre_subsidy_electricity_expense": {
+      "2025": 6000
+     },
+     "snap": {
+      "2025": 0.0
+     }
+    }
+   },
+   "tax_units": {
+    "tax_unit": {
+     "aca_ptc": {
+      "2025": 0.0
+     },
+     "ca_cdcc": {
+      "2025": 0.0
+     },
+     "ca_eitc": {
+      "2025": 0.0
+     },
+     "ca_eitc_eligible": {
+      "2025": false
+     },
+     "ca_foster_youth_tax_credit": {
+      "2025": 0.0
+     },
+     "ca_income_tax_before_credits": {
+      "2025": 510.03
+     },
+     "ca_income_tax_before_refundable_credits": {
+      "2025": 0.0
+     },
+     "ca_renter_credit": {
+      "2025": 120.0
+     },
+     "ca_yctc": {
+      "2025": 0.0
+     },
+     "cdcc": {
+      "2025": 0.0
+     },
+     "ctc": {
+      "2025": 4400.0
+     },
+     "eitc": {
+      "2025": 1960.71
+     },
+     "eitc_eligible": {
+      "2025": true
+     },
+     "income_tax": {
+      "2025": -3775.71
+     },
+     "income_tax_before_credits": {
+      "2025": 2585.0
+     },
+     "income_tax_before_refundable_credits": {
+      "2025": 0.0
+     },
+     "income_tax_capped_non_refundable_credits": {
+      "2025": 2585.0
+     },
+     "income_tax_non_refundable_credits": {
+      "2025": 2585.0
+     },
+     "income_tax_refundable_credits": {
+      "2025": 3775.71
+     },
+     "members": [
+      "you",
+      "member1",
+      "member2"
+     ],
+     "premium_tax_credit": {
+      "2025": 0.0
+     },
+     "refundable_ctc": {
+      "2025": 1815.0
+     },
+     "tax_unit_is_joint": {
+      "2025": false
+     }
+    }
+   }
+  },
+  "status": "ok"
+ }
+}

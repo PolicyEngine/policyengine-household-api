@@ -1,0 +1,494 @@
+{
+ "captured_at": "2026-07-02T12:59:05.738938+00:00",
+ "case": "us-my-friend-ben",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "families": {
+    "family": {
+     "members": [
+      "2021359"
+     ]
+    }
+   },
+   "households": {
+    "household": {
+     "members": [
+      "2021359"
+     ],
+     "state_code": {
+      "2024": "CO",
+      "2025": "CO"
+     }
+    }
+   },
+   "marital_units": {},
+   "people": {
+    "2021359": {
+     "age": {
+      "2024": 49,
+      "2025": 49
+     },
+     "capital_gains": {
+      "2024": 0,
+      "2025": 0
+     },
+     "child_support_expense": {
+      "2025": 0
+     },
+     "co_chp_eligible": {
+      "2025": null
+     },
+     "co_family_affordability_credit": {
+      "2024": null
+     },
+     "co_oap": {
+      "2025": null
+     },
+     "co_state_supplement": {
+      "2025": null
+     },
+     "commodity_supplemental_food_program": {
+      "2025": null
+     },
+     "current_pregnancies": {
+      "2025": 1
+     },
+     "employment_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "is_blind": {
+      "2025": false
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_full_time_college_student": {
+      "2025": true
+     },
+     "is_optional_senior_or_disabled_for_medicaid": {
+      "2025": null
+     },
+     "is_pregnant": {
+      "2025": true
+     },
+     "is_snap_ineligible_student": {
+      "2025": true
+     },
+     "is_tax_unit_dependent": {
+      "2024": false,
+      "2025": false
+     },
+     "is_tax_unit_head": {
+      "2025": true
+     },
+     "is_tax_unit_spouse": {
+      "2024": false,
+      "2025": false
+     },
+     "medicaid": {
+      "2025": null
+     },
+     "medicaid_category": {
+      "2025": null
+     },
+     "other_medical_expenses": {
+      "2025": 0
+     },
+     "real_estate_taxes": {
+      "2025": 0
+     },
+     "rental_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "self_employment_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "social_security": {
+      "2024": 0,
+      "2025": 0
+     },
+     "ssi": {
+      "2025": null
+     },
+     "ssi_countable_resources": {
+      "2025": 200
+     },
+     "ssi_earned_income": {
+      "2025": 0
+     },
+     "ssi_reported": {
+      "2025": 0
+     },
+     "ssi_unearned_income": {
+      "2025": 0
+     },
+     "taxable_ira_distributions": {
+      "2024": 0,
+      "2025": 0
+     },
+     "taxable_pension_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "unemployment_compensation": {
+      "2024": 0,
+      "2025": 0
+     },
+     "wic": {
+      "2025": null
+     },
+     "wic_category": {
+      "2025": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm_unit": {
+     "broadband_cost": {
+      "2025": 500
+     },
+     "co_tanf": {
+      "2025": null
+     },
+     "co_tanf_countable_gross_earned_income": {
+      "2025": 0
+     },
+     "co_tanf_countable_gross_unearned_income": {
+      "2025": 0
+     },
+     "has_heating_cooling_expense": {
+      "2025": false
+     },
+     "has_phone_expense": {
+      "2025": false
+     },
+     "heating_cooling_expense": {
+      "2025": 0
+     },
+     "homeowners_association_fees": {
+      "2025": 0
+     },
+     "homeowners_insurance": {
+      "2025": 0
+     },
+     "housing_cost": {
+      "2025": 0
+     },
+     "lifeline": {
+      "2025": null
+     },
+     "members": [
+      "2021359"
+     ],
+     "phone_expense": {
+      "2025": 0
+     },
+     "school_meal_countable_income": {
+      "2025": 0
+     },
+     "school_meal_daily_subsidy": {
+      "2025": null
+     },
+     "school_meal_tier": {
+      "2025": null
+     },
+     "snap": {
+      "2025-01": null
+     },
+     "snap_assets": {
+      "2025": 200
+     },
+     "snap_earned_income": {
+      "2025": 0
+     },
+     "snap_emergency_allotment": {
+      "2025": 0
+     },
+     "snap_unearned_income": {
+      "2025": 0
+     },
+     "spm_unit_pre_subsidy_childcare_expenses": {
+      "2025": 0
+     },
+     "water_expense": {
+      "2025": 0
+     }
+    }
+   },
+   "tax_units": {
+    "main_tax_unit": {
+     "co_ctc": {
+      "2024": null
+     },
+     "co_eitc": {
+      "2024": null
+     },
+     "ctc_value": {
+      "2024": null
+     },
+     "eitc": {
+      "2024": null
+     },
+     "members": [
+      "2021359"
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "families": {
+    "family": {
+     "members": [
+      "2021359"
+     ]
+    }
+   },
+   "households": {
+    "household": {
+     "members": [
+      "2021359"
+     ],
+     "state_code": {
+      "2024": "CO",
+      "2025": "CO"
+     }
+    }
+   },
+   "marital_units": {},
+   "people": {
+    "2021359": {
+     "age": {
+      "2024": 49,
+      "2025": 49
+     },
+     "capital_gains": {
+      "2024": 0,
+      "2025": 0
+     },
+     "child_support_expense": {
+      "2025": 0
+     },
+     "co_chp_eligible": {
+      "2025": false
+     },
+     "co_family_affordability_credit": {
+      "2024": 0.0
+     },
+     "co_oap": {
+      "2025": 0.0
+     },
+     "co_state_supplement": {
+      "2025": 0.0
+     },
+     "commodity_supplemental_food_program": {
+      "2025": 0.0
+     },
+     "current_pregnancies": {
+      "2025": 1
+     },
+     "employment_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "is_blind": {
+      "2025": false
+     },
+     "is_disabled": {
+      "2025": false
+     },
+     "is_full_time_college_student": {
+      "2025": true
+     },
+     "is_optional_senior_or_disabled_for_medicaid": {
+      "2025": false
+     },
+     "is_pregnant": {
+      "2025": true
+     },
+     "is_snap_ineligible_student": {
+      "2025": true
+     },
+     "is_tax_unit_dependent": {
+      "2024": false,
+      "2025": false
+     },
+     "is_tax_unit_head": {
+      "2025": true
+     },
+     "is_tax_unit_spouse": {
+      "2024": false,
+      "2025": false
+     },
+     "medicaid": {
+      "2025": 10936.13
+     },
+     "medicaid_category": {
+      "2025": "PREGNANT"
+     },
+     "other_medical_expenses": {
+      "2025": 0
+     },
+     "real_estate_taxes": {
+      "2025": 0
+     },
+     "rental_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "self_employment_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "social_security": {
+      "2024": 0,
+      "2025": 0
+     },
+     "ssi": {
+      "2025": 0.0
+     },
+     "ssi_countable_resources": {
+      "2025": 200
+     },
+     "ssi_earned_income": {
+      "2025": 0
+     },
+     "ssi_reported": {
+      "2025": 0
+     },
+     "ssi_unearned_income": {
+      "2025": 0
+     },
+     "taxable_ira_distributions": {
+      "2024": 0,
+      "2025": 0
+     },
+     "taxable_pension_income": {
+      "2024": 0,
+      "2025": 0
+     },
+     "unemployment_compensation": {
+      "2024": 0,
+      "2025": 0
+     },
+     "wic": {
+      "2025": 1004.8897
+     },
+     "wic_category": {
+      "2025": "PREGNANT"
+     }
+    }
+   },
+   "spm_units": {
+    "spm_unit": {
+     "broadband_cost": {
+      "2025": 500
+     },
+     "co_tanf": {
+      "2025": 5712.0
+     },
+     "co_tanf_countable_gross_earned_income": {
+      "2025": 0
+     },
+     "co_tanf_countable_gross_unearned_income": {
+      "2025": 0
+     },
+     "has_heating_cooling_expense": {
+      "2025": false
+     },
+     "has_phone_expense": {
+      "2025": false
+     },
+     "heating_cooling_expense": {
+      "2025": 0
+     },
+     "homeowners_association_fees": {
+      "2025": 0
+     },
+     "homeowners_insurance": {
+      "2025": 0
+     },
+     "housing_cost": {
+      "2025": 0
+     },
+     "lifeline": {
+      "2025": 111.0
+     },
+     "members": [
+      "2021359"
+     ],
+     "phone_expense": {
+      "2025": 0
+     },
+     "school_meal_countable_income": {
+      "2025": 0
+     },
+     "school_meal_daily_subsidy": {
+      "2025": 7.06
+     },
+     "school_meal_tier": {
+      "2025": "FREE"
+     },
+     "snap": {
+      "2025-01": 0.0
+     },
+     "snap_assets": {
+      "2025": 200
+     },
+     "snap_earned_income": {
+      "2025": 0
+     },
+     "snap_emergency_allotment": {
+      "2025": 0
+     },
+     "snap_unearned_income": {
+      "2025": 0
+     },
+     "spm_unit_pre_subsidy_childcare_expenses": {
+      "2025": 0
+     },
+     "water_expense": {
+      "2025": 0
+     }
+    }
+   },
+   "tax_units": {
+    "main_tax_unit": {
+     "co_ctc": {
+      "2024": 0.0
+     },
+     "co_eitc": {
+      "2024": 0.0
+     },
+     "ctc_value": {
+      "2024": 0.0
+     },
+     "eitc": {
+      "2024": 0.0
+     },
+     "members": [
+      "2021359"
+     ]
+    }
+   }
+  },
+  "status": "ok"
+ }
+}

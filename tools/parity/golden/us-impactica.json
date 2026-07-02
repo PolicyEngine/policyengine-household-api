@@ -1,0 +1,140 @@
+{
+ "captured_at": "2026-07-02T12:59:43.914574+00:00",
+ "case": "us-impactica",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "households": {
+    "household": {
+     "members": [
+      "you",
+      "Child_0"
+     ],
+     "state_code_str": {
+      "2025": "OR"
+     }
+    }
+   },
+   "people": {
+    "Child_0": {
+     "age": {
+      "2025": 1
+     }
+    },
+    "you": {
+     "age": {
+      "2025": 30
+     },
+     "employment_income": {
+      "2025": 4752.0
+     },
+     "is_medicaid_eligible": {
+      "2025": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm_unit": {
+     "members": [
+      "you",
+      "Child_0"
+     ],
+     "snap": {
+      "2025": null
+     },
+     "snap_assets": {
+      "2025": 0.0
+     },
+     "snap_excess_shelter_expense_deduction": {
+      "2025": 672
+     }
+    }
+   },
+   "tax_units": {
+    "tax_unit": {
+     "basic_standard_deduction": {
+      "2025": 0
+     },
+     "members": [
+      "you",
+      "Child_0"
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "households": {
+    "household": {
+     "members": [
+      "you",
+      "Child_0"
+     ],
+     "state_code_str": {
+      "2025": "OR"
+     }
+    }
+   },
+   "people": {
+    "Child_0": {
+     "age": {
+      "2025": 1
+     }
+    },
+    "you": {
+     "age": {
+      "2025": 30
+     },
+     "employment_income": {
+      "2025": 4752.0
+     },
+     "is_medicaid_eligible": {
+      "2025": true
+     }
+    }
+   },
+   "spm_units": {
+    "spm_unit": {
+     "members": [
+      "you",
+      "Child_0"
+     ],
+     "snap": {
+      "2025": 5422.5
+     },
+     "snap_assets": {
+      "2025": 0.0
+     },
+     "snap_excess_shelter_expense_deduction": {
+      "2025": 672
+     }
+    }
+   },
+   "tax_units": {
+    "tax_unit": {
+     "basic_standard_deduction": {
+      "2025": 0
+     },
+     "members": [
+      "you",
+      "Child_0"
+     ]
+    }
+   }
+  },
+  "status": "ok"
+ }
+}
