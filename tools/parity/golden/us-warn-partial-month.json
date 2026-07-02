@@ -1,0 +1,128 @@
+{
+ "captured_at": "2026-07-02T15:00:28.036123+00:00",
+ "case": "us-warn-partial-month",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult"
+     ],
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "employment_income": {
+      "2026-01": 2500
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "income_tax": {
+      "2026": null
+     },
+     "members": [
+      "adult"
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult"
+     ],
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "employment_income": {
+      "2026-01": 2500
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "income_tax": {
+      "2026": -191.25
+     },
+     "members": [
+      "adult"
+     ]
+    }
+   }
+  },
+  "status": "ok"
+ }
+}

@@ -1,0 +1,162 @@
+{
+ "captured_at": "2026-07-02T15:00:53.122124+00:00",
+ "case": "us-axes-sweep",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "axes": [
+    [
+     {
+      "count": 5,
+      "max": 100000,
+      "min": 0,
+      "name": "employment_income",
+      "period": "2026"
+     }
+    ]
+   ],
+   "families": {
+    "fam": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult"
+     ],
+     "state_name": {
+      "2026": "TX"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 30
+     },
+     "employment_income": {
+      "2026": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "income_tax": {
+      "2026": null
+     },
+     "members": [
+      "adult"
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "axes": [
+    [
+     {
+      "count": 5,
+      "max": 100000,
+      "min": 0,
+      "name": "employment_income",
+      "period": "2026"
+     }
+    ]
+   ],
+   "families": {
+    "fam": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult"
+     ],
+     "state_name": {
+      "2026": "TX"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 30
+     },
+     "employment_income": {
+      "2026": [
+       0.0,
+       25000.0,
+       50000.0,
+       75000.0,
+       100000.0
+      ]
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "income_tax": {
+      "2026": [
+       0.0,
+       890.0,
+       3820.0,
+       7670.0,
+       13170.0
+      ]
+     },
+     "members": [
+      "adult"
+     ]
+    }
+   }
+  },
+  "status": "ok"
+ }
+}

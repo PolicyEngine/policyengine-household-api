@@ -84,6 +84,49 @@ def build_corpus() -> dict[str, dict]:
         },
     }
 
+    # Periphery cases — exercise the validation/warnings layer, not just math.
+    corpus["us-warn-partial-month"] = {
+        "country": "us",
+        "payload": {
+            "household": {
+                "people": {"adult": {"age": {"2026": 35}, "employment_income": {"2026-01": 2500}}},
+                "tax_units": {"tu": {"members": ["adult"], "income_tax": {"2026": None}}},
+                "spm_units": {"spm": {"members": ["adult"]}},
+                "families": {"fam": {"members": ["adult"]}},
+                "marital_units": {"mu": {"members": ["adult"]}},
+                "households": {"hh": {"members": ["adult"], "state_name": {"2026": "CA"}}},
+            }
+        },
+    }
+    corpus["us-warn-deprecated-input"] = {
+        "country": "us",
+        "payload": {
+            "household": {
+                "people": {"adult": {"age": {"2026": 40}, "employment_income": {"2026": 50000},
+                                      "medical_out_of_pocket_expenses": {"2026": 1200}}},
+                "tax_units": {"tu": {"members": ["adult"], "income_tax": {"2026": None}}},
+                "spm_units": {"spm": {"members": ["adult"]}},
+                "families": {"fam": {"members": ["adult"]}},
+                "marital_units": {"mu": {"members": ["adult"]}},
+                "households": {"hh": {"members": ["adult"], "state_name": {"2026": "NY"}}},
+            }
+        },
+    }
+    corpus["us-axes-sweep"] = {
+        "country": "us",
+        "payload": {
+            "household": {
+                "people": {"adult": {"age": {"2026": 30}, "employment_income": {"2026": None}}},
+                "tax_units": {"tu": {"members": ["adult"], "income_tax": {"2026": None}}},
+                "spm_units": {"spm": {"members": ["adult"]}},
+                "families": {"fam": {"members": ["adult"]}},
+                "marital_units": {"mu": {"members": ["adult"]}},
+                "households": {"hh": {"members": ["adult"], "state_name": {"2026": "TX"}}},
+                "axes": [[{"name": "employment_income", "count": 5, "min": 0, "max": 100000, "period": "2026"}]],
+            }
+        },
+    }
+
     # Legacy JSON payloads kept in the repo, if present.
     legacy = REPO_ROOT / "tests" / "to_refactor" / "python" / "data"
     for name, country in [("calculate_us_1_data.json", "us"), ("calculate_us_2_data.json", "us")]:

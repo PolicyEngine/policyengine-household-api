@@ -1,0 +1,5900 @@
+{
+ "generated_at": "2026-07-02T13:05:53.673476+00:00",
+ "window_days": 90,
+ "tables": [
+  "alembic_version",
+  "calculate_request_variables",
+  "calculate_requests",
+  "users",
+  "visits"
+ ],
+ "clients": [
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "requests": 19138,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current,frontier",
+   "requested_versions": "1.715.2,current",
+   "error_responses": "0",
+   "first_seen": "2026-05-12 21:16:10",
+   "last_seen": "2026-07-02 13:05:39"
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "requests": 8283,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current,frontier",
+   "requested_versions": "1.715.2,1.732.0,current,frontier",
+   "error_responses": "2",
+   "first_seen": "2026-05-12 21:20:43",
+   "last_seen": "2026-07-01 17:25:00"
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "requests": 6308,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current,frontier",
+   "requested_versions": "current,frontier",
+   "error_responses": "158",
+   "first_seen": "2026-05-12 21:33:23",
+   "last_seen": "2026-07-01 22:46:47"
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "requests": 4279,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "0",
+   "first_seen": "2026-05-12 21:23:32",
+   "last_seen": "2026-07-02 11:12:37"
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "requests": 3076,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current,frontier",
+   "requested_versions": "1.691.1,1.715.2,1.726.0,1.732.0,1.744.0,1.755.0,current,frontier",
+   "error_responses": "27",
+   "first_seen": "2026-05-13 12:21:11",
+   "last_seen": "2026-07-02 01:56:22"
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "requests": 922,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "135",
+   "first_seen": "2026-06-02 17:10:00",
+   "last_seen": "2026-07-02 00:56:24"
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "requests": 852,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "0",
+   "first_seen": "2026-05-12 22:54:53",
+   "last_seen": "2026-07-02 10:44:15"
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "requests": 339,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "0",
+   "first_seen": "2026-05-12 21:46:19",
+   "last_seen": "2026-07-01 08:20:33"
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "requests": 299,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "0",
+   "first_seen": "2026-05-12 21:45:27",
+   "last_seen": "2026-07-02 09:13:02"
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "requests": 68,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current,frontier",
+   "requested_versions": "current,frontier",
+   "error_responses": "8",
+   "first_seen": "2026-05-22 18:19:07",
+   "last_seen": "2026-05-22 18:38:15"
+  },
+  {
+   "client_id": null,
+   "requests": 57,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "0",
+   "first_seen": "2026-06-25 16:42:02",
+   "last_seen": "2026-07-02 10:43:57"
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "requests": 52,
+   "countries": 1,
+   "country_list": "us",
+   "channels": null,
+   "requested_versions": null,
+   "error_responses": "4",
+   "first_seen": "2026-05-19 15:52:36",
+   "last_seen": "2026-05-19 16:07:33"
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "requests": 33,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "23",
+   "first_seen": "2026-06-02 23:03:01",
+   "last_seen": "2026-06-05 05:12:25"
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "requests": 24,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current,frontier",
+   "requested_versions": "current,frontier",
+   "error_responses": "0",
+   "first_seen": "2026-05-27 15:45:35",
+   "last_seen": "2026-05-27 15:46:10"
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "requests": 7,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "2",
+   "first_seen": "2026-06-23 20:39:21",
+   "last_seen": "2026-06-25 14:41:45"
+  },
+  {
+   "client_id": "F4JmqoRvPgw0rEZdbC5g4IlLVYQW37Yf",
+   "requests": 4,
+   "countries": 1,
+   "country_list": "us",
+   "channels": "current",
+   "requested_versions": "current",
+   "error_responses": "0",
+   "first_seen": "2026-05-30 22:02:18",
+   "last_seen": "2026-05-30 22:05:23"
+  }
+ ],
+ "daily_volume": [
+  {
+   "day": "2026-07-02",
+   "requests": 293,
+   "active_clients": 6
+  },
+  {
+   "day": "2026-07-01",
+   "requests": 686,
+   "active_clients": 9
+  },
+  {
+   "day": "2026-06-30",
+   "requests": 1365,
+   "active_clients": 8
+  },
+  {
+   "day": "2026-06-29",
+   "requests": 802,
+   "active_clients": 8
+  },
+  {
+   "day": "2026-06-28",
+   "requests": 276,
+   "active_clients": 6
+  },
+  {
+   "day": "2026-06-27",
+   "requests": 285,
+   "active_clients": 5
+  },
+  {
+   "day": "2026-06-26",
+   "requests": 604,
+   "active_clients": 7
+  },
+  {
+   "day": "2026-06-25",
+   "requests": 477,
+   "active_clients": 9
+  },
+  {
+   "day": "2026-06-24",
+   "requests": 352,
+   "active_clients": 7
+  },
+  {
+   "day": "2026-06-23",
+   "requests": 233,
+   "active_clients": 8
+  },
+  {
+   "day": "2026-06-22",
+   "requests": 296,
+   "active_clients": 8
+  },
+  {
+   "day": "2026-06-21",
+   "requests": 157,
+   "active_clients": 5
+  },
+  {
+   "day": "2026-06-20",
+   "requests": 77,
+   "active_clients": 4
+  },
+  {
+   "day": "2026-06-19",
+   "requests": 114,
+   "active_clients": 5
+  }
+ ],
+ "errors_by_client": [
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "response_status_code": 400,
+   "n": 158
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "response_status_code": 500,
+   "n": 127
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "response_status_code": 400,
+   "n": 23
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "response_status_code": 400,
+   "n": 20
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "response_status_code": 400,
+   "n": 8
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "response_status_code": 500,
+   "n": 7
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "response_status_code": 400,
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "response_status_code": 500,
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "response_status_code": 400,
+   "n": 4
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "response_status_code": 400,
+   "n": 2
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "response_status_code": 400,
+   "n": 2
+  }
+ ],
+ "uk_usage": [],
+ "variables_by_client": [
+  {
+   "client_id": null,
+   "variable_name": "age",
+   "n": 57
+  },
+  {
+   "client_id": null,
+   "variable_name": "employment_income",
+   "n": 57
+  },
+  {
+   "client_id": null,
+   "variable_name": "snap",
+   "n": 57
+  },
+  {
+   "client_id": null,
+   "variable_name": "snap_assets",
+   "n": 57
+  },
+  {
+   "client_id": null,
+   "variable_name": "broadband_cost",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "child_support_expense",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "commodity_supplemental_food_program",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_chp_eligible",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_ctc",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_eitc",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_family_affordability_credit",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_oap",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_state_supplement",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_tanf",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_tanf_countable_gross_earned_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "co_tanf_countable_gross_unearned_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "ctc_value",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "current_pregnancies",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "eitc",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "has_heating_cooling_expense",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "has_phone_expense",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "heating_cooling_expense",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "homeowners_association_fees",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "homeowners_insurance",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "housing_cost",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_blind",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_disabled",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_full_time_college_student",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_optional_senior_or_disabled_for_medicaid",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_pregnant",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_snap_ineligible_student",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_tax_unit_dependent",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_tax_unit_head",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_tax_unit_spouse",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "lifeline",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "medicaid",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "medicaid_category",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "other_medical_expenses",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "phone_expense",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "real_estate_taxes",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "rental_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "school_meal_countable_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "school_meal_daily_subsidy",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "school_meal_tier",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "self_employment_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "snap_earned_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "snap_emergency_allotment",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "snap_unearned_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "social_security",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "ssi",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "ssi_countable_resources",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "ssi_earned_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "ssi_reported",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "ssi_unearned_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "state_code",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "taxable_ira_distributions",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "taxable_pension_income",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "unemployment_compensation",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "water_expense",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "wic",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "wic_category",
+   "n": 56
+  },
+  {
+   "client_id": null,
+   "variable_name": "capital_gains",
+   "n": 55
+  },
+  {
+   "client_id": null,
+   "variable_name": "spm_unit_pre_subsidy_childcare_expenses",
+   "n": 55
+  },
+  {
+   "client_id": null,
+   "variable_name": "basic_standard_deduction",
+   "n": 1
+  },
+  {
+   "client_id": null,
+   "variable_name": "childcare_expenses",
+   "n": 1
+  },
+  {
+   "client_id": null,
+   "variable_name": "is_medicaid_eligible",
+   "n": 1
+  },
+  {
+   "client_id": null,
+   "variable_name": "long_term_capital_gains",
+   "n": 1
+  },
+  {
+   "client_id": null,
+   "variable_name": "snap_excess_shelter_expense_deduction",
+   "n": 1
+  },
+  {
+   "client_id": null,
+   "variable_name": "state_code_str",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "age",
+   "n": 8283
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "state_code",
+   "n": 8282
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "employment_income",
+   "n": 8236
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "rental_income",
+   "n": 8236
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "self_employment_income",
+   "n": 8236
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "social_security",
+   "n": 8236
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "taxable_ira_distributions",
+   "n": 8236
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "taxable_pension_income",
+   "n": 8236
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "unemployment_compensation",
+   "n": 8236
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_tax_unit_dependent",
+   "n": 8233
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_tax_unit_spouse",
+   "n": 8233
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_disabled",
+   "n": 8146
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "broadband_cost",
+   "n": 7658
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "eitc",
+   "n": 7658
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "lifeline",
+   "n": 7658
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "childcare_expenses",
+   "n": 7647
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "child_support_expense",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "has_heating_cooling_expense",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "has_phone_expense",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "heating_cooling_expense",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "homeowners_association_fees",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "homeowners_insurance",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "housing_cost",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_snap_ineligible_student",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "phone_expense",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "real_estate_taxes",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "snap",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "snap_assets",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "snap_earned_income",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "snap_emergency_allotment",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "snap_unearned_income",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "water_expense",
+   "n": 7617
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ssi",
+   "n": 7599
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ssi_countable_resources",
+   "n": 7560
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_tax_unit_head",
+   "n": 7528
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_blind",
+   "n": 7518
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ssi_reported",
+   "n": 7450
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ssi_earned_income",
+   "n": 7440
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ssi_unearned_income",
+   "n": 7440
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_pregnant",
+   "n": 7226
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "other_medical_expenses",
+   "n": 6760
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ctc_value",
+   "n": 6680
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_full_time_college_student",
+   "n": 6386
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "long_term_capital_gains",
+   "n": 6015
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_optional_senior_or_disabled_for_medicaid",
+   "n": 5867
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "medicaid",
+   "n": 5867
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "medicaid_category",
+   "n": 5867
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "spm_unit_cash_assets",
+   "n": 4933
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "current_pregnancies",
+   "n": 4206
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "school_meal_countable_income",
+   "n": 4206
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "school_meal_daily_subsidy",
+   "n": 4206
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "school_meal_tier",
+   "n": 4206
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "wic",
+   "n": 4206
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "wic_category",
+   "n": 4206
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "wa_working_families_tax_credit",
+   "n": 3681
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "aca_ptc",
+   "n": 3030
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "zip_code",
+   "n": 3030
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "commodity_supplemental_food_program",
+   "n": 3024
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "county_str",
+   "n": 3017
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "employment_income_before_lsr",
+   "n": 2952
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "self_employment_income_before_lsr",
+   "n": 2952
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "wa_show_all_cash_assistance_programs",
+   "n": 2952
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "wa_tanf",
+   "n": 2952
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "spm_unit_assets",
+   "n": 2295
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "meets_ssi_disability_criteria",
+   "n": 2249
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "capital_gains",
+   "n": 2221
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "spm_unit_pre_subsidy_childcare_expenses",
+   "n": 2117
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "weekly_hours_worked_before_lsr",
+   "n": 2117
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "early_head_start",
+   "n": 2072
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "head_start",
+   "n": 2054
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "alimony_income",
+   "n": 1823
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "wa_apple_health_kids_eligible",
+   "n": 1773
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "social_security_disability",
+   "n": 1611
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "childcare_attending_days_per_month",
+   "n": 1521
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tx_ccs",
+   "n": 1521
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tx_harris_rides_eligible",
+   "n": 1521
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tx_tanf",
+   "n": 1521
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_medicare_eligible",
+   "n": 1518
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "medicare_quarters_of_coverage",
+   "n": 1514
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "msp",
+   "n": 1514
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "msp_category",
+   "n": 1514
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "msp_eligible",
+   "n": 1514
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "chip",
+   "n": 1501
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_veteran",
+   "n": 1501
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tx_dart_benefit_person",
+   "n": 1501
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_medicaid_eligible",
+   "n": 1319
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tanf",
+   "n": 1301
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "was_in_foster_care",
+   "n": 1298
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "electricity_expense",
+   "n": 1122
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "miscellaneous_income",
+   "n": 1076
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tx_fpp_benefit",
+   "n": 889
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "nc_scca_countable_income",
+   "n": 879
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "nc_scca_maximum_payment",
+   "n": 879
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "nc_tanf",
+   "n": 879
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "nc_tanf_countable_earned_income",
+   "n": 879
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "nc_tanf_countable_gross_unearned_income",
+   "n": 879
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "medical_out_of_pocket_expenses",
+   "n": 857
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "heat_expense_included_in_rent",
+   "n": 774
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_ccdf_eligible",
+   "n": 774
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_ccdf_reason_for_care_eligible",
+   "n": 774
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_child_and_family_credit",
+   "n": 774
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_eitc",
+   "n": 774
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_liheap",
+   "n": 774
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "receives_housing_assistance",
+   "n": 774
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "heating_expense_person",
+   "n": 762
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_chp_eligible",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_ctc",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_eitc",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_family_affordability_credit",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_oap",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_state_supplement",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_tanf",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_tanf_countable_gross_earned_income",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "co_tanf_countable_gross_unearned_income",
+   "n": 729
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_in_public_housing",
+   "n": 444
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_tafdc",
+   "n": 444
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_tcap_gross_earned_income",
+   "n": 444
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_tcap_gross_unearned_income",
+   "n": 444
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "chip_category",
+   "n": 406
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_eaedc",
+   "n": 406
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_eaedc_living_arrangement",
+   "n": 406
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_eaedc_non_financial_eligible",
+   "n": 406
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_state_supplement",
+   "n": 406
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tx_ceap",
+   "n": 360
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "has_bcc_qualifying_coverage",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_bcc_eligible",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_ctc",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_eitc",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_fpp_eligible",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_hbwd_eligible",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_hbwd_person",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_mpe_eligible",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_tanf",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_tanf_countable_gross_earned_income",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_tanf_countable_unearned_income",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "is_female",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "receives_medicaid",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "workers_compensation",
+   "n": 302
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_liheap_income_eligible",
+   "n": 301
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_mbta_enrolled_in_applicable_programs",
+   "n": 254
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_mbta_income_eligible_reduced_fare_eligible",
+   "n": 254
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_mbta_senior_charlie_card_eligible",
+   "n": 254
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_mbta_tap_charlie_card_eligible",
+   "n": 254
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_aabd_person",
+   "n": 244
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "mortgage_payments",
+   "n": 244
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "rent",
+   "n": 244
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "use_reported_ssi",
+   "n": 110
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ma_tafdc_pregnancy_eligible",
+   "n": 73
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ks_total_eitc",
+   "n": 32
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ks_cdcc",
+   "n": 30
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "ks_tanf",
+   "n": 3
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "cdcc",
+   "n": 2
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "adjusted_gross_income",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "cdcc_credit_limit",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "cdcc_potential",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "cdcc_relevant_expenses",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "il_liheap",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "income_tax_before_credits",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "min_head_spouse_earned",
+   "n": 1
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "variable_name": "tax_unit_childcare_expenses",
+   "n": 1
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ssi",
+   "n": 19282
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "age",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ctc_value",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "eitc",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "employment_income",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_tax_unit_dependent",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_tax_unit_spouse",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "rental_income",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "self_employment_income",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "social_security",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "state_code",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "taxable_ira_distributions",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "taxable_pension_income",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "unemployment_compensation",
+   "n": 19138
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_disabled",
+   "n": 18991
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "childcare_expenses",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "child_support_expense",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "has_heating_cooling_expense",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "has_phone_expense",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "heating_cooling_expense",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "homeowners_association_fees",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "homeowners_insurance",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "housing_cost",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_pregnant",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_snap_ineligible_student",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "phone_expense",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "real_estate_taxes",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "snap",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "snap_assets",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "snap_earned_income",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "snap_emergency_allotment",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "snap_unearned_income",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "water_expense",
+   "n": 18976
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "broadband_cost",
+   "n": 18973
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "lifeline",
+   "n": 18973
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_tax_unit_head",
+   "n": 18807
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_blind",
+   "n": 18665
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ssi_countable_resources",
+   "n": 18505
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ssi_earned_income",
+   "n": 18505
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ssi_reported",
+   "n": 18505
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ssi_unearned_income",
+   "n": 18505
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "current_pregnancies",
+   "n": 18422
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "school_meal_countable_income",
+   "n": 18422
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "school_meal_daily_subsidy",
+   "n": 18422
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "school_meal_tier",
+   "n": 18422
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "wic",
+   "n": 18422
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "wic_category",
+   "n": 18422
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_optional_senior_or_disabled_for_medicaid",
+   "n": 18360
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "medicaid",
+   "n": 18360
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "medicaid_category",
+   "n": 18360
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "other_medical_expenses",
+   "n": 17762
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_full_time_college_student",
+   "n": 17344
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "aca_ptc",
+   "n": 12334
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "zip_code",
+   "n": 12334
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "county_str",
+   "n": 11123
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "long_term_capital_gains",
+   "n": 10957
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "commodity_supplemental_food_program",
+   "n": 9826
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "capital_gains",
+   "n": 8181
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "nc_scca_countable_income",
+   "n": 7608
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "nc_scca_maximum_payment",
+   "n": 7608
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "nc_tanf",
+   "n": 7608
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "nc_tanf_countable_earned_income",
+   "n": 7608
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "nc_tanf_countable_gross_unearned_income",
+   "n": 7608
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_ctc",
+   "n": 5791
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_eitc",
+   "n": 5791
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_family_affordability_credit",
+   "n": 5791
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_chp_eligible",
+   "n": 5629
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_oap",
+   "n": 5629
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_state_supplement",
+   "n": 5629
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_tanf",
+   "n": 5629
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_tanf_countable_gross_earned_income",
+   "n": 5629
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_tanf_countable_gross_unearned_income",
+   "n": 5629
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "spm_unit_cash_assets",
+   "n": 5418
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "early_head_start",
+   "n": 4197
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "spm_unit_assets",
+   "n": 4197
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "spm_unit_pre_subsidy_childcare_expenses",
+   "n": 4197
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "weekly_hours_worked_before_lsr",
+   "n": 4197
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "head_start",
+   "n": 4195
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "meets_ssi_disability_criteria",
+   "n": 3738
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_medicare_eligible",
+   "n": 3667
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "alimony_income",
+   "n": 3553
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "social_security_disability",
+   "n": 3531
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "medicare_quarters_of_coverage",
+   "n": 3391
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "msp",
+   "n": 3391
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "msp_category",
+   "n": 3391
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "msp_eligible",
+   "n": 3391
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_medicaid_eligible",
+   "n": 2883
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "miscellaneous_income",
+   "n": 2620
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "was_in_foster_care",
+   "n": 2585
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "childcare_attending_days_per_month",
+   "n": 2565
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "tanf",
+   "n": 2565
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "tx_ccs",
+   "n": 2565
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "tx_harris_rides_eligible",
+   "n": 2565
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "tx_tanf",
+   "n": 2565
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "chip",
+   "n": 2545
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_veteran",
+   "n": 2545
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "tx_dart_benefit_person",
+   "n": 2545
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "electricity_expense",
+   "n": 2268
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "tx_fpp_benefit",
+   "n": 1815
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "heat_expense_included_in_rent",
+   "n": 1632
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_ccdf_eligible",
+   "n": 1632
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_ccdf_reason_for_care_eligible",
+   "n": 1632
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_child_and_family_credit",
+   "n": 1632
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_eitc",
+   "n": 1632
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_liheap",
+   "n": 1632
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "receives_housing_assistance",
+   "n": 1632
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_in_public_housing",
+   "n": 1619
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_tafdc",
+   "n": 1619
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_tcap_gross_earned_income",
+   "n": 1619
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_tcap_gross_unearned_income",
+   "n": 1619
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "heating_expense_person",
+   "n": 1532
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "chip_category",
+   "n": 1333
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_eaedc",
+   "n": 1333
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_eaedc_living_arrangement",
+   "n": 1333
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_eaedc_non_financial_eligible",
+   "n": 1333
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_state_supplement",
+   "n": 1333
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_mbta_enrolled_in_applicable_programs",
+   "n": 1320
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_mbta_income_eligible_reduced_fare_eligible",
+   "n": 1320
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_mbta_senior_charlie_card_eligible",
+   "n": 1320
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_mbta_tap_charlie_card_eligible",
+   "n": 1320
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "medical_out_of_pocket_expenses",
+   "n": 1214
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "has_bcc_qualifying_coverage",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_bcc_eligible",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_ctc",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_eitc",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_fpp_eligible",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_hbwd_eligible",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_hbwd_person",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_liheap_income_eligible",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_mpe_eligible",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_tanf",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_tanf_countable_gross_earned_income",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_tanf_countable_unearned_income",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "is_female",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "receives_medicaid",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "workers_compensation",
+   "n": 988
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "il_aabd_person",
+   "n": 848
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "mortgage_payments",
+   "n": 848
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "rent",
+   "n": 848
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "tx_ceap",
+   "n": 736
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "employment_income_before_lsr",
+   "n": 554
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "self_employment_income_before_lsr",
+   "n": 554
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "wa_show_all_cash_assistance_programs",
+   "n": 554
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "wa_tanf",
+   "n": 554
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "wa_working_families_tax_credit",
+   "n": 554
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "wa_apple_health_kids_eligible",
+   "n": 397
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_care_worker_credit",
+   "n": 162
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "co_care_worker_credit_eligible_care_worker",
+   "n": 162
+  },
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "variable_name": "ma_tafdc_pregnancy_eligible",
+   "n": 89
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "adjusted_gross_income",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "age",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "employment_income",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "filing_status",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "health_savings_account_payroll_contributions",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "income_tax",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "pre_tax_health_insurance_premiums",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "state_code",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "state_income_tax",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "traditional_401k_contributions",
+   "n": 7
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "employee_medicare_tax",
+   "n": 5
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "employee_social_security_tax",
+   "n": 5
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "student_loan_interest",
+   "n": 5
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "ca_employee_state_disability_insurance_contribution",
+   "n": 3
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "gov.states.ca.tax.payroll.disability.employee_rate",
+   "n": 2
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "variable_name": "student_loan_interest_ald",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "age",
+   "n": 3076
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "employment_income",
+   "n": 2883
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "state_name",
+   "n": 1664
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "zip_code",
+   "n": 1456
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_disabled",
+   "n": 1454
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_tax_unit_head",
+   "n": 1440
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_tax_unit_dependent",
+   "n": 1427
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_tax_unit_spouse",
+   "n": 1400
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "county_str",
+   "n": 1315
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "state_code_str",
+   "n": 1309
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "immigration_status_str",
+   "n": 1301
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "tax_unit_is_joint",
+   "n": 1301
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_pregnant",
+   "n": 991
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "eitc",
+   "n": 954
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "income_tax",
+   "n": 846
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ssi",
+   "n": 615
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "medicaid",
+   "n": 596
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ssi_countable_resources",
+   "n": 577
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_medicaid_eligible",
+   "n": 479
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_ssi_eligible",
+   "n": 472
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_ssi_aged",
+   "n": 471
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "snap",
+   "n": 470
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "aca_ptc",
+   "n": 452
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_aca_ptc_eligible",
+   "n": 451
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_aca_eshi_eligible",
+   "n": 449
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "premium_tax_credit",
+   "n": 449
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "chip",
+   "n": 440
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_ccdf_reason_for_care_eligible",
+   "n": 437
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "msp",
+   "n": 436
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "msp_eligible",
+   "n": 436
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_breastfeeding",
+   "n": 429
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_medicare_eligible",
+   "n": 428
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "snap_assets",
+   "n": 389
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "adjusted_gross_income",
+   "n": 381
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_snap_eligible",
+   "n": 292
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_income_tax",
+   "n": 275
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_exemptions",
+   "n": 273
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_eitc",
+   "n": 260
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_cdcc",
+   "n": 256
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_income_tax_before_credits",
+   "n": 256
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_income_tax_before_refundable_credits",
+   "n": 256
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_yctc",
+   "n": 256
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "taxable_income",
+   "n": 255
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_use_tax",
+   "n": 245
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "housing_cost",
+   "n": 245
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_taxable_income",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "filing_status",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_additions",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_agi",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_agi_subtractions",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_amt",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_deductions",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_itemized_deductions",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_mental_health_services_tax",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_non_refundable_credits",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_refundable_credits",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_standard_deduction",
+   "n": 243
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ctc_value",
+   "n": 238
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "housing_assistance",
+   "n": 206
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "school_meal_daily_subsidy",
+   "n": 190
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "school_meal_tier",
+   "n": 190
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ctc",
+   "n": 182
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "wic",
+   "n": 171
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "rent",
+   "n": 164
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "receives_housing_assistance",
+   "n": 160
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "eitc_eligible",
+   "n": 159
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "lifeline",
+   "n": 156
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "refundable_ctc",
+   "n": 153
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ssi_earned_income",
+   "n": 151
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ssi_unearned_income",
+   "n": 151
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "commodity_supplemental_food_program",
+   "n": 150
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "wic_category",
+   "n": 148
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "cdcc",
+   "n": 139
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_full_time_student",
+   "n": 138
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "medicaid_category",
+   "n": 138
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "social_security",
+   "n": 135
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "spm_unit_pre_subsidy_childcare_expenses",
+   "n": 121
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_optional_senior_or_disabled_for_medicaid",
+   "n": 118
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "snap_earned_income",
+   "n": 118
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "snap_emergency_allotment",
+   "n": 118
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "snap_unearned_income",
+   "n": 118
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_blind",
+   "n": 116
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "head_start",
+   "n": 113
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_eitc",
+   "n": 110
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "early_head_start",
+   "n": 110
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_oap",
+   "n": 109
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_chp_eligible",
+   "n": 108
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_ctc",
+   "n": 108
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_family_affordability_credit",
+   "n": 108
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "current_pregnancies",
+   "n": 108
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "heating_cooling_expense",
+   "n": 107
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "broadband_cost",
+   "n": 106
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "capital_gains",
+   "n": 106
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "county_fips",
+   "n": 105
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_state_supplement",
+   "n": 105
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_tanf",
+   "n": 103
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_tanf_countable_gross_earned_income",
+   "n": 103
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "co_tanf_countable_gross_unearned_income",
+   "n": 102
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_snap_ineligible_student",
+   "n": 102
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "real_estate_taxes",
+   "n": 102
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "school_meal_countable_income",
+   "n": 102
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ssi_reported",
+   "n": 102
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "child_support_expense",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "has_heating_cooling_expense",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "has_phone_expense",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "homeowners_association_fees",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "homeowners_insurance",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_full_time_college_student",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "other_medical_expenses",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "phone_expense",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "rental_income",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "self_employment_income",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "state_code",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "taxable_ira_distributions",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "taxable_pension_income",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "unemployment_compensation",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "water_expense",
+   "n": 100
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "pre_subsidy_rent",
+   "n": 93
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_wic_eligible",
+   "n": 59
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_lifeline_eligible",
+   "n": 54
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "tanf",
+   "n": 43
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "tx_tanf",
+   "n": 38
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_ccdf_eligible",
+   "n": 37
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_net_income",
+   "n": 31
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_calworks_child_care_time_category",
+   "n": 25
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_calworks_child_care",
+   "n": 23
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_calworks_child_care_eligible",
+   "n": 23
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "income_tax_before_credits",
+   "n": 23
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "in_la",
+   "n": 22
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "medicaid_group",
+   "n": 22
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "tenant_pays_utilities",
+   "n": 22
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_calworks_child_care_full_time",
+   "n": 22
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_state_supplement",
+   "n": 21
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_state_supplement_eligible_person",
+   "n": 21
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "childcare_expenses",
+   "n": 20
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "medicaid_enrolled",
+   "n": 20
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "in_ala",
+   "n": 19
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "in_riv",
+   "n": 19
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_eligible_for_housing_assistance",
+   "n": 19
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "phone_cost",
+   "n": 19
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "receives_medicaid",
+   "n": 19
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_ala_general_assistance",
+   "n": 19
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_ala_general_assistance_income_eligible",
+   "n": 19
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "meets_ssi_disability_criteria",
+   "n": 18
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "social_security_retirement",
+   "n": 17
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "wy_power",
+   "n": 17
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_tanf",
+   "n": 16
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_tanf_eligible",
+   "n": 15
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_tanf_region1",
+   "n": 15
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ny_eitc",
+   "n": 15
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "tax_unit_childcare_expenses",
+   "n": 15
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_eitc_eligible",
+   "n": 15
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_ala_general_assistance_eligible_person",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_care",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_care_eligible",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_fera",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_fera_eligible",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_foster_youth_tax_credit",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_la_ez_save",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_la_ez_save_eligible",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_renter_credit",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_riv_general_relief",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_riv_general_relief_eligible",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_riv_share_eligible",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_riv_share_payment",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_vehicles_value",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "income_tax_before_refundable_credits",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "income_tax_capped_non_refundable_credits",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "income_tax_non_refundable_credits",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "income_tax_refundable_credits",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "la_general_relief",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "la_general_relief_eligible",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "lives_in_vehicle",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "living_arrangements_allow_for_food_preparation",
+   "n": 13
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "chip_category",
+   "n": 12
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "has_bcc_qualifying_coverage",
+   "n": 12
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_female",
+   "n": 12
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_riv_general_relief_meets_work_requirements",
+   "n": 12
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "state_income_tax",
+   "n": 11
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_vehicles_owned",
+   "n": 10
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ma_eaedc",
+   "n": 10
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ma_eaedc_non_financial_eligible",
+   "n": 10
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "msp_category",
+   "n": 10
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "snap_excess_shelter_expense_deduction",
+   "n": 10
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "wy_power_eligible",
+   "n": 10
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ks_tanf",
+   "n": 9
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_income_level",
+   "n": 8
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_in_public_housing",
+   "n": 8
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "nc_scca_countable_income",
+   "n": 8
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "nc_scca_maximum_payment",
+   "n": 8
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "social_security_disability",
+   "n": 8
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "basic_standard_deduction",
+   "n": 8
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "pre_subsidy_electricity_expense",
+   "n": 7
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "wy_power_eligibility",
+   "n": 7
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_annual_income",
+   "n": 6
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_extremely_low_income_limit",
+   "n": 6
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_low_income_limit",
+   "n": 6
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_very_low_income_limit",
+   "n": 6
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ami",
+   "n": 6
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ma_state_supplement",
+   "n": 5
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ma_tafdc",
+   "n": 5
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "survivor_benefits",
+   "n": 5
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "current_pregnancy_month",
+   "n": 4
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "heat_expense_included_in_rent",
+   "n": 4
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "medical_out_of_pocket_expenses",
+   "n": 4
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "meets_snap_work_requirements_person",
+   "n": 4
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_gross_rent",
+   "n": 3
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_hap",
+   "n": 3
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_max_subsidy",
+   "n": 3
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_ttp",
+   "n": 3
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "marital_unit_id",
+   "n": 3
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "pha_payment_standard",
+   "n": 3
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "bedrooms",
+   "n": 3
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "applicable_ssi",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ca_withheld_income_tax",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_benefits",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_market_income",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_refundable_tax_credits",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_state_income_tax",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_tax",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "household_tax_before_refundable_credits",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "il_eitc",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "il_tanf",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "il_tanf_countable_gross_earned_income",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "il_tanf_countable_unearned_income",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_incapable_of_self_care",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "is_in_work_program",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ks_tanf_is_assistance_unit_member",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ma_eitc",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ma_tcap_gross_earned_income",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "ma_tcap_gross_unearned_income",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "months_since_calworks_exit",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "nc_tanf",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "nc_tanf_countable_earned_income",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "nc_tanf_countable_gross_unearned_income",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "spm_unit_tenure_type",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "use_reported_ssi",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "was_calworks_recipient",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "was_in_foster_care",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "wa_tanf",
+   "n": 2
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "codex_probe_20260513_variable_tracking",
+   "n": 1
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "educational_assistance",
+   "n": 1
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "financial_assistance",
+   "n": 1
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "variable_name": "hud_fair_market_rent",
+   "n": 1
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "age",
+   "n": 4322
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "basic_standard_deduction",
+   "n": 4279
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "employment_income",
+   "n": 4279
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "is_medicaid_eligible",
+   "n": 4279
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "snap",
+   "n": 4279
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "snap_assets",
+   "n": 4279
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "snap_excess_shelter_expense_deduction",
+   "n": 4279
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "variable_name": "state_code_str",
+   "n": 4279
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "aca_ptc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_child_care",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_child_care_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_child_care_time_category",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_care",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_care_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_cdcc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_eitc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_eitc_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_fera",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_fera_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_foster_youth_tax_credit",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_income_tax_before_credits",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_income_tax_before_refundable_credits",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_la_ez_save",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_la_ez_save_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_renter_credit",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_state_supplement",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_state_supplement_eligible_person",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_tanf",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_tanf_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_tanf_region1",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_yctc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "cdcc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ctc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "eitc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "eitc_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "immigration_status_str",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "income_tax",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "income_tax_before_credits",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "income_tax_before_refundable_credits",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "income_tax_capped_non_refundable_credits",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "income_tax_non_refundable_credits",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "income_tax_refundable_credits",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "in_la",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_aca_eshi_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_aca_ptc_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_disabled",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_lifeline_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_medicaid_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_pregnant",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_snap_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_ssi_aged",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_ssi_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "la_general_relief",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "la_general_relief_eligible",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "lifeline",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "lives_in_vehicle",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "living_arrangements_allow_for_food_preparation",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "medicaid",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "phone_cost",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "premium_tax_credit",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "refundable_ctc",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "snap",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ssi",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "state_code_str",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "tax_unit_is_joint",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "wic",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "zip_code",
+   "n": 6308
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "age",
+   "n": 6294
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_ala_general_assistance",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_ala_general_assistance_eligible_person",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_ala_general_assistance_income_eligible",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_stage_2",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_stage_2_eligible",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_stage_3",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_stage_3_eligible",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_capp",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_capp_eligible",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_riv_general_relief",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_riv_general_relief_eligible",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_riv_share_eligible",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_riv_share_payment",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "health_insurance_premiums",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "in_ala",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "in_riv",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "months_since_calworks_exit",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "receives_medicaid",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "tenant_pays_utilities",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "was_calworks_recipient",
+   "n": 6280
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "household_vehicles_value",
+   "n": 6226
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "rent",
+   "n": 4524
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "employment_income",
+   "n": 4140
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "weekly_hours_worked_before_lsr",
+   "n": 3875
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "meets_snap_work_requirements_person",
+   "n": 2535
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "heating_cooling_expense",
+   "n": 2461
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "pre_subsidy_electricity_expense",
+   "n": 2068
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "household_vehicles_owned",
+   "n": 1821
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "other_medical_expenses",
+   "n": 1015
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "meets_ssi_disability_criteria",
+   "n": 974
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_snap_work_program_participant",
+   "n": 943
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_calworks_child_care_full_time",
+   "n": 783
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "spm_unit_pre_subsidy_childcare_expenses",
+   "n": 783
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_riv_general_relief_meets_work_requirements",
+   "n": 446
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "was_in_foster_care",
+   "n": 403
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "social_security_retirement",
+   "n": 289
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "is_homeless",
+   "n": 226
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "social_security_disability",
+   "n": 147
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "bedrooms",
+   "n": 104
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "pre_subsidy_rent",
+   "n": 104
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "self_employment_income",
+   "n": 100
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "unemployment_compensation",
+   "n": 92
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "housing_assistance",
+   "n": 62
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "receives_housing_assistance",
+   "n": 62
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "child_support_received",
+   "n": 55
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_state_disability_insurance",
+   "n": 54
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_capi_eligible_person",
+   "n": 28
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "mortgage_payments",
+   "n": 16
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "medical_out_of_pocket_expenses",
+   "n": 14
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "alimony_income",
+   "n": 12
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_marin_general_relief",
+   "n": 4
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "ca_marin_general_relief_eligible",
+   "n": 4
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "variable_name": "in_marin",
+   "n": 4
+  },
+  {
+   "client_id": "F4JmqoRvPgw0rEZdbC5g4IlLVYQW37Yf",
+   "variable_name": "age",
+   "n": 4
+  },
+  {
+   "client_id": "F4JmqoRvPgw0rEZdbC5g4IlLVYQW37Yf",
+   "variable_name": "ca_income_tax",
+   "n": 4
+  },
+  {
+   "client_id": "F4JmqoRvPgw0rEZdbC5g4IlLVYQW37Yf",
+   "variable_name": "employment_income",
+   "n": 4
+  },
+  {
+   "client_id": "F4JmqoRvPgw0rEZdbC5g4IlLVYQW37Yf",
+   "variable_name": "income_tax",
+   "n": 4
+  },
+  {
+   "client_id": "F4JmqoRvPgw0rEZdbC5g4IlLVYQW37Yf",
+   "variable_name": "state_name",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "age",
+   "n": 24
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "state_code_str",
+   "n": 24
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "employment_income",
+   "n": 16
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "income_tax",
+   "n": 12
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "is_medicaid_eligible",
+   "n": 12
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "snap",
+   "n": 12
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "eitc",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "basic_standard_deduction",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "ctc",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "pension_income",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "self_employment_income",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "snap_assets",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "snap_excess_shelter_expense_deduction",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "variable_name": "social_security",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "age",
+   "n": 60
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "state_code_str",
+   "n": 60
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "employment_income",
+   "n": 40
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "income_tax",
+   "n": 30
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "is_medicaid_eligible",
+   "n": 30
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "snap",
+   "n": 30
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "eitc",
+   "n": 20
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "basic_standard_deduction",
+   "n": 10
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "ctc",
+   "n": 10
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "pension_income",
+   "n": 10
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "self_employment_income",
+   "n": 10
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "snap_assets",
+   "n": 10
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "snap_excess_shelter_expense_deduction",
+   "n": 10
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "social_security",
+   "n": 10
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "child1",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "family",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "head",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "household",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "marital_unit",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "spm_unit",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "variable_name": "tax_unit",
+   "n": 4
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "age",
+   "n": 52
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "state_code_str",
+   "n": 52
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "employment_income",
+   "n": 34
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "snap",
+   "n": 28
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "is_medicaid_eligible",
+   "n": 26
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "income_tax",
+   "n": 24
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "eitc",
+   "n": 16
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "basic_standard_deduction",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "ctc",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "pension_income",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "self_employment_income",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "snap_assets",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "snap_excess_shelter_expense_deduction",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "social_security",
+   "n": 8
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "employment_income_2",
+   "n": 2
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "variable_name": "is_medicaid_eligible_2",
+   "n": 2
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "age",
+   "n": 299
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "employment_income",
+   "n": 299
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_name",
+   "n": 299
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "weekly_hours_worked",
+   "n": 231
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "adjusted_gross_income",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "cdcc",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "county_fips",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "ctc",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "eitc",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "filing_status",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "income_tax",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "income_tax_before_credits",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_cdcc",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_code",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_code_str",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_ctc",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_eitc",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_fips",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_income_tax",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "state_income_tax_before_refundable_credits",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "tax_unit_childcare_expenses",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "tax_unit_is_joint",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "tax_unit_married",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "zip_code",
+   "n": 183
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_disabled",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_full_time_student",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_incapable_of_self_care",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_pregnant",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_snap_eligible",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_wic_eligible",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "snap",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "wic",
+   "n": 116
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_breastfeeding",
+   "n": 26
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_female",
+   "n": 26
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_parent",
+   "n": 26
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "is_homeless",
+   "n": 12
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "child_support_received",
+   "n": 5
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "variable_name": "self_employment_income",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ssi",
+   "n": 351
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_disabled",
+   "n": 343
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "has_heating_cooling_expense",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "has_phone_expense",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "heating_cooling_expense",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "homeowners_association_fees",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "homeowners_insurance",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "housing_cost",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_blind",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_optional_senior_or_disabled_for_medicaid",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_pregnant",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_tax_unit_dependent",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_tax_unit_head",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_tax_unit_spouse",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "lifeline",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "medicaid",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "medicaid_category",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "phone_expense",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "real_estate_taxes",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "rental_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "school_meal_countable_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "school_meal_daily_subsidy",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "school_meal_tier",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "self_employment_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "snap",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "snap_assets",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "snap_earned_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "snap_emergency_allotment",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "snap_unearned_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "social_security",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ssi_countable_resources",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ssi_earned_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ssi_reported",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ssi_unearned_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "state_code",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "taxable_ira_distributions",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "taxable_pension_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "unemployment_compensation",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "water_expense",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "wic",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "wic_category",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "age",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "broadband_cost",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "childcare_expenses",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "child_support_expense",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ctc_value",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "current_pregnancies",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "eitc",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "employment_income",
+   "n": 339
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_snap_ineligible_student",
+   "n": 338
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "other_medical_expenses",
+   "n": 292
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "zip_code",
+   "n": 262
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "aca_ptc",
+   "n": 262
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "commodity_supplemental_food_program",
+   "n": 256
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_full_time_college_student",
+   "n": 210
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "long_term_capital_gains",
+   "n": 181
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "spm_unit_assets",
+   "n": 179
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "spm_unit_pre_subsidy_childcare_expenses",
+   "n": 179
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "weekly_hours_worked_before_lsr",
+   "n": 179
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "capital_gains",
+   "n": 158
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "county_str",
+   "n": 133
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "spm_unit_cash_assets",
+   "n": 132
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "head_start",
+   "n": 131
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "early_head_start",
+   "n": 131
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "miscellaneous_income",
+   "n": 130
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "heat_expense_included_in_rent",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_ccdf_eligible",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_ccdf_reason_for_care_eligible",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_in_public_housing",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_child_and_family_credit",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_eaedc",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_eaedc_living_arrangement",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_eaedc_non_financial_eligible",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_eitc",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_liheap",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_mbta_enrolled_in_applicable_programs",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_mbta_income_eligible_reduced_fare_eligible",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_mbta_senior_charlie_card_eligible",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_mbta_tap_charlie_card_eligible",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_state_supplement",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_tafdc",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_tcap_gross_earned_income",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_tcap_gross_unearned_income",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "receives_housing_assistance",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "chip_category",
+   "n": 129
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "electricity_expense",
+   "n": 127
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "heating_expense_person",
+   "n": 127
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "nc_scca_countable_income",
+   "n": 82
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "nc_scca_maximum_payment",
+   "n": 82
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "nc_tanf",
+   "n": 82
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "nc_tanf_countable_earned_income",
+   "n": 82
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "nc_tanf_countable_gross_unearned_income",
+   "n": 82
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_chp_eligible",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_ctc",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_eitc",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_family_affordability_credit",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_oap",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_state_supplement",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_tanf",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_tanf_countable_gross_earned_income",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "co_tanf_countable_gross_unearned_income",
+   "n": 77
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "alimony_income",
+   "n": 51
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "childcare_attending_days_per_month",
+   "n": 50
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "chip",
+   "n": 50
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_veteran",
+   "n": 50
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "tx_ccs",
+   "n": 50
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "tx_dart_benefit_person",
+   "n": 50
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "tx_harris_rides_eligible",
+   "n": 50
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "tx_tanf",
+   "n": 50
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "medical_out_of_pocket_expenses",
+   "n": 47
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "tx_fpp_benefit",
+   "n": 26
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "ma_tafdc_pregnancy_eligible",
+   "n": 13
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "current_pregnancy_month",
+   "n": 8
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_medicare_eligible",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "medicare_quarters_of_coverage",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "meets_ssi_disability_criteria",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "msp",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "msp_category",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "msp_eligible",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "social_security_disability",
+   "n": 3
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_medicaid_eligible",
+   "n": 2
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "tanf",
+   "n": 2
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "was_in_foster_care",
+   "n": 2
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "has_bcc_qualifying_coverage",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_aabd_person",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_bcc_eligible",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_ctc",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_eitc",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_fpp_eligible",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_hbwd_eligible",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_hbwd_person",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_liheap_income_eligible",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_mpe_eligible",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_tanf",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_tanf_countable_gross_earned_income",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "il_tanf_countable_unearned_income",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_federal_work_study_participant",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_female",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_part_time_college_student",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "is_snap_higher_ed_student",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "mortgage_payments",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "receives_medicaid",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "rent",
+   "n": 1
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "variable_name": "workers_compensation",
+   "n": 1
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "age",
+   "n": 794
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "employment_income",
+   "n": 792
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "state_code",
+   "n": 792
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "income_tax",
+   "n": 791
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "adjusted_gross_income",
+   "n": 779
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "filing_status",
+   "n": 779
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "is_tax_unit_head",
+   "n": 776
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "state_income_tax",
+   "n": 776
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "is_tax_unit_spouse",
+   "n": 682
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "additional_medicare_tax",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "alternative_minimum_tax",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "local_income_tax",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "marginal_tax_rate",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "net_investment_income_tax",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "qualified_business_income_deduction",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "self_employment_tax",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "standard_deduction",
+   "n": 630
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "taxable_income_deductions",
+   "n": 606
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "tax_unit_taxable_social_security",
+   "n": 600
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "taxable_ira_distributions",
+   "n": 347
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "taxable_interest_income",
+   "n": 150
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "social_security",
+   "n": 58
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "long_term_capital_gains",
+   "n": 13
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "qualified_dividend_income",
+   "n": 12
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "taxable_roth_conversions",
+   "n": 7
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "taxable_income",
+   "n": 3
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "traditional_ira_contributions",
+   "n": 3
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "variable_name": "traditional_ira_contributions_desired",
+   "n": 3
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "adjusted_gross_income",
+   "n": 33
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "age",
+   "n": 33
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "eitc",
+   "n": 33
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "filing_status",
+   "n": 33
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "income_tax",
+   "n": 33
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "state_income_tax",
+   "n": 33
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "state_name",
+   "n": 33
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "employment_income",
+   "n": 29
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "charitable_cash_donations",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "deductible_mortgage_interest",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "health_savings_account_payroll_contributions",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "long_term_capital_gains",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "non_qualified_dividend_income",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "real_estate_taxes",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "taxable_interest_income",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "traditional_ira_contributions",
+   "n": 27
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "standard_deduction",
+   "n": 6
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "short_term_capital_gains",
+   "n": 2
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "social_security",
+   "n": 2
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "variable_name": "unemployment_compensation",
+   "n": 2
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "weekly_hours_worked",
+   "n": 1409
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "age",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "employment_income",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_disabled",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_full_time_student",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_incapable_of_self_care",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_pregnant",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_snap_eligible",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_wic_eligible",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "snap",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "state_name",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "wic",
+   "n": 852
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "rent",
+   "n": 270
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "pre_subsidy_electricity_expense",
+   "n": 224
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "phone_expense",
+   "n": 212
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "spm_unit_pre_subsidy_childcare_expenses",
+   "n": 134
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "health_insurance_premiums",
+   "n": 121
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "water_expense",
+   "n": 109
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "gas_expense",
+   "n": 93
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "mortgage_payments",
+   "n": 85
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_homeless",
+   "n": 77
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "medical_out_of_pocket_expenses",
+   "n": 71
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_breastfeeding",
+   "n": 55
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_female",
+   "n": 55
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_parent",
+   "n": 55
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "trash_expense",
+   "n": 46
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "heating_cooling_expense",
+   "n": 37
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "self_employment_income",
+   "n": 28
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "sewage_expense",
+   "n": 28
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "other_medical_expenses",
+   "n": 23
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "real_estate_taxes",
+   "n": 16
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "child_support_received",
+   "n": 13
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "homeowners_association_fees",
+   "n": 13
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "child_support_expense",
+   "n": 11
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "miscellaneous_income",
+   "n": 9
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "social_security",
+   "n": 7
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "ssi",
+   "n": 6
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "disability_benefits",
+   "n": 4
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "general_assistance",
+   "n": 4
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "is_wic_at_nutritional_risk",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "medicaid_enrolled",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "meets_wic_categorical_eligibility",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "meets_wic_income_test",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "pension_income",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "retirement_distributions",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "wic_category",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "wic_category_str",
+   "n": 3
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "alimony_income",
+   "n": 2
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "rental_income",
+   "n": 2
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "variable_name": "gi_cash_assistance",
+   "n": 1
+  }
+ ],
+ "endpoints": [
+  {
+   "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+   "endpoint": "calculate",
+   "n": 35081,
+   "last_seen": "2026-07-02 13:05:39"
+  },
+  {
+   "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+   "endpoint": "calculate",
+   "n": 13878,
+   "last_seen": "2026-07-01 17:25:00"
+  },
+  {
+   "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+   "endpoint": "calculate",
+   "n": 12458,
+   "last_seen": "2026-07-01 22:46:47"
+  },
+  {
+   "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+   "endpoint": "calculate",
+   "n": 9368,
+   "last_seen": "2026-07-02 11:12:37"
+  },
+  {
+   "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+   "endpoint": "calculate",
+   "n": 3079,
+   "last_seen": "2026-07-02 01:56:22"
+  },
+  {
+   "client_id": "WyWSiIJEOhQsWbRpiXOPqn5CcOQ2XEQu",
+   "endpoint": "calculate",
+   "n": 1216,
+   "last_seen": "2026-07-02 10:44:15"
+  },
+  {
+   "client_id": "STaztFgtPFXkOuhFtNjPAv4jDhJfTiHq",
+   "endpoint": "calculate",
+   "n": 922,
+   "last_seen": "2026-07-02 00:56:24"
+  },
+  {
+   "client_id": "qSH0K7upvN2jfsDxLZyLashJrl6pZ1k8",
+   "endpoint": "calculate",
+   "n": 778,
+   "last_seen": "2026-07-01 08:20:33"
+  },
+  {
+   "client_id": "gs6efNb3RxhUFQgwS9OvTpJP0trZJiKz",
+   "endpoint": "calculate",
+   "n": 542,
+   "last_seen": "2026-05-08 18:17:36"
+  },
+  {
+   "client_id": "NaQpYc3eu1ike6BYxjcaQ1xPclFgd9zr",
+   "endpoint": "calculate",
+   "n": 447,
+   "last_seen": "2026-07-02 09:13:02"
+  },
+  {
+   "client_id": "google-oauth2|116242521439357911562",
+   "endpoint": "calculate",
+   "n": 68,
+   "last_seen": "2026-05-22 18:38:15"
+  },
+  {
+   "client_id": null,
+   "endpoint": "calculate",
+   "n": 57,
+   "last_seen": "2026-07-02 10:43:57"
+  },
+  {
+   "client_id": "google-oauth2|118409323882000545756",
+   "endpoint": "calculate",
+   "n": 52,
+   "last_seen": "2026-05-19 16:07:33"
+  },
+  {
+   "client_id": "wCW62HfHGoMsKnIwfNgx3IYvkjnchazk",
+   "endpoint": "calculate",
+   "n": 36,
+   "last_seen": "2026-06-05 05:12:25"
+  },
+  {
+   "client_id": "google-oauth2|111840584585669746335",
+   "endpoint": "calculate",
+   "n": 24,
+   "last_seen": "2026-05-27 15:46:10"
+  },
+  {
+   "client_id": "Alum5bZq4SKrBWZdMLBEuPmeRa7tWzKM",
+   "endpoint": "calculate",
+   "n": 7,
+   "last_seen": "2026-06-25 14:41:45"
+  },
+  {
+   "client_id": "F4JmqoRvPgw0rEZdbC5g4IlLVYQW37Yf",
+   "endpoint": "calculate",
+   "n": 4,
+   "last_seen": "2026-05-30 22:05:23"
+  }
+ ]
+}
