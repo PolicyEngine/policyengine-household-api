@@ -108,9 +108,13 @@ class ConditionalAuthDecorator:
         """
         Set up authentication based on configuration.
 
-        Authentication is enabled if:
-        1. The auth.enabled config value is True, OR
-        2. Both Auth0 configuration values are present (backward compatibility)
+        Authentication is enabled if the auth.enabled config value is True.
+
+        Raises:
+            RuntimeError: If authentication is enabled but the required
+                Auth0 configuration values are missing. Failing closed at
+                startup prevents serving endpoints unauthenticated when a
+                secret or environment variable is absent.
         """
         # Check if Auth0 is explicitly enabled via configuration
         self._auth_enabled = get_config_value("auth.enabled", False)
@@ -143,10 +147,19 @@ class ConditionalAuthDecorator:
                 resource_protector.register_token_validator(validator)
                 self._decorator = resource_protector
             else:
-                # Auth was requested but configuration is missing
-                print("Warning: Auth enabled but Auth0 configuration missing")
-                self._auth_enabled = False
-                self._decorator = NoOpDecorator()
+                # Auth was requested but configuration is missing; fail
+                # closed rather than silently serving unauthenticated.
+                missing = []
+                if not auth0_address:
+                    missing.append("auth.auth0.address")
+                if not auth0_audience:
+                    missing.append("auth.auth0.audience")
+                error = RuntimeError(
+                    "Authentication is enabled but required Auth0 "
+                    f"configuration is missing: {', '.join(missing)}"
+                )
+                record_error(error, handled=False, include_stack=False)
+                raise error
         else:
             # Authentication is disabled
             self._decorator = NoOpDecorator()
