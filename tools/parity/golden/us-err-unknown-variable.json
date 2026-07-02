@@ -1,0 +1,70 @@
+{
+ "captured_at": "2026-07-02T15:15:57.347937+00:00",
+ "case": "us-err-unknown-variable",
+ "country": "us",
+ "expected_status": 400,
+ "model_versions": null,
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult"
+     ],
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "definitely_not_a_variable": {
+      "2026": 1
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "income_tax": {
+      "2026": null
+     },
+     "members": [
+      "adult"
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "errors": [
+   "Variable `definitely_not_a_variable` on `people/adult` is not available in PolicyEngine model version 1.744.0 used by this API. Remove it or migrate to a supported variable."
+  ],
+  "message": "Invalid household variables.",
+  "status": "error"
+ }
+}

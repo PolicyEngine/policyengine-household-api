@@ -136,6 +136,20 @@ def build_corpus() -> dict[str, dict]:
             payload = data if "household" in data else {"household": data}
             corpus[f"us-legacy-{name.split('_')[1]}"] = {"country": country, "payload": payload}
 
+    corpus["us-err-unknown-variable"] = {
+        "country": "us",
+        "payload": {
+            "household": {
+                "people": {"adult": {"age": {"2026": 35}, "definitely_not_a_variable": {"2026": 1}}},
+                "tax_units": {"tu": {"members": ["adult"], "income_tax": {"2026": None}}},
+                "spm_units": {"spm": {"members": ["adult"]}},
+                "families": {"fam": {"members": ["adult"]}},
+                "marital_units": {"mu": {"members": ["adult"]}},
+                "households": {"hh": {"members": ["adult"], "state_name": {"2026": "CA"}}},
+            }
+        },
+    }
+
     # Per-client cases generated from the analytics inventory, if present.
     cases_dir = HERE / "cases"
     if cases_dir.exists():
@@ -248,6 +262,18 @@ def cmd_diff(base_url: str, only: str | None) -> int:
             continue
         total += 1
         status, body = post(base_url, snap["country"], snap["request"])
+        expected_status = snap.get("expected_status", 200)
+        if expected_status != 200:
+            # Error-contract case: status + error body must match the golden.
+            ediffs = deep_diff(snap["response"], strip_ignored(body))
+            if status == expected_status and not ediffs:
+                passed += 1
+                print(f"✓ {snap['case']}: ERROR-PARITY (HTTP {status})")
+            else:
+                print(f"✗ {snap['case']}: HTTP {status} (want {expected_status}), {len(ediffs)} body diffs")
+                for d in ediffs[:6]:
+                    print(f"    {d}")
+            continue
         if status != 200:
             print(f"✗ {snap['case']}: HTTP {status} — {json.dumps(body)[:160]}")
             continue
