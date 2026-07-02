@@ -1,3 +1,10 @@
+## [0.25.8] - 2026-07-02
+
+### Fixed
+
+- Fail closed at startup when authentication is enabled but required Auth0 configuration is missing, instead of silently serving endpoints unauthenticated. The configuration error is reported through observability before the process exits.
+
+
 ## [0.25.7] - 2026-07-01
 
 ### Changed
