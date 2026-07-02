@@ -1,0 +1,144 @@
+{
+ "country": "us",
+ "payload": {
+  "household": {
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "ca_state_supplement_eligible_person": {
+      "2026": null
+     },
+     "is_aca_ptc_eligible": {
+      "2026": null
+     },
+     "is_medicaid_eligible": {
+      "2026": null
+     },
+     "is_ssi_aged": {
+      "2026": null
+     },
+     "is_ssi_eligible": {
+      "2026": null
+     },
+     "medicaid": {
+      "2026": null
+     },
+     "ssi": {
+      "2026": null
+     },
+     "wic": {
+      "2026": null
+     },
+     "ca_ala_general_assistance_eligible_person": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "aca_ptc": {
+      "2026": null
+     },
+     "ca_cdcc": {
+      "2026": null
+     },
+     "ca_eitc": {
+      "2026": null
+     },
+     "ca_eitc_eligible": {
+      "2026": null
+     },
+     "ca_foster_youth_tax_credit": {
+      "2026": null
+     },
+     "ca_income_tax_before_credits": {
+      "2026": null
+     },
+     "ca_income_tax_before_refundable_credits": {
+      "2026": null
+     },
+     "ca_renter_credit": {
+      "2026": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "ca_calworks_child_care": {
+      "2026": null
+     },
+     "ca_calworks_child_care_eligible": {
+      "2026": null
+     }
+    }
+   },
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CA"
+     },
+     "ca_la_ez_save": {
+      "2026": null
+     },
+     "ca_la_ez_save_eligible": {
+      "2026": null
+     },
+     "ca_care": {
+      "2026": null
+     },
+     "ca_care_eligible": {
+      "2026": null
+     },
+     "ca_fera": {
+      "2026": null
+     },
+     "ca_fera_eligible": {
+      "2026": null
+     }
+    }
+   }
+  }
+ },
+ "meta": {
+  "client_id": "eKpF8YnfwJFQVpU0TOQo8CEz70MDKn9Q",
+  "state": "CA",
+  "requested_outputs": 25
+ }
+}

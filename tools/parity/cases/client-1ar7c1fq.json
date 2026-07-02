@@ -1,0 +1,142 @@
+{
+ "country": "us",
+ "payload": {
+  "household": {
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "is_disabled": {
+      "2026": null
+     },
+     "ssi": {
+      "2026": null
+     },
+     "is_optional_senior_or_disabled_for_medicaid": {
+      "2026": null
+     },
+     "medicaid": {
+      "2026": null
+     },
+     "medicaid_category": {
+      "2026": null
+     },
+     "wic": {
+      "2026": null
+     },
+     "wic_category": {
+      "2026": null
+     },
+     "commodity_supplemental_food_program": {
+      "2026": null
+     },
+     "wa_apple_health_kids_eligible": {
+      "2026": null
+     },
+     "early_head_start": {
+      "2026": null
+     },
+     "head_start": {
+      "2026": null
+     },
+     "meets_ssi_disability_criteria": {
+      "2026": null
+     },
+     "tx_harris_rides_eligible": {
+      "2026": null
+     },
+     "chip": {
+      "2026": null
+     },
+     "tx_dart_benefit_person": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "eitc": {
+      "2026": null
+     },
+     "ctc_value": {
+      "2026": null
+     },
+     "wa_working_families_tax_credit": {
+      "2026": null
+     },
+     "aca_ptc": {
+      "2026": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "lifeline": {
+      "2026": null
+     },
+     "snap": {
+      "2026-01": null,
+      "2026": null
+     },
+     "school_meal_daily_subsidy": {
+      "2026": null
+     },
+     "school_meal_tier": {
+      "2026": null
+     },
+     "wa_tanf": {
+      "2026": null
+     }
+    }
+   },
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "WA"
+     }
+    }
+   }
+  }
+ },
+ "meta": {
+  "client_id": "1AR7c1FQlZOH72DDHkvvdYTSw2Eybto3",
+  "state": "WA",
+  "requested_outputs": 25
+ }
+}

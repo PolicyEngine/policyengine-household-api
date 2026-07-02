@@ -1,0 +1,158 @@
+{
+ "captured_at": "2026-07-02T15:05:17.444771+00:00",
+ "case": "client-dq9pluou",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_code_str": {
+      "2026": null
+     },
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": null
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "is_medicaid_eligible": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "snap": {
+      "2026": null
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_code_str": {
+      "2026": "CA"
+     },
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 40.0
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "is_medicaid_eligible": {
+      "2026": true
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "snap": {
+      "2026": 1585.617
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   }
+  },
+  "status": "ok"
+ }
+}

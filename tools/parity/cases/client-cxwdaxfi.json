@@ -1,0 +1,144 @@
+{
+ "country": "us",
+ "payload": {
+  "household": {
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "ssi": {
+      "2026": null
+     },
+     "medicaid": {
+      "2026": null
+     },
+     "is_medicaid_eligible": {
+      "2026": null
+     },
+     "is_ssi_eligible": {
+      "2026": null
+     },
+     "is_ssi_aged": {
+      "2026": null
+     },
+     "is_aca_ptc_eligible": {
+      "2026": null
+     },
+     "chip": {
+      "2026": null
+     },
+     "msp": {
+      "2026": null
+     },
+     "msp_eligible": {
+      "2026": null
+     },
+     "wic": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "eitc": {
+      "2026": null
+     },
+     "income_tax": {
+      "2026": null
+     },
+     "aca_ptc": {
+      "2026": null
+     },
+     "premium_tax_credit": {
+      "2026": null
+     },
+     "adjusted_gross_income": {
+      "2026": null
+     },
+     "ca_income_tax": {
+      "2026": null
+     },
+     "ca_exemptions": {
+      "2026": null
+     },
+     "ca_eitc": {
+      "2026": null
+     },
+     "ca_cdcc": {
+      "2026": null
+     },
+     "ca_income_tax_before_credits": {
+      "2026": null
+     },
+     "ca_income_tax_before_refundable_credits": {
+      "2026": null
+     },
+     "ca_yctc": {
+      "2026": null
+     },
+     "taxable_income": {
+      "2026": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "snap": {
+      "2026": null
+     },
+     "is_snap_eligible": {
+      "2026": null
+     }
+    }
+   },
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   }
+  }
+ },
+ "meta": {
+  "client_id": "CxWDaxfiziFbdnjW5T0ZPthShPgyj8A9",
+  "state": "CA",
+  "requested_outputs": 25
+ }
+}

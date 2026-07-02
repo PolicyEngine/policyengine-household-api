@@ -1,0 +1,144 @@
+{
+ "country": "us",
+ "payload": {
+  "household": {
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "is_optional_senior_or_disabled_for_medicaid": {
+      "2026": null
+     },
+     "medicaid": {
+      "2026": null
+     },
+     "medicaid_category": {
+      "2026": null
+     },
+     "wic": {
+      "2026": null
+     },
+     "wic_category": {
+      "2026": null
+     },
+     "ssi": {
+      "2026": null
+     },
+     "commodity_supplemental_food_program": {
+      "2026": null
+     },
+     "co_family_affordability_credit": {
+      "2026": null
+     },
+     "co_chp_eligible": {
+      "2026": null
+     },
+     "co_oap": {
+      "2026": null
+     },
+     "co_state_supplement": {
+      "2026": null
+     },
+     "early_head_start": {
+      "2026": null
+     },
+     "head_start": {
+      "2026": null
+     },
+     "msp": {
+      "2026": null
+     },
+     "msp_category": {
+      "2026": null
+     },
+     "msp_eligible": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "ctc_value": {
+      "2026": null
+     },
+     "eitc": {
+      "2026": null
+     },
+     "aca_ptc": {
+      "2026": null
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "lifeline": {
+      "2026": null
+     },
+     "school_meal_daily_subsidy": {
+      "2026": null
+     },
+     "school_meal_tier": {
+      "2026": null
+     },
+     "snap": {
+      "2026-01": null
+     },
+     "nc_scca_maximum_payment": {
+      "2026": null
+     },
+     "nc_tanf": {
+      "2026": null
+     }
+    }
+   },
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CO"
+     }
+    }
+   }
+  }
+ },
+ "meta": {
+  "client_id": "2bvOcXtHvebOexszcAdzCSIj7G29Cu5I",
+  "state": "CO",
+  "requested_outputs": 25
+ }
+}

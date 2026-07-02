@@ -1,0 +1,290 @@
+{
+ "captured_at": "2026-07-02T15:05:04.694675+00:00",
+ "case": "client-cxwdaxfi",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "chip": {
+      "2026": null
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "is_aca_ptc_eligible": {
+      "2026": null
+     },
+     "is_medicaid_eligible": {
+      "2026": null
+     },
+     "is_ssi_aged": {
+      "2026": null
+     },
+     "is_ssi_eligible": {
+      "2026": null
+     },
+     "medicaid": {
+      "2026": null
+     },
+     "msp": {
+      "2026": null
+     },
+     "msp_eligible": {
+      "2026": null
+     },
+     "ssi": {
+      "2026": null
+     },
+     "wic": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "is_snap_eligible": {
+      "2026": null
+     },
+     "members": [
+      "adult",
+      "child"
+     ],
+     "snap": {
+      "2026": null
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "aca_ptc": {
+      "2026": null
+     },
+     "adjusted_gross_income": {
+      "2026": null
+     },
+     "ca_cdcc": {
+      "2026": null
+     },
+     "ca_eitc": {
+      "2026": null
+     },
+     "ca_exemptions": {
+      "2026": null
+     },
+     "ca_income_tax": {
+      "2026": null
+     },
+     "ca_income_tax_before_credits": {
+      "2026": null
+     },
+     "ca_income_tax_before_refundable_credits": {
+      "2026": null
+     },
+     "ca_yctc": {
+      "2026": null
+     },
+     "eitc": {
+      "2026": null
+     },
+     "income_tax": {
+      "2026": null
+     },
+     "members": [
+      "adult",
+      "child"
+     ],
+     "premium_tax_credit": {
+      "2026": null
+     },
+     "taxable_income": {
+      "2026": null
+     }
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CA"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "chip": {
+      "2026": 0.0
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "is_aca_ptc_eligible": {
+      "2026": false
+     },
+     "is_medicaid_eligible": {
+      "2026": true
+     },
+     "is_ssi_aged": {
+      "2026": false
+     },
+     "is_ssi_eligible": {
+      "2026": false
+     },
+     "medicaid": {
+      "2026": 11360.863
+     },
+     "msp": {
+      "2026": 0.0
+     },
+     "msp_eligible": {
+      "2026": false
+     },
+     "ssi": {
+      "2026": 0.0
+     },
+     "wic": {
+      "2026": 0.0
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "is_snap_eligible": {
+      "2026": true
+     },
+     "members": [
+      "adult",
+      "child"
+     ],
+     "snap": {
+      "2026": 1585.617
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "aca_ptc": {
+      "2026": 0.0
+     },
+     "adjusted_gross_income": {
+      "2026": 24000.0
+     },
+     "ca_cdcc": {
+      "2026": 0.0
+     },
+     "ca_eitc": {
+      "2026": 282.9856
+     },
+     "ca_exemptions": {
+      "2026": 642.2323
+     },
+     "ca_income_tax": {
+      "2026": -282.9856
+     },
+     "ca_income_tax_before_credits": {
+      "2026": 125.88
+     },
+     "ca_income_tax_before_refundable_credits": {
+      "2026": 0.0
+     },
+     "ca_yctc": {
+      "2026": 0.0
+     },
+     "eitc": {
+      "2026": 4409.422
+     },
+     "income_tax": {
+      "2026": -6109.422
+     },
+     "members": [
+      "adult",
+      "child"
+     ],
+     "premium_tax_credit": {
+      "2026": 0.0
+     },
+     "taxable_income": {
+      "2026": 0.0
+     }
+    }
+   }
+  },
+  "status": "ok"
+ }
+}

@@ -121,10 +121,13 @@ def main() -> int:
 
     if "calculate_request_variables" in tables:
         report["variables_by_client"] = q(cur, f"""
-            SELECT client_id, variable_name, COUNT(*) AS n
+            SELECT client_id, variable_name, entity_type, source,
+                   period_granularity, availability_status,
+                   SUM(occurrence_count) AS n
             FROM calculate_request_variables
             WHERE {since}
-            GROUP BY client_id, variable_name
+            GROUP BY client_id, variable_name, entity_type, source,
+                     period_granularity, availability_status
             ORDER BY client_id, n DESC
         """)
 

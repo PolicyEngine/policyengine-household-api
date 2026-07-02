@@ -136,6 +136,13 @@ def build_corpus() -> dict[str, dict]:
             payload = data if "household" in data else {"household": data}
             corpus[f"us-legacy-{name.split('_')[1]}"] = {"country": country, "payload": payload}
 
+    # Per-client cases generated from the analytics inventory, if present.
+    cases_dir = HERE / "cases"
+    if cases_dir.exists():
+        for f in sorted(cases_dir.glob("*.json")):
+            data = json.loads(f.read_text())
+            corpus[f.stem] = {"country": data["country"], "payload": data["payload"]}
+
     return corpus
 
 

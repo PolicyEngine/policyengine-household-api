@@ -1,0 +1,290 @@
+{
+ "captured_at": "2026-07-02T15:04:51.589899+00:00",
+ "case": "client-2bvocxth",
+ "country": "us",
+ "model_versions": {
+  "data_version": null,
+  "dataset": null,
+  "model_version": "1.744.0"
+ },
+ "reference_base_url": "https://household.api.policyengine.org",
+ "request": {
+  "household": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CO"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "co_chp_eligible": {
+      "2026": null
+     },
+     "co_family_affordability_credit": {
+      "2026": null
+     },
+     "co_oap": {
+      "2026": null
+     },
+     "co_state_supplement": {
+      "2026": null
+     },
+     "commodity_supplemental_food_program": {
+      "2026": null
+     },
+     "early_head_start": {
+      "2026": null
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "head_start": {
+      "2026": null
+     },
+     "is_optional_senior_or_disabled_for_medicaid": {
+      "2026": null
+     },
+     "medicaid": {
+      "2026": null
+     },
+     "medicaid_category": {
+      "2026": null
+     },
+     "msp": {
+      "2026": null
+     },
+     "msp_category": {
+      "2026": null
+     },
+     "msp_eligible": {
+      "2026": null
+     },
+     "ssi": {
+      "2026": null
+     },
+     "wic": {
+      "2026": null
+     },
+     "wic_category": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "lifeline": {
+      "2026": null
+     },
+     "members": [
+      "adult",
+      "child"
+     ],
+     "nc_scca_maximum_payment": {
+      "2026": null
+     },
+     "nc_tanf": {
+      "2026": null
+     },
+     "school_meal_daily_subsidy": {
+      "2026": null
+     },
+     "school_meal_tier": {
+      "2026": null
+     },
+     "snap": {
+      "2026-01": null
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "aca_ptc": {
+      "2026": null
+     },
+     "ctc_value": {
+      "2026": null
+     },
+     "eitc": {
+      "2026": null
+     },
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "message": null,
+  "policyengine_bundle": {
+   "data_version": null,
+   "dataset": null,
+   "model_version": "1.744.0"
+  },
+  "result": {
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CO"
+     }
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "people": {
+    "adult": {
+     "age": {
+      "2026": 35
+     },
+     "co_chp_eligible": {
+      "2026": false
+     },
+     "co_family_affordability_credit": {
+      "2026": 0.0
+     },
+     "co_oap": {
+      "2026": 0.0
+     },
+     "co_state_supplement": {
+      "2026": 0.0
+     },
+     "commodity_supplemental_food_program": {
+      "2026": 0.0
+     },
+     "early_head_start": {
+      "2026": 0.0
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "head_start": {
+      "2026": 0.0
+     },
+     "is_optional_senior_or_disabled_for_medicaid": {
+      "2026": false
+     },
+     "medicaid": {
+      "2026": 13451.431
+     },
+     "medicaid_category": {
+      "2026": "ADULT"
+     },
+     "msp": {
+      "2026": 0.0
+     },
+     "msp_category": {
+      "2026": "NONE"
+     },
+     "msp_eligible": {
+      "2026": false
+     },
+     "ssi": {
+      "2026": 0.0
+     },
+     "wic": {
+      "2026": 0.0
+     },
+     "wic_category": {
+      "2026": "NONE"
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "lifeline": {
+      "2026": 0.0
+     },
+     "members": [
+      "adult",
+      "child"
+     ],
+     "nc_scca_maximum_payment": {
+      "2026": 0.0
+     },
+     "nc_tanf": {
+      "2026": 0.0
+     },
+     "school_meal_daily_subsidy": {
+      "2026": 7.1546535
+     },
+     "school_meal_tier": {
+      "2026": "FREE"
+     },
+     "snap": {
+      "2026-01": 128.69998
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "aca_ptc": {
+      "2026": 0.0
+     },
+     "ctc_value": {
+      "2026": 2200.0
+     },
+     "eitc": {
+      "2026": 4409.422
+     },
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   }
+  },
+  "status": "ok"
+ }
+}

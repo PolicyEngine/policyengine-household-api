@@ -1,0 +1,78 @@
+{
+ "country": "us",
+ "payload": {
+  "household": {
+   "people": {
+    "adult": {
+     "age": {
+      "2026": null
+     },
+     "employment_income": {
+      "2026": 24000
+     },
+     "is_medicaid_eligible": {
+      "2026": null
+     }
+    },
+    "child": {
+     "age": {
+      "2026": 6
+     }
+    }
+   },
+   "tax_units": {
+    "tu": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "spm_units": {
+    "spm": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "snap": {
+      "2026": null
+     }
+    }
+   },
+   "families": {
+    "fam": {
+     "members": [
+      "adult",
+      "child"
+     ]
+    }
+   },
+   "marital_units": {
+    "mu": {
+     "members": [
+      "adult"
+     ]
+    }
+   },
+   "households": {
+    "hh": {
+     "members": [
+      "adult",
+      "child"
+     ],
+     "state_name": {
+      "2026": "CA"
+     },
+     "state_code_str": {
+      "2026": null
+     }
+    }
+   }
+  }
+ },
+ "meta": {
+  "client_id": "DQ9PLUoU6MHtfr5fQOmY0FpTj63HmQ5Y",
+  "state": "CA",
+  "requested_outputs": 4
+ }
+}
