@@ -7,22 +7,35 @@ but uninstallable-by-declaration. Skipped in the fat all-packages dev
 environment, where numpy is legitimately present.
 """
 
-from importlib.util import find_spec
+from importlib.metadata import PackageNotFoundError, version
 
 import pytest
 
-HEAVY_MODULES = ("numpy", "modal", "policyengine_core", "policyengine_us")
+HEAVY_DISTRIBUTIONS = (
+    "numpy",
+    "modal",
+    "policyengine-core",
+    "policyengine-us",
+)
+
+
+def _installed(distribution: str) -> bool:
+    try:
+        version(distribution)
+    except PackageNotFoundError:
+        return False
+    return True
 
 
 @pytest.mark.skipif(
-    find_spec("policyengine_us") is not None,
+    _installed("policyengine-us"),
     reason="running in the fat all-packages environment",
 )
-def test_writer_environment_excludes_heavy_modules():
-    present = [m for m in HEAVY_MODULES if find_spec(m) is not None]
+def test_writer_environment_excludes_heavy_distributions():
+    present = [d for d in HEAVY_DISTRIBUTIONS if _installed(d)]
     assert not present, (
-        "The analytics writer environment must not contain heavy modules; "
-        f"found installed: {present}"
+        "The analytics writer environment must not contain heavy "
+        f"distributions; found installed: {present}"
     )
 
 

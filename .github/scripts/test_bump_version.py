@@ -106,8 +106,20 @@ class TestUpdateFile:
 
 class TestMain:
     def test_updates_temp_project_version(self, tmp_path):
-        (tmp_path / "pyproject.toml").write_text(
-            '[project]\nname = "demo"\nversion = "1.2.3"\n'
+        core = tmp_path / "libs" / "household-api"
+        core.mkdir(parents=True)
+        (core / "pyproject.toml").write_text(
+            "[project]\n"
+            'name = "policyengine-household-api"\n'
+            'version = "1.2.3"\n'
+            "dependencies = [\n"
+            '    "policyengine-household-common==1.2.3",\n'
+            "]\n"
+        )
+        common = tmp_path / "libs" / "household-common"
+        common.mkdir(parents=True)
+        (common / "pyproject.toml").write_text(
+            '[project]\nname = "policyengine-household-common"\nversion = "1.2.3"\n'
         )
         changelog_dir = tmp_path / "changelog.d"
         changelog_dir.mkdir()
@@ -116,13 +128,18 @@ class TestMain:
         new_version = bump_version.main(tmp_path)
 
         assert new_version == "1.3.0"
-        assert 'version = "1.3.0"' in (tmp_path / "pyproject.toml").read_text()
+        core_text = (core / "pyproject.toml").read_text()
+        assert 'version = "1.3.0"' in core_text
+        assert "policyengine-household-common==1.3.0" in core_text
+        assert 'version = "1.3.0"' in (common / "pyproject.toml").read_text()
 
     def test_exits_with_code_one_when_fragments_missing(
         self, tmp_path, capsys
     ):
-        (tmp_path / "pyproject.toml").write_text(
-            '[project]\nname = "demo"\nversion = "1.2.3"\n'
+        core = tmp_path / "libs" / "household-api"
+        core.mkdir(parents=True)
+        (core / "pyproject.toml").write_text(
+            '[project]\nname = "policyengine-household-api"\nversion = "1.2.3"\n'
         )
         (tmp_path / "changelog.d").mkdir()
 

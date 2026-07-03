@@ -12,7 +12,16 @@ import time
 from typing import Any
 from urllib import error, request
 
-from tests.data.customer_households import my_friend_ben_household
+from pathlib import Path
+
+# The repo root is not on sys.path when this script runs directly (the
+# workspace's editable installs point at libs/, not the root), so anchor the
+# root explicitly to import the shared test household data.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from tests.data.customer_households import (  # noqa: E402
+    my_friend_ben_household,
+)
 
 
 BASE_URL_ENV_VAR = "HOUSEHOLD_API_BASE_URL"

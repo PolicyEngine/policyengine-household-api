@@ -15,10 +15,18 @@ from policyengine_household_analytics.orm import (
 
 
 def _alembic_config(repo_root: Path) -> Config:
-    alembic_config = Config(str(repo_root / "alembic.ini"))
+    alembic_config = Config(
+        str(repo_root / "projects" / "analytics-api" / "alembic.ini")
+    )
     alembic_config.set_main_option(
         "script_location",
-        str(repo_root / "alembic"),
+        str(
+            repo_root
+            / "libs"
+            / "household-analytics"
+            / "policyengine_household_analytics"
+            / "alembic"
+        ),
     )
     return alembic_config
 

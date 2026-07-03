@@ -17,8 +17,8 @@ from policyengine_household_common.release_manifest import (
     rewrite_manifest_for_storage,
     validate_manifest,
 )
-from policyengine_household_modal import (
-    manifest as manifest_module,
+from policyengine_household_common import (
+    release_manifest as manifest_module,
 )
 from policyengine_household_common.release_config import (
     CleanupTarget,

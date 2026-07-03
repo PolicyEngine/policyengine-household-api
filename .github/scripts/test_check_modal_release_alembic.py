@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from check_modal_release_alembic import validate_alembic_migration_changes
@@ -5,9 +7,15 @@ from policyengine_household_common.release_config import (
     ModalReleaseConfigError,
 )
 
+ALEMBIC_VERSIONS_DIR = (
+    Path("libs/household-analytics/policyengine_household_analytics")
+    / "alembic"
+    / "versions"
+)
+
 
 def test_validate_alembic_rejects_destructive_upgrade(tmp_path):
-    migration = tmp_path / "alembic" / "versions" / "20260520_0004_bad.py"
+    migration = tmp_path / ALEMBIC_VERSIONS_DIR / "20260520_0004_bad.py"
     migration.parent.mkdir(parents=True)
     migration.write_text(
         """
@@ -63,7 +71,7 @@ def test_validate_alembic_rejects_other_incompatible_upgrades(
     operation,
     expected,
 ):
-    migration = tmp_path / "alembic" / "versions" / "20260520_0004_bad.py"
+    migration = tmp_path / ALEMBIC_VERSIONS_DIR / "20260520_0004_bad.py"
     migration.parent.mkdir(parents=True)
     migration.write_text(
         f"""
@@ -87,7 +95,7 @@ def downgrade() -> None:
 
 
 def test_validate_alembic_allows_destructive_downgrade(tmp_path):
-    migration = tmp_path / "alembic" / "versions" / "20260520_0004_good.py"
+    migration = tmp_path / ALEMBIC_VERSIONS_DIR / "20260520_0004_good.py"
     migration.parent.mkdir(parents=True)
     migration.write_text(
         """

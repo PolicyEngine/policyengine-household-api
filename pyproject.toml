@@ -17,8 +17,7 @@ line-length = 79
 target-version = "py312"
 
 [tool.towncrier]
-package = "policyengine_household_api"
-package_dir = "libs/household-api"
+name = "policyengine-household-api"
 directory = "changelog.d"
 filename = "CHANGELOG.md"
 title_format = "## [{version}] - {project_date}"

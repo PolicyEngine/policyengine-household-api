@@ -19,7 +19,7 @@ from policyengine_household_common.models.analytics import (
 
 
 def test_record_analytics_duplicate_request_uuid_is_success(monkeypatch):
-    from policyengine_household_api.analytics import persistence
+    from policyengine_household_analytics import persistence
 
     mock_db = MagicMock()
     existing_request = object()
@@ -46,7 +46,7 @@ def test_record_analytics_duplicate_request_uuid_is_success(monkeypatch):
 def test_record_analytics_copies_metadata_and_truncates_variable_names(
     monkeypatch,
 ):
-    from policyengine_household_api.analytics import persistence
+    from policyengine_household_analytics import persistence
 
     mock_db = MagicMock()
     mock_db.session.query.return_value.filter_by.return_value.first.return_value = None

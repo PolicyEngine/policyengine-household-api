@@ -3,10 +3,15 @@ from pathlib import Path
 import subprocess
 
 
-def test_cloud_run_gateway_image_installs_observability_dependency():
+def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
 
-    assert '"policyengine-observability[flask]>=1.0.0"' in dockerfile
+    # The gateway installs its member's locked closure (which carries
+    # policyengine-observability) rather than a hand-maintained pip list.
+    assert "uv sync --frozen --no-install-workspace" in dockerfile
+    assert "--package policyengine-household-failover-api" in dockerfile
+    assert "--extra worker" not in dockerfile
+    assert "pip_install" not in dockerfile
     assert "numpy" not in dockerfile
 
 
