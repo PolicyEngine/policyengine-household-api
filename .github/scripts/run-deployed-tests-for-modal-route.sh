@@ -34,17 +34,33 @@ request_version="$(
 import json
 import os
 import sys
+import time
 from urllib import error, request
 
 base_url = os.environ["BASE_URL"].rstrip("/")
 channel = os.environ["CHANNEL"]
 route_mode = os.environ["ROUTE_MODE"]
 
-try:
-    with request.urlopen(f"{base_url}/versions/us", timeout=30) as response:
-        versions = json.loads(response.read().decode("utf-8"))
-except error.HTTPError as exc:
-    sys.exit(f"Could not load active Modal channels: HTTP {exc.code}")
+# The gateway is often freshly deployed (cold) when this runs, and all four
+# matrix jobs hit it at once; retry so a slow first response does not fail
+# the lane before any test executes.
+versions = None
+last_error = None
+for attempt in range(5):
+    if attempt:
+        time.sleep(15)
+    try:
+        with request.urlopen(
+            f"{base_url}/versions/us", timeout=60
+        ) as response:
+            versions = json.loads(response.read().decode("utf-8"))
+        break
+    except error.HTTPError as exc:
+        last_error = f"HTTP {exc.code}"
+    except (error.URLError, TimeoutError, OSError) as exc:
+        last_error = repr(exc)
+if versions is None:
+    sys.exit(f"Could not load active Modal channels: {last_error}")
 
 package_version = versions.get(channel)
 if not package_version:
