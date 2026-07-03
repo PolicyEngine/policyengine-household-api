@@ -12,6 +12,12 @@ dev = [
     "towncrier>=24.8.0",
 ]
 
+[tool.pytest.ini_options]
+# The repo root is not on sys.path via editable installs anymore (they point
+# at libs/), so put it there for every pytest run: the deployed and fixture
+# suites import shared data as `tests.data.…`.
+pythonpath = ["."]
+
 [tool.ruff]
 line-length = 79
 target-version = "py312"
