@@ -152,6 +152,14 @@ app:
 analytics:
   enabled: Whether to collect user analytics (default: false)
   collect_variable_usage: Whether to collect privacy-safe calculate variable usage metadata when analytics are enabled (default: true)
+  cloud_tasks:
+    project: Google Cloud project for the analytics task queue
+    location: Google Cloud region for the analytics task queue
+    queue: Cloud Tasks queue name
+    target_url: Internal Cloud Run analytics writer endpoint URL
+    service_account_email: Dispatcher service account for Google OIDC tokens
+    oidc_audience: Cloud Run writer service audience
+    dispatch_deadline_seconds: Cloud Tasks dispatch deadline for writer calls
   database:
     connection_name: Google Cloud SQL connection name
     username: Database username
@@ -170,6 +178,9 @@ auth:
 ## User Analytics Configuration
 
 User analytics is an **opt-in** feature that collects API usage metrics for monitoring and analysis. By default, analytics is **disabled**.
+When analytics is enabled, calculate requests enqueue value-free analytics
+events to Cloud Tasks. Cloud Tasks authenticates to the private Cloud Run
+writer with a Google OIDC token; it does not mint Auth0 access tokens.
 
 ### Enabling Analytics
 
@@ -181,6 +192,13 @@ Analytics can be enabled in three ways:
 analytics:
   enabled: true
   collect_variable_usage: true
+  cloud_tasks:
+    project: your-project
+    location: us-central1
+    queue: analytics-writes
+    target_url: https://writer.run.app/internal/analytics/calculate/write
+    service_account_email: tasks-dispatcher@your-project.iam.gserviceaccount.com
+    oidc_audience: https://writer.run.app
   database:
     connection_name: your-project:region:instance
     username: analytics_user
@@ -195,6 +213,14 @@ ANALYTICS__ENABLED=true
 # Optional: disable calculate variable usage metadata while keeping
 # request-count analytics enabled
 ANALYTICS__COLLECT_VARIABLE_USAGE=false
+
+# Cloud Tasks configuration for calculate analytics writes
+ANALYTICS__CLOUD_TASKS__PROJECT=your-project
+ANALYTICS__CLOUD_TASKS__LOCATION=us-central1
+ANALYTICS__CLOUD_TASKS__QUEUE=analytics-writes
+ANALYTICS__CLOUD_TASKS__TARGET_URL=https://writer.run.app/internal/analytics/calculate/write
+ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL=tasks-dispatcher@your-project.iam.gserviceaccount.com
+ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE=https://writer.run.app
 
 # Provide database credentials
 USER_ANALYTICS_DB_CONNECTION_NAME=your-connection
@@ -231,17 +257,21 @@ uv run alembic revision --autogenerate -m "Describe schema change"
 ```
 
 Staging and production deploys run `uv run alembic upgrade head` before
-deploying the App Engine version. Because deployed staging and production run
-with `ANALYTICS__ENABLED=true`, both environments must configure
+deploying Modal and Cloud Run services. Because deployed staging and production
+run with `ANALYTICS__ENABLED=true`, both environments must configure
 `USER_ANALYTICS_DB_CONNECTION_NAME`, `USER_ANALYTICS_DB_USERNAME`, and
-`USER_ANALYTICS_DB_PASSWORD`; the deploy workflow fails before deployment if
-any of those secrets are missing. At runtime, `analytics.enabled=false` skips
-analytics entirely. When `analytics.enabled=true`, analytics is required: API
-startup fails unless the required tables/columns exist and the analytics
-database is stamped at the current Alembic head, and analytics write failures
-propagate like any other required API failure. When adding a new migration,
-update the runtime Alembic head guard in
-`policyengine_household_api/data/analytics_setup.py` in the same PR.
+`USER_ANALYTICS_DB_PASSWORD`, along with the Cloud Tasks settings above; the
+deploy workflow fails before deployment if required analytics configuration is
+missing. At runtime, `analytics.enabled=false` skips analytics entirely. When
+`analytics.enabled=true`, `/calculate` requests build a value-free analytics
+event and enqueue it to Cloud Tasks on a best-effort basis. Analytics context
+or enqueue failures are logged as warnings and do not change the `/calculate`
+response. The private Cloud Run analytics writer initializes and validates the
+analytics database, persists events, and returns `500` on persistence failures
+so Cloud Tasks retries the write. The authenticated analytics read endpoint
+lazily initializes analytics storage and returns `503` if storage is
+unavailable. When adding a new migration, update the runtime Alembic head guard
+in `policyengine_household_api/data/analytics_setup.py` in the same PR.
 
 Existing analytics databases that already have the `visits` table but no
 `alembic_version` table must be stamped exactly once before running new

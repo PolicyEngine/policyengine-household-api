@@ -100,12 +100,9 @@ class HouseholdWorker:
             modal_app_name=WORKER_APP_NAME,
             modal_function_name="HouseholdWorker.handle_household_request",
         )
-        # Importing `policyengine_household_api.api` runs
-        # `initialize_analytics_db_if_enabled` at module level, which opens a
-        # Cloud SQL connection in environments where analytics is enabled.
-        # That connection needs GOOGLE_APPLICATION_CREDENTIALS, set by
-        # `configure_google_credentials()`. Configure credentials first so the
-        # snapshot-time import can succeed even before any request method runs.
+        # Configure credentials before importing the Flask app so any request
+        # path that lazily initializes Google-backed clients after snapshot
+        # restore has a usable credentials file.
         configure_google_credentials()
 
         from policyengine_household_api.api import app as flask_app
@@ -132,7 +129,10 @@ class HouseholdWorker:
 
         from policyengine_household_api.data import analytics_setup
 
-        if not analytics_setup.is_analytics_enabled():
+        if (
+            not analytics_setup.is_analytics_enabled()
+            or "sqlalchemy" not in self.flask_app.extensions
+        ):
             return
 
         analytics_setup.cleanup()

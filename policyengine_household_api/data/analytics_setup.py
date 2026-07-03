@@ -7,7 +7,7 @@ import os
 import logging
 import re
 from functools import cache
-from policyengine_household_api.utils import get_config_value
+from policyengine_household_api.utils.config_loader import get_config_value
 from policyengine_household_api.data.analytics_migration import (
     ANALYTICS_ALEMBIC_MINIMUM_REVISION,
 )
@@ -89,6 +89,28 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 
 
+def configure_analytics_db_if_enabled(app):
+    """
+    Register the analytics database extension with Flask, if enabled.
+
+    This does not connect to the database or validate schema readiness. Flask
+    extensions must be registered before the first request is handled, but the
+    API request path should not depend on analytics storage being reachable.
+    """
+    if not is_analytics_enabled():
+        return
+
+    if "sqlalchemy" in app.extensions:
+        return
+
+    database_uri = get_analytics_database_uri()
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
+    if database_uri == "mysql+pymysql://":
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
+
+    db.init_app(app)
+
+
 def initialize_analytics_db_if_enabled(app):
     """
     Initialize database configuration for the Flask app, if enabled.
@@ -101,12 +123,7 @@ def initialize_analytics_db_if_enabled(app):
     if not is_analytics_enabled():
         return
 
-    database_uri = get_analytics_database_uri()
-    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
-    if database_uri == "mysql+pymysql://":
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"creator": getconn}
-
-    db.init_app(app)
+    configure_analytics_db_if_enabled(app)
 
     with app.app_context():
         schema_ready = check_analytics_schema_ready()
