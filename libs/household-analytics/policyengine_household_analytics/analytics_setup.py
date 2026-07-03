@@ -137,9 +137,10 @@ def initialize_analytics_db_if_enabled(app):
 
 
 def get_local_analytics_database_path() -> Path:
-    from policyengine_household_api.constants import REPO
-
-    return REPO / "policyengine_household_api" / "data" / "policyengine.db"
+    # Debug-mode-only sqlite file. Resolved from the working directory so
+    # this lib never imports the core package (the writer image installs the
+    # analytics lib without the core package present).
+    return Path.cwd() / "local" / "policyengine_analytics.db"
 
 
 def get_analytics_database_uri() -> str:
@@ -302,11 +303,14 @@ def _alembic_script_directory():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
-    repo_root = Path(__file__).resolve().parents[2]
-    alembic_config = Config(str(repo_root / "alembic.ini"))
+    # Migration scripts ship as package data, so revision ancestry checks
+    # work in every runtime that installs this lib — previously they resolved
+    # from the repo root and silently fell back to string comparison in
+    # images that shipped no alembic/ directory.
+    alembic_config = Config()
     alembic_config.set_main_option(
         "script_location",
-        str(repo_root / "alembic"),
+        str(Path(__file__).resolve().parent / "alembic"),
     )
     return ScriptDirectory.from_config(alembic_config)
 

@@ -3,21 +3,16 @@
 from __future__ import annotations
 
 from logging.config import fileConfig
-from pathlib import Path
-import sys
 
 from alembic import context
 from sqlalchemy import create_engine, pool, text
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
-
-from policyengine_household_api.data.analytics_setup import (  # noqa: E402
+from policyengine_household_analytics.analytics_setup import (  # noqa: E402
     get_analytics_database_uri,
     getconn,
 )
-from policyengine_household_api.data.analytics_setup import db  # noqa: E402
-import policyengine_household_api.data.models  # noqa: F401,E402
+from policyengine_household_analytics.analytics_setup import db  # noqa: E402
+import policyengine_household_analytics.orm  # noqa: F401,E402
 
 
 config = context.config

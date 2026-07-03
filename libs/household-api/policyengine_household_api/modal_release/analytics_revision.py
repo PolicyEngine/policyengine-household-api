@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.pool import NullPool
 
-from policyengine_household_api.data.analytics_setup import (
+from policyengine_household_analytics.analytics_setup import (
     get_analytics_database_uri,
     getconn,
 )

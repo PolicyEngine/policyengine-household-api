@@ -6,8 +6,8 @@ import pytest
 from flask import Flask
 
 from policyengine_household_api.decorators.auth import ANALYTICS_READ_SCOPE
-from policyengine_household_api.data import analytics_setup
-from policyengine_household_api.data.analytics_setup import db
+from policyengine_household_analytics import analytics_setup
+from policyengine_household_analytics.analytics_setup import db
 from policyengine_household_api.endpoints import analytics
 from policyengine_household_api.endpoints.analytics import (
     get_calculate_analytics_requests,

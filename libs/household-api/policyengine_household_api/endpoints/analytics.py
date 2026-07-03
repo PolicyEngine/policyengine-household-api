@@ -9,12 +9,12 @@ from typing import Any
 from flask import Response, current_app, request
 from sqlalchemy import func
 
-from policyengine_household_api.data.analytics_setup import (
+from policyengine_household_analytics.analytics_setup import (
     initialize_analytics_db_if_enabled,
     is_analytics_enabled,
     is_analytics_schema_ready,
 )
-from policyengine_household_api.data.models import (
+from policyengine_household_analytics.orm import (
     CalculateRequest,
     CalculateRequestVariable,
 )

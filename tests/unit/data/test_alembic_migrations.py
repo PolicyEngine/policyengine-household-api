@@ -6,8 +6,8 @@ from alembic.config import Config
 from flask import Flask
 from sqlalchemy import create_engine, inspect, text
 
-from policyengine_household_api.data.analytics_setup import db
-from policyengine_household_api.data.models import (
+from policyengine_household_analytics.analytics_setup import db
+from policyengine_household_analytics.orm import (
     CalculateRequest,
     CalculateRequestVariable,
     Visit,

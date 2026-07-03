@@ -9,7 +9,7 @@ from google.protobuf import duration_pb2
 from policyengine_household_api.analytics.config import (
     cloud_tasks_analytics_config,
 )
-from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
+from policyengine_household_analytics.events import CalculateAnalyticsEvent
 
 
 @cache

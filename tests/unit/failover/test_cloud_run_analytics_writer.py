@@ -4,7 +4,7 @@ import subprocess
 import sys
 from unittest.mock import MagicMock
 
-from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
+from policyengine_household_analytics.events import CalculateAnalyticsEvent
 from policyengine_household_api.failover.cloud_run_analytics_writer import (
     create_analytics_writer_app,
 )
@@ -122,7 +122,7 @@ def test_analytics_writer_import_chain_stays_slim():
         "import sys\n"
         "import policyengine_household_api.failover."
         "cloud_run_analytics_writer\n"
-        "import policyengine_household_api.analytics.persistence\n"
+        "import policyengine_household_analytics.persistence\n"
         f"heavy = [m for m in {heavy_modules!r} if m in sys.modules]\n"
         "assert not heavy, f'writer import pulled heavy modules: {heavy}'\n"
     )

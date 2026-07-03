@@ -1,4 +1,4 @@
-from policyengine_household_api.data.analytics_setup import db
+from policyengine_household_analytics.analytics_setup import db
 from policyengine_household_common.models.analytics import (
     AnalyticsHttpMethod,
     AvailabilityStatus,

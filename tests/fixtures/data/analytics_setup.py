@@ -43,7 +43,7 @@ ANALYTICS_ENABLED_NO_CREDS_CONFIG = {
 def mock_connector():
     """Mock Google Cloud SQL Connector."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_analytics_connector"
+        "policyengine_household_analytics.analytics_setup.get_analytics_connector"
     ) as mock:
         connector_instance = MagicMock()
         connector_instance.connect = MagicMock()
@@ -55,7 +55,7 @@ def mock_connector():
 def mock_google_connector():
     """Mock the actual Google Cloud SQL Connector class."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.Connector"
+        "policyengine_household_analytics.analytics_setup.Connector"
     ) as MockConnector:
         instance = MagicMock()
         instance.connect = MagicMock()
@@ -132,7 +132,7 @@ def analytics_flask_app(monkeypatch):
 
 @pytest.fixture
 def initialized_analytics_flask_app(monkeypatch):
-    from policyengine_household_api.data.analytics_setup import db
+    from policyengine_household_analytics.analytics_setup import db
 
     database_url = _set_analytics_memory_database_url(monkeypatch)
     app = Flask(__name__)
@@ -145,7 +145,7 @@ def initialized_analytics_flask_app(monkeypatch):
 def reset_analytics_state():
     """Reset global analytics state before each test."""
     # This fixture ensures tests don't affect each other
-    import policyengine_household_api.data.analytics_setup as analytics
+    import policyengine_household_analytics.analytics_setup as analytics
 
     analytics._analytics_enabled = None
     analytics._analytics_schema_ready = True

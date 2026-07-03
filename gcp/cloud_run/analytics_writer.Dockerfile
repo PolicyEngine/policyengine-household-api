@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -U uv
 COPY ./pyproject.toml ./uv.lock /build/
 COPY ./libs/household-api/pyproject.toml ./libs/household-api/README.md /build/libs/household-api/
 COPY ./libs/household-common/pyproject.toml ./libs/household-common/README.md /build/libs/household-common/
+COPY ./libs/household-analytics/pyproject.toml ./libs/household-analytics/README.md /build/libs/household-analytics/
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 RUN uv sync --frozen --no-install-workspace --only-group analytics-writer
@@ -24,6 +25,7 @@ RUN apt-get update && \
 COPY --from=builder /opt/venv /opt/venv
 COPY ./libs/household-api/policyengine_household_api /app/policyengine_household_api
 COPY ./libs/household-common/policyengine_household_common /app/policyengine_household_common
+COPY ./libs/household-analytics/policyengine_household_analytics /app/policyengine_household_analytics
 COPY ./config /app/config
 COPY ./libs/household-api/pyproject.toml /app/pyproject.toml
 COPY ./gcp/cloud_run/analytics_writer_start.sh /app/start.sh

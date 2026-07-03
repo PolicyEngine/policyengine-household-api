@@ -22,7 +22,9 @@ def downgrade() -> None:
 
     with pytest.raises(ModalReleaseConfigError, match="destructive"):
         validate_alembic_migration_changes(
-            ["alembic/versions/20260520_0004_bad.py"],
+            [
+                "libs/household-analytics/policyengine_household_analytics/alembic/versions/20260520_0004_bad.py"
+            ],
             repo_root=tmp_path,
         )
 
@@ -77,7 +79,9 @@ def downgrade() -> None:
 
     with pytest.raises(ModalReleaseConfigError, match=expected):
         validate_alembic_migration_changes(
-            ["alembic/versions/20260520_0004_bad.py"],
+            [
+                "libs/household-analytics/policyengine_household_analytics/alembic/versions/20260520_0004_bad.py"
+            ],
             repo_root=tmp_path,
         )
 
@@ -97,6 +101,8 @@ def downgrade() -> None:
     )
 
     validate_alembic_migration_changes(
-        ["alembic/versions/20260520_0004_good.py"],
+        [
+            "libs/household-analytics/policyengine_household_analytics/alembic/versions/20260520_0004_good.py"
+        ],
         repo_root=tmp_path,
     )

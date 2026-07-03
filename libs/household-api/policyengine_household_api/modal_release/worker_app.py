@@ -127,7 +127,7 @@ class HouseholdWorker:
         os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
         configure_google_credentials()
 
-        from policyengine_household_api.data import analytics_setup
+        from policyengine_household_analytics import analytics_setup
 
         if (
             not analytics_setup.is_analytics_enabled()

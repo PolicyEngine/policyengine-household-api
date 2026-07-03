@@ -11,9 +11,9 @@ from policyengine_observability import set_attribute
 from policyengine_household_api.analytics.cloud_tasks import (
     enqueue_calculate_analytics_event,
 )
-from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
+from policyengine_household_analytics.events import CalculateAnalyticsEvent
 from policyengine_household_api.constants import VERSION
-from policyengine_household_api.data.analytics_setup import (
+from policyengine_household_analytics.analytics_setup import (
     is_analytics_enabled,
 )
 from policyengine_household_common.models.analytics import (

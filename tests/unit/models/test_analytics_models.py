@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from policyengine_household_api.data.models import (
+from policyengine_household_analytics.orm import (
     CalculateRequest,
     CalculateRequestVariable,
     Visit,

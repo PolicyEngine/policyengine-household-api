@@ -9,12 +9,10 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "policyengine-household-common==0.26.1",
-    "alembic>=1.13.0",
+    "policyengine-household-analytics==0.26.1",
     "Authlib>=1.7.0",
-    "cloud-sql-python-connector",
     "flask>=2.2",
     "flask-cors>=3",
-    "flask-sqlalchemy>=3",
     "google-cloud-logging",
     "google-cloud-storage",
     "google-cloud-tasks",
@@ -33,7 +31,6 @@ dependencies = [
     "Flask-Caching==2.0.2",
     "urllib3<=1.26.20,>=1.21.1",
     "python-dotenv",
-    "pymysql",
     "Flask-Limiter",
     "pydantic",
     "policyengine-observability[flask]>=1.0.0",
@@ -48,3 +45,4 @@ packages = ["policyengine_household_api"]
 
 [tool.uv.sources]
 policyengine-household-common = { workspace = true }
+policyengine-household-analytics = { workspace = true }

@@ -4,9 +4,9 @@ import logging
 
 from sqlalchemy.exc import IntegrityError
 
-from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
-from policyengine_household_api.data.analytics_setup import db
-from policyengine_household_api.data.models import (
+from policyengine_household_analytics.events import CalculateAnalyticsEvent
+from policyengine_household_analytics.analytics_setup import db
+from policyengine_household_analytics.orm import (
     CalculateRequest,
     CalculateRequestVariable,
     Visit,

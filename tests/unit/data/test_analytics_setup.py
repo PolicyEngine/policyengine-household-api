@@ -17,7 +17,7 @@ class TestAnalyticsEnabled:
         patch_get_config_value_returns_false,
     ):
         """Analytics should be disabled by default when no config is set."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             is_analytics_enabled,
         )
 
@@ -30,7 +30,7 @@ class TestAnalyticsEnabled:
         patch_get_config_value_returns_true,
     ):
         """Analytics should be enabled when config explicitly enables it."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             is_analytics_enabled,
         )
 
@@ -43,7 +43,7 @@ class TestAnalyticsEnabled:
         patch_get_config_value_returns_true,
     ):
         """Analytics should be enabled when ANALYTICS__ENABLED env var is set."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             is_analytics_enabled,
         )
 
@@ -56,7 +56,7 @@ class TestAnalyticsEnabled:
         patch_get_config_value_raises_exception,
     ):
         """Analytics should remain disabled with only partial credentials."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             is_analytics_enabled,
         )
 
@@ -70,7 +70,7 @@ class TestAnalyticsEnabled:
         patch_get_config_value_returns_true,
     ):
         """Analytics state should be cached after first check."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             is_analytics_enabled,
         )
 
@@ -97,7 +97,7 @@ class TestAnalyticsConnector:
         patch_get_config_value_returns_false,
     ):
         """Connector should return None when analytics is disabled."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             get_analytics_connector,
         )
 
@@ -111,7 +111,7 @@ class TestAnalyticsConnector:
         patch_get_config_value_returns_true,
     ):
         """Connector should be initialized when analytics is enabled."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             get_analytics_connector,
         )
 
@@ -127,7 +127,7 @@ class TestAnalyticsConnector:
         patch_analytics_connector_class,
     ):
         """Connector should be cached after first initialization."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             get_analytics_connector,
         )
 
@@ -148,7 +148,7 @@ class TestAnalyticsConnector:
         patch_google_connector_raises_import_error,
     ):
         """Connector should return None if Google Cloud SQL library not available."""
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             get_analytics_connector,
         )
 
@@ -166,7 +166,7 @@ class TestGetConnection:
         patch_get_config_value_returns_false,
     ):
         """Connection should return None when analytics is disabled."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        from policyengine_household_analytics.analytics_setup import getconn
 
         assert getconn() is None
 
@@ -179,7 +179,7 @@ class TestGetConnection:
         mock_pymysql_connection,
     ):
         """Connection should succeed with valid configuration."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        from policyengine_household_analytics.analytics_setup import getconn
 
         mock_google_connector.connect.return_value = mock_pymysql_connection
 
@@ -195,7 +195,7 @@ class TestGetConnection:
         patch_get_config_value_missing_connection_name,
     ):
         """Connection should return None if connection_name is missing."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        from policyengine_household_analytics.analytics_setup import getconn
 
         # Set up env with missing connection name
         os.environ["ANALYTICS__ENABLED"] = "true"
@@ -213,7 +213,7 @@ class TestGetConnection:
         patch_get_config_value_missing_username,
     ):
         """Connection should return None if username is missing."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        from policyengine_household_analytics.analytics_setup import getconn
 
         os.environ["ANALYTICS__ENABLED"] = "true"
         os.environ["USER_ANALYTICS_DB_CONNECTION_NAME"] = (
@@ -232,7 +232,7 @@ class TestGetConnection:
         patch_get_config_value_missing_password,
     ):
         """Connection should return None if password is missing."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        from policyengine_household_analytics.analytics_setup import getconn
 
         os.environ["ANALYTICS__ENABLED"] = "true"
         os.environ["USER_ANALYTICS_DB_CONNECTION_NAME"] = (
@@ -251,7 +251,7 @@ class TestGetConnection:
         patch_google_connector_with_connection_error,
     ):
         """Connection should return None if connection fails."""
-        from policyengine_household_api.data.analytics_setup import getconn
+        from policyengine_household_analytics.analytics_setup import getconn
 
         conn = getconn()
         assert conn is None
@@ -264,7 +264,7 @@ class TestAnalyticsDatabaseInitialization:
         analytics_flask_app,
         patch_analytics_initialization_ready,
     ):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             initialize_analytics_db_if_enabled,
         )
 
@@ -282,7 +282,7 @@ class TestAnalyticsDatabaseInitialization:
         analytics_flask_app,
         patch_analytics_initialization_schema_not_ready,
     ):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             initialize_analytics_db_if_enabled,
             is_analytics_schema_ready,
         )
@@ -296,7 +296,7 @@ class TestAnalyticsDatabaseInitialization:
         self,
         reset_analytics_state,
     ):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             _missing_required_schema,
         )
 
@@ -326,7 +326,7 @@ class TestAnalyticsDatabaseInitialization:
         initialized_analytics_flask_app,
         patch_schema_check_missing_alembic_version,
     ):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             check_analytics_schema_ready,
         )
 
@@ -339,7 +339,7 @@ class TestAnalyticsDatabaseInitialization:
         initialized_analytics_flask_app,
         patch_schema_check_wrong_alembic_version,
     ):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             check_analytics_schema_ready,
         )
 
@@ -352,7 +352,7 @@ class TestAnalyticsDatabaseInitialization:
         initialized_analytics_flask_app,
         patch_schema_check_head_alembic_version,
     ):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             check_analytics_schema_ready,
         )
 
@@ -362,7 +362,7 @@ class TestAnalyticsDatabaseInitialization:
 
 class TestAlembicRevisionCompatibility:
     def test__exact_minimum_revision__is_compatible(self):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             ANALYTICS_ALEMBIC_MINIMUM_REVISION,
             _alembic_revision_is_compatible,
         )
@@ -372,7 +372,7 @@ class TestAlembicRevisionCompatibility:
         )
 
     def test__known_descendant_revision__is_compatible(self):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             _alembic_revision_is_compatible,
         )
 
@@ -382,21 +382,21 @@ class TestAlembicRevisionCompatibility:
         )
 
     def test__older_known_revision__is_not_compatible(self):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             _alembic_revision_is_compatible,
         )
 
         assert not _alembic_revision_is_compatible("20260508_0001")
 
     def test__future_timestamp_revision__is_compatible(self):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             _alembic_revision_is_compatible,
         )
 
         assert _alembic_revision_is_compatible("20990101_0001")
 
     def test__unknown_unordered_revision__is_not_compatible(self):
-        from policyengine_household_api.data.analytics_setup import (
+        from policyengine_household_analytics.analytics_setup import (
             _alembic_revision_is_compatible,
         )
 
@@ -410,8 +410,8 @@ class TestCleanup:
         self, reset_analytics_state, mock_closeable_connector
     ):
         """Cleanup should close the connector if it exists."""
-        from policyengine_household_api.data.analytics_setup import cleanup
-        import policyengine_household_api.data.analytics_setup as analytics
+        from policyengine_household_analytics.analytics_setup import cleanup
+        import policyengine_household_analytics.analytics_setup as analytics
 
         analytics._connector = mock_closeable_connector
 
@@ -424,7 +424,7 @@ class TestCleanup:
         self, reset_analytics_state
     ):
         """Cleanup should handle case where no connector exists."""
-        from policyengine_household_api.data.analytics_setup import cleanup
+        from policyengine_household_analytics.analytics_setup import cleanup
 
         # Should not raise error
         cleanup()
@@ -433,8 +433,8 @@ class TestCleanup:
         self, reset_analytics_state, mock_closeable_connector
     ):
         """Cleanup should handle errors when closing connector."""
-        from policyengine_household_api.data.analytics_setup import cleanup
-        import policyengine_household_api.data.analytics_setup as analytics
+        from policyengine_household_analytics.analytics_setup import cleanup
+        import policyengine_household_analytics.analytics_setup as analytics
 
         mock_closeable_connector.close.side_effect = Exception("Close failed")
         analytics._connector = mock_closeable_connector

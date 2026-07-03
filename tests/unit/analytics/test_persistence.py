@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
-from policyengine_household_api.analytics.persistence import record_analytics
-from policyengine_household_api.data.models import (
+from policyengine_household_analytics.persistence import record_analytics
+from policyengine_household_analytics.orm import (
     CalculateRequest,
     CalculateRequestVariable,
     Visit,

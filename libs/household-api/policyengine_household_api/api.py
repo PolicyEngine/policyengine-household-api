@@ -23,7 +23,7 @@ from policyengine_household_common.observability.flask import (
 
 # Internal imports
 from .decorators.auth import ANALYTICS_READ_SCOPE, create_auth_decorator
-from policyengine_household_api.data.analytics_setup import (
+from policyengine_household_analytics.analytics_setup import (
     configure_analytics_db_if_enabled,
 )
 from policyengine_household_api.decorators.analytics import (

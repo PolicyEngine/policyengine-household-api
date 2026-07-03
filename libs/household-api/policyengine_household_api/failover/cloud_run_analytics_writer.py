@@ -8,11 +8,11 @@ from policyengine_observability import operation, record_error, set_attribute
 from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest
 
-from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
-from policyengine_household_api.analytics.persistence import (
+from policyengine_household_analytics.events import CalculateAnalyticsEvent
+from policyengine_household_analytics.persistence import (
     record_calculate_analytics_event,
 )
-from policyengine_household_api.data.analytics_setup import (
+from policyengine_household_analytics.analytics_setup import (
     initialize_analytics_db_if_enabled,
 )
 from policyengine_household_common.request_limits import (

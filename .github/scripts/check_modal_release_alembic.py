@@ -61,9 +61,9 @@ def validate_alembic_migration_changes(
 
 
 def _is_alembic_version_file(filename: str) -> bool:
-    return filename.startswith("alembic/versions/") and filename.endswith(
-        ".py"
-    )
+    return filename.startswith(
+        "libs/household-analytics/policyengine_household_analytics/alembic/versions/"
+    ) and filename.endswith(".py")
 
 
 def _destructive_upgrade_operations(migration_text: str) -> set[str]:
