@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 import logging
+import subprocess
+import sys
 from unittest.mock import MagicMock
 
 from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
@@ -101,3 +103,34 @@ def test_analytics_writer_db_failure_returns_500_for_cloud_tasks_retry(
     assert response.status_code == 500
     assert response.get_json()["code"] == "analytics_write_failed"
     assert "Failed to persist calculate analytics event" in caplog.text
+
+
+def test_analytics_writer_import_chain_stays_slim():
+    """The writer image installs only the analytics-writer dependency group.
+
+    Importing the writer must not pull modules excluded from that group
+    (numpy via utils.json, country model packages via calculation code), or
+    the deployed writer crash-loops at gunicorn worker boot.
+    """
+    heavy_modules = (
+        "numpy",
+        "policyengine_core",
+        "policyengine_uk",
+        "policyengine_us",
+    )
+    probe = (
+        "import sys\n"
+        "import policyengine_household_api.failover."
+        "cloud_run_analytics_writer\n"
+        "import policyengine_household_api.analytics.persistence\n"
+        f"heavy = [m for m in {heavy_modules!r} if m in sys.modules]\n"
+        "assert not heavy, f'writer import pulled heavy modules: {heavy}'\n"
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
