@@ -6,11 +6,6 @@ import tempfile
 
 import modal
 
-from policyengine_household_api.deployment import (
-    country_package_install_specs,
-    snapshot_tax_benefit_systems,
-)
-
 FIRST_PARTY_PACKAGES = (
     "policyengine_household_api",
     "policyengine_household_common",
@@ -56,6 +51,13 @@ def _locked_requirements_file(*, worker_extra: bool) -> str:
 
 
 def household_api_worker_image() -> modal.Image:
+    # Imported lazily: this module is also imported inside gateway and canary
+    # containers, whose images deliberately do not ship the core package.
+    from policyengine_household_api.deployment import (
+        country_package_install_specs,
+        snapshot_tax_benefit_systems,
+    )
+
     image = modal.Image.debian_slim(python_version="3.13").uv_pip_install(
         requirements=[_locked_requirements_file(worker_extra=True)]
     )
