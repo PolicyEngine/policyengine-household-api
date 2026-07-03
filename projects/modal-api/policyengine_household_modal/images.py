@@ -51,6 +51,13 @@ def _locked_requirements_file(*, worker_extra: bool) -> str:
 
 
 def household_api_worker_image() -> modal.Image:
+    if not modal.is_local():
+        # Inside a running container this module is re-imported for the app
+        # definitions, but the image is already built; return a placeholder
+        # instead of re-running the deploy-machine-only build steps below
+        # (uv export subprocesses, core package imports).
+        return modal.Image.debian_slim(python_version="3.13")
+
     # Imported lazily: this module is also imported inside gateway and canary
     # containers, whose images deliberately do not ship the core package.
     from policyengine_household_api.deployment import (
@@ -72,6 +79,10 @@ def household_api_worker_image() -> modal.Image:
 
 
 def household_api_gateway_image() -> modal.Image:
+    if not modal.is_local():
+        # See household_api_worker_image: containers only need a placeholder.
+        return modal.Image.debian_slim(python_version="3.13")
+
     return (
         modal.Image.debian_slim(python_version="3.13")
         .uv_pip_install(
