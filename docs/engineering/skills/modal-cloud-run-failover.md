@@ -154,3 +154,19 @@ When changing this system, include focused tests for:
 - deployed tests for normal Modal-primary routing and forced Cloud Run fallback
 - a 25-concurrent-request load test against the Cloud Run gateway before any
   production traffic cutover
+
+## Analytics writer ownership
+
+The Cloud Run analytics writer is not part of the failover deploy: it deploys
+in its own workflow job (`.github/scripts/cloud-run-deploy-analytics.sh`)
+before either integration-test lane, and the failover deploy consumes the
+deployed writer URL via `HOUSEHOLD_ANALYTICS_WRITER_URL`. Analytics database
+migrations run first in the dedicated `migrate-analytics-db` jobs.
+
+## Startup probes
+
+Every Cloud Run service (gateway, workers, analytics writer) deploys with an
+HTTP startup probe against `/liveness_check`, applied by
+`cloud_run_apply_startup_probe.py` via a describe/patch/replace round trip.
+A revision whose app cannot serve HTTP fails its own deploy job; do not
+remove the probes in favor of the default TCP port check.

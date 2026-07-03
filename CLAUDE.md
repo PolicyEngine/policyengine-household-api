@@ -16,6 +16,10 @@ architecture rules here.
 Before opening, replacing, or sharing a PR, read
 `docs/engineering/skills/github-prs.md`.
 
+When moving code between workspace members, adding a workspace member, or
+changing member dependencies, read
+`docs/engineering/skills/monorepo-layout.md`.
+
 When changing analytics database models or Alembic migrations, read
 `docs/engineering/skills/database-migrations.md`.
 

@@ -14,6 +14,8 @@ Current skills:
   published-Dockerfile rules.
 - `github-prs.md`: same-repository PR workflow, PR head verification, changelog
   expectations, and title conventions.
+- `monorepo-layout.md`: uv workspace member map, dependency direction
+  rules, versioning/publishing, and Docker/Modal build patterns.
 - `modal-cloud-run-failover.md`: Cloud Run gateway and fallback worker
   behavior when Modal remains the primary compute backend.
 - `modal-release-prs.md`: current/frontier Modal deployment behavior and PR

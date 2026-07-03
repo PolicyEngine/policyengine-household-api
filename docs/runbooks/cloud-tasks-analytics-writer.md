@@ -89,11 +89,15 @@ private Cloud Run IAM rather than an in-process Auth0 scope check.
 
 ## CI/CD Behavior
 
-When `ANALYTICS__ENABLED=true`,
-`.github/scripts/cloud-run-deploy-failover.sh` builds and deploys a dedicated
-Cloud Run analytics writer image before fallback workers. It then passes the
-writer target URL and Cloud Tasks settings into fallback worker environment
-variables.
+When `ANALYTICS__ENABLED=true`, the release workflow deploys the analytics
+writer in its own job (`.github/scripts/cloud-run-deploy-analytics.sh`)
+before either integration-test lane runs, so tests that assert analytics rows
+never race the writer deploy. Analytics database migrations run first in a
+dedicated `migrate-analytics-db` job. The Cloud Run failover deploy consumes
+the deployed writer URL from the workflow and passes the target URL and Cloud
+Tasks settings into fallback worker environment variables. All Cloud Run
+services deploy with an HTTP startup probe, so a revision whose app cannot
+serve HTTP fails its own deploy job instead of passing a TCP port check.
 
 When analytics is disabled, failover deployment skips the writer and does not
 require writer service-account, Cloud Tasks configuration, or analytics database
