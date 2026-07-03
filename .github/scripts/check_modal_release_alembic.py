@@ -7,6 +7,7 @@ from pathlib import Path
 
 from modal_release_check_common import (
     get_changed_files,
+    get_file_at_ref,
     parse_changed_files_args,
 )
 from policyengine_household_common.release_config import (
@@ -21,7 +22,9 @@ def main() -> int:
     changed_files = get_changed_files(args.base_ref)
 
     try:
-        validate_alembic_migration_changes(changed_files)
+        validate_alembic_migration_changes(
+            changed_files, base_ref=args.base_ref
+        )
     except ModalReleaseConfigError as e:
         print(f"::error::{e}")
         return 1
@@ -34,6 +37,7 @@ def validate_alembic_migration_changes(
     changed_files: list[str],
     *,
     repo_root: Path | None = None,
+    base_ref: str | None = None,
 ) -> None:
     root = repo_root or Path.cwd()
     for filename in changed_files:
@@ -47,6 +51,12 @@ def validate_alembic_migration_changes(
                 f"release PR: {filename}"
             )
 
+        if _is_unchanged_relocation(migration_path, filename, base_ref):
+            # Historical migrations moved verbatim (e.g. from the pre-
+            # workspace alembic/versions/ location) predate this rule and
+            # are not re-validated.
+            continue
+
         destructive_operations = _destructive_upgrade_operations(
             migration_path.read_text()
         )
@@ -58,6 +68,22 @@ def validate_alembic_migration_changes(
                 f"both active. Found destructive operation(s) in {filename}: "
                 f"{operations}."
             )
+
+
+LEGACY_ALEMBIC_VERSIONS_PREFIX = "alembic/versions/"
+
+
+def _is_unchanged_relocation(
+    migration_path: Path,
+    filename: str,
+    base_ref: str | None,
+) -> bool:
+    legacy_path = LEGACY_ALEMBIC_VERSIONS_PREFIX + Path(filename).name
+    try:
+        base_content = get_file_at_ref(legacy_path, base_ref)
+    except Exception:
+        return False
+    return base_content == migration_path.read_text()
 
 
 def _is_alembic_version_file(filename: str) -> bool:
