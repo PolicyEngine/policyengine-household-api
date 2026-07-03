@@ -1,3 +1,10 @@
+## [0.26.0] - 2026-07-03
+
+### Added
+
+- Move calculate analytics writes off the request path using Cloud Tasks and a Cloud Run analytics writer.
+
+
 ## [0.25.8] - 2026-07-02
 
 ### Fixed
