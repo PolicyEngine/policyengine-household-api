@@ -247,7 +247,7 @@ def write_github_output(key, value):
 def main():
     """Main entry point for the script."""
     # Read current versions from pyproject.toml
-    with open("pyproject.toml", "r") as f:
+    with open("libs/household-api/pyproject.toml", "r") as f:
         pyproject_content = f.read()
 
     current_versions = get_current_versions(pyproject_content)
@@ -271,7 +271,7 @@ def main():
     new_pyproject_content = update_pyproject_content(
         pyproject_content, updates
     )
-    with open("pyproject.toml", "w") as f:
+    with open("libs/household-api/pyproject.toml", "w") as f:
         f.write(new_pyproject_content)
 
     # Generate and save PR summary

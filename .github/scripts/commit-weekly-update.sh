@@ -19,6 +19,6 @@ if [ "${#FRAGMENTS[@]}" -eq 0 ]; then
   exit 1
 fi
 
-git add pyproject.toml uv.lock "${FRAGMENTS[@]}"
+git add libs/household-api/pyproject.toml uv.lock "${FRAGMENTS[@]}"
 git commit -m "Update policyengine-us (${UPDATES_SUMMARY})"
 git push -f origin "$BRANCH_NAME"

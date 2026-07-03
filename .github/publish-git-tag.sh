@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-version=$(python -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')
+version=$(python -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("libs/household-api/pyproject.toml").read_text())["project"]["version"])')
 
 if git rev-parse --verify --quiet "refs/tags/$version" >/dev/null
 then

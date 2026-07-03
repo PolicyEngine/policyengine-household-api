@@ -17,6 +17,8 @@ on:
       - .github/workflows/pr-docker-build.yml
       - .github/scripts/plan_docker_tags.py
       - pyproject.toml
+      - "libs/*/pyproject.toml"
+      - "projects/*/pyproject.toml"
       - uv.lock
 
 permissions:

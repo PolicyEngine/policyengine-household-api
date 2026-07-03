@@ -71,6 +71,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
       - name: Install dependencies
         run: make install
 
@@ -117,15 +120,18 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
       - name: Install dependencies
-        run: pip install -e .
+        run: uv sync --all-packages
 
       - name: Resolve Modal release config
         id: resolve
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python .github/scripts/resolve_modal_release_config.py \
+          uv run python .github/scripts/resolve_modal_release_config.py \
             --output-json modal-release-config.json
 
   migrate-analytics-db-staging:
@@ -158,7 +164,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Run analytics database migrations
         run: uv run alembic upgrade head
@@ -198,7 +204,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Deploy Cloud Run analytics writer
         id: deploy
@@ -242,7 +248,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Ensure Modal staging environment exists
         run: uv run modal environment create staging 2>/dev/null || true
@@ -310,7 +316,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Fetch Auth0 test token
         env:
@@ -365,7 +371,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Deploy Cloud Run failover services
         id: deploy
@@ -421,7 +427,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Fetch Auth0 test token
         env:
@@ -482,7 +488,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Fetch Auth0 test token
         env:
@@ -549,7 +555,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Download deferred Modal cleanup manifest
         uses: actions/download-artifact@v8
@@ -620,7 +626,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Run analytics database migrations
         run: uv run alembic upgrade head
@@ -660,7 +666,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Deploy Cloud Run analytics writer
         id: deploy
@@ -704,7 +710,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Deploy Modal app set
         id: deploy
@@ -779,7 +785,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Deploy Cloud Run failover services
         id: deploy
@@ -828,7 +834,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
 
       - name: Download deferred Modal cleanup manifest
         uses: actions/download-artifact@v8
@@ -884,7 +890,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.2.0
 
       - name: Build package
-        run: uv build
+        run: uv build --package policyengine-household-api
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

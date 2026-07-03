@@ -2,26 +2,26 @@
 help:  ## Print this message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
-install: ## Install Python dependencies
-	pip install -U -e .[dev]
+install: ## Install the full workspace with dev tooling
+	uv sync --all-packages
 
 debug: ## Run Flask app with FLASK_DEBUG=1
-	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 flask run --without-threads --host=0.0.0.0
+	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 uv run flask run --without-threads --host=0.0.0.0
 
 test: ## Run unit tests
-	pytest -vv --timeout=150 -rP .github/scripts tests/to_refactor tests/unit
+	uv run pytest -vv --timeout=150 -rP .github/scripts tests/to_refactor tests/unit
 
 test-with-auth: ## Run integration tests
-	CONFIG_FILE=config/test_with_auth.yaml pytest -vv --timeout=150 -rP tests/integration_with_auth
+	CONFIG_FILE=config/test_with_auth.yaml uv run pytest -vv --timeout=150 -rP tests/integration_with_auth
 
 debug-test: ## Run tests with FLASK_DEBUG=1
-	FLASK_DEBUG=1 pytest -vv --durations=0 --timeout=150 -rP tests
+	FLASK_DEBUG=1 uv run pytest -vv --durations=0 --timeout=150 -rP tests
 
 format: ## Format code with Ruff
-	ruff format .
+	uv run ruff format .
 
 format-check: ## Check code formatting with Ruff
-	ruff format --check .
+	uv run ruff format --check .
 
 deploy: ## Deploy to GCP
 	python gcp/export.py
@@ -33,7 +33,7 @@ deploy: ## Deploy to GCP
 	rm .gac.json
 
 changelog: ## Build changelog
-	python .github/scripts/update_versioning.py
+	uv run python .github/scripts/update_versioning.py
 
 COMPOSE_FILE ?= docker/docker-compose.yml
 COMPOSE_EXTERNAL_FILE ?= docker/docker-compose.external.yml

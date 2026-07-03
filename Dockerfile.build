@@ -9,7 +9,7 @@ RUN python3.12 -m pip install --upgrade pip
 # Copy and install the application
 WORKDIR /app
 COPY . /app
-RUN pip install -e .
+RUN pip install -e ./libs/household-api
 
 # Start Redis
 RUN service redis-server start

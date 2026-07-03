@@ -37,9 +37,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Sync dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-packages
       - name: Build changelog
         run: uv run python .github/scripts/update_versioning.py
+      - name: Refresh lockfile for the bumped member versions
+        run: uv lock
       - name: Update changelog
         uses: EndBug/add-and-commit@v10
         with:

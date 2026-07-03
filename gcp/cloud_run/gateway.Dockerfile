@@ -15,8 +15,8 @@ RUN pip install --no-cache-dir \
     "policyengine-observability[flask]>=1.0.0" \
     "pyyaml>=6"
 
-COPY ./policyengine_household_api /app/policyengine_household_api
-COPY ./pyproject.toml /app/pyproject.toml
+COPY ./libs/household-api/policyengine_household_api /app/policyengine_household_api
+COPY ./libs/household-api/pyproject.toml /app/pyproject.toml
 COPY ./gcp/cloud_run/gateway_start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 

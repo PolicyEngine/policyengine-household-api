@@ -8,14 +8,14 @@ RUN apt-get update && \
 
 RUN pip install --no-cache-dir -U uv
 
-COPY ./pyproject.toml ./uv.lock ./README.md /build/
+COPY ./pyproject.toml ./uv.lock /build/
 COPY ./alembic.ini /build/alembic.ini
 COPY ./alembic /build/alembic
 COPY ./config /build/config
-COPY ./policyengine_household_api /build/policyengine_household_api
+COPY ./libs /build/libs
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --all-packages
 
 ARG HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON={}
 ENV HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON=${HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON}
@@ -45,11 +45,11 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /build/pyproject.toml /app/pyproject.toml
+COPY --from=builder /build/libs/household-api/pyproject.toml /app/pyproject.toml
 COPY --from=builder /build/alembic.ini /app/alembic.ini
 COPY --from=builder /build/alembic /app/alembic
 COPY --from=builder /build/config /app/config
-COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
+COPY --from=builder /build/libs/household-api/policyengine_household_api /app/policyengine_household_api
 COPY ./gcp/cloud_run/worker_start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
