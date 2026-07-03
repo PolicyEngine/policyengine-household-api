@@ -3,170 +3,10 @@ set -euo pipefail
 
 channels_script="${CLOUD_RUN_CHANNELS_SCRIPT:-.github/scripts/cloud_run_failover_channels.py}"
 scaling_controls_script="${CLOUD_RUN_SCALING_CONTROLS_SCRIPT:-.github/scripts/cloud_run_apply_scaling_controls.py}"
-curl_bin="${CURL_BIN:-curl}"
-docker_bin="${DOCKER_BIN:-docker}"
-gcloud_bin="${GCLOUD_BIN:-gcloud}"
-uv_bin="${UV_BIN:-uv}"
-output_file="${GITHUB_OUTPUT:-}"
 
-require_env() {
-  local missing=()
-  for key in "$@"; do
-    if [ -z "${!key:-}" ]; then
-      missing+=("$key")
-    fi
-  done
-  if [ "${#missing[@]}" -gt 0 ]; then
-    echo "::error::Missing required environment variable(s): ${missing[*]}"
-    exit 1
-  fi
-}
-
-is_truthy() {
-  case "${1:-}" in
-    1 | true | True | TRUE | yes | Yes | YES)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
-
-require_analytics_cloud_tasks_env() {
-  if ! is_truthy "${ANALYTICS__ENABLED:-false}"; then
-    return
-  fi
-
-  require_env \
-    ANALYTICS__CLOUD_TASKS__PROJECT \
-    ANALYTICS__CLOUD_TASKS__LOCATION \
-    ANALYTICS__CLOUD_TASKS__QUEUE \
-    ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL
-}
-
-cloud_run_environment() {
-  if [ -n "${HOUSEHOLD_CLOUD_RUN_ENVIRONMENT:-}" ]; then
-    printf '%s\n' "${HOUSEHOLD_CLOUD_RUN_ENVIRONMENT}"
-  elif [ "${MODAL_ENVIRONMENT}" = "main" ]; then
-    printf '%s\n' "production"
-  else
-    printf '%s\n' "${MODAL_ENVIRONMENT}"
-  fi
-}
-
-append_env_if_set() {
-  local env_file="${1:?env file is required}"
-  local key="${2:?env key is required}"
-  if [ -n "${!key:-}" ]; then
-    append_env_value "${env_file}" "${key}" "${!key}"
-  fi
-}
-
-append_env_value() {
-  local env_file="${1:?env file is required}"
-  local key="${2:?env key is required}"
-  local value="${3:-}"
-  local line
-
-  printf '%s: |-\n' "${key}" >> "${env_file}"
-  while IFS= read -r line || [ -n "${line}" ]; do
-    printf '  %s\n' "${line}" >> "${env_file}"
-  done <<EOF
-${value}
-EOF
-}
-
-append_observability_env() {
-  local env_file="${1:?env file is required}"
-
-  append_env_value "${env_file}" OBSERVABILITY_ENVIRONMENT "${environment}"
-  append_env_value "${env_file}" OBSERVABILITY_PLATFORM "google_cloud_run"
-  append_env_if_set "${env_file}" OBSERVABILITY_ENABLED
-  append_env_if_set "${env_file}" OBSERVABILITY_REQUEST_LOGS_ENABLED
-  append_env_if_set "${env_file}" OBSERVABILITY_LOG_RAW_IP
-}
-
-env_args_from_file() {
-  local env_file="${1:?env file is required}"
-  if [ ! -s "${env_file}" ]; then
-    return
-  fi
-  printf '%s\n' "--env-vars-file=${env_file}"
-}
-
-sync_secret_if_set() {
-  local secrets_file="${1:?secrets file is required}"
-  local key="${2:?secret env key is required}"
-  local secret_override_key="HOUSEHOLD_CLOUD_RUN_SECRET_${key}"
-  local secret_override_value="${!secret_override_key:-}"
-  local secret_name="${secret_override_value:-${secret_prefix}-${key}}"
-  local secret_value_file
-
-  if [ -z "${!key:-}" ]; then
-    return
-  fi
-
-  if ! "${gcloud_bin}" secrets describe "${secret_name}" \
-    --project "${project}" >/dev/null 2>&1; then
-    "${gcloud_bin}" secrets create "${secret_name}" \
-      --project "${project}" \
-      --replication-policy automatic \
-      --quiet
-  fi
-
-  secret_value_file="$(mktemp)"
-  chmod 600 "${secret_value_file}"
-  printf '%s' "${!key}" > "${secret_value_file}"
-  if ! "${gcloud_bin}" secrets versions add "${secret_name}" \
-    --project "${project}" \
-    --data-file "${secret_value_file}" >/dev/null; then
-    rm -f "${secret_value_file}"
-    return 1
-  fi
-  rm -f "${secret_value_file}"
-
-  printf '%s=%s:latest\n' "${key}" "${secret_name}" >> "${secrets_file}"
-}
-
-secret_args_from_file() {
-  local secrets_file="${1:?secrets file is required}"
-  local joined=""
-  local line
-
-  if [ ! -s "${secrets_file}" ]; then
-    return
-  fi
-
-  while IFS= read -r line; do
-    if [ -z "${joined}" ]; then
-      joined="${line}"
-    else
-      joined="${joined},${line}"
-    fi
-  done < "${secrets_file}"
-  printf '%s\n' "--set-secrets=${joined}"
-}
-
-service_name() {
-  local role="${1:?role is required}"
-  local channel="${2:-}"
-  if [ -n "${channel}" ]; then
-    printf '%s-%s-%s\n' "${service_prefix}" "${channel}" "${role}"
-  else
-    printf '%s-%s\n' "${service_prefix}" "${role}"
-  fi
-}
-
-github_output() {
-  if [ -n "${output_file}" ]; then
-    printf '%s=%s\n' "$1" "$2" >> "${output_file}"
-  fi
-}
-
-deploy_run_service() {
-  "$@"
-}
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=cloud-run-deploy-lib.sh
+source "${script_dir}/cloud-run-deploy-lib.sh"
 
 apply_worker_scaling_controls() {
   local service="${1:?service is required}"
@@ -204,7 +44,9 @@ require_env \
   HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT
 
 if is_truthy "${ANALYTICS__ENABLED:-false}"; then
-  require_env HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT
+  # The analytics writer deploys in its own job before this script runs; the
+  # workflow passes the deployed writer URL in so workers can enqueue to it.
+  require_env HOUSEHOLD_ANALYTICS_WRITER_URL
 fi
 
 project="${GOOGLE_CLOUD_PROJECT}"
@@ -223,12 +65,6 @@ image_base="${artifact_host}/${project}/${repository}"
 # back to the broad Compute Engine default service account for a public deploy.
 gateway_service_account="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT}"
 worker_service_account="${HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT}"
-analytics_writer_service_account=""
-if is_truthy "${ANALYTICS__ENABLED:-false}"; then
-  analytics_writer_service_account="$(
-    printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT}"
-  )"
-fi
 
 gateway_service="${HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE:-$(service_name gateway)}"
 gateway_image="${image_base}/${gateway_service}:${image_tag}"
@@ -240,6 +76,9 @@ gateway_cpu="${HOUSEHOLD_CLOUD_RUN_GATEWAY_CPU:-1}"
 gateway_memory="${HOUSEHOLD_CLOUD_RUN_GATEWAY_MEMORY:-512Mi}"
 gateway_ingress="${HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS:-}"
 gateway_public_url="${HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL:-}"
+gateway_probe_period_seconds="${HOUSEHOLD_CLOUD_RUN_GATEWAY_PROBE_PERIOD_SECONDS:-2}"
+gateway_probe_timeout_seconds="${HOUSEHOLD_CLOUD_RUN_GATEWAY_PROBE_TIMEOUT_SECONDS:-2}"
+gateway_probe_failure_threshold="${HOUSEHOLD_CLOUD_RUN_GATEWAY_PROBE_FAILURE_THRESHOLD:-30}"
 
 worker_min_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MIN_INSTANCES:-0}"
 worker_max_instances="${HOUSEHOLD_CLOUD_RUN_WORKER_MAX_INSTANCES:-100}"
@@ -252,148 +91,41 @@ worker_memory="${HOUSEHOLD_CLOUD_RUN_WORKER_MEMORY:-4Gi}"
 worker_scaling_concurrency_target="$(
   printf '%s' "${HOUSEHOLD_CLOUD_RUN_WORKER_SCALING_CONCURRENCY_TARGET:-0.3}"
 )"
-
-analytics_writer_service="$(
-  printf '%s' \
-    "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE:-$(service_name analytics-writer)}"
-)"
-analytics_writer_image="${image_base}/${analytics_writer_service}:${image_tag}"
-analytics_writer_min_instances="$(
-  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_MIN_INSTANCES:-0}"
-)"
-analytics_writer_max_instances="$(
-  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_MAX_INSTANCES:-20}"
-)"
-analytics_writer_concurrency="$(
-  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_CONCURRENCY:-20}"
-)"
-analytics_writer_threads="$(
-  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_THREADS:-8}"
-)"
-analytics_writer_timeout="$(
-  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_TIMEOUT_SECONDS:-300}"
-)"
-analytics_writer_cpu="$(
-  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_CPU:-1}"
-)"
-analytics_writer_memory="$(
-  printf '%s' "${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_MEMORY:-512Mi}"
-)"
-analytics_writer_ingress="${HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_INGRESS:-}"
+# Workers load snapshotted tax-benefit systems at boot, so their startup
+# budget is much larger than the gateway's.
+worker_probe_period_seconds="${HOUSEHOLD_CLOUD_RUN_WORKER_PROBE_PERIOD_SECONDS:-5}"
+worker_probe_timeout_seconds="${HOUSEHOLD_CLOUD_RUN_WORKER_PROBE_TIMEOUT_SECONDS:-3}"
+worker_probe_failure_threshold="${HOUSEHOLD_CLOUD_RUN_WORKER_PROBE_FAILURE_THRESHOLD:-60}"
 
 require_analytics_cloud_tasks_env
+
+analytics_writer_url=""
+cloud_tasks_target_url=""
+if is_truthy "${ANALYTICS__ENABLED:-false}"; then
+  analytics_writer_url="${HOUSEHOLD_ANALYTICS_WRITER_URL%/}"
+  analytics_writer_target_url="$(
+    printf '%s/internal/analytics/calculate/write' "${analytics_writer_url}"
+  )"
+  cloud_tasks_target_url="$(
+    printf '%s' "${ANALYTICS__CLOUD_TASKS__TARGET_URL:-${analytics_writer_target_url}}"
+  )"
+fi
 
 channels_tsv="$(mktemp)"
 manifest_json="$(mktemp)"
 worker_urls_tsv="$(mktemp)"
-analytics_writer_env_file="$(mktemp)"
-analytics_writer_secrets_file="$(mktemp)"
 worker_env_file="$(mktemp)"
 worker_secrets_file="$(mktemp)"
 gateway_env_file="$(mktemp)"
 gateway_secrets_file="$(mktemp)"
-trap 'rm -f "${channels_tsv}" "${manifest_json}" "${worker_urls_tsv}" "${analytics_writer_env_file}" "${analytics_writer_secrets_file}" "${worker_env_file}" "${worker_secrets_file}" "${gateway_env_file}" "${gateway_secrets_file}"' EXIT
+trap 'rm -f "${channels_tsv}" "${manifest_json}" "${worker_urls_tsv}" "${worker_env_file}" "${worker_secrets_file}" "${gateway_env_file}" "${gateway_secrets_file}"' EXIT
 
 "${uv_bin}" run python "${channels_script}" \
   --modal-environment "${MODAL_ENVIRONMENT}" \
   --environment "${environment}" \
   --output-tsv "${channels_tsv}"
 
-"${gcloud_bin}" auth configure-docker "${artifact_host}" --quiet
-if ! "${gcloud_bin}" artifacts repositories describe "${repository}" \
-  --location "${region}" \
-  --project "${project}" >/dev/null 2>&1; then
-  "${gcloud_bin}" artifacts repositories create "${repository}" \
-    --location "${region}" \
-    --project "${project}" \
-    --repository-format docker \
-    --description "PolicyEngine household API Cloud Run images" \
-    --quiet
-fi
-
-analytics_writer_url=""
-cloud_tasks_target_url=""
-if is_truthy "${ANALYTICS__ENABLED:-false}"; then
-  "${docker_bin}" build \
-    --file gcp/cloud_run/analytics_writer.Dockerfile \
-    --tag "${analytics_writer_image}" \
-    .
-  "${docker_bin}" push "${analytics_writer_image}"
-
-  : > "${analytics_writer_env_file}"
-  : > "${analytics_writer_secrets_file}"
-  append_env_value "${analytics_writer_env_file}" APP__ENVIRONMENT "${environment}"
-  append_observability_env "${analytics_writer_env_file}"
-  append_env_value \
-    "${analytics_writer_env_file}" \
-    WEB_THREADS \
-    "${analytics_writer_threads}"
-  append_env_value \
-    "${analytics_writer_env_file}" \
-    WEB_TIMEOUT \
-    "${analytics_writer_timeout}"
-  append_env_if_set "${analytics_writer_env_file}" ANALYTICS__ENABLED
-  append_env_if_set "${analytics_writer_env_file}" USER_ANALYTICS_DB_CONNECTION_NAME
-  append_env_if_set "${analytics_writer_env_file}" USER_ANALYTICS_DB_USERNAME
-  sync_secret_if_set \
-    "${analytics_writer_secrets_file}" \
-    USER_ANALYTICS_DB_PASSWORD
-  analytics_writer_env_arg=""
-  analytics_writer_secret_arg=""
-  if analytics_writer_env_arg="$(
-    env_args_from_file "${analytics_writer_env_file}"
-  )"; then
-    :
-  fi
-  if analytics_writer_secret_arg="$(
-    secret_args_from_file "${analytics_writer_secrets_file}"
-  )"; then
-    :
-  fi
-
-  analytics_writer_deploy_cmd=(
-    "${gcloud_bin}" run deploy "${analytics_writer_service}"
-    --image "${analytics_writer_image}"
-    --region "${region}"
-    --project "${project}"
-    --platform managed
-    --no-allow-unauthenticated
-    --min-instances "${analytics_writer_min_instances}"
-    --max-instances "${analytics_writer_max_instances}"
-    --concurrency "${analytics_writer_concurrency}"
-    --timeout "${analytics_writer_timeout}"
-    --cpu "${analytics_writer_cpu}"
-    --memory "${analytics_writer_memory}"
-    --service-account "${analytics_writer_service_account}"
-  )
-  if [ -n "${analytics_writer_env_arg}" ]; then
-    analytics_writer_deploy_cmd+=("${analytics_writer_env_arg}")
-  fi
-  if [ -n "${analytics_writer_secret_arg}" ]; then
-    analytics_writer_deploy_cmd+=("${analytics_writer_secret_arg}")
-  fi
-  if [ -n "${analytics_writer_ingress}" ]; then
-    analytics_writer_deploy_cmd+=(--ingress "${analytics_writer_ingress}")
-  fi
-  analytics_writer_deploy_cmd+=(--quiet)
-
-  deploy_run_service "${analytics_writer_deploy_cmd[@]}"
-
-  analytics_writer_url="$(
-    "${gcloud_bin}" run services describe "${analytics_writer_service}" \
-      --region "${region}" \
-      --project "${project}" \
-      --format='value(status.url)'
-  )"
-  analytics_writer_target_url="$(
-    printf '%s/internal/analytics/calculate/write' \
-      "${analytics_writer_url%/}"
-  )"
-  cloud_tasks_target_url="$(
-    printf '%s' "${ANALYTICS__CLOUD_TASKS__TARGET_URL:-${analytics_writer_target_url}}"
-  )"
-  echo "Deployed Cloud Run analytics writer: ${analytics_writer_url}"
-fi
+configure_artifact_registry
 
 while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   if [ -z "${channel}" ]; then
@@ -492,6 +224,11 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
   apply_worker_scaling_controls \
     "${worker_service}" \
     "${worker_scaling_concurrency_target}"
+  apply_startup_probe \
+    "${worker_service}" \
+    "${worker_probe_period_seconds}" \
+    "${worker_probe_timeout_seconds}" \
+    "${worker_probe_failure_threshold}"
 
   worker_url="$(
     "${gcloud_bin}" run services describe "${worker_service}" \
@@ -619,6 +356,12 @@ gateway_deploy_cmd+=(--quiet)
 
 deploy_run_service "${gateway_deploy_cmd[@]}"
 
+apply_startup_probe \
+  "${gateway_service}" \
+  "${gateway_probe_period_seconds}" \
+  "${gateway_probe_timeout_seconds}" \
+  "${gateway_probe_failure_threshold}"
+
 gateway_url="$(
   "${gcloud_bin}" run services describe "${gateway_service}" \
     --region "${region}" \
@@ -631,9 +374,6 @@ gateway_check_url="${gateway_check_url%/}"
 "${curl_bin}" -fsS "${gateway_check_url}/liveness_check"
 github_output "gateway_url" "${gateway_check_url}"
 github_output "manifest_uri" "gs://${manifest_bucket}/${manifest_blob}"
-if [ -n "${analytics_writer_url}" ]; then
-  github_output "analytics_writer_url" "${analytics_writer_url}"
-fi
 
 echo "Cloud Run failover gateway deployed: ${gateway_url}"
 if [ "${gateway_check_url}" != "${gateway_url}" ]; then

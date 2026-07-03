@@ -95,6 +95,10 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
     assert "modal_require_active_channels.py" in log
+    # Migrations run in the dedicated migrate-analytics-db workflow job; the
+    # deploy script only reads the database's current revision.
+    assert "alembic upgrade" not in log
+    assert "policyengine_household_api.modal_release.analytics_revision" in log
     assert "-m policyengine_household_api.modal_release.canary_app" in log
     assert "DEPLOY_APP=release-app" in log
     assert "-m policyengine_household_api.modal_release.update_manifest" in log

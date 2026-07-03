@@ -80,12 +80,13 @@ esac
 uv run python "${modal_require_active_channels_script}" \
   --modal-environment "${modal_environment}"
 
-uv run alembic upgrade head
+# Migrations run in the dedicated migrate-analytics-db job before this
+# script; here we only read the database's current revision for the manifest.
 analytics_database_revision="$(
   uv run python -m policyengine_household_api.modal_release.analytics_revision
 )"
 if [ -z "${analytics_database_revision}" ]; then
-  echo "::error::Could not determine analytics database Alembic revision after upgrade."
+  echo "::error::Could not determine analytics database Alembic revision."
   exit 1
 fi
 github_output "analytics_database_revision" "${analytics_database_revision}"

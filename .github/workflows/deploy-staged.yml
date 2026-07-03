@@ -6,6 +6,14 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      deploy_scope:
+        description: "How far the deploy proceeds; staging-only stops before any production job"
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - staging-only
       new_app_target:
         description: "Where to deploy the newly built worker app"
         required: true
@@ -120,11 +128,92 @@ jobs:
           python .github/scripts/resolve_modal_release_config.py \
             --output-json modal-release-config.json
 
-  deploy-modal-staging:
-    name: Deploy Modal release to staging
+  migrate-analytics-db-staging:
+    name: Migrate analytics database (staging)
     runs-on: ubuntu-latest
     needs: [lint-and-test, resolve-modal-release-config]
     if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
+    environment: staging
+    permissions:
+      contents: read
+    env:
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud for analytics database
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Run analytics database migrations
+        run: uv run alembic upgrade head
+
+  deploy-analytics-staging:
+    name: Deploy Cloud Run analytics writer to staging
+    runs-on: ubuntu-latest
+    needs: [migrate-analytics-db-staging]
+    environment: staging
+    permissions:
+      contents: read
+    outputs:
+      analytics_writer_url: ${{ steps.deploy.outputs.analytics_writer_url }}
+    env:
+      MODAL_ENVIRONMENT: staging
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Deploy Cloud Run analytics writer
+        id: deploy
+        env:
+          APP__ENVIRONMENT: staging
+          OBSERVABILITY_ENABLED: ${{ vars.OBSERVABILITY_ENABLED }}
+          OBSERVABILITY_LOG_RAW_IP: ${{ vars.OBSERVABILITY_LOG_RAW_IP }}
+          OBSERVABILITY_REQUEST_LOGS_ENABLED: ${{ vars.OBSERVABILITY_REQUEST_LOGS_ENABLED }}
+          HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT }}
+        run: bash .github/scripts/cloud-run-deploy-analytics.sh
+
+  deploy-modal-staging:
+    name: Deploy Modal release to staging
+    runs-on: ubuntu-latest
+    needs: [resolve-modal-release-config, migrate-analytics-db-staging]
     environment: staging
     permissions:
       contents: read
@@ -194,7 +283,9 @@ jobs:
   integration-tests-staging:
     name: Integration tests against Modal staging (${{ matrix.channel }}, ${{ matrix.route_mode }})
     runs-on: ubuntu-latest
-    needs: [deploy-modal-staging]
+    # These tests assert analytics rows appear, so the analytics writer must
+    # already be deployed when they run — not racing them in a sibling job.
+    needs: [deploy-modal-staging, deploy-analytics-staging]
     environment: staging
     env:
       MODAL_ENVIRONMENT: staging
@@ -239,14 +330,13 @@ jobs:
   deploy-cloud-run-staging:
     name: Deploy Cloud Run failover to staging
     runs-on: ubuntu-latest
-    needs: [deploy-modal-staging]
+    needs: [deploy-modal-staging, deploy-analytics-staging]
     environment: staging
     permissions:
       contents: read
     outputs:
       gateway_url: ${{ steps.deploy.outputs.gateway_url }}
       manifest_uri: ${{ steps.deploy.outputs.manifest_uri }}
-      analytics_writer_url: ${{ steps.deploy.outputs.analytics_writer_url }}
     env:
       MODAL_ENVIRONMENT: staging
       MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
@@ -291,7 +381,7 @@ jobs:
           HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS }}
           HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL }}
           HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
-          HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT }}
+          HOUSEHOLD_ANALYTICS_WRITER_URL: ${{ needs.deploy-analytics-staging.outputs.analytics_writer_url }}
           ANALYTICS__CLOUD_TASKS__PROJECT: ${{ vars.ANALYTICS_CLOUD_TASKS_PROJECT || env.GOOGLE_CLOUD_PROJECT }}
           ANALYTICS__CLOUD_TASKS__LOCATION: ${{ vars.ANALYTICS_CLOUD_TASKS_LOCATION || env.HOUSEHOLD_CLOUD_RUN_REGION }}
           ANALYTICS__CLOUD_TASKS__QUEUE: ${{ vars.ANALYTICS_CLOUD_TASKS_QUEUE }}
@@ -487,8 +577,8 @@ jobs:
             echo "No deferred Modal cleanup manifest; nothing to prune."
           fi
 
-  deploy-modal-production:
-    name: Deploy Modal release to production
+  migrate-analytics-db-production:
+    name: Migrate analytics database (production)
     runs-on: ubuntu-latest
     needs:
       [
@@ -497,7 +587,95 @@ jobs:
         integration-tests-cloud-run-staging,
         integration-tests-cloud-run-fallback-staging,
       ]
-    if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
+    # Root of the production subtree: every production job descends from this
+    # one, so a staging-only dispatch skipping it skips all of production.
+    if: |
+      needs.resolve-modal-release-config.outputs.should_deploy == 'true' &&
+      (
+        github.event_name == 'push' ||
+        inputs.deploy_scope != 'staging-only'
+      )
+    environment: production
+    permissions:
+      contents: read
+    env:
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud for analytics database
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Run analytics database migrations
+        run: uv run alembic upgrade head
+
+  deploy-analytics-production:
+    name: Deploy Cloud Run analytics writer to production
+    runs-on: ubuntu-latest
+    needs: [migrate-analytics-db-production]
+    environment: production
+    permissions:
+      contents: read
+    outputs:
+      analytics_writer_url: ${{ steps.deploy.outputs.analytics_writer_url }}
+    env:
+      MODAL_ENVIRONMENT: main
+      ANALYTICS__ENABLED: "true"
+      USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
+      USER_ANALYTICS_DB_USERNAME: ${{ secrets.USER_ANALYTICS_DB_USERNAME }}
+      USER_ANALYTICS_DB_PASSWORD: ${{ secrets.USER_ANALYTICS_DB_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Sync dependencies
+        run: uv sync --extra dev
+
+      - name: Deploy Cloud Run analytics writer
+        id: deploy
+        env:
+          APP__ENVIRONMENT: production
+          OBSERVABILITY_ENABLED: ${{ vars.OBSERVABILITY_ENABLED }}
+          OBSERVABILITY_LOG_RAW_IP: ${{ vars.OBSERVABILITY_LOG_RAW_IP }}
+          OBSERVABILITY_REQUEST_LOGS_ENABLED: ${{ vars.OBSERVABILITY_REQUEST_LOGS_ENABLED }}
+          HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT }}
+        run: bash .github/scripts/cloud-run-deploy-analytics.sh
+
+  deploy-modal-production:
+    name: Deploy Modal release to production
+    runs-on: ubuntu-latest
+    needs: [resolve-modal-release-config, migrate-analytics-db-production]
     environment: production
     permissions:
       contents: read
@@ -566,14 +744,13 @@ jobs:
   deploy-cloud-run-production:
     name: Deploy Cloud Run failover to production
     runs-on: ubuntu-latest
-    needs: [deploy-modal-production]
+    needs: [deploy-modal-production, deploy-analytics-production]
     environment: production
     permissions:
       contents: read
     outputs:
       gateway_url: ${{ steps.deploy.outputs.gateway_url }}
       manifest_uri: ${{ steps.deploy.outputs.manifest_uri }}
-      analytics_writer_url: ${{ steps.deploy.outputs.analytics_writer_url }}
     env:
       MODAL_ENVIRONMENT: main
       MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
@@ -618,7 +795,7 @@ jobs:
           HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS }}
           HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL }}
           HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
-          HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT }}
+          HOUSEHOLD_ANALYTICS_WRITER_URL: ${{ needs.deploy-analytics-production.outputs.analytics_writer_url }}
           ANALYTICS__CLOUD_TASKS__PROJECT: ${{ vars.ANALYTICS_CLOUD_TASKS_PROJECT || env.GOOGLE_CLOUD_PROJECT }}
           ANALYTICS__CLOUD_TASKS__LOCATION: ${{ vars.ANALYTICS_CLOUD_TASKS_LOCATION || env.HOUSEHOLD_CLOUD_RUN_REGION }}
           ANALYTICS__CLOUD_TASKS__QUEUE: ${{ vars.ANALYTICS_CLOUD_TASKS_QUEUE }}
