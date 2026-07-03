@@ -5,7 +5,7 @@ import sys
 from unittest.mock import MagicMock
 
 from policyengine_household_analytics.events import CalculateAnalyticsEvent
-from policyengine_household_api.failover.cloud_run_analytics_writer import (
+from policyengine_household_analytics_api.app import (
     create_analytics_writer_app,
 )
 from policyengine_household_common.models.analytics import (
@@ -92,7 +92,7 @@ def test_analytics_writer_db_failure_returns_500_for_cloud_tasks_retry(
     )
     caplog.set_level(
         logging.WARNING,
-        logger="policyengine_household_api.failover.cloud_run_analytics_writer",
+        logger="policyengine_household_analytics_api.app",
     )
 
     response = app.test_client().post(

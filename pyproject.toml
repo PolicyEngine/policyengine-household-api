@@ -3,24 +3,13 @@
 # this root covers them all. Repo-wide tool configuration lives here.
 
 [tool.uv.workspace]
-members = ["libs/*"]
+members = ["libs/*", "projects/*"]
 
 [dependency-groups]
 dev = [
     "pytest-timeout",
     "ruff>=0.9.0",
     "towncrier>=24.8.0",
-]
-analytics-writer = [
-    "cloud-sql-python-connector",
-    "flask>=2.2",
-    "flask-sqlalchemy>=3",
-    "google-cloud-logging",
-    "gunicorn",
-    "policyengine-observability[flask]>=1.0.0",
-    "pydantic",
-    "pymysql",
-    "pyyaml>=6",
 ]
 
 [tool.ruff]

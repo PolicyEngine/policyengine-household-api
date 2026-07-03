@@ -10,9 +10,13 @@ COPY ./pyproject.toml ./uv.lock /build/
 COPY ./libs/household-api/pyproject.toml ./libs/household-api/README.md /build/libs/household-api/
 COPY ./libs/household-common/pyproject.toml ./libs/household-common/README.md /build/libs/household-common/
 COPY ./libs/household-analytics/pyproject.toml ./libs/household-analytics/README.md /build/libs/household-analytics/
+COPY ./projects/analytics-api/pyproject.toml ./projects/analytics-api/README.md /build/projects/analytics-api/
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN uv sync --frozen --no-install-workspace --only-group analytics-writer
+# Third-party closure of the writer member only; workspace members are
+# copied as source below and imported from the app directory.
+RUN uv sync --frozen --no-install-workspace --no-dev \
+    --package policyengine-household-analytics-api
 
 FROM --platform=linux/amd64 python:3.13-slim
 
@@ -23,11 +27,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
-COPY ./libs/household-api/policyengine_household_api /app/policyengine_household_api
 COPY ./libs/household-common/policyengine_household_common /app/policyengine_household_common
 COPY ./libs/household-analytics/policyengine_household_analytics /app/policyengine_household_analytics
+COPY ./projects/analytics-api/policyengine_household_analytics_api /app/policyengine_household_analytics_api
 COPY ./config /app/config
-COPY ./libs/household-api/pyproject.toml /app/pyproject.toml
 COPY ./gcp/cloud_run/analytics_writer_start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 

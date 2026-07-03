@@ -167,7 +167,7 @@ jobs:
         run: uv sync --all-packages
 
       - name: Run analytics database migrations
-        run: uv run alembic upgrade head
+        run: uv run alembic -c projects/analytics-api/alembic.ini upgrade head
 
   deploy-analytics-staging:
     name: Deploy Cloud Run analytics writer to staging
@@ -629,7 +629,7 @@ jobs:
         run: uv sync --all-packages
 
       - name: Run analytics database migrations
-        run: uv run alembic upgrade head
+        run: uv run alembic -c projects/analytics-api/alembic.ini upgrade head
 
   deploy-analytics-production:
     name: Deploy Cloud Run analytics writer to production
