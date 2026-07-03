@@ -1,8 +1,8 @@
-from policyengine_household_api.modal_release import _image_setup
+from policyengine_household_api import deployment as _image_setup
 
 
 def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
-    from policyengine_household_api.modal_release import images
+    from policyengine_household_modal import images
 
     calls = []
 

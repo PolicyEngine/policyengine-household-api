@@ -5,7 +5,7 @@ import os
 import modal
 
 from policyengine_household_common.gateway import create_gateway_app
-from policyengine_household_api.modal_release.images import (
+from policyengine_household_modal.images import (
     household_api_gateway_image,
     household_api_secret,
 )

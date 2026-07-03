@@ -7,10 +7,10 @@ import modal
 from policyengine_observability import operation
 from policyengine_observability import set_attribute
 
-from policyengine_household_api.modal_release.google_credentials import (
+from policyengine_household_modal.google_credentials import (
     configure_google_credentials,
 )
-from policyengine_household_api.modal_release.images import (
+from policyengine_household_modal.images import (
     household_api_secret,
     household_api_worker_image,
 )

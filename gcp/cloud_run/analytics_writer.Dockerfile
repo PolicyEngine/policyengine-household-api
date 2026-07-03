@@ -12,6 +12,7 @@ COPY ./libs/household-common/pyproject.toml ./libs/household-common/README.md /b
 COPY ./libs/household-analytics/pyproject.toml ./libs/household-analytics/README.md /build/libs/household-analytics/
 COPY ./projects/analytics-api/pyproject.toml ./projects/analytics-api/README.md /build/projects/analytics-api/
 COPY ./projects/cloud-run-failover-api/pyproject.toml ./projects/cloud-run-failover-api/README.md /build/projects/cloud-run-failover-api/
+COPY ./projects/modal-api/pyproject.toml ./projects/modal-api/README.md /build/projects/modal-api/
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 # Third-party closure of the writer member only; workspace members are

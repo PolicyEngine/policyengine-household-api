@@ -576,7 +576,7 @@ jobs:
         # the retired entries in the manifest for retry on the next release.
         run: |
           if [ -f modal-cleanup.json ]; then
-            uv run python -m policyengine_household_api.modal_release.prune_manifest \
+            uv run python -m policyengine_household_modal.prune_manifest \
               --cleanup-json modal-cleanup.json \
               --modal-environment "${MODAL_ENVIRONMENT}"
           else
@@ -855,7 +855,7 @@ jobs:
         # the retired entries in the manifest for retry on the next release.
         run: |
           if [ -f modal-cleanup.json ]; then
-            uv run python -m policyengine_household_api.modal_release.prune_manifest \
+            uv run python -m policyengine_household_modal.prune_manifest \
               --cleanup-json modal-cleanup.json \
               --modal-environment "${MODAL_ENVIRONMENT}"
           else

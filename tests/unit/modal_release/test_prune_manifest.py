@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from policyengine_household_api.modal_release import prune_manifest
+from policyengine_household_modal import prune_manifest
 from policyengine_household_common.release_manifest import MANIFEST_DICT_KEY
 
 

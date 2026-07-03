@@ -4,7 +4,7 @@ import os
 
 import modal
 
-from policyengine_household_api.modal_release.images import (
+from policyengine_household_modal.images import (
     household_api_canary_image,
 )
 

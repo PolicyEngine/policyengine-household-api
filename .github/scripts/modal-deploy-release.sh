@@ -50,14 +50,14 @@ deploy_worker_app() {
     MODAL_ENVIRONMENT="${modal_environment}" \
     uv run modal deploy \
       --env "${modal_environment}" \
-      -m policyengine_household_api.modal_release.worker_app
+      -m policyengine_household_modal.worker_app
 }
 
 deploy_canary_app() {
   MODAL_ENVIRONMENT="${modal_environment}" \
     uv run modal deploy \
       --env "${modal_environment}" \
-      -m policyengine_household_api.modal_release.canary_app
+      -m policyengine_household_modal.canary_app
 }
 
 require_env \
@@ -83,7 +83,7 @@ uv run python "${modal_require_active_channels_script}" \
 # Migrations run in the dedicated migrate-analytics-db job before this
 # script; here we only read the database's current revision for the manifest.
 analytics_database_revision="$(
-  uv run python -m policyengine_household_api.modal_release.analytics_revision
+  uv run python -m policyengine_household_modal.analytics_revision
 )"
 if [ -z "${analytics_database_revision}" ]; then
   echo "::error::Could not determine analytics database Alembic revision."
@@ -126,7 +126,7 @@ else
     deploy_worker_app "${worker_app_name}" ""
   fi
 
-  uv run python -m policyengine_household_api.modal_release.update_manifest \
+  uv run python -m policyengine_household_modal.update_manifest \
     --config-json "${config_json}" \
     --new-app-name "${worker_app_name}" \
     --analytics-database-revision "${analytics_database_revision}" \
@@ -137,7 +137,7 @@ fi
 
 uv run modal deploy \
   --env "${modal_environment}" \
-  -m policyengine_household_api.modal_release.gateway_app
+  -m policyengine_household_modal.gateway_app
 
 if [ "${deploy_mode}" = "release" ]; then
   cleanup_target="$(config_value cleanup_target)"
@@ -151,7 +151,7 @@ if [ "${deploy_mode}" = "release" ]; then
       echo "Deferring Modal app cleanup until after the Cloud Run failover manifest refresh."
     else
       bash "${modal_cleanup_apps_script}" modal-cleanup.json
-      uv run python -m policyengine_household_api.modal_release.prune_manifest \
+      uv run python -m policyengine_household_modal.prune_manifest \
         --cleanup-json modal-cleanup.json \
         --modal-environment "${modal_environment}"
     fi

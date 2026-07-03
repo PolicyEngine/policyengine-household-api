@@ -21,7 +21,7 @@ ARG HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON={}
 ENV HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON=${HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON}
 
 RUN /opt/venv/bin/python - <<'PY' > /tmp/country-package-specs.txt
-from policyengine_household_api.modal_release.images import (
+from policyengine_household_api.deployment import (
     country_package_install_specs,
 )
 
@@ -34,7 +34,7 @@ RUN if [ -s /tmp/country-package-specs.txt ]; then \
     fi
 
 RUN /opt/venv/bin/python -c \
-    "from policyengine_household_api.modal_release._image_setup import snapshot_tax_benefit_systems; snapshot_tax_benefit_systems()"
+    "from policyengine_household_api.deployment import snapshot_tax_benefit_systems; snapshot_tax_benefit_systems()"
 
 FROM --platform=linux/amd64 python:3.13-slim AS production
 

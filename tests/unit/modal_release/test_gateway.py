@@ -363,7 +363,7 @@ def test_load_modal_manifest_preserves_unexpected_modal_errors(monkeypatch):
 def test_call_worker_function_uses_class_when_available(monkeypatch):
     """When the worker exposes the new ``HouseholdWorker`` class, the
     gateway should dispatch through ``modal.Cls.from_name``."""
-    from policyengine_household_api.modal_release import gateway
+    from policyengine_household_modal import gateway
 
     captured = {}
 
@@ -416,7 +416,7 @@ def test_call_worker_function_falls_back_to_function_for_legacy_workers(
     still expose the pre-class ``handle_household_request`` function.
     The gateway must fall back to ``modal.Function.from_name`` when the
     class cannot be found."""
-    from policyengine_household_api.modal_release import gateway
+    from policyengine_household_modal import gateway
 
     captured = {}
 

@@ -1,7 +1,7 @@
 import json
 import sys
 
-from policyengine_household_api.modal_release import update_manifest
+from policyengine_household_modal import update_manifest
 from policyengine_household_common.release_manifest import MANIFEST_DICT_KEY
 
 

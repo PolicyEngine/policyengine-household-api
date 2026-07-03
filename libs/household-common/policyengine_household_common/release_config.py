@@ -27,7 +27,7 @@ MODAL_RELEASE_PATH_PREFIXES = (
     ".github/workflows/deploy-staged.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
     "docs/engineering/skills/modal-release-prs.md",
-    "libs/household-api/policyengine_household_api/modal_release/",
+    "projects/modal-api/policyengine_household_modal/",
     "libs/household-common/policyengine_household_common/gateway.py",
     "libs/household-common/policyengine_household_common/release_config.py",
     "libs/household-common/policyengine_household_common/release_manifest.py",
