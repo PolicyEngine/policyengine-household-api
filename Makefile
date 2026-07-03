@@ -9,7 +9,12 @@ debug: ## Run Flask app with FLASK_DEBUG=1
 	FLASK_APP=policyengine_household_api.api FLASK_DEBUG=1 uv run flask run --without-threads --host=0.0.0.0
 
 test: ## Run unit tests
-	uv run pytest -vv --timeout=150 -rP .github/scripts tests/to_refactor tests/unit
+	uv run pytest -vv --timeout=150 -rP .github/scripts tests/to_refactor tests/unit projects/analytics-api/tests
+
+test-analytics-isolated: ## Run analytics writer tests in that member's own slim closure (what CI runs)
+	uv sync --package policyengine-household-analytics-api
+	uv run --no-sync pytest -vv --timeout=150 -rP projects/analytics-api/tests
+	uv sync --all-packages
 
 test-with-auth: ## Run integration tests
 	CONFIG_FILE=config/test_with_auth.yaml uv run pytest -vv --timeout=150 -rP tests/integration_with_auth

@@ -17,6 +17,12 @@ dependencies = [
     "gunicorn",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-timeout",
+]
+
 [tool.uv.sources]
 policyengine-household-analytics = { workspace = true }
 

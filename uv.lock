@@ -2418,11 +2418,23 @@ dependencies = [
     { name = "policyengine-household-analytics" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-timeout" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "google-cloud-logging" },
     { name = "gunicorn" },
     { name = "policyengine-household-analytics", editable = "libs/household-analytics" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-timeout" },
 ]
 
 [[package]]
