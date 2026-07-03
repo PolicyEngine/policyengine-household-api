@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import os
-import subprocess
-import tempfile
 
 import modal
+
+# Read docs/engineering/skills/modal-images.md before changing this module.
+#
+# The locked third-party requirements for these images are exported from the
+# workspace lockfile by .github/scripts/modal-deploy-release.sh before any
+# `modal deploy` runs (Modal's Image.uv_sync does not support uv workspaces).
+# Keep these factories free of eager work: this module is re-imported inside
+# running containers, where no repository checkout exists.
+WORKER_REQUIREMENTS_FILE = "requirements-modal-worker.txt"
+GATEWAY_REQUIREMENTS_FILE = "requirements-modal-gateway.txt"
 
 FIRST_PARTY_PACKAGES = (
     "policyengine_household_api",
@@ -14,48 +22,11 @@ FIRST_PARTY_PACKAGES = (
 )
 
 
-def _locked_requirements_file(*, worker_extra: bool) -> str:
-    """Export the member's locked third-party requirements to a temp file.
-
-    Modal's ``Image.uv_sync`` does not support uv workspaces, so the deploy
-    machine (a full ``uv sync --all-packages`` checkout) exports the locked
-    closure instead; first-party members are excluded and added to the image
-    as local Python sources below.
-    """
-    command = [
-        "uv",
-        "export",
-        "--frozen",
-        "--no-dev",
-        "--no-emit-workspace",
-        "--no-hashes",
-        "--package",
-        "policyengine-household-modal-api",
-    ]
-    if worker_extra:
-        command += ["--extra", "worker"]
-    requirements = tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".txt",
-        prefix="household-modal-requirements-",
-        delete=False,
-    )
-    with requirements:
-        subprocess.run(
-            command,
-            check=True,
-            stdout=requirements,
-            text=True,
-        )
-    return requirements.name
-
-
 def household_api_worker_image() -> modal.Image:
     if not modal.is_local():
         # Inside a running container this module is re-imported for the app
         # definitions, but the image is already built; return a placeholder
-        # instead of re-running the deploy-machine-only build steps below
-        # (uv export subprocesses, core package imports).
+        # instead of re-running the deploy-machine-only build steps below.
         return modal.Image.debian_slim(python_version="3.13")
 
     # Imported lazily: this module is also imported inside gateway and canary
@@ -66,7 +37,7 @@ def household_api_worker_image() -> modal.Image:
     )
 
     image = modal.Image.debian_slim(python_version="3.13").uv_pip_install(
-        requirements=[_locked_requirements_file(worker_extra=True)]
+        requirements=[WORKER_REQUIREMENTS_FILE]
     )
     package_specs = country_package_install_specs()
     if package_specs:
@@ -85,9 +56,7 @@ def household_api_gateway_image() -> modal.Image:
 
     return (
         modal.Image.debian_slim(python_version="3.13")
-        .uv_pip_install(
-            requirements=[_locked_requirements_file(worker_extra=False)]
-        )
+        .uv_pip_install(requirements=[GATEWAY_REQUIREMENTS_FILE])
         .add_local_python_source(
             "policyengine_household_common",
             "policyengine_household_modal",

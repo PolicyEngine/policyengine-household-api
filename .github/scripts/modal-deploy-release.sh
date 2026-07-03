@@ -80,6 +80,17 @@ esac
 uv run python "${modal_require_active_channels_script}" \
   --modal-environment "${modal_environment}"
 
+# Export the Modal images' locked third-party requirements from the workspace
+# lockfile. Image.uv_sync does not support uv workspaces, so the image
+# definitions in policyengine_household_modal/images.py install from these
+# files instead; see docs/engineering/skills/modal-images.md.
+uv export --frozen --no-dev --no-emit-workspace --no-hashes \
+  --package policyengine-household-modal-api --extra worker \
+  -o requirements-modal-worker.txt
+uv export --frozen --no-dev --no-emit-workspace --no-hashes \
+  --package policyengine-household-modal-api \
+  -o requirements-modal-gateway.txt
+
 # Migrations run in the dedicated migrate-analytics-db job before this
 # script; here we only read the database's current revision for the manifest.
 analytics_database_revision="$(

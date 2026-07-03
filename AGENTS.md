@@ -15,6 +15,10 @@ changing member dependencies, read
 When changing analytics database models or Alembic migrations, read
 `docs/engineering/skills/database-migrations.md`.
 
+When changing Modal image definitions, Modal image deploys, or anything in
+`projects/modal-api/policyengine_household_modal/images.py`, you MUST first
+read `docs/engineering/skills/modal-images.md`.
+
 When changing Modal current/frontier release behavior, PR release settings, or
 deployment workflows, read `docs/engineering/skills/modal-release-prs.md`.
 
