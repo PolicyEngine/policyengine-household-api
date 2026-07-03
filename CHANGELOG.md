@@ -1,3 +1,10 @@
+## [0.26.1] - 2026-07-03
+
+### Fixed
+
+- Keep the analytics writer import chain free of numpy and country model packages so the slim Cloud Run analytics writer image boots.
+
+
 ## [0.26.0] - 2026-07-03
 
 ### Added
