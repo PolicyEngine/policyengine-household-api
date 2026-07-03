@@ -7,7 +7,7 @@ from typing import Any, Mapping
 
 import modal
 
-from policyengine_household_api.failover.manifest import (
+from policyengine_household_failover.manifest import (
     build_failover_manifest,
 )
 from policyengine_household_common.release_manifest import (

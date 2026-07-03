@@ -11,9 +11,11 @@ RUN pip install --no-cache-dir -U uv
 COPY ./pyproject.toml ./uv.lock /build/
 COPY ./config /build/config
 COPY ./libs /build/libs
+COPY ./projects /build/projects
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN uv sync --frozen --no-dev --all-packages
+RUN uv sync --frozen --no-dev \
+    --package policyengine-household-failover-api --extra worker
 
 ARG HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON={}
 ENV HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON=${HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON}
@@ -48,6 +50,7 @@ COPY --from=builder /build/config /app/config
 COPY --from=builder /build/libs/household-api/policyengine_household_api /app/policyengine_household_api
 COPY --from=builder /build/libs/household-common/policyengine_household_common /app/policyengine_household_common
 COPY --from=builder /build/libs/household-analytics/policyengine_household_analytics /app/policyengine_household_analytics
+COPY --from=builder /build/projects/cloud-run-failover-api/policyengine_household_failover /app/policyengine_household_failover
 COPY ./gcp/cloud_run/worker_start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 

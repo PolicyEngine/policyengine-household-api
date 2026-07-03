@@ -11,4 +11,4 @@ exec gunicorn \
   --workers "${WEB_CONCURRENCY}" \
   --worker-class gthread \
   --threads "${THREADS}" \
-  policyengine_household_api.failover.cloud_run_gateway_wsgi:app
+  policyengine_household_failover.cloud_run_gateway_wsgi:app

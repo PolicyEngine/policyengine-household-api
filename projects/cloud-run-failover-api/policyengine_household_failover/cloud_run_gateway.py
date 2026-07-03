@@ -16,12 +16,12 @@ from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token
 
-from policyengine_household_api.constants import COUNTRIES
+from policyengine_household_common.constants import COUNTRIES
 from policyengine_household_common.dispatch_codec import (
     decode_dispatch_response,
     encode_dispatch_request,
 )
-from policyengine_household_api.failover.manifest import (
+from policyengine_household_failover.manifest import (
     FAILOVER_MANIFEST_BLOB_ENV,
     FAILOVER_MANIFEST_BUCKET_ENV,
     FailoverManifestError,

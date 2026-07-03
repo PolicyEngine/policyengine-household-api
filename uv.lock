@@ -19,6 +19,7 @@ members = [
     "policyengine-household-analytics-api",
     "policyengine-household-api",
     "policyengine-household-common",
+    "policyengine-household-failover-api",
 ]
 
 [manifest.dependency-groups]
@@ -2504,6 +2505,36 @@ requires-dist = [
     { name = "pydantic" },
     { name = "pyyaml", specifier = ">=6" },
 ]
+
+[[package]]
+name = "policyengine-household-failover-api"
+version = "0.26.1"
+source = { editable = "projects/cloud-run-failover-api" }
+dependencies = [
+    { name = "flask" },
+    { name = "google-auth" },
+    { name = "google-cloud-storage" },
+    { name = "gunicorn" },
+    { name = "modal" },
+    { name = "policyengine-household-common" },
+]
+
+[package.optional-dependencies]
+worker = [
+    { name = "policyengine-household-api" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=2.2" },
+    { name = "google-auth" },
+    { name = "google-cloud-storage" },
+    { name = "gunicorn" },
+    { name = "modal", specifier = ">=1.3.0" },
+    { name = "policyengine-household-api", marker = "extra == 'worker'", editable = "libs/household-api" },
+    { name = "policyengine-household-common", editable = "libs/household-common" },
+]
+provides-extras = ["worker"]
 
 [[package]]
 name = "policyengine-il"

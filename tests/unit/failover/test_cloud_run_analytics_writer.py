@@ -120,8 +120,7 @@ def test_analytics_writer_import_chain_stays_slim():
     )
     probe = (
         "import sys\n"
-        "import policyengine_household_api.failover."
-        "cloud_run_analytics_writer\n"
+        "import policyengine_household_analytics_api.app\n"
         "import policyengine_household_analytics.persistence\n"
         f"heavy = [m for m in {heavy_modules!r} if m in sys.modules]\n"
         "assert not heavy, f'writer import pulled heavy modules: {heavy}'\n"

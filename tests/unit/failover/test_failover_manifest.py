@@ -1,6 +1,6 @@
 import pytest
 
-from policyengine_household_api.failover.manifest import (
+from policyengine_household_failover.manifest import (
     FailoverManifestError,
     build_failover_manifest,
     public_versions_view,

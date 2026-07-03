@@ -11,4 +11,4 @@ exec gunicorn \
   --timeout "${WEB_TIMEOUT}" \
   --workers "${WEB_CONCURRENCY}" \
   --threads "${THREADS}" \
-  policyengine_household_api.failover.cloud_run_worker_wsgi:app
+  policyengine_household_failover.cloud_run_worker_wsgi:app
