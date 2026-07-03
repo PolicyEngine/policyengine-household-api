@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from policyengine_household_api.models.analytics import AnalyticsContext
+from policyengine_household_common.models.analytics import AnalyticsContext
 
 
 class CalculateAnalyticsEvent(BaseModel):

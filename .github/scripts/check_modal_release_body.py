@@ -9,7 +9,7 @@ from modal_release_check_common import (
     get_file_at_ref,
     parse_pr_body_check_args,
 )
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfigError,
     body_contains_modal_release_config,
     parse_modal_release_config_from_body,

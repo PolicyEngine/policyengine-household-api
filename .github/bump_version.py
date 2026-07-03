@@ -65,6 +65,13 @@ def update_file(path: Path, old_version: str, new_version: str) -> bool:
         f'version = "{old_version}"',
         f'version = "{new_version}"',
     )
+    # Members are versioned in lockstep, and the published core package pins
+    # its sibling libs exactly; bump those pins together with the versions.
+    updated = re.sub(
+        rf"(policyengine-household-[a-z-]+)=={re.escape(old_version)}",
+        rf"\g<1>=={new_version}",
+        updated,
+    )
     if updated == text:
         return False
     path.write_text(updated)

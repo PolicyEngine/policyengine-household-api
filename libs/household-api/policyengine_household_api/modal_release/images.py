@@ -25,7 +25,11 @@ def household_api_worker_image() -> modal.Image:
     if package_specs:
         image = image.uv_pip_install(*package_specs)
     return (
-        image.add_local_python_source("policyengine_household_api", copy=True)
+        image.add_local_python_source(
+            "policyengine_household_api",
+            "policyengine_household_common",
+            copy=True,
+        )
         .add_local_dir("config", remote_path="/app/config", copy=True)
         .run_function(snapshot_tax_benefit_systems)
     )
@@ -40,7 +44,11 @@ def household_api_gateway_image() -> modal.Image:
             "policyengine-observability[flask]>=1.0.0",
             "pyyaml>=6",
         )
-        .add_local_python_source("policyengine_household_api", copy=True)
+        .add_local_python_source(
+            "policyengine_household_api",
+            "policyengine_household_common",
+            copy=True,
+        )
     )
 
 

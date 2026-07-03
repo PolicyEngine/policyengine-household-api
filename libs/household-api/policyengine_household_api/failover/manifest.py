@@ -5,8 +5,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
-from policyengine_household_api.version_routing import (
+from policyengine_household_common.version_config import (
+    ACTIVE_RELEASE_CHANNELS,
+)
+from policyengine_household_common.version_routing import (
     UnsupportedVersionError,
     active_versions_for_country,
     package_versions_from_mapping,

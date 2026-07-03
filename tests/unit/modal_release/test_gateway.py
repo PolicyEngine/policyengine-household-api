@@ -4,14 +4,14 @@ from flask import Response
 import modal
 import pytest
 
-from policyengine_household_api.modal_release.gateway import (
+from policyengine_household_common.gateway import (
     create_gateway_app,
     load_modal_manifest,
 )
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_SCHEMA_VERSION,
 )
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
 from policyengine_observability import (

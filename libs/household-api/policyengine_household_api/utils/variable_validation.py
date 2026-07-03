@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass
 
-from policyengine_household_api.utils.deprecated_inputs import (
+from policyengine_household_common.deprecated_inputs import (
     DEPRECATED_VARIABLES,
 )
-from policyengine_household_api.utils.household import VARIABLE_BLACKLIST
+from policyengine_household_common.household import VARIABLE_BLACKLIST
 
 
 @dataclass(frozen=True)

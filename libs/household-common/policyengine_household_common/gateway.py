@@ -6,9 +6,11 @@ from typing import Any, Callable
 
 from flask import Flask, Response, jsonify, request
 
-from policyengine_household_api.constants import COUNTRIES
-from policyengine_household_api.observability.flask import init_observability
-from policyengine_household_api.observability.segments import SegmentName
+from policyengine_household_common.constants import COUNTRIES
+from policyengine_household_common.observability.flask import (
+    init_observability,
+)
+from policyengine_household_common.observability.segments import SegmentName
 from policyengine_observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
     REQUEST_ID_HEADER,
@@ -19,18 +21,20 @@ from policyengine_observability import (
     set_attribute,
     traceparent_header,
 )
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
     empty_manifest,
     validate_manifest,
 )
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
 )
-from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
-from policyengine_household_api.version_routing import (
+from policyengine_household_common.version_config import (
+    ACTIVE_RELEASE_CHANNELS,
+)
+from policyengine_household_common.version_routing import (
     UnsupportedVersionError,
     VersionRoutingError,
     active_versions_for_country,

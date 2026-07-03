@@ -17,7 +17,9 @@ import flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import yaml
-from policyengine_household_api.observability.flask import init_observability
+from policyengine_household_common.observability.flask import (
+    init_observability,
+)
 
 # Internal imports
 from .decorators.auth import ANALYTICS_READ_SCOPE, create_auth_decorator

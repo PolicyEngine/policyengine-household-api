@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir \
     "pyyaml>=6"
 
 COPY ./libs/household-api/policyengine_household_api /app/policyengine_household_api
+COPY ./libs/household-common/policyengine_household_common /app/policyengine_household_common
 COPY ./libs/household-api/pyproject.toml /app/pyproject.toml
 COPY ./gcp/cloud_run/gateway_start.sh /app/start.sh
 RUN chmod +x /app/start.sh

@@ -26,7 +26,7 @@ from policyengine_household_api.failover.cloud_run_gateway import (
     probe_modal_worker,
     warm_cloud_run_worker,
 )
-from policyengine_household_api.failover.dispatch_codec import (
+from policyengine_household_common.dispatch_codec import (
     encode_dispatch_response,
 )
 from policyengine_household_api.failover.manifest import (

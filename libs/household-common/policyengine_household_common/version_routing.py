@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
+from policyengine_household_common.version_config import (
+    ACTIVE_RELEASE_CHANNELS,
+)
 
 
 class VersionRoutingError(ValueError):

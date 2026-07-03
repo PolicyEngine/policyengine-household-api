@@ -1,5 +1,5 @@
 from policyengine_household_api.data.analytics_setup import db
-from policyengine_household_api.models.analytics import (
+from policyengine_household_common.models.analytics import (
     AnalyticsHttpMethod,
     AvailabilityStatus,
     ModalResolvedChannel,

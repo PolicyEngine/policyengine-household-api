@@ -8,7 +8,7 @@ from policyengine_household_api.data.models import (
     CalculateRequestVariable,
     Visit,
 )
-from policyengine_household_api.models.analytics import (
+from policyengine_household_common.models.analytics import (
     AnalyticsContext,
     AnalyticsHttpMethod,
     AvailabilityStatus,

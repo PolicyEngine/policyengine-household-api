@@ -11,11 +11,11 @@ from policyengine_household_api.data.models import (
     CalculateRequestVariable,
     Visit,
 )
-from policyengine_household_api.models.analytics import (
+from policyengine_household_common.models.analytics import (
     AnalyticsContext,
     VariableUsageSummary,
 )
-from policyengine_household_api.utils.variable_usage_analytics import (
+from policyengine_household_common.variable_usage_analytics import (
     stored_variable_name,
 )
 

@@ -2,29 +2,27 @@ import tomllib
 from pathlib import Path
 from importlib.metadata import PackageNotFoundError, version
 
-REPO = Path(__file__).parents[1]
-GET = "GET"
-POST = "POST"
-UPDATE = "UPDATE"
-LIST = "LIST"
-COUNTRIES = ("uk", "us", "ca", "ng", "il")
-COUNTRY_PACKAGE_NAMES = (
-    "policyengine_uk",
-    "policyengine_us",
-    "policyengine_canada",
-    "policyengine_ng",
-    "policyengine_il",
+# Shared constants live in the common lib; re-exported here because this
+# module is part of the published package's public surface.
+from policyengine_household_common.constants import (  # noqa: F401
+    COUNTRIES,
+    COUNTRY_PACKAGE_NAMES,
+    COUNTRY_PACKAGE_VERSIONS,
+    GET,
+    LIST,
+    POST,
+    UPDATE,
+    get_package_version,
 )
 
-
-def get_package_version(package_name: str) -> str:
-    try:
-        return version(package_name)
-    except PackageNotFoundError:
-        return "0.0.0"
+REPO = Path(__file__).parents[1]
 
 
 def get_repo_version() -> str:
+    # VERSION stays in this package (not the common lib): it is the version
+    # of the published policyengine-household-api distribution, resolved from
+    # the member pyproject.toml sitting one level above this package, with an
+    # installed-distribution fallback.
     pyproject = REPO / "pyproject.toml"
     try:
         project = tomllib.loads(pyproject.read_text())["project"]
@@ -37,8 +35,4 @@ def get_repo_version() -> str:
 
 
 VERSION = get_repo_version()
-COUNTRY_PACKAGE_VERSIONS = {
-    country: get_package_version(package_name)
-    for country, package_name in zip(COUNTRIES, COUNTRY_PACKAGE_NAMES)
-}
 __version__ = VERSION

@@ -8,20 +8,22 @@ from policyengine_observability import record_error
 from policyengine_observability import set_attribute
 from werkzeug.exceptions import BadRequest
 
-from policyengine_household_api.failover.dispatch_codec import (
+from policyengine_household_common.dispatch_codec import (
     decode_dispatch_request,
     encode_dispatch_response,
 )
-from policyengine_household_api.failover.request_limits import (
+from policyengine_household_common.request_limits import (
     max_content_length_bytes,
 )
-from policyengine_household_api.modal_release.worker_dispatch import (
+from policyengine_household_common.worker_dispatch import (
     dispatch_to_flask_app,
 )
-from policyengine_household_api.observability.flask import (
+from policyengine_household_common.observability.flask import (
     configure_process_observability,
 )
-from policyengine_household_api.observability.flask import init_observability
+from policyengine_household_common.observability.flask import (
+    init_observability,
+)
 
 
 def create_worker_app(

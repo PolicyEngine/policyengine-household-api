@@ -50,6 +50,7 @@ COPY --from=builder /build/alembic.ini /app/alembic.ini
 COPY --from=builder /build/alembic /app/alembic
 COPY --from=builder /build/config /app/config
 COPY --from=builder /build/libs/household-api/policyengine_household_api /app/policyengine_household_api
+COPY --from=builder /build/libs/household-common/policyengine_household_common /app/policyengine_household_common
 COPY ./gcp/cloud_run/worker_start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 

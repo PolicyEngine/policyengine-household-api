@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from policyengine_household_api.utils.config_loader import get_config_value
+from policyengine_household_common.config_loader import get_config_value
 
 
 @dataclass(frozen=True)

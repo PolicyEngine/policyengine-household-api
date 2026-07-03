@@ -6,11 +6,11 @@ from datetime import datetime, timezone
 import re
 from typing import Any, Mapping
 
-from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
-from policyengine_household_api.data.analytics_migration import (
+from policyengine_household_common.constants import COUNTRY_PACKAGE_VERSIONS
+from policyengine_household_common.analytics_migration import (
     ANALYTICS_ALEMBIC_MINIMUM_REVISION,
 )
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     CleanupTarget,
     ModalReleaseConfig,
     NewAppTarget,

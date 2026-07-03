@@ -1,9 +1,9 @@
 import pytest
 
-from policyengine_household_api.data.analytics_migration import (
+from policyengine_household_common.analytics_migration import (
     ANALYTICS_ALEMBIC_MINIMUM_REVISION,
 )
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_SCHEMA_VERSION,
     active_app_deployments,
     apply_release_config,
@@ -20,7 +20,7 @@ from policyengine_household_api.modal_release.manifest import (
 from policyengine_household_api.modal_release import (
     manifest as manifest_module,
 )
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     CleanupTarget,
     ModalReleaseConfig,
     NewAppTarget,

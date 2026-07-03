@@ -7,7 +7,7 @@ from typing import Any
 
 import modal
 
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
     rewrite_existing_manifest_for_storage,

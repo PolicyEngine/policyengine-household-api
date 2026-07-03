@@ -6,16 +6,16 @@ from dataclasses import dataclass, field
 import re
 from typing import Any
 
-from policyengine_household_api.models.analytics import (
+from policyengine_household_common.models.analytics import (
     AvailabilityStatus,
     PeriodGranularity,
     VariableSource,
     VariableUsageSummary,
 )
-from policyengine_household_api.utils.deprecated_inputs import (
+from policyengine_household_common.deprecated_inputs import (
     DEPRECATED_VARIABLES,
 )
-from policyengine_household_api.utils.household import VARIABLE_BLACKLIST
+from policyengine_household_common.household import VARIABLE_BLACKLIST
 
 
 YEAR_RE = re.compile(r"^\d{4}$")

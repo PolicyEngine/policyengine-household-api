@@ -17,7 +17,7 @@ from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token
 
 from policyengine_household_api.constants import COUNTRIES
-from policyengine_household_api.failover.dispatch_codec import (
+from policyengine_household_common.dispatch_codec import (
     decode_dispatch_response,
     encode_dispatch_request,
 )
@@ -33,16 +33,18 @@ from policyengine_household_api.failover.manifest import (
     resolve_failover_channel_for_request,
     validate_failover_manifest,
 )
-from policyengine_household_api.failover.request_limits import (
+from policyengine_household_common.request_limits import (
     max_content_length_bytes,
 )
-from policyengine_household_api.observability.flask import init_observability
-from policyengine_household_api.observability.segments import SegmentName
+from policyengine_household_common.observability.flask import (
+    init_observability,
+)
+from policyengine_household_common.observability.segments import SegmentName
 from policyengine_observability import record_error
 from policyengine_observability import record_event
 from policyengine_observability import segment
 from policyengine_observability import set_attribute
-from policyengine_household_api.modal_release.gateway import (
+from policyengine_household_common.gateway import (
     VERSIONED_ENDPOINTS,
     _country_and_endpoint,
     _extract_requested_version,
@@ -50,7 +52,7 @@ from policyengine_household_api.modal_release.gateway import (
     _request_payload,
     _response_from_dispatch_result,
 )
-from policyengine_household_api.version_routing import VersionRoutingError
+from policyengine_household_common.version_routing import VersionRoutingError
 
 
 LOGGER = logging.getLogger(__name__)

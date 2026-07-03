@@ -1,6 +1,6 @@
 import pytest
 
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_DICT_KEY,
 )
 from policyengine_household_api.modal_release.rewrite_manifest import (

@@ -15,10 +15,10 @@ from policyengine_household_api.analytics.persistence import (
 from policyengine_household_api.data.analytics_setup import (
     initialize_analytics_db_if_enabled,
 )
-from policyengine_household_api.failover.request_limits import (
+from policyengine_household_common.request_limits import (
     max_content_length_bytes,
 )
-from policyengine_household_api.observability.flask import (
+from policyengine_household_common.observability.flask import (
     configure_process_observability,
     init_observability,
 )

@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     build_app_name,
     current_package_versions,
 )

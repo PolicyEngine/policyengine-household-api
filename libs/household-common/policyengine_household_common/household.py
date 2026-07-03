@@ -1,4 +1,4 @@
-from policyengine_household_api.models.household import HouseholdModel
+from policyengine_household_common.models.household import HouseholdModel
 from typing import Literal, Any, Optional
 from pydantic import BaseModel
 from dataclasses import dataclass

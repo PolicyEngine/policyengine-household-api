@@ -14,11 +14,11 @@ from policyengine_household_api.modal_release.images import (
     household_api_secret,
     household_api_worker_image,
 )
-from policyengine_household_api.modal_release.manifest import build_app_name
-from policyengine_household_api.modal_release.worker_dispatch import (
+from policyengine_household_common.release_manifest import build_app_name
+from policyengine_household_common.worker_dispatch import (
     dispatch_to_flask_app,
 )
-from policyengine_household_api.observability.flask import (
+from policyengine_household_common.observability.flask import (
     configure_process_observability,
 )
 

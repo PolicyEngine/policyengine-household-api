@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 from typing import Any
 
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
 

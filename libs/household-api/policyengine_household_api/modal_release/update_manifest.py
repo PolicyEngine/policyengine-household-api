@@ -7,7 +7,7 @@ from typing import Any
 
 import modal
 
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
     apply_release_config,
@@ -15,7 +15,7 @@ from policyengine_household_api.modal_release.manifest import (
     cleanup_app_names_for_target,
     validate_manifest,
 )
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfig,
 )
 

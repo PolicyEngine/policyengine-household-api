@@ -7,8 +7,8 @@ import os
 import logging
 import re
 from functools import cache
-from policyengine_household_api.utils.config_loader import get_config_value
-from policyengine_household_api.data.analytics_migration import (
+from policyengine_household_common.config_loader import get_config_value
+from policyengine_household_common.analytics_migration import (
     ANALYTICS_ALEMBIC_MINIMUM_REVISION,
 )
 from google.cloud.sql.connector import Connector

@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 import logging
 
-from policyengine_household_api.utils.config_loader import (
+from policyengine_household_common.config_loader import (
     ConfigLoader,
     get_config,
     get_config_value,

@@ -7,7 +7,7 @@ from policyengine_household_api.failover.manifest import (
     resolve_failover_channel_for_request,
     validate_failover_manifest,
 )
-from policyengine_household_api.version_routing import VersionRoutingError
+from policyengine_household_common.version_routing import VersionRoutingError
 
 
 def _modal_manifest():

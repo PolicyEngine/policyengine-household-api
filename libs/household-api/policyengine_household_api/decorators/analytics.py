@@ -16,20 +16,20 @@ from policyengine_household_api.constants import VERSION
 from policyengine_household_api.data.analytics_setup import (
     is_analytics_enabled,
 )
-from policyengine_household_api.models.analytics import (
+from policyengine_household_common.models.analytics import (
     AnalyticsContext,
     ModalResolvedChannel,
     VariableUsageSummary,
 )
-from policyengine_household_api.observability.segments import SegmentName
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.observability.segments import SegmentName
+from policyengine_household_common.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,
 )
-from policyengine_household_api.utils.variable_usage_analytics import (
+from policyengine_household_common.variable_usage_analytics import (
     extract_variable_usage,
 )
-from policyengine_household_api.utils.config_loader import get_config_value
+from policyengine_household_common.config_loader import get_config_value
 
 logger = logging.getLogger(__name__)
 

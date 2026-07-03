@@ -8,7 +8,7 @@ import sys
 import modal
 from modal.exception import NotFoundError
 
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
     prune_cleaned_retired_apps,

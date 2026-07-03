@@ -18,7 +18,7 @@ from policyengine_household_api.data.models import (
     CalculateRequest,
     CalculateRequestVariable,
 )
-from policyengine_household_api.models.analytics import ModalResolvedChannel
+from policyengine_household_common.models.analytics import ModalResolvedChannel
 
 
 DEFAULT_REQUEST_LIMIT = 1_000

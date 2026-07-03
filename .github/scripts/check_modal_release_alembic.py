@@ -9,7 +9,7 @@ from modal_release_check_common import (
     get_changed_files,
     parse_changed_files_args,
 )
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfigError,
 )
 

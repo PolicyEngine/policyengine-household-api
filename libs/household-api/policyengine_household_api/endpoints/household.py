@@ -11,13 +11,13 @@ from policyengine_household_api.country import (
     validate_period_budgets,
     validate_period_keys,
 )
-from policyengine_household_api.models.household import (
+from policyengine_household_common.models.household import (
     HouseholdModelGeneric,
     HouseholdModelUK,
     HouseholdModelUS,
 )
-from policyengine_household_api.observability.segments import SegmentName
-from policyengine_household_api.utils.deprecated_inputs import (
+from policyengine_household_common.observability.segments import SegmentName
+from policyengine_household_common.deprecated_inputs import (
     drop_deprecated_inputs,
 )
 from policyengine_household_api.utils.variable_validation import (

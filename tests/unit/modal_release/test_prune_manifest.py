@@ -4,7 +4,7 @@ import sys
 import pytest
 
 from policyengine_household_api.modal_release import prune_manifest
-from policyengine_household_api.modal_release.manifest import MANIFEST_DICT_KEY
+from policyengine_household_common.release_manifest import MANIFEST_DICT_KEY
 
 
 def _app(name, *, uk="2.31.0", us="1.691.1"):

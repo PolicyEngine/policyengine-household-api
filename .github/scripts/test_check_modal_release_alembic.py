@@ -1,7 +1,7 @@
 import pytest
 
 from check_modal_release_alembic import validate_alembic_migration_changes
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfigError,
 )
 
