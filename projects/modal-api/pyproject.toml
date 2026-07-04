@@ -1,6 +1,6 @@
 [project]
 name = "policyengine-household-modal-api"
-version = "0.26.1"
+version = "0.26.2"
 description = "Modal worker, gateway, and canary apps for the PolicyEngine Household API"
 readme = "README.md"
 authors = [
@@ -12,7 +12,7 @@ classifiers = ["Private :: Do Not Upload"]
 # worker image installs the `worker` extra, pulling the core application and
 # (transitively) the analytics stack the worker's revision checks use.
 dependencies = [
-    "policyengine-household-common==0.26.1",
+    "policyengine-household-common==0.26.2",
     "flask>=2.2",
     "modal>=1.3.0",
     "policyengine-observability[flask]>=1.0.0",
@@ -21,8 +21,8 @@ dependencies = [
 
 [project.optional-dependencies]
 worker = [
-    "policyengine-household-api==0.26.1",
-    "policyengine-household-analytics==0.26.1",
+    "policyengine-household-api==0.26.2",
+    "policyengine-household-analytics==0.26.2",
 ]
 
 [tool.uv.sources]

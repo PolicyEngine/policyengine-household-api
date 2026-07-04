@@ -1,3 +1,10 @@
+## [0.26.2] - 2026-07-04
+
+### Changed
+
+- Restructure the repository into a uv-workspace monorepo: per-service projects with enforced dependency closures, the analytics writer deployed before integration-test lanes, analytics database migrations in a dedicated deploy job, and HTTP startup probes on all Cloud Run services.
+
+
 ## [0.26.1] - 2026-07-03
 
 ### Fixed
