@@ -98,6 +98,10 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "policyengine_household_modal.analytics_revision" in log
     assert "-m policyengine_household_modal.canary_app" in log
     assert "DEPLOY_APP=release-app" in log
+    assert (
+        "-m policyengine_household_modal.warm_worker "
+        "--app-name release-app" in log
+    )
     assert "-m policyengine_household_modal.update_manifest" in log
     assert "--source-commit" not in log
     assert "cleanup-called" in log
