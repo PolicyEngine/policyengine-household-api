@@ -250,13 +250,13 @@ variable usage metadata:
 Analytics database schema changes are managed with Alembic:
 ```bash
 ANALYTICS_DATABASE_URL=sqlite:////tmp/policyengine-household-api-analytics.db \
-  uv run alembic upgrade head
+  uv run alembic -c projects/analytics-api/alembic.ini upgrade head
 uv run alembic current
 uv run alembic history
-uv run alembic revision --autogenerate -m "Describe schema change"
+uv run alembic -c projects/analytics-api/alembic.ini revision --autogenerate -m "Describe schema change"
 ```
 
-Staging and production deploys run `uv run alembic upgrade head` before
+Staging and production deploys run `uv run alembic -c projects/analytics-api/alembic.ini upgrade head` before
 deploying Modal and Cloud Run services. Because deployed staging and production
 run with `ANALYTICS__ENABLED=true`, both environments must configure
 `USER_ANALYTICS_DB_CONNECTION_NAME`, `USER_ANALYTICS_DB_USERNAME`, and
@@ -276,11 +276,11 @@ in `policyengine_household_api/data/analytics_setup.py` in the same PR.
 Existing analytics databases that already have the `visits` table but no
 `alembic_version` table must be stamped exactly once before running new
 migrations. Do this manually before the first deploy that includes Alembic;
-otherwise the deploy workflow's `uv run alembic upgrade head` step will fail
+otherwise the deploy workflow's `uv run alembic -c projects/analytics-api/alembic.ini upgrade head` step will fail
 when Alembic tries to create the existing `visits` table:
 ```bash
 uv run alembic stamp 20260508_0001
-uv run alembic upgrade head
+uv run alembic -c projects/analytics-api/alembic.ini upgrade head
 ```
 
 Run the stamp/upgrade sequence first for staging, verify staging, then repeat

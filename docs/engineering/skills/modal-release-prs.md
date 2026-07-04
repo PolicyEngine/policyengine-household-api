@@ -119,12 +119,15 @@ drops retired history, and removes non-release package keys.
 
 Manual workflow dispatch exposes the same `new_app_target`,
 `promote_existing_frontier`, and `cleanup_target` settings as the PR-body YAML
-block. The deploy workflow and Modal images use Python 3.13.
+block, plus `deploy_scope`: `staging-only` stops the run before any
+production job, which is how deploy changes are validated from a branch. The
+deploy workflow and Modal images use Python 3.13.
 
 ## Analytics Migrations
 
 Modal releases use the same shared analytics database for `current` and
-`frontier`. The release workflow runs `uv run alembic upgrade head` before
+`frontier`. The release workflow runs migrations in the dedicated
+`migrate-analytics-db` jobs before
 deploying a worker or updating the manifest.
 
 Analytics migrations in normal Modal release PRs must be backward-compatible

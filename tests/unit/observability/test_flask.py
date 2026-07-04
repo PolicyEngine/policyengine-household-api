@@ -23,12 +23,14 @@ from policyengine_observability import (
 )
 from policyengine_observability.runtime import INTERNAL_LOGGER
 from policyengine_observability.runtime import REQUEST_LOGGER
-from policyengine_household_api.observability.flask import (
+from policyengine_household_common.observability.flask import (
     HOUSEHOLD_METRIC_ATTRIBUTE_KEYS,
 )
-from policyengine_household_api.observability.flask import init_observability
-from policyengine_household_api.observability.segments import SegmentName
-import policyengine_household_api.observability as household_observability
+from policyengine_household_common.observability.flask import (
+    init_observability,
+)
+from policyengine_household_common.observability.segments import SegmentName
+import policyengine_household_common.observability as household_observability
 
 
 class OTelFailure(BaseException):
@@ -79,7 +81,7 @@ def test_observability_import_does_not_load_household_json_utils():
             "-c",
             (
                 "import sys; "
-                "import policyengine_household_api.observability.flask; "
+                "import policyengine_household_common.observability.flask; "
                 "loaded = sorted("
                 "name for name in sys.modules "
                 "if name.startswith('policyengine_household_api.utils')"

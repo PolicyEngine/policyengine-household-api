@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -U uv
 
 # Install Python dependencies from uv.lock for reproducible builds
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN uv sync --frozen --no-dev --no-editable
+RUN uv sync --frozen --no-dev --no-editable --package policyengine-household-api
 
 # Optional override of the locked policyengine-us pin, so one Dockerfile can
 # build an image for any published model version (the Modal worker image does
@@ -42,7 +42,7 @@ RUN groupadd policyapi && \
 
 # Copy artifacts from build stage
 COPY --from=builder --chown=policyapi:policyapi /opt/venv /opt/venv
-COPY --from=builder --chown=policyapi:policyapi /build/policyengine_household_api /app/policyengine_household_api
+COPY --from=builder --chown=policyapi:policyapi /build/libs/household-api/policyengine_household_api /app/policyengine_household_api
 
 # Copy default configuration
 COPY --chown=policyapi:policyapi ./config/default.yaml /app/config/default.yaml

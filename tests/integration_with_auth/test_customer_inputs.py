@@ -9,9 +9,9 @@ from tests.data.customer_households import (
     amplifi_household_2025,
     impactica_household,
 )
-from policyengine_household_api.models.household import HouseholdModelUS
+from policyengine_household_common.models.household import HouseholdModelUS
 from policyengine_household_api.utils import get_config_value
-from policyengine_household_api.utils.household import (
+from policyengine_household_common.household import (
     FlattenedVariableFilter,
     FlattenedVariable,
     flatten_variables_from_household,

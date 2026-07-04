@@ -2,7 +2,7 @@ import importlib
 
 import pytest
 
-from policyengine_household_api.modal_release.images import (
+from policyengine_household_api.deployment import (
     PACKAGE_VERSIONS_ENV,
     country_package_install_specs,
     deployment_package_versions_from_env,
@@ -15,7 +15,7 @@ pytestmark = pytest.mark.usefixtures("worker_app")
 @pytest.fixture
 def worker_app(monkeypatch):
     monkeypatch.setenv("MODAL_ENVIRONMENT", "testing")
-    from policyengine_household_api.modal_release import worker_app
+    from policyengine_household_modal import worker_app
 
     return importlib.reload(worker_app)
 
@@ -29,7 +29,7 @@ def test_worker_function_options_keep_main_workers_warm(worker_app):
 
 
 def test_worker_function_options_do_not_keep_staging_workers_warm():
-    from policyengine_household_api.modal_release.worker_app import (
+    from policyengine_household_modal.worker_app import (
         worker_function_options,
     )
 
@@ -44,7 +44,7 @@ def test_worker_function_options_do_not_keep_workers_warm_without_env(
     monkeypatch,
 ):
     monkeypatch.delenv("MODAL_ENVIRONMENT", raising=False)
-    from policyengine_household_api.modal_release.worker_app import (
+    from policyengine_household_modal.worker_app import (
         worker_function_options,
     )
 

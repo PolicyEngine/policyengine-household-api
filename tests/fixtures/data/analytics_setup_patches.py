@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock
 def patch_get_config_value_returns_false():
     """Patch get_config_value to return False."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         return_value=False,
     ) as mock:
         yield mock
@@ -20,7 +20,7 @@ def patch_get_config_value_returns_false():
 def patch_get_config_value_returns_true():
     """Patch get_config_value to return True."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         return_value=True,
     ) as mock:
         yield mock
@@ -30,7 +30,7 @@ def patch_get_config_value_returns_true():
 def patch_get_config_value_raises_exception():
     """Patch get_config_value to raise an exception."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         side_effect=Exception("No config"),
     ) as mock:
         yield mock
@@ -50,7 +50,7 @@ def patch_get_config_value_with_full_config():
         return config_map.get(key, default)
 
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -66,7 +66,7 @@ def patch_get_config_value_missing_connection_name():
         return default  # Returns None for connection_name
 
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -84,7 +84,7 @@ def patch_get_config_value_missing_username():
         return default  # Returns None for username
 
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -103,7 +103,7 @@ def patch_get_config_value_missing_password():
         return config_map.get(key, default)  # Returns None for password
 
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -122,7 +122,7 @@ def patch_get_config_value_first_call_succeeds_then_fails():
             raise Exception("Config loader error")
 
     with patch(
-        "policyengine_household_api.data.analytics_setup.get_config_value",
+        "policyengine_household_analytics.analytics_setup.get_config_value",
         side_effect=config_side_effect,
     ) as mock:
         yield mock
@@ -132,7 +132,7 @@ def patch_get_config_value_first_call_succeeds_then_fails():
 def patch_google_connector_raises_import_error():
     """Patch Google Cloud SQL Connector to raise ImportError."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.Connector",
+        "policyengine_household_analytics.analytics_setup.Connector",
         side_effect=ImportError("No module"),
     ) as mock:
         yield mock
@@ -152,7 +152,7 @@ def patch_google_connector_with_connection_error():
 def patch_analytics_connector_class():
     """Patch the analytics Connector class and expose the mock class."""
     with patch(
-        "policyengine_household_api.data.analytics_setup.Connector"
+        "policyengine_household_analytics.analytics_setup.Connector"
     ) as connector_class:
         mock_instance = MagicMock()
         connector_class.return_value = mock_instance
@@ -164,15 +164,15 @@ def patch_analytics_initialization_ready():
     """Patch analytics initialization dependencies for a ready schema."""
     with (
         patch(
-            "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+            "policyengine_household_analytics.analytics_setup.is_analytics_enabled",
             return_value=True,
         ),
         patch(
-            "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
+            "policyengine_household_analytics.analytics_setup.check_analytics_schema_ready",
             return_value=True,
         ),
         patch(
-            "policyengine_household_api.data.analytics_setup.db.create_all"
+            "policyengine_household_analytics.analytics_setup.db.create_all"
         ) as create_all,
     ):
         yield create_all
@@ -183,11 +183,11 @@ def patch_analytics_initialization_schema_not_ready():
     """Patch analytics initialization dependencies for a failed schema check."""
     with (
         patch(
-            "policyengine_household_api.data.analytics_setup.is_analytics_enabled",
+            "policyengine_household_analytics.analytics_setup.is_analytics_enabled",
             return_value=True,
         ),
         patch(
-            "policyengine_household_api.data.analytics_setup.check_analytics_schema_ready",
+            "policyengine_household_analytics.analytics_setup.check_analytics_schema_ready",
             return_value=False,
         ),
     ):
@@ -199,11 +199,11 @@ def patch_schema_check_missing_alembic_version():
     """Patch schema inspection to report no missing columns but no revision."""
     with (
         patch(
-            "policyengine_household_api.data.analytics_setup._missing_required_schema",
+            "policyengine_household_analytics.analytics_setup._missing_required_schema",
             return_value=[],
         ),
         patch(
-            "policyengine_household_api.data.analytics_setup._alembic_version",
+            "policyengine_household_analytics.analytics_setup._alembic_version",
             return_value=None,
         ),
     ):
@@ -215,11 +215,11 @@ def patch_schema_check_wrong_alembic_version():
     """Patch schema inspection to report an out-of-date Alembic revision."""
     with (
         patch(
-            "policyengine_household_api.data.analytics_setup._missing_required_schema",
+            "policyengine_household_analytics.analytics_setup._missing_required_schema",
             return_value=[],
         ),
         patch(
-            "policyengine_household_api.data.analytics_setup._alembic_version",
+            "policyengine_household_analytics.analytics_setup._alembic_version",
             return_value="20260508_0001",
         ),
     ):
@@ -231,11 +231,11 @@ def patch_schema_check_head_alembic_version():
     """Patch schema inspection to report the configured Alembic head."""
     with (
         patch(
-            "policyengine_household_api.data.analytics_setup._missing_required_schema",
+            "policyengine_household_analytics.analytics_setup._missing_required_schema",
             return_value=[],
         ),
         patch(
-            "policyengine_household_api.data.analytics_setup._alembic_version",
+            "policyengine_household_analytics.analytics_setup._alembic_version",
             return_value="20260519_0004",
         ),
     ):

@@ -6,8 +6,8 @@ from google.cloud import tasks_v2
 from policyengine_household_api.analytics.config import (
     CloudTasksAnalyticsConfig,
 )
-from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
-from policyengine_household_api.models.analytics import (
+from policyengine_household_analytics.events import CalculateAnalyticsEvent
+from policyengine_household_common.models.analytics import (
     AnalyticsContext,
     AnalyticsHttpMethod,
 )

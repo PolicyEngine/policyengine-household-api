@@ -65,6 +65,13 @@ def update_file(path: Path, old_version: str, new_version: str) -> bool:
         f'version = "{old_version}"',
         f'version = "{new_version}"',
     )
+    # Members are versioned in lockstep, and the published core package pins
+    # its sibling libs exactly; bump those pins together with the versions.
+    updated = re.sub(
+        rf"(policyengine-household-[a-z-]+)=={re.escape(old_version)}",
+        rf"\g<1>=={new_version}",
+        updated,
+    )
     if updated == text:
         return False
     path.write_text(updated)
@@ -72,9 +79,20 @@ def update_file(path: Path, old_version: str, new_version: str) -> bool:
     return True
 
 
+# The workspace member whose version is canonical: the PyPI-published core
+# package. Every workspace member is stamped with this same version.
+CANONICAL_MEMBER_PYPROJECT = Path("libs") / "household-api" / "pyproject.toml"
+
+
+def member_pyprojects(root: Path) -> list[Path]:
+    return sorted(root.glob("libs/*/pyproject.toml")) + sorted(
+        root.glob("projects/*/pyproject.toml")
+    )
+
+
 def main(root: Path | None = None) -> str:
     root = root or Path(__file__).resolve().parent.parent
-    pyproject = root / "pyproject.toml"
+    pyproject = root / CANONICAL_MEMBER_PYPROJECT
     changelog_dir = root / "changelog.d"
 
     try:
@@ -86,7 +104,8 @@ def main(root: Path | None = None) -> str:
 
     new = bump_version(current, bump)
     print(f"Version: {current} -> {new} ({bump})")
-    update_file(pyproject, current, new)
+    for member_pyproject in member_pyprojects(root):
+        update_file(member_pyproject, current, new)
     return new
 
 

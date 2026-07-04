@@ -1,0 +1,27 @@
+[project]
+name = "policyengine-household-common"
+version = "0.26.1"
+description = "Shared kernel for the PolicyEngine Household API services"
+readme = "README.md"
+authors = [
+    { name = "PolicyEngine", email = "hello@policyengine.org" },
+]
+requires-python = ">=3.12"
+# Keep this closure light on purpose: no numpy, no SQLAlchemy, no country
+# model packages, no modal. The analytics writer's image depends on it.
+# (gateway.py and worker_dispatch.py import modal lazily at call time; modal
+# is deliberately a dependency of the service projects that run them, not of
+# this lib.)
+dependencies = [
+    "flask>=2.2",
+    "pydantic",
+    "pyyaml>=6",
+    "policyengine-observability[flask]>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["policyengine_household_common"]

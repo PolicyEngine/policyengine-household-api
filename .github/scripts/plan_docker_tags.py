@@ -360,7 +360,9 @@ def _parse_args() -> argparse.Namespace:
         help="Print the pinned policyengine-us version from pyproject.toml and"
         " exit (shared with PR Docker build CI).",
     )
-    parser.add_argument("--pyproject", default="pyproject.toml")
+    parser.add_argument(
+        "--pyproject", default="libs/household-api/pyproject.toml"
+    )
     parser.add_argument("--gateway-url", default=DEFAULT_GATEWAY_URL)
     parser.add_argument("--repository", default=DEFAULT_REPOSITORY)
     parser.add_argument("--github-output")

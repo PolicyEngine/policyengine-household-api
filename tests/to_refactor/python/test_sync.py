@@ -3,7 +3,7 @@ import requests
 import json
 import sys
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
-from policyengine_household_api.utils.config_loader import get_config_value
+from policyengine_household_common.config_loader import get_config_value
 from tests.to_refactor.fixtures import client, extract_json_from_file
 
 API_URL = "https://api.policyengine.org/"

@@ -10,7 +10,7 @@ from policyengine_observability import ObservabilityConfig
 from policyengine_observability import ObservabilityRuntime
 from policyengine_observability import RequestObservabilityContext
 
-from policyengine_household_api.failover.cloud_run_gateway import (
+from policyengine_household_failover.cloud_run_gateway import (
     CircuitRegistry,
     FallbackBackendUnavailable,
     GcsFailoverManifestLoader,
@@ -26,10 +26,10 @@ from policyengine_household_api.failover.cloud_run_gateway import (
     probe_modal_worker,
     warm_cloud_run_worker,
 )
-from policyengine_household_api.failover.dispatch_codec import (
+from policyengine_household_common.dispatch_codec import (
     encode_dispatch_response,
 )
-from policyengine_household_api.failover.manifest import (
+from policyengine_household_failover.manifest import (
     FailoverManifestError,
     FailoverManifestReadError,
     ResolvedFailoverChannel,
@@ -374,7 +374,7 @@ def test_cloud_run_worker_auth_failure_is_fallback_unavailable(monkeypatch):
         raise ValueError("token unavailable")
 
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway._cloud_run_auth_header",
+        "policyengine_household_failover.cloud_run_gateway._cloud_run_auth_header",
         fail_auth,
     )
 
@@ -422,7 +422,7 @@ def test_cloud_run_worker_timeout_uses_env(monkeypatch):
         "900",
     )
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway.urllib_request.urlopen",
+        "policyengine_household_failover.cloud_run_gateway.urllib_request.urlopen",
         fake_urlopen,
     )
 
@@ -465,7 +465,7 @@ def test_cloud_run_worker_returns_dispatched_500_response(monkeypatch):
 
     monkeypatch.setenv("HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH", "1")
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway.urllib_request.urlopen",
+        "policyengine_household_failover.cloud_run_gateway.urllib_request.urlopen",
         fake_urlopen,
     )
 
@@ -489,7 +489,7 @@ def test_cloud_run_worker_warmup_swallows_auth_failure(monkeypatch):
         raise ValueError("token unavailable")
 
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway._cloud_run_auth_header",
+        "policyengine_household_failover.cloud_run_gateway._cloud_run_auth_header",
         fail_auth,
     )
 
@@ -901,7 +901,7 @@ def test_modal_canary_saturation_does_not_confirm_outage(monkeypatch):
     drained = threading.BoundedSemaphore(1)
     assert drained.acquire(blocking=False) is True
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway."
+        "policyengine_household_failover.cloud_run_gateway."
         "_MODAL_PROBE_EXECUTOR_SEMAPHORE",
         drained,
     )
@@ -956,7 +956,7 @@ def test_recovery_probe_saturation_preserves_recovery_progress(monkeypatch):
     drained = threading.BoundedSemaphore(1)
     assert drained.acquire(blocking=False) is True
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway."
+        "policyengine_household_failover.cloud_run_gateway."
         "_MODAL_PROBE_EXECUTOR_SEMAPHORE",
         drained,
     )

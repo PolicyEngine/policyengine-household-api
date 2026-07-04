@@ -3,10 +3,15 @@ from pathlib import Path
 import subprocess
 
 
-def test_cloud_run_gateway_image_installs_observability_dependency():
+def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
 
-    assert '"policyengine-observability[flask]>=1.0.0"' in dockerfile
+    # The gateway installs its member's locked closure (which carries
+    # policyengine-observability) rather than a hand-maintained pip list.
+    assert "uv sync --frozen --no-install-workspace" in dockerfile
+    assert "--package policyengine-household-failover-api" in dockerfile
+    assert "--extra worker" not in dockerfile
+    assert "pip_install" not in dockerfile
     assert "numpy" not in dockerfile
 
 
@@ -40,8 +45,8 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
-        "HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT": (
-            "household-api-analytics-writer@policyengine-test.iam.gserviceaccount.com"
+        "HOUSEHOLD_ANALYTICS_WRITER_URL": (
+            "https://household-api-staging-analytics-writer.run.app"
         ),
         "ANALYTICS__CLOUD_TASKS__PROJECT": "policyengine-test",
         "ANALYTICS__CLOUD_TASKS__LOCATION": "us-central1",
@@ -87,10 +92,10 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
 
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
+    assert "analytics_writer.Dockerfile" not in log
     assert (
-        "docker build --file gcp/cloud_run/analytics_writer.Dockerfile" in log
+        "gcloud run deploy household-api-staging-analytics-writer" not in log
     )
-    assert "gcloud run deploy household-api-staging-analytics-writer" in log
     assert "docker build --file gcp/cloud_run/worker.Dockerfile" in log
     assert (
         'HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON={"uk":"2.88.18","us":"2.0.0"}'
@@ -128,7 +133,26 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "OTEL_SERVICE_NAME" not in log
     assert "cloud_run_apply_scaling_controls.py" in log
     assert "--scaling-concurrency-target 0.3" in log
-    assert "gcloud run services replace" in log
+    # Startup probes: applied to both workers and the gateway so a revision
+    # whose app cannot serve HTTP fails the deploy instead of passing on the
+    # default TCP port check.
+    assert log.count("cloud_run_apply_startup_probe.py") == 3
+    assert (
+        log.count(
+            "--path /liveness_check --period-seconds 5 "
+            "--timeout-seconds 3 --failure-threshold 60"
+        )
+        == 2
+    )
+    assert (
+        log.count(
+            "--path /liveness_check --period-seconds 2 "
+            "--timeout-seconds 2 --failure-threshold 30"
+        )
+        == 1
+    )
+    # 2 worker scaling replaces + 2 worker probe replaces + 1 gateway probe.
+    assert log.count("gcloud run services replace") == 5
     assert "--env-vars-file=" in log
     assert "--set-env-vars" not in log
     assert (
@@ -170,21 +194,12 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "household-api-gateway@policyengine-test.iam.gserviceaccount.com"
         in log
     )
-    assert (
-        "--service-account "
-        "household-api-analytics-writer@policyengine-test.iam.gserviceaccount.com"
-        in log
-    )
     assert "123456789-compute@developer.gserviceaccount.com" not in log
     assert "--ingress" not in log
     assert "gateway_url=https://household-api-staging-gateway.run.app" in (
         output_path.read_text()
     )
-    assert (
-        "analytics_writer_url="
-        "https://household-api-staging-analytics-writer.run.app"
-        in output_path.read_text()
-    )
+    assert "analytics_writer_url=" not in output_path.read_text()
 
 
 def test_cloud_run_deploy_failover_requires_manifest_bucket(tmp_path):
@@ -225,7 +240,6 @@ def test_cloud_run_deploy_failover_requires_service_accounts(tmp_path):
     }
     env.pop("HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT", None)
     env.pop("HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT", None)
-    env.pop("HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT", None)
 
     result = subprocess.run(
         ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
@@ -239,7 +253,7 @@ def test_cloud_run_deploy_failover_requires_service_accounts(tmp_path):
     assert "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT" in result.stdout
 
 
-def test_cloud_run_deploy_failover_requires_analytics_writer_service_account_when_analytics_enabled(
+def test_cloud_run_deploy_failover_requires_analytics_writer_url_when_analytics_enabled(
     tmp_path,
 ):
     log_path = tmp_path / "commands.log"
@@ -261,7 +275,7 @@ def test_cloud_run_deploy_failover_requires_analytics_writer_service_account_whe
         ),
         "ANALYTICS__ENABLED": "true",
     }
-    env.pop("HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT", None)
+    env.pop("HOUSEHOLD_ANALYTICS_WRITER_URL", None)
 
     result = subprocess.run(
         ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
@@ -271,9 +285,7 @@ def test_cloud_run_deploy_failover_requires_analytics_writer_service_account_whe
     )
 
     assert result.returncode == 1
-    assert (
-        "HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT" in result.stdout
-    )
+    assert "HOUSEHOLD_ANALYTICS_WRITER_URL" in result.stdout
 
 
 def test_cloud_run_deploy_failover_requires_modal_credentials(tmp_path):
@@ -319,8 +331,8 @@ def test_cloud_run_deploy_failover_requires_analytics_cloud_tasks_config(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
-        "HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT": (
-            "household-api-analytics-writer@policyengine-test.iam.gserviceaccount.com"
+        "HOUSEHOLD_ANALYTICS_WRITER_URL": (
+            "https://household-api-staging-analytics-writer.run.app"
         ),
         "ANALYTICS__ENABLED": "true",
     }
@@ -380,9 +392,7 @@ def test_cloud_run_deploy_failover_accepts_bootstrapped_writer_urls(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
-        "HOUSEHOLD_CLOUD_RUN_ANALYTICS_WRITER_SERVICE_ACCOUNT": (
-            "household-api-analytics-writer@policyengine-test.iam.gserviceaccount.com"
-        ),
+        "HOUSEHOLD_ANALYTICS_WRITER_URL": bootstrapped_writer_url,
         "ANALYTICS__ENABLED": "true",
         "ANALYTICS__CLOUD_TASKS__PROJECT": "policyengine-test",
         "ANALYTICS__CLOUD_TASKS__LOCATION": "us-central1",

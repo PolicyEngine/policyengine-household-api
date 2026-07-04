@@ -1,0 +1,34 @@
+[project]
+name = "policyengine-household-analytics-api"
+version = "0.26.1"
+description = "Cloud Run analytics writer service for the PolicyEngine Household API"
+readme = "README.md"
+authors = [
+    { name = "PolicyEngine", email = "hello@policyengine.org" },
+]
+requires-python = ">=3.12"
+classifiers = ["Private :: Do Not Upload"]
+# The whole point of this member: the writer's dependency closure is exactly
+# this list plus the analytics lib's. numpy, country model packages, and
+# modal are structurally uninstallable in its environment.
+dependencies = [
+    "policyengine-household-analytics==0.26.1",
+    "google-cloud-logging",
+    "gunicorn",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-timeout",
+]
+
+[tool.uv.sources]
+policyengine-household-analytics = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["policyengine_household_analytics_api"]

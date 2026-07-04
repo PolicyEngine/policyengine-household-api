@@ -1,7 +1,7 @@
 import pytest
 
 from check_modal_release_body import validate_release_body_config
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfigError,
 )
 

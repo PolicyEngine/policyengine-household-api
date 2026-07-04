@@ -89,3 +89,13 @@ docker build -f gcp/policyengine_household_api/Dockerfile.production \
 - `gcp/policyengine_household_api/Dockerfile.production` is the only
   published Dockerfile. `docker/Dockerfile.api` is the docker-compose dev
   image and is not published.
+
+## Workspace builds
+
+The repository is a uv workspace. Image builds sync one member from the root
+lockfile (`uv sync --frozen --package <member>`), and every member's
+`pyproject.toml` must be COPYed into the build context even when that member
+is not installed — uv needs them to parse the workspace. The published
+Dockerfile installs `--package policyengine-household-api`; the Cloud Run
+images install their service member (see
+`docs/engineering/skills/monorepo-layout.md`).

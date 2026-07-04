@@ -1,6 +1,6 @@
 import pytest
 
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfigError,
     NewAppTarget,
     body_contains_modal_release_config,
@@ -104,7 +104,7 @@ modal_release:
 
 def test_changed_files_require_config_for_modal_release_paths():
     assert changed_files_require_modal_release_config(
-        ["policyengine_household_api/modal_release/gateway.py"]
+        ["libs/household-common/policyengine_household_common/gateway.py"]
     )
 
 

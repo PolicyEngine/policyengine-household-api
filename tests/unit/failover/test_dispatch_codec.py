@@ -1,10 +1,10 @@
-from policyengine_household_api.failover.dispatch_codec import (
+from policyengine_household_common.dispatch_codec import (
     decode_dispatch_request,
     decode_dispatch_response,
     encode_dispatch_request,
     encode_dispatch_response,
 )
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
 

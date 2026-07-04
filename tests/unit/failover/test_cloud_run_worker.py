@@ -3,14 +3,14 @@ import json
 from flask import Flask, jsonify
 from policyengine_observability.runtime import OPERATION_LOGGER
 
-from policyengine_household_api.failover.cloud_run_worker import (
+from policyengine_household_failover.cloud_run_worker import (
     create_worker_app,
 )
-from policyengine_household_api.failover.dispatch_codec import (
+from policyengine_household_common.dispatch_codec import (
     decode_dispatch_response,
     encode_dispatch_request,
 )
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
 

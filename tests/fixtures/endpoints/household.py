@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 import pytest
 
-from policyengine_household_api.analytics.events import CalculateAnalyticsEvent
-from policyengine_household_api.models.analytics import (
+from policyengine_household_analytics.events import CalculateAnalyticsEvent
+from policyengine_household_common.models.analytics import (
     AnalyticsContext,
     AvailabilityStatus,
     VariableUsageSummary,

@@ -26,39 +26,11 @@ if [ "${route_mode}" != "channel" ] && [ "${route_mode}" != "exact" ]; then
   exit 1
 fi
 
-request_version="$(
-  BASE_URL="${base_url}" \
-  CHANNEL="${channel}" \
-  ROUTE_MODE="${route_mode}" \
-  python -c '
-import json
-import os
-import sys
-from urllib import error, request
-
-base_url = os.environ["BASE_URL"].rstrip("/")
-channel = os.environ["CHANNEL"]
-route_mode = os.environ["ROUTE_MODE"]
-
-try:
-    with request.urlopen(f"{base_url}/versions/us", timeout=30) as response:
-        versions = json.loads(response.read().decode("utf-8"))
-except error.HTTPError as exc:
-    sys.exit(f"Could not load active Modal channels: HTTP {exc.code}")
-
-package_version = versions.get(channel)
-if not package_version:
-    sys.exit(f"Modal staging does not expose `{channel}` for US")
-
-if route_mode == "channel":
-    print(channel)
-else:
-    print(package_version)
-'
-)"
-
+# The request version (channel name or the exact live model version) is
+# resolved inside the test session by the `request_version` fixture in
+# tests/deployed/conftest.py, so resolution failures appear in the pytest
+# report instead of killing the step before any test output.
 echo "Running deployed tests against Modal ${channel} via ${route_mode} routing"
-HOUSEHOLD_API_REQUEST_VERSION="${request_version}" \
 HOUSEHOLD_API_EXPECTED_CHANNEL="${channel}" \
 HOUSEHOLD_API_ROUTE_MODE="${route_mode}" \
   bash "${deployed_tests_script}"

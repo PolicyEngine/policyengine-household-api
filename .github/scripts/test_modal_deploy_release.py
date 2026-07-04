@@ -57,15 +57,12 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
     assert "modal_require_active_channels.py" in log
-    assert "-m policyengine_household_api.modal_release.canary_app" in log
+    assert "-m policyengine_household_modal.canary_app" in log
     assert "DEPLOY_APP=current-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
     assert "DEPLOY_APP=frontier-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.691.1"}' in log
-    assert (
-        "-m policyengine_household_api.modal_release.update_manifest"
-        not in log
-    )
+    assert "-m policyengine_household_modal.update_manifest" not in log
     assert "cleanup-called" not in log
 
 
@@ -95,12 +92,16 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
     assert "modal_require_active_channels.py" in log
-    assert "-m policyengine_household_api.modal_release.canary_app" in log
+    # Migrations run in the dedicated migrate-analytics-db workflow job; the
+    # deploy script only reads the database's current revision.
+    assert "alembic upgrade" not in log
+    assert "policyengine_household_modal.analytics_revision" in log
+    assert "-m policyengine_household_modal.canary_app" in log
     assert "DEPLOY_APP=release-app" in log
-    assert "-m policyengine_household_api.modal_release.update_manifest" in log
+    assert "-m policyengine_household_modal.update_manifest" in log
     assert "--source-commit" not in log
     assert "cleanup-called" in log
-    assert "-m policyengine_household_api.modal_release.prune_manifest" in log
+    assert "-m policyengine_household_modal.prune_manifest" in log
 
 
 def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
@@ -127,13 +128,11 @@ def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
 
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
-    assert "-m policyengine_household_api.modal_release.update_manifest" in log
+    assert "-m policyengine_household_modal.update_manifest" in log
     # Cleanup must be deferred to the post-failover-refresh job, so the
     # in-script cleanup hook never fires.
     assert "cleanup-called" not in log
-    assert (
-        "-m policyengine_household_api.modal_release.prune_manifest" not in log
-    )
+    assert "-m policyengine_household_modal.prune_manifest" not in log
     assert "Deferring Modal app cleanup" in result.stdout
 
 
@@ -165,10 +164,7 @@ def test_modal_deploy_release_fails_before_deploy_when_channels_missing(
     log = log_path.read_text()
     assert "modal_require_active_channels.py" in log
     assert "DEPLOY_APP=release-app" not in log
-    assert (
-        "-m policyengine_household_api.modal_release.update_manifest"
-        not in log
-    )
+    assert "-m policyengine_household_modal.update_manifest" not in log
 
 
 def _deploy_env(tmp_path: Path, log_path: Path) -> dict[str, str]:
@@ -218,7 +214,7 @@ def _write_fake_uv(
 set -euo pipefail
 echo "$*" >> "${{UV_LOG}}"
 
-if [[ "$*" == *"policyengine_household_api.modal_release.analytics_revision"* ]]; then
+if [[ "$*" == *"policyengine_household_modal.analytics_revision"* ]]; then
   echo "20260512_0003"
   exit 0
 fi

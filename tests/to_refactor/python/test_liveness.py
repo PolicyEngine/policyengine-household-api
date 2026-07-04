@@ -1,6 +1,6 @@
 import os
 
-from policyengine_household_api.utils.config_loader import get_config_value
+from policyengine_household_common.config_loader import get_config_value
 from tests.to_refactor.fixtures import client
 
 
