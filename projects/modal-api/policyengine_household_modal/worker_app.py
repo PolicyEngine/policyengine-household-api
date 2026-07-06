@@ -50,17 +50,7 @@ def worker_function_options(
     options: dict[str, Any] = {
         "image": household_api_worker_image(),
         "secrets": [household_api_secret()],
-        # A heavy customer calculate costs up to ~50 CPU-seconds and its
-        # numpy work runs ~2 threads, so at 2-way input concurrency the
-        # worst legitimate request needs ~90s of wall time; 300s bounds
-        # runaways with ~3x headroom. Crossing this budget is expensive:
-        # cancelling an input of a sync function with input concurrency
-        # shuts down the whole container (issue #1609).
         "timeout": 300,
-        # Reserve the ~2 cores one calculation actually uses. Without an
-        # explicit reservation Modal guarantees only 0.125 cores and the
-        # rest is best-effort burst, so concurrent heavy calculations can
-        # starve (3s solo -> 118s observed under load, issue #1609).
         "cpu": 2.0,
         "scaledown_window": 300,
         "enable_memory_snapshot": True,
@@ -80,18 +70,6 @@ def worker_function_options(
 
 
 def worker_concurrency_options() -> dict[str, int]:
-    # Requests are not uniformly cheap: routine calculates cost well under
-    # 1 CPU-second, but the heavy customer-regression households cost 12-50
-    # CPU-seconds each. Packing 4-5 of those into one container time-shares
-    # the CPU through the GIL and BLAS threadpool and stretched 3s requests
-    # past the execution budget (issue #1609). `max_inputs=2` bounds
-    # contention at 2-way while keeping one burst slot, and it also caps
-    # the collateral of Modal's cancellation semantics at a single sibling
-    # input when a container is shut down.
-    #
-    # `target_inputs=1` makes the autoscaler add capacity as soon as
-    # containers average more than one in-flight request, so simultaneous
-    # heavy requests spread across containers instead of piling onto one.
     return {"max_inputs": 2, "target_inputs": 1}
 
 

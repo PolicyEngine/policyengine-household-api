@@ -66,10 +66,6 @@ app = modal.App(GATEWAY_APP_NAME)
 @app.function(
     image=household_api_gateway_image(),
     secrets=[household_api_secret()],
-    # Must exceed the worker's 300s execution budget so the worker's own
-    # timeout always resolves first: a gateway-side cancellation of an
-    # in-flight worker input shuts down the whole worker container
-    # (issue #1609).
     timeout=330,
     scaledown_window=300,
 )
