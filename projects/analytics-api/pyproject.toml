@@ -1,6 +1,6 @@
 [project]
 name = "policyengine-household-analytics-api"
-version = "0.26.3"
+version = "0.26.4"
 description = "Cloud Run analytics writer service for the PolicyEngine Household API"
 readme = "README.md"
 authors = [
@@ -12,7 +12,7 @@ classifiers = ["Private :: Do Not Upload"]
 # this list plus the analytics lib's. numpy, country model packages, and
 # modal are structurally uninstallable in its environment.
 dependencies = [
-    "policyengine-household-analytics==0.26.3",
+    "policyengine-household-analytics==0.26.4",
     "google-cloud-logging",
     "gunicorn",
 ]

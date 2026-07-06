@@ -1,3 +1,10 @@
+## [0.26.4] - 2026-07-06
+
+### Fixed
+
+- Modal worker containers now cap input concurrency at 3 (autoscale target 2) so simultaneous heavy calculates spread across containers instead of starving on one, and carry a 300s execution budget (gateway 330s) so heavy requests no longer cross the budget cliff where a timeout cancellation shuts down the whole warm container.
+
+
 ## [0.26.3] - 2026-07-06
 
 ### Fixed
