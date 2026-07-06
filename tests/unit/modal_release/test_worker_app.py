@@ -85,17 +85,41 @@ def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
 
 
 def test_worker_concurrency_options_set_max_inputs(worker_app):
-    """Each container processes up to 5 requests in parallel. Keeping this
-    consistent across environments ensures staging behavior mirrors
-    production so concurrency-related issues surface in staging tests."""
-    assert worker_app.worker_concurrency_options()["max_inputs"] == 5
+    """Heavy customer calculates cost 12-50 CPU-seconds each; a low input
+    concurrency cap bounds in-container contention and limits the
+    collateral of Modal's cancel-shuts-down-the-container semantics
+    (issue #1609)."""
+    assert worker_app.worker_concurrency_options()["max_inputs"] == 3
 
 
 def test_worker_concurrency_options_set_target_inputs(worker_app):
-    """`target_inputs=4` keeps the autoscaler aiming for 80% steady-state
-    utilisation, so each container retains a free slot to absorb a
-    single-request spike without waiting on a cold start."""
-    assert worker_app.worker_concurrency_options()["target_inputs"] == 4
+    """A low autoscale target adds capacity before containers saturate,
+    so simultaneous heavy requests spread across containers instead of
+    piling onto one (issue #1609)."""
+    assert worker_app.worker_concurrency_options()["target_inputs"] == 2
+
+
+def test_worker_function_options_do_not_reserve_cpu(worker_app):
+    """Workers keep Modal's default best-effort CPU allocation in every
+    environment; contention from simultaneous heavy calculates is bounded
+    by the input-concurrency cap instead of a reservation, which would
+    raise the idle-warm billing floor (issue #1609)."""
+    for environment in ("main", "staging", "testing"):
+        options = worker_app.worker_function_options(
+            modal_environment=environment
+        )
+        assert "cpu" not in options
+
+
+def test_worker_function_options_execution_budget(worker_app):
+    """300s covers the worst legitimate heavy calculate at 2-way
+    concurrency with ~3x headroom; the gateway budget must stay above it
+    so the worker's own timeout resolves first (issue #1609)."""
+    for environment in ("main", "staging", "testing"):
+        options = worker_app.worker_function_options(
+            modal_environment=environment
+        )
+        assert options["timeout"] == 300
 
 
 def test_worker_function_options_do_not_use_deprecated_concurrency_kwarg(

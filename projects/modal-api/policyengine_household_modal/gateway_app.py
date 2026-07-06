@@ -66,7 +66,7 @@ app = modal.App(GATEWAY_APP_NAME)
 @app.function(
     image=household_api_gateway_image(),
     secrets=[household_api_secret()],
-    timeout=180,
+    timeout=330,
     scaledown_window=300,
 )
 @modal.wsgi_app(**gateway_wsgi_app_options())
