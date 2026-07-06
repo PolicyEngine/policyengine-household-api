@@ -50,14 +50,25 @@ def worker_function_options(
     options: dict[str, Any] = {
         "image": household_api_worker_image(),
         "secrets": [household_api_secret()],
-        "timeout": 180,
+        # A heavy customer calculate costs up to ~50 CPU-seconds and its
+        # numpy work runs ~2 threads, so at 2-way input concurrency the
+        # worst legitimate request needs ~90s of wall time; 300s bounds
+        # runaways with ~3x headroom. Crossing this budget is expensive:
+        # cancelling an input of a sync function with input concurrency
+        # shuts down the whole container (issue #1609).
+        "timeout": 300,
+        # Reserve the ~2 cores one calculation actually uses. Without an
+        # explicit reservation Modal guarantees only 0.125 cores and the
+        # rest is best-effort burst, so concurrent heavy calculations can
+        # starve (3s solo -> 118s observed under load, issue #1609).
+        "cpu": 2.0,
         "scaledown_window": 300,
         "enable_memory_snapshot": True,
         # Hard cap on autoscale. Without this Modal is bounded only by the
         # workspace quota, so a runaway traffic spike (or a buggy partner
         # client) could scale to hundreds of containers and rack up cost.
         # 100 covers any realistic partner burst we expect today (peak 100
-        # concurrent x 5 inputs = 500 in-flight) while keeping accidents
+        # concurrent x 2 inputs = 200 in-flight) while keeping accidents
         # bounded.
         "max_containers": 100,
     }
@@ -69,16 +80,19 @@ def worker_function_options(
 
 
 def worker_concurrency_options() -> dict[str, int]:
-    # Each container processes up to 5 requests in parallel (`max_inputs`).
-    # With ~3s of CPU per request on a 1-core container, 5-way sharing gives
-    # ~15s wall-time per request when fully saturated. Multiplies effective
-    # warm-pool capacity 5x with no additional container cost.
+    # Requests are not uniformly cheap: routine calculates cost well under
+    # 1 CPU-second, but the heavy customer-regression households cost 12-50
+    # CPU-seconds each. Packing 4-5 of those into one container time-shares
+    # the CPU through the GIL and BLAS threadpool and stretched 3s requests
+    # past the execution budget (issue #1609). `max_inputs=2` bounds
+    # contention at 2-way while keeping one burst slot, and it also caps
+    # the collateral of Modal's cancellation semantics at a single sibling
+    # input when a container is shut down.
     #
-    # `target_inputs=4` is the autoscaler's steady-state goal: keep average
-    # utilisation at 80% so each container retains one free slot to absorb
-    # single-request spikes without waiting on a cold start. Containers still
-    # burst up to `max_inputs=5` under load before queueing.
-    return {"max_inputs": 5, "target_inputs": 4}
+    # `target_inputs=1` makes the autoscaler add capacity as soon as
+    # containers average more than one in-flight request, so simultaneous
+    # heavy requests spread across containers instead of piling onto one.
+    return {"max_inputs": 2, "target_inputs": 1}
 
 
 @app.cls(**worker_function_options())
