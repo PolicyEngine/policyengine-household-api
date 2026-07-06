@@ -105,6 +105,18 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
+      # How resolve_modal_release_config.py classifies this deploy. Downstream
+      # jobs key off these -- notably the gate-production go-live gate below:
+      #   deploy_mode `release` -> a version release: the merged PR body carries
+      #     a `modal_release` YAML block (the weekly policyengine-us bot always
+      #     adds one, and check_modal_release_body.py requires it on any US/UK
+      #     package-version bump), OR it is a manual workflow_dispatch. Promotes
+      #     frontier/current and retires old apps.
+      #   deploy_mode `code`    -> an ordinary code-only redeploy (feature / fix
+      #     / docs merge with no `modal_release` block); no manifest promotion.
+      #   deploy_mode `none`    -> nothing deploys.
+      #   source                -> where the config came from, e.g.
+      #     `versioning-parent-pull-request`, `code-only`, `workflow-dispatch-inputs`.
       should_deploy: ${{ steps.resolve.outputs.should_deploy }}
       source: ${{ steps.resolve.outputs.source }}
       deploy_mode: ${{ steps.resolve.outputs.deploy_mode }}
@@ -605,8 +617,8 @@ jobs:
             echo "No deferred Modal cleanup manifest; nothing to prune."
           fi
 
-  migrate-analytics-db-production:
-    name: Migrate analytics database (production)
+  gate-production:
+    name: Await production go-live approval
     runs-on: ubuntu-latest
     needs:
       [
@@ -615,8 +627,49 @@ jobs:
         integration-tests-cloud-run-staging,
         integration-tests-cloud-run-fallback-staging,
       ]
+    # Manual production go-live gate. It pauses ONLY version releases, NOT every
+    # deploy. A deploy is a `release` when the merged PR body carries a
+    # `modal_release` block (the weekly policyengine-us update, or any US/UK
+    # package-version bump) or when it is a manual workflow_dispatch -- see the
+    # `deploy_mode` definition on the resolve-modal-release-config job above.
+    # Releases route through the protected `production-gate` environment and wait
+    # for a required reviewer to approve, which lets us trigger/validate a
+    # release early but hold real production until a promised go-live time.
+    #
+    # Ordinary code-only redeploys (feature / fix / docs merges, deploy_mode
+    # `code`) resolve to an empty environment string and pass straight through
+    # with no approval, so normal merges keep auto-deploying untouched.
+    #
+    # Skipped on `deploy_scope: staging-only` dispatches (which are always
+    # deploy_mode `release`): those stop before production anyway, so the run
+    # must not sit waiting for a pointless approval.
+    #
+    # The gate is INERT until required reviewers are configured on the
+    # `production-gate` environment (Settings -> Environments). Until then this
+    # job runs through immediately and nothing is gated. See issue #1558.
+    if: |
+      needs.resolve-modal-release-config.outputs.should_deploy == 'true' &&
+      (
+        github.event_name == 'push' ||
+        inputs.deploy_scope != 'staging-only'
+      )
+    environment: ${{ needs.resolve-modal-release-config.outputs.deploy_mode == 'release' && 'production-gate' || '' }}
+    steps:
+      - name: Record go-live approval
+        run: |
+          echo "Production go-live approved."
+          echo "source=${{ needs.resolve-modal-release-config.outputs.source }}"
+          echo "deploy_mode=${{ needs.resolve-modal-release-config.outputs.deploy_mode }}"
+
+  migrate-analytics-db-production:
+    name: Migrate analytics database (production)
+    runs-on: ubuntu-latest
+    needs: [resolve-modal-release-config, gate-production]
     # Root of the production subtree: every production job descends from this
-    # one, so a staging-only dispatch skipping it skips all of production.
+    # one, so a staging-only dispatch skipping it (via the skipped
+    # gate-production above and the deploy_scope check here) skips all of
+    # production, and a gated release holds all of production until the
+    # go-live approval.
     if: |
       needs.resolve-modal-release-config.outputs.should_deploy == 'true' &&
       (
@@ -890,11 +943,25 @@ jobs:
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    # Publish on the normal versioning-commit push, OR on a manual
+    # workflow_dispatch release (deploy_mode `release`) so a dispatched re-ship
+    # of the weekly -- the documented hotfix re-trigger -- is a complete release
+    # and not a Modal-only deploy. This runs after deploy-cloud-run-production,
+    # which is downstream of the production go-live gate, so it only fires
+    # post-approval.
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      github.event_name == 'push' &&
-      github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [deploy-cloud-run-production]
+      (
+        (
+          github.event_name == 'push' &&
+          github.event.head_commit.message == 'Update PolicyEngine Household API'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          needs.resolve-modal-release-config.outputs.deploy_mode == 'release'
+        )
+      )
+    needs: [resolve-modal-release-config, deploy-cloud-run-production]
     environment:
       name: pypi
       url: https://pypi.org/p/policyengine-household-api
@@ -919,15 +986,31 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # A workflow_dispatch release does not bump the version, so the
+          # version in pyproject may already be on PyPI -- skip it instead of
+          # failing the run.
+          skip-existing: true
 
   tag-release:
     name: Publish git tag
     runs-on: ubuntu-latest
+    # Tag on the normal versioning-commit push, OR on a manual workflow_dispatch
+    # release, matching the publish job above so a dispatched re-ship is also
+    # tagged. publish-git-tag.sh is idempotent (skips if the tag already exists).
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
-      github.event_name == 'push' &&
-      github.event.head_commit.message == 'Update PolicyEngine Household API'
-    needs: [publish]
+      (
+        (
+          github.event_name == 'push' &&
+          github.event.head_commit.message == 'Update PolicyEngine Household API'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          needs.resolve-modal-release-config.outputs.deploy_mode == 'release'
+        )
+      )
+    needs: [resolve-modal-release-config, publish]
     permissions:
       contents: write
 
