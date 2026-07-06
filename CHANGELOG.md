@@ -1,3 +1,10 @@
+## [0.26.5] - 2026-07-06
+
+### Changed
+
+- Move the weekly US update to Tuesday and add a manual production go-live approval gate so the weekly Modal release waits for a one-click approval after staging deploy and integration tests pass.
+
+
 ## [0.26.4] - 2026-07-06
 
 ### Fixed

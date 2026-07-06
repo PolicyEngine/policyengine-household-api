@@ -1,6 +1,6 @@
 [project]
 name = "policyengine-household-analytics"
-version = "0.26.4"
+version = "0.26.5"
 description = "Analytics contract and persistence for the PolicyEngine Household API"
 readme = "README.md"
 authors = [
@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 # The slim analytics writer image installs this lib: keep numpy, country
 # model packages, and modal out of this closure.
 dependencies = [
-    "policyengine-household-common==0.26.4",
+    "policyengine-household-common==0.26.5",
     "alembic>=1.13.0",
     "cloud-sql-python-connector",
     "flask>=2.2",
