@@ -39,6 +39,9 @@ from policyengine_household_common.version_routing import (
     VersionRoutingError,
     active_versions_for_country,
 )
+from policyengine_household_common.worker_dispatch import (
+    call_modal_worker_dispatch,
+)
 
 
 VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
@@ -221,30 +224,9 @@ def resolve_app_for_request(
 
 
 def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
-    import modal
-
-    # Prefer the class-based worker (post #1528). During the release
-    # transition the existing frontier is promoted to current without a
-    # redeploy, so for one release cycle the current worker may still expose
-    # the pre-#1528 top-level `handle_household_request` function. Fall back
-    # to that shape if the class is not present.
-    try:
-        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
-            worker_cls = modal.Cls.from_name(app_name, "HouseholdWorker")
-        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
-            return _response_from_dispatch_result(
-                worker_cls().handle_household_request.remote(payload)
-            )
-    except modal.exception.NotFoundError:
-        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
-            worker_function = modal.Function.from_name(
-                app_name,
-                "handle_household_request",
-            )
-        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
-            return _response_from_dispatch_result(
-                worker_function.remote(payload)
-            )
+    return _response_from_dispatch_result(
+        call_modal_worker_dispatch(app_name, payload)
+    )
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:

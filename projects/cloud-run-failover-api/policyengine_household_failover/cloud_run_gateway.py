@@ -53,6 +53,9 @@ from policyengine_household_common.gateway import (
     _response_from_dispatch_result,
 )
 from policyengine_household_common.version_routing import VersionRoutingError
+from policyengine_household_common.worker_dispatch import (
+    call_modal_worker_dispatch,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -574,29 +577,13 @@ def _call_modal_worker_dispatch(
     app_name: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
-    import modal
-
+    environment = os.getenv(MODAL_ENVIRONMENT_ENV, "").strip()
     try:
-        with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
-            worker_cls = _modal_lookup(
-                modal.Cls.from_name,
-                app_name,
-                "HouseholdWorker",
-            )
-        with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
-            return worker_cls().handle_household_request.remote(payload)
-    except modal.exception.NotFoundError:
-        try:
-            with segment(SegmentName.MODAL_WORKER_LOOKUP, backend="modal"):
-                worker_function = _modal_lookup(
-                    modal.Function.from_name,
-                    app_name,
-                    "handle_household_request",
-                )
-            with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
-                return worker_function.remote(payload)
-        except Exception as exc:
-            raise ModalBackendUnavailable(str(exc)) from exc
+        return call_modal_worker_dispatch(
+            app_name,
+            payload,
+            environment_name=environment or None,
+        )
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
 

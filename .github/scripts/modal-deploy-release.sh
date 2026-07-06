@@ -51,6 +51,14 @@ deploy_worker_app() {
     uv run modal deploy \
       --env "${modal_environment}" \
       -m policyengine_household_modal.worker_app
+
+  # modal deploy returns when the new version is registered, not when it
+  # serves; block until a container of the new version answers a liveness
+  # dispatch so integration tests never race the snapshot/init window
+  # (issue #1607).
+  uv run python -m policyengine_household_modal.warm_worker \
+    --app-name "${app_name}" \
+    --modal-environment "${modal_environment}"
 }
 
 deploy_canary_app() {
