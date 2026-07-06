@@ -62,7 +62,6 @@ def worker_function_options(
         "max_containers": 100,
     }
     if environment == "main":
-        options["cpu"] = 2.0
         options["min_containers"] = 3
         options["buffer_containers"] = 2
         options["scaledown_window"] = 600
