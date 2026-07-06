@@ -313,12 +313,21 @@ append_env_value \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS \
   "${gateway_worker_timeout}"
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS
 sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_ID
 sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_SECRET
+sync_secret_if_set \
+  "${gateway_secrets_file}" \
+  HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL
 gateway_env_arg=""
 gateway_secret_arg=""
 if gateway_env_arg="$(env_args_from_file "${gateway_env_file}")"; then

@@ -71,6 +71,9 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_MODAL_FAILURE_WINDOW_SECONDS": "60",
         "HOUSEHOLD_FAILOVER_MODAL_MIN_OPEN_SECONDS": "60",
         "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES": "3",
+        "HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL": "https://example.com/webhook",
+        "HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS": "2",
+        "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS": "300",
         "OBSERVABILITY_ENABLED": "true",
         "OBSERVABILITY_LOG_RAW_IP": "false",
         "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS": "ignored",
@@ -162,13 +165,17 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert (
         "--set-secrets=MODAL_TOKEN_ID="
         "household-api-staging-MODAL_TOKEN_ID:latest,"
-        "MODAL_TOKEN_SECRET=household-api-staging-MODAL_TOKEN_SECRET:latest"
+        "MODAL_TOKEN_SECRET=household-api-staging-MODAL_TOKEN_SECRET:latest,"
+        "HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL="
+        "household-api-staging-HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL:latest"
         in log
     )
     assert "gcloud secrets versions add" in log
     assert "add-iam-policy-binding" not in log
     assert "analytics@password,with,comma" not in log
     assert "modal-token,secret@example" not in log
+    assert "https://example.com/webhook" not in log
+    assert log.count("HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL=") == 1
     assert "gcloud storage cp" in log
     assert "gs://manifest-bucket/staging/failover-manifest.json" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
@@ -183,6 +190,10 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "HOUSEHOLD_FAILOVER_MODAL_RECOVERY_SUCCESSES: |-" in log
     assert "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS: |-" in log
     assert "  900" in log
+    assert "HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS: |-" in log
+    assert "  2" in log
+    assert "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS: |-" in log
+    assert "  300" in log
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (
