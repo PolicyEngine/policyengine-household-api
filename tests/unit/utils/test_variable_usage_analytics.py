@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from policyengine_household_api.utils.variable_usage_analytics import (
+from policyengine_household_common.variable_usage_analytics import (
     extract_variable_usage,
     stored_variable_name,
 )

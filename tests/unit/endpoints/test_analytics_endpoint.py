@@ -1,9 +1,14 @@
 from datetime import datetime
 import json
+import logging
 
 import pytest
+from flask import Flask
 
 from policyengine_household_api.decorators.auth import ANALYTICS_READ_SCOPE
+from policyengine_household_analytics import analytics_setup
+from policyengine_household_analytics.analytics_setup import db
+from policyengine_household_api.endpoints import analytics
 from policyengine_household_api.endpoints.analytics import (
     get_calculate_analytics_requests,
 )
@@ -288,6 +293,111 @@ def test__calculate_analytics_requests__schema_not_ready_returns_503(
         "status": "error",
         "message": "Analytics storage is not ready.",
     }
+
+
+def test__analytics_storage_check__initializes_storage_lazily(monkeypatch):
+    calls = []
+    app = Flask(__name__)
+
+    monkeypatch.setattr(
+        analytics,
+        "is_analytics_enabled",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        analytics,
+        "is_analytics_schema_ready",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        analytics,
+        "initialize_analytics_db_if_enabled",
+        lambda flask_app: calls.append(flask_app),
+    )
+
+    with app.app_context():
+        response = analytics._analytics_storage_error_response()
+
+    assert response is None
+    assert calls == [app]
+    assert (
+        app.config[analytics.ANALYTICS_STORAGE_INITIALIZED_CONFIG_KEY] is True
+    )
+
+
+def test__analytics_storage_check__initialization_failure_returns_503(
+    monkeypatch,
+    caplog,
+):
+    app = Flask(__name__)
+
+    def fail_initialize(_app):
+        raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(
+        analytics,
+        "is_analytics_enabled",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        analytics,
+        "initialize_analytics_db_if_enabled",
+        fail_initialize,
+    )
+    caplog.set_level(logging.WARNING, logger=analytics.__name__)
+
+    with app.app_context():
+        response = analytics._analytics_storage_error_response()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 503
+    assert payload == {
+        "status": "error",
+        "message": "Analytics storage is not ready.",
+    }
+    assert "Analytics storage is unavailable" in caplog.text
+
+
+def test__calculate_analytics_requests__works_after_prior_request(
+    tmp_path,
+    monkeypatch,
+):
+    app = Flask(__name__)
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        f"sqlite:///{tmp_path / 'analytics.db'}"
+    )
+    db.init_app(app)
+
+    monkeypatch.setattr(analytics, "is_analytics_enabled", lambda: True)
+    monkeypatch.setattr(analytics_setup, "is_analytics_enabled", lambda: True)
+    monkeypatch.setattr(
+        analytics_setup,
+        "check_analytics_schema_ready",
+        lambda: True,
+    )
+
+    app.add_url_rule("/ping", "ping", lambda: "ok")
+    app.add_url_rule(
+        "/analytics/calculate/requests",
+        "calculate_analytics_requests",
+        get_calculate_analytics_requests,
+        methods=["GET"],
+    )
+
+    with app.app_context():
+        db.create_all()
+
+    client = app.test_client()
+    assert client.get("/ping").status_code == 200
+
+    response = client.get("/analytics/calculate/requests")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "ok"
+
+    with app.app_context():
+        db.session.remove()
+        db.drop_all()
 
 
 def test__calculate_analytics_requests_route__missing_token_returns_401(

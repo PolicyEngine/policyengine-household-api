@@ -4,15 +4,19 @@ from flask import Response
 import modal
 import pytest
 
-from policyengine_household_api.modal_release.gateway import (
+from policyengine_household_common.gateway import (
     create_gateway_app,
     load_modal_manifest,
 )
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_SCHEMA_VERSION,
 )
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
+)
+from policyengine_observability import (
+    OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
+    REQUEST_ID_HEADER,
 )
 
 
@@ -245,6 +249,8 @@ def test_calculate_forwards_request_metadata_to_worker():
     assert payload["path"] == "us/calculate"
     assert payload["query_string"] == "trace=true"
     assert payload["headers"]["Authorization"] == "Bearer token"
+    assert payload["headers"][REQUEST_ID_HEADER]
+    assert payload["headers"][OBSERVABILITY_INTERNAL_DISPATCH_HEADER] == "1"
     assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
         "requested_version": "current",
         "resolved_channel": "current",
@@ -357,7 +363,7 @@ def test_load_modal_manifest_preserves_unexpected_modal_errors(monkeypatch):
 def test_call_worker_function_uses_class_when_available(monkeypatch):
     """When the worker exposes the new ``HouseholdWorker`` class, the
     gateway should dispatch through ``modal.Cls.from_name``."""
-    from policyengine_household_api.modal_release import gateway
+    from policyengine_household_common import gateway
 
     captured = {}
 
@@ -410,7 +416,7 @@ def test_call_worker_function_falls_back_to_function_for_legacy_workers(
     still expose the pre-class ``handle_household_request`` function.
     The gateway must fall back to ``modal.Function.from_name`` when the
     class cannot be found."""
-    from policyengine_household_api.modal_release import gateway
+    from policyengine_household_common import gateway
 
     captured = {}
 

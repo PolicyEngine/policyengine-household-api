@@ -12,7 +12,7 @@ ENV PYTHONUNBUFFERED 1
 
 # can't use make install because we ignore .github/ via .dockerignore
 # and env is set via docker-compose.yml or injection at container run time
-RUN pip install -e ".[dev]" --config-settings editable_mode=compat
+RUN pip install -e ./libs/household-api --config-settings editable_mode=compat
 
 # switch to app user
 RUN groupadd policyapi && \

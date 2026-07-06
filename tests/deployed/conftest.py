@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from dataclasses import dataclass
 from typing import Any
 from urllib import error, request
@@ -14,6 +15,9 @@ EXPECTED_CHANNEL_ENV_VAR = "HOUSEHOLD_API_EXPECTED_CHANNEL"
 EXPECTED_BACKEND_ENV_VAR = "HOUSEHOLD_API_EXPECTED_BACKEND"
 ROUTE_MODE_ENV_VAR = "HOUSEHOLD_API_ROUTE_MODE"
 DEFAULT_TIMEOUT_SECONDS = 600
+VERSION_RESOLUTION_ATTEMPTS = 5
+VERSION_RESOLUTION_TIMEOUT_SECONDS = 60
+VERSION_RESOLUTION_BACKOFF_SECONDS = 15
 
 
 class CaseInsensitiveHeaders(dict):
@@ -127,9 +131,62 @@ def auth_token() -> str:
     return _get_required_env_var(AUTH_TOKEN_ENV_VAR)
 
 
+def _resolve_active_versions(base_url: str) -> dict[str, str]:
+    """Ask the deployed gateway which model versions each channel serves.
+
+    The gateway is often freshly deployed (cold) when the suite starts, and
+    all matrix jobs query it at once; retry so a slow first response fails
+    with a readable message instead of a hung session.
+    """
+    last_error = None
+    for attempt in range(VERSION_RESOLUTION_ATTEMPTS):
+        if attempt:
+            time.sleep(VERSION_RESOLUTION_BACKOFF_SECONDS)
+        try:
+            with request.urlopen(
+                f"{base_url}/versions/us",
+                timeout=VERSION_RESOLUTION_TIMEOUT_SECONDS,
+            ) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except error.HTTPError as exc:
+            last_error = f"HTTP {exc.code}"
+        except (error.URLError, TimeoutError, OSError) as exc:
+            last_error = repr(exc)
+    raise RuntimeError(
+        "Could not load active Modal channels from "
+        f"{base_url}/versions/us: {last_error}"
+    )
+
+
 @pytest.fixture(scope="session")
-def request_version() -> str | None:
-    return os.getenv(REQUEST_VERSION_ENV_VAR, "").strip() or None
+def request_version(
+    base_url: str,
+    expected_channel: str | None,
+    route_mode: str | None,
+) -> str | None:
+    override = os.getenv(REQUEST_VERSION_ENV_VAR, "").strip()
+    if override:
+        return override
+    if not route_mode:
+        return None
+    if not expected_channel:
+        pytest.fail(
+            f"{ROUTE_MODE_ENV_VAR} is set but {EXPECTED_CHANNEL_ENV_VAR} "
+            "is not"
+        )
+
+    try:
+        versions = _resolve_active_versions(base_url)
+    except RuntimeError as exc:
+        pytest.fail(str(exc))
+    if not versions.get(expected_channel):
+        pytest.fail(
+            f"Deployed gateway does not expose `{expected_channel}` for US"
+        )
+
+    if route_mode == "channel":
+        return expected_channel
+    return versions[expected_channel]
 
 
 @pytest.fixture(scope="session")

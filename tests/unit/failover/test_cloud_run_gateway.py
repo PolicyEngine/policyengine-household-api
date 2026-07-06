@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import sys
 import threading
@@ -5,8 +6,11 @@ import types
 
 from flask import Response
 import pytest
+from policyengine_observability import ObservabilityConfig
+from policyengine_observability import ObservabilityRuntime
+from policyengine_observability import RequestObservabilityContext
 
-from policyengine_household_api.failover.cloud_run_gateway import (
+from policyengine_household_failover.cloud_run_gateway import (
     CircuitRegistry,
     FallbackBackendUnavailable,
     GcsFailoverManifestLoader,
@@ -22,10 +26,10 @@ from policyengine_household_api.failover.cloud_run_gateway import (
     probe_modal_worker,
     warm_cloud_run_worker,
 )
-from policyengine_household_api.failover.dispatch_codec import (
+from policyengine_household_common.dispatch_codec import (
     encode_dispatch_response,
 )
-from policyengine_household_api.failover.manifest import (
+from policyengine_household_failover.manifest import (
     FailoverManifestError,
     FailoverManifestReadError,
     ResolvedFailoverChannel,
@@ -175,6 +179,24 @@ def test_app_level_500_does_not_trigger_fallback_or_status_page_check():
     assert status_checks == []
 
 
+def test_forced_cloud_run_app_level_500_returns_response(monkeypatch):
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_FORCE_BACKEND", "cloud_run")
+
+    client = _client(
+        fallback_request=lambda resolved, payload: _json_response(
+            {"status": "error"},
+            status=500,
+        ),
+    )
+
+    response = client.post("/us/calculate", json={"household": {}})
+
+    assert response.status_code == 500
+    assert response.get_json() == {"status": "error"}
+    assert response.headers["X-PolicyEngine-Backend"] == "cloud_run"
+    assert response.headers["X-PolicyEngine-Primary-State"] == "healthy"
+
+
 def test_modal_call_failure_needs_canary_failure_before_fallback():
     status_checks = []
 
@@ -237,6 +259,44 @@ def test_run_modal_operation_converts_timeout_to_modal_unavailable():
             )
     finally:
         release.set()
+
+
+def test_run_modal_operation_preserves_observability_context():
+    runtime = ObservabilityRuntime(
+        ObservabilityConfig(
+            service_name="policyengine-household-api",
+            service_role="test_gateway",
+        )
+    )
+    context = RequestObservabilityContext(
+        config=runtime.config,
+        request_id="request-1",
+        method="POST",
+        route="/<path:path>",
+        path="/uk/calculate",
+        endpoint="route_request",
+        query_keys=[],
+        content_length_bytes=None,
+        inbound={},
+    )
+    runtime.begin_request(context)
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            result = _run_modal_operation(
+                lambda: (
+                    runtime.current_context() is context,
+                    runtime.current_operation().name,
+                    runtime.current_operation().flavor,
+                ),
+                timeout_seconds=1,
+                executor=executor,
+                semaphore=threading.BoundedSemaphore(1),
+            )
+    finally:
+        runtime.teardown_request(None)
+
+    assert result == (True, "/<path:path>", "http")
 
 
 def test_modal_request_timeout_is_separate_from_probe_timeout():
@@ -314,7 +374,7 @@ def test_cloud_run_worker_auth_failure_is_fallback_unavailable(monkeypatch):
         raise ValueError("token unavailable")
 
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway._cloud_run_auth_header",
+        "policyengine_household_failover.cloud_run_gateway._cloud_run_auth_header",
         fail_auth,
     )
 
@@ -359,10 +419,10 @@ def test_cloud_run_worker_timeout_uses_env(monkeypatch):
     monkeypatch.setenv("HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH", "1")
     monkeypatch.setenv(
         "HOUSEHOLD_FAILOVER_CLOUD_RUN_WORKER_TIMEOUT_SECONDS",
-        "1200",
+        "900",
     )
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway.urllib_request.urlopen",
+        "policyengine_household_failover.cloud_run_gateway.urllib_request.urlopen",
         fake_urlopen,
     )
 
@@ -378,7 +438,50 @@ def test_cloud_run_worker_timeout_uses_env(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert captured["timeout"] == 1200
+    assert captured["timeout"] == 900
+
+
+def test_cloud_run_worker_returns_dispatched_500_response(monkeypatch):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def read(self):
+            return json.dumps(
+                encode_dispatch_response(
+                    {
+                        "status_code": 500,
+                        "body": b'{"status":"error"}',
+                        "headers": [("Content-Type", "application/json")],
+                    }
+                )
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        return FakeResponse()
+
+    monkeypatch.setenv("HOUSEHOLD_FAILOVER_DISABLE_CLOUD_RUN_AUTH", "1")
+    monkeypatch.setattr(
+        "policyengine_household_failover.cloud_run_gateway.urllib_request.urlopen",
+        fake_urlopen,
+    )
+
+    response = call_cloud_run_worker(
+        _resolved_channel(),
+        {
+            "method": "POST",
+            "path": "/us/calculate",
+            "query_string": "",
+            "headers": {},
+            "body": b"{}",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.get_data(as_text=True) == '{"status":"error"}'
 
 
 def test_cloud_run_worker_warmup_swallows_auth_failure(monkeypatch):
@@ -386,7 +489,7 @@ def test_cloud_run_worker_warmup_swallows_auth_failure(monkeypatch):
         raise ValueError("token unavailable")
 
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway._cloud_run_auth_header",
+        "policyengine_household_failover.cloud_run_gateway._cloud_run_auth_header",
         fail_auth,
     )
 
@@ -798,7 +901,7 @@ def test_modal_canary_saturation_does_not_confirm_outage(monkeypatch):
     drained = threading.BoundedSemaphore(1)
     assert drained.acquire(blocking=False) is True
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway."
+        "policyengine_household_failover.cloud_run_gateway."
         "_MODAL_PROBE_EXECUTOR_SEMAPHORE",
         drained,
     )
@@ -853,7 +956,7 @@ def test_recovery_probe_saturation_preserves_recovery_progress(monkeypatch):
     drained = threading.BoundedSemaphore(1)
     assert drained.acquire(blocking=False) is True
     monkeypatch.setattr(
-        "policyengine_household_api.failover.cloud_run_gateway."
+        "policyengine_household_failover.cloud_run_gateway."
         "_MODAL_PROBE_EXECUTOR_SEMAPHORE",
         drained,
     )

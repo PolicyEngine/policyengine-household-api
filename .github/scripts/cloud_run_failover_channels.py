@@ -7,15 +7,17 @@ from typing import Any, Mapping
 
 import modal
 
-from policyengine_household_api.failover.manifest import (
+from policyengine_household_failover.manifest import (
     build_failover_manifest,
 )
-from policyengine_household_api.modal_release.manifest import (
+from policyengine_household_common.release_manifest import (
     MANIFEST_DICT_KEY,
     MANIFEST_DICT_NAME,
     require_active_current_and_frontier,
 )
-from policyengine_household_api.version_config import ACTIVE_RELEASE_CHANNELS
+from policyengine_household_common.version_config import (
+    ACTIVE_RELEASE_CHANNELS,
+)
 
 
 def active_failover_channels(

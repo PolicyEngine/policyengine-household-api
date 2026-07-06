@@ -2,8 +2,8 @@
 
 import pytest
 
-from policyengine_household_api.models.household import HouseholdModelUS
-from policyengine_household_api.utils.household import (
+from policyengine_household_common.models.household import HouseholdModelUS
+from policyengine_household_common.household import (
     flatten_variables_from_household,
     FlattenedVariable,
     FlattenedVariableFilter,

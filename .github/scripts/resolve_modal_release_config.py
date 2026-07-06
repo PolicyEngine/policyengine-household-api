@@ -9,7 +9,7 @@ import sys
 from typing import Any, Callable
 from urllib.request import Request, urlopen
 
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfig,
     ModalReleaseConfigError,
     body_contains_modal_release_config,

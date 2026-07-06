@@ -176,6 +176,28 @@ def auth_enabled_missing_config_environment():
 
 
 @pytest.fixture
+def auth_test_environment_missing_config():
+    """Set up test_with_auth environment missing token and Auth0 config."""
+    with patch(
+        "policyengine_household_api.decorators.auth.get_config_value"
+    ) as mock_config:
+
+        def config_side_effect(path: str, default: Any = None) -> Any:
+            config_map = {
+                "app.environment": "test_with_auth",
+                "auth.enabled": True,
+                "auth.auth0.test_token": "",
+                "auth.auth0.test_token_scopes": "",
+                "auth.auth0.address": "",
+                "auth.auth0.audience": "",
+            }
+            return config_map.get(path, default)
+
+        mock_config.side_effect = config_side_effect
+        yield mock_config
+
+
+@pytest.fixture
 def auth_backward_compat_environment():
     """Set up environment for backward compatibility testing."""
     with patch(

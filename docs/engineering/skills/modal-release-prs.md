@@ -81,6 +81,17 @@ redeploys the gateway without changing the manifest. Ordinary push events do
 not deploy Modal apps. Manual `workflow_dispatch` runs are explicit release
 operations and use the weekly release shape by default.
 
+Every worker app deploy — release mode and code mode alike — blocks until the
+newly deployed worker answers a liveness dispatch
+(`policyengine_household_modal.warm_worker`, default budget 1200 seconds,
+bounded by `timeout-minutes` on the deploy jobs). `modal deploy` returns when
+the new version is registered, but the worker only builds its memory snapshot
+and initialises the API on first invocation; the warm gate keeps deploy jobs
+from reporting success — and integration tests from starting — until the new
+version actually serves (issue #1607). In release mode the gate runs before
+`update_manifest`, so the manifest never flips traffic to a worker that has
+not served.
+
 The household API primary serving path is Modal-only. Do not add App Engine or
 GCP traffic-promotion deployment steps to the release workflow, and do not route
 primary household traffic through anything other than the Modal gateway. The one
@@ -91,15 +102,18 @@ workflow to stand up the standby gateway and fallback workers. Keep those steps
 scoped to the failover gateway, the failover workers, and the GCS failover
 manifest; they must not change how the Modal gateway serves current/frontier
 traffic, and Modal remains the primary backend until an explicit traffic
-cutover. The release workflow deploys the full Modal app set to the `staging`
-Modal environment, runs the same deployed integration test suite as separate
-matrix jobs for both `current` and `frontier`, then deploys the same release
-config to the `main` Modal environment after all staging jobs pass. Each channel
-is tested by channel name and by the exact US package version from
-`/versions/us`. Google credentials in the release workflow are used for Cloud
-SQL analytics database access, for syncing the Modal worker secret needed to
-reach that database, and for deploying the Cloud Run failover gateway and
-workers.
+cutover. Public GHCR Docker images are a distribution artifact, not a deployment
+target: the separate `Publish Docker image` workflow observes completed `Release
+to Modal` runs and publishes images after the fact, and must never gate or
+modify Modal deployments (see `docker-images.md`). The release workflow deploys
+the full Modal app set to the `staging` Modal environment, runs the same
+deployed integration test suite as separate matrix jobs for both `current` and
+`frontier`, then deploys the same release config to the `main` Modal environment
+after all staging jobs pass. Each channel is tested by channel name and by the
+exact US package version from `/versions/us`. Google credentials in the release
+workflow are used for Cloud SQL analytics database access, for syncing the Modal
+worker secret needed to reach that database, and for deploying the Cloud Run
+failover gateway and workers.
 
 Only the US and UK package versions are release-significant. Do not include
 Canada, Nigeria, or Israel package versions in Modal worker app names, manifest
@@ -116,12 +130,15 @@ drops retired history, and removes non-release package keys.
 
 Manual workflow dispatch exposes the same `new_app_target`,
 `promote_existing_frontier`, and `cleanup_target` settings as the PR-body YAML
-block. The deploy workflow and Modal images use Python 3.13.
+block, plus `deploy_scope`: `staging-only` stops the run before any
+production job, which is how deploy changes are validated from a branch. The
+deploy workflow and Modal images use Python 3.13.
 
 ## Analytics Migrations
 
 Modal releases use the same shared analytics database for `current` and
-`frontier`. The release workflow runs `uv run alembic upgrade head` before
+`frontier`. The release workflow runs migrations in the dedicated
+`migrate-analytics-db` jobs before
 deploying a worker or updating the manifest.
 
 Analytics migrations in normal Modal release PRs must be backward-compatible

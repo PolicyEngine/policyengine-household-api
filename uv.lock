@@ -13,6 +13,23 @@ resolution-markers = [
     "python_full_version < '3.13' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[manifest]
+members = [
+    "policyengine-household-analytics",
+    "policyengine-household-analytics-api",
+    "policyengine-household-api",
+    "policyengine-household-common",
+    "policyengine-household-failover-api",
+    "policyengine-household-modal-api",
+]
+
+[manifest.dependency-groups]
+dev = [
+    { name = "pytest-timeout" },
+    { name = "ruff", specifier = ">=0.9.0" },
+    { name = "towncrier", specifier = ">=24.8.0" },
+]
+
 [[package]]
 name = "aiofiles"
 version = "25.1.0"
@@ -181,6 +198,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/18/dd/e617cfc3f6210ae183374cd9f6a26b20514bbb5a792af97949c5aacddf0f/argparse-1.4.0.tar.gz", hash = "sha256:62b089a55be1d8949cd2bc7e0df0bddb9e028faefc8c32038cc84862aefdd6e4", size = 70508, upload-time = "2015-09-12T20:22:16.217Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f2/94/3af39d34be01a24a6e65433d19e107099374224905f1e0cc6bbe1fd22a2f/argparse-1.4.0-py2.py3-none-any.whl", hash = "sha256:c31647edb69fd3d465a847ea3157d37bed1f95f19760b11a47aa91c04b666314", size = 23000, upload-time = "2015-09-14T16:03:16.137Z" },
+]
+
+[[package]]
+name = "asgiref"
+version = "3.11.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/40/f03da1264ae8f7cfdbf9146542e5e7e8100a4c66ab48e791df9a03d3f6c0/asgiref-3.11.1.tar.gz", hash = "sha256:5f184dc43b7e763efe848065441eac62229c9f7b0475f41f80e207a114eda4ce", size = 38550, upload-time = "2026-02-03T13:30:14.33Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5c/0a/a72d10ed65068e115044937873362e6e32fab1b7dce0046aeb224682c989/asgiref-3.11.1-py3-none-any.whl", hash = "sha256:e8667a091e69529631969fd45dc268fa79b99c92c5fcdda727757e52146ec133", size = 24345, upload-time = "2026-02-03T13:30:13.039Z" },
 ]
 
 [[package]]
@@ -941,6 +967,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4c/47/205eb8e9a1739b5345843e5a425775cbdc472cc38e7eda082ba5b8d02450/google_cloud_storage-3.10.1.tar.gz", hash = "sha256:97db9aa4460727982040edd2bd13ff3d5e2260b5331ad22895802da1fc2a5286", size = 17309950, upload-time = "2026-03-23T09:35:23.409Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ad/ff/ca9ab2417fa913d75aae38bf40bf856bb2749a604b2e0f701b37cfcd23cc/google_cloud_storage-3.10.1-py3-none-any.whl", hash = "sha256:a72f656759b7b99bda700f901adcb3425a828d4a29f911bc26b3ea79c5b1217f", size = 324453, upload-time = "2026-03-23T09:35:21.368Z" },
+]
+
+[[package]]
+name = "google-cloud-tasks"
+version = "2.23.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "grpc-google-iam-v1" },
+    { name = "grpcio" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/a2/adec373a05a569baf52d41b374994b5d3ed4a9dab52bb96ed3536bcbe334/google_cloud_tasks-2.23.0.tar.gz", hash = "sha256:a6da2c114a4db5a59593eba64987a4bf6973a0f48b1a31a3d4acffb6f4c7beb9", size = 352038, upload-time = "2026-06-22T23:22:33.928Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b4/03/f7a0dde9b971940fec9441141ab1581624434546dc8dd42f18f5703a2899/google_cloud_tasks-2.23.0-py3-none-any.whl", hash = "sha256:2a3e35c22b37947f829d62c50276a6f47c9ac1a789ec8ba0b646f31131b3c894", size = 296564, upload-time = "2026-06-22T23:20:32.66Z" },
 ]
 
 [[package]]
@@ -1995,6 +2038,165 @@ wheels = [
 ]
 
 [[package]]
+name = "opentelemetry-exporter-otlp-proto-common"
+version = "1.41.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-proto" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8c/28/e8eca94966fe9a1465f6094dc5ddc5398473682180279c94020bc23b4906/opentelemetry_exporter_otlp_proto_common-1.41.0.tar.gz", hash = "sha256:966bbce537e9edb166154779a7c4f8ab6b8654a03a28024aeaf1a3eacb07d6ee", size = 20411, upload-time = "2026-04-09T14:38:36.572Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/26/c4/78b9bf2d9c1d5e494f44932988d9d91c51a66b9a7b48adf99b62f7c65318/opentelemetry_exporter_otlp_proto_common-1.41.0-py3-none-any.whl", hash = "sha256:7a99177bf61f85f4f9ed2072f54d676364719c066f6d11f515acc6c745c7acf0", size = 18366, upload-time = "2026-04-09T14:38:15.135Z" },
+]
+
+[[package]]
+name = "opentelemetry-exporter-otlp-proto-grpc"
+version = "1.41.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "googleapis-common-protos" },
+    { name = "grpcio" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-proto-common" },
+    { name = "opentelemetry-proto" },
+    { name = "opentelemetry-sdk" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/42/46/d75a3f8c91915f2e58f61d0a2e4ada63891e7c7a37a20ff7949ba184a6b2/opentelemetry_exporter_otlp_proto_grpc-1.41.0.tar.gz", hash = "sha256:f704201251c6f65772b11bddea1c948000554459101bdbb0116e0a01b70592f6", size = 25754, upload-time = "2026-04-09T14:38:37.423Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/f6/b09e2e0c9f0b5750cebc6eaf31527b910821453cef40a5a0fe93550422b2/opentelemetry_exporter_otlp_proto_grpc-1.41.0-py3-none-any.whl", hash = "sha256:3a1a86bd24806ccf136ec9737dbfa4c09b069f9130ff66b0acb014f9c5255fd1", size = 20299, upload-time = "2026-04-09T14:38:17.01Z" },
+]
+
+[[package]]
+name = "opentelemetry-exporter-otlp-proto-http"
+version = "1.41.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "googleapis-common-protos" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-proto-common" },
+    { name = "opentelemetry-proto" },
+    { name = "opentelemetry-sdk" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/19/63/d9f43cd75f3fabb7e01148c89cfa9491fc18f6580a6764c554ff7c953c46/opentelemetry_exporter_otlp_proto_http-1.41.0.tar.gz", hash = "sha256:dcd6e0686f56277db4eecbadd5262124e8f2cc739cadbc3fae3d08a12c976cf5", size = 24139, upload-time = "2026-04-09T14:38:38.128Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/b5/a214cd907eedc17699d1c2d602288ae17cb775526df04db3a3b3585329d2/opentelemetry_exporter_otlp_proto_http-1.41.0-py3-none-any.whl", hash = "sha256:a9c4ee69cce9c3f4d7ee736ad1b44e3c9654002c0816900abbafd9f3cf289751", size = 22673, upload-time = "2026-04-09T14:38:18.349Z" },
+]
+
+[[package]]
+name = "opentelemetry-instrumentation"
+version = "0.62b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-semantic-conventions" },
+    { name = "packaging" },
+    { name = "wrapt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f9/fd/b8e90bb340957f059084376f94cff336b0e871a42feba7d3f7342365e987/opentelemetry_instrumentation-0.62b0.tar.gz", hash = "sha256:aa1b0b9ab2e1722c2a8a5384fb016fc28d30bba51826676c8036074790d2861e", size = 34042, upload-time = "2026-04-09T14:40:22.843Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/b6/3356d2e335e3c449c5183e9b023f30f04f1b7073a6583c68745ea2e704b1/opentelemetry_instrumentation-0.62b0-py3-none-any.whl", hash = "sha256:30d4e76486eae64fb095264a70c2c809c4bed17b73373e53091470661f7d477c", size = 34158, upload-time = "2026-04-09T14:39:21.428Z" },
+]
+
+[[package]]
+name = "opentelemetry-instrumentation-asgi"
+version = "0.62b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-instrumentation" },
+    { name = "opentelemetry-semantic-conventions" },
+    { name = "opentelemetry-util-http" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f1/38/999bf777774878971c2716de4b7a03cd57a7decb4af25090e703b79fa0e5/opentelemetry_instrumentation_asgi-0.62b0.tar.gz", hash = "sha256:93cde8c62e5918a3c1ff9ba020518127300e5e0816b7e8b14baf46a26ba619fc", size = 26779, upload-time = "2026-04-09T14:40:26.566Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/cf/29df82f5870178143bdb5c9a7be044b9f78c71e1c5dcf995242e86d80158/opentelemetry_instrumentation_asgi-0.62b0-py3-none-any.whl", hash = "sha256:89b62a6f996b260b162f515c25e6d78e39286e4cbe2f935899e51b32f31027e2", size = 17011, upload-time = "2026-04-09T14:39:27.305Z" },
+]
+
+[[package]]
+name = "opentelemetry-instrumentation-fastapi"
+version = "0.62b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-instrumentation" },
+    { name = "opentelemetry-instrumentation-asgi" },
+    { name = "opentelemetry-semantic-conventions" },
+    { name = "opentelemetry-util-http" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/09/92740c6d114d1bef392557a03ae6de64065c83c1b331dae9b57fe718497c/opentelemetry_instrumentation_fastapi-0.62b0.tar.gz", hash = "sha256:e4748e4e575077e08beaf2c5d2f369da63dd90882d89d73c4192a97356637dec", size = 25056, upload-time = "2026-04-09T14:40:36.438Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/bb/186ffe0fde0ad33ceb50e1d3596cc849b732d3b825592a6a507a40c8c49b/opentelemetry_instrumentation_fastapi-0.62b0-py3-none-any.whl", hash = "sha256:06d3272ad15f9daea5a0a27c32831aff376110a4b0394197120256ef6d610e6e", size = 13482, upload-time = "2026-04-09T14:39:43.446Z" },
+]
+
+[[package]]
+name = "opentelemetry-instrumentation-httpx"
+version = "0.62b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-instrumentation" },
+    { name = "opentelemetry-semantic-conventions" },
+    { name = "opentelemetry-util-http" },
+    { name = "wrapt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/77/a7/63e2c6325c8e99cd9b8e0229a8b61c37520ee537214a2c8d514e84486a94/opentelemetry_instrumentation_httpx-0.62b0.tar.gz", hash = "sha256:d865398db3f3c289ba226e355bf4d94460a4301c0c8916e3136caea55ae18000", size = 24182, upload-time = "2026-04-09T14:40:38.719Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/5e/7d5fc28487637871b015128cd5dbb3c36f6d343a9098b893bd803d5a9cca/opentelemetry_instrumentation_httpx-0.62b0-py3-none-any.whl", hash = "sha256:c7660b939c12608fec67743126e9b4dc23dceef0ed631c415924966b0d1579e3", size = 17200, upload-time = "2026-04-09T14:39:46.618Z" },
+]
+
+[[package]]
+name = "opentelemetry-proto"
+version = "1.41.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e0/d9/08e3dc6156878713e8c811682bc76151f5fe1a3cb7f3abda3966fd56e71e/opentelemetry_proto-1.41.0.tar.gz", hash = "sha256:95d2e576f9fb1800473a3e4cfcca054295d06bdb869fda4dc9f4f779dc68f7b6", size = 45669, upload-time = "2026-04-09T14:38:45.978Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/8c/65ef7a9383a363864772022e822b5d5c6988e6f9dabeebb9278f5b86ebc3/opentelemetry_proto-1.41.0-py3-none-any.whl", hash = "sha256:b970ab537309f9eed296be482c3e7cca05d8aca8165346e929f658dbe153b247", size = 72074, upload-time = "2026-04-09T14:38:29.38Z" },
+]
+
+[[package]]
+name = "opentelemetry-sdk"
+version = "1.41.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-semantic-conventions" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/0e/a586df1186f9f56b5a0879d52653effc40357b8e88fc50fe300038c3c08b/opentelemetry_sdk-1.41.0.tar.gz", hash = "sha256:7bddf3961131b318fc2d158947971a8e37e38b1cd23470cfb72b624e7cc108bd", size = 230181, upload-time = "2026-04-09T14:38:47.225Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/13/a7825118208cb32e6a4edcd0a99f925cbef81e77b3b0aedfd9125583c543/opentelemetry_sdk-1.41.0-py3-none-any.whl", hash = "sha256:a596f5687964a3e0d7f8edfdcf5b79cbca9c93c7025ebf5fb00f398a9443b0bd", size = 180214, upload-time = "2026-04-09T14:38:30.657Z" },
+]
+
+[[package]]
+name = "opentelemetry-semantic-conventions"
+version = "0.62b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a3/b0/c14f723e86c049b7bf8ff431160d982519b97a7be2857ed2247377397a24/opentelemetry_semantic_conventions-0.62b0.tar.gz", hash = "sha256:cbfb3c8fc259575cf68a6e1b94083cc35adc4a6b06e8cf431efa0d62606c0097", size = 145753, upload-time = "2026-04-09T14:38:48.274Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/6c/5e86fa1759a525ef91c2d8b79d668574760ff3f900d114297765eb8786cb/opentelemetry_semantic_conventions-0.62b0-py3-none-any.whl", hash = "sha256:0ddac1ce59eaf1a827d9987ab60d9315fb27aea23304144242d1fcad9e16b489", size = 231619, upload-time = "2026-04-09T14:38:32.394Z" },
+]
+
+[[package]]
+name = "opentelemetry-util-http"
+version = "0.62b0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/e7/830f7c57135158eb8a8efd3f94ab191a89e3b8a49bed314a35ee501da3f2/opentelemetry_util_http-0.62b0.tar.gz", hash = "sha256:a62e4b19b8a432c0de657f167dee3455516136bb9c6ed463ca8063019970d835", size = 11393, upload-time = "2026-04-09T14:40:59.442Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3d/7f/5c1b7d4385852b9e5eacd4e7f9d8b565d3d351d17463b24916ad098adf1a/opentelemetry_util_http-0.62b0-py3-none-any.whl", hash = "sha256:c20462808d8cc95b69b0dc4a3e02a9d36beb663347e96c931f51ffd78bd318ad", size = 9294, upload-time = "2026-04-09T14:40:19.014Z" },
+]
+
+[[package]]
 name = "ordered-set"
 version = "4.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2190,78 +2392,200 @@ wheels = [
 ]
 
 [[package]]
-name = "policyengine-household-api"
-version = "0.23.3"
-source = { editable = "." }
+name = "policyengine-household-analytics"
+version = "0.26.3"
+source = { editable = "libs/household-analytics" }
 dependencies = [
     { name = "alembic" },
-    { name = "authlib" },
     { name = "cloud-sql-python-connector" },
+    { name = "flask" },
+    { name = "flask-sqlalchemy" },
+    { name = "policyengine-household-common" },
+    { name = "pymysql" },
+    { name = "sqlalchemy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.13.0" },
+    { name = "cloud-sql-python-connector" },
+    { name = "flask", specifier = ">=2.2" },
+    { name = "flask-sqlalchemy", specifier = ">=3" },
+    { name = "policyengine-household-common", editable = "libs/household-common" },
+    { name = "pymysql" },
+    { name = "sqlalchemy", specifier = ">=2" },
+]
+
+[[package]]
+name = "policyengine-household-analytics-api"
+version = "0.26.3"
+source = { editable = "projects/analytics-api" }
+dependencies = [
+    { name = "google-cloud-logging" },
+    { name = "gunicorn" },
+    { name = "policyengine-household-analytics" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-timeout" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-cloud-logging" },
+    { name = "gunicorn" },
+    { name = "policyengine-household-analytics", editable = "libs/household-analytics" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-timeout" },
+]
+
+[[package]]
+name = "policyengine-household-api"
+version = "0.26.3"
+source = { editable = "libs/household-api" }
+dependencies = [
+    { name = "authlib" },
     { name = "flask" },
     { name = "flask-caching" },
     { name = "flask-cors" },
     { name = "flask-limiter" },
-    { name = "flask-sqlalchemy" },
     { name = "google-cloud-logging" },
     { name = "google-cloud-storage" },
+    { name = "google-cloud-tasks" },
     { name = "gunicorn" },
     { name = "inflect" },
     { name = "joserfc" },
     { name = "modal" },
     { name = "policyengine-canada" },
     { name = "policyengine-core" },
+    { name = "policyengine-household-analytics" },
+    { name = "policyengine-household-common" },
     { name = "policyengine-il" },
     { name = "policyengine-ng" },
+    { name = "policyengine-observability", extra = ["flask"] },
     { name = "policyengine-uk" },
     { name = "policyengine-us" },
     { name = "pydantic" },
     { name = "pyjwt" },
-    { name = "pymysql" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "urllib3" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "pytest-timeout" },
-    { name = "ruff" },
-    { name = "towncrier" },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "alembic", specifier = ">=1.13.0" },
     { name = "authlib", specifier = ">=1.7.0" },
-    { name = "cloud-sql-python-connector" },
     { name = "flask", specifier = ">=2.2" },
     { name = "flask-caching", specifier = "==2.0.2" },
     { name = "flask-cors", specifier = ">=3" },
     { name = "flask-limiter" },
-    { name = "flask-sqlalchemy", specifier = ">=3" },
     { name = "google-cloud-logging" },
     { name = "google-cloud-storage" },
+    { name = "google-cloud-tasks" },
     { name = "gunicorn" },
     { name = "inflect" },
     { name = "joserfc", specifier = ">=1.6.0" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-canada", specifier = "==0.96.3" },
     { name = "policyengine-core", specifier = ">=3.26.0,<3.26.7" },
+    { name = "policyengine-household-analytics", editable = "libs/household-analytics" },
+    { name = "policyengine-household-common", editable = "libs/household-common" },
     { name = "policyengine-il", specifier = "==0.1.0" },
     { name = "policyengine-ng", specifier = "==0.5.1" },
+    { name = "policyengine-observability", extras = ["flask"], specifier = ">=1.0.0" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
-    { name = "policyengine-us", specifier = "==1.744.0" },
+    { name = "policyengine-us", specifier = "==1.755.0" },
     { name = "pydantic" },
     { name = "pyjwt" },
-    { name = "pymysql" },
-    { name = "pytest-timeout", marker = "extra == 'dev'" },
     { name = "python-dotenv" },
     { name = "pyyaml", specifier = ">=6" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9.0" },
-    { name = "towncrier", marker = "extra == 'dev'", specifier = ">=24.8.0" },
     { name = "urllib3", specifier = ">=1.21.1,<=1.26.20" },
 ]
-provides-extras = ["dev"]
+
+[[package]]
+name = "policyengine-household-common"
+version = "0.26.3"
+source = { editable = "libs/household-common" }
+dependencies = [
+    { name = "flask" },
+    { name = "policyengine-observability", extra = ["flask"] },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=2.2" },
+    { name = "policyengine-observability", extras = ["flask"], specifier = ">=1.0.0" },
+    { name = "pydantic" },
+    { name = "pyyaml", specifier = ">=6" },
+]
+
+[[package]]
+name = "policyengine-household-failover-api"
+version = "0.26.3"
+source = { editable = "projects/cloud-run-failover-api" }
+dependencies = [
+    { name = "flask" },
+    { name = "google-auth" },
+    { name = "google-cloud-storage" },
+    { name = "gunicorn" },
+    { name = "modal" },
+    { name = "policyengine-household-common" },
+]
+
+[package.optional-dependencies]
+worker = [
+    { name = "policyengine-household-api" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=2.2" },
+    { name = "google-auth" },
+    { name = "google-cloud-storage" },
+    { name = "gunicorn" },
+    { name = "modal", specifier = ">=1.3.0" },
+    { name = "policyengine-household-api", marker = "extra == 'worker'", editable = "libs/household-api" },
+    { name = "policyengine-household-common", editable = "libs/household-common" },
+]
+provides-extras = ["worker"]
+
+[[package]]
+name = "policyengine-household-modal-api"
+version = "0.26.3"
+source = { editable = "projects/modal-api" }
+dependencies = [
+    { name = "flask" },
+    { name = "modal" },
+    { name = "policyengine-household-common" },
+    { name = "policyengine-observability", extra = ["flask"] },
+    { name = "pyyaml" },
+]
+
+[package.optional-dependencies]
+worker = [
+    { name = "policyengine-household-analytics" },
+    { name = "policyengine-household-api" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=2.2" },
+    { name = "modal", specifier = ">=1.3.0" },
+    { name = "policyengine-household-analytics", marker = "extra == 'worker'", editable = "libs/household-analytics" },
+    { name = "policyengine-household-api", marker = "extra == 'worker'", editable = "libs/household-api" },
+    { name = "policyengine-household-common", editable = "libs/household-common" },
+    { name = "policyengine-observability", extras = ["flask"], specifier = ">=1.0.0" },
+    { name = "pyyaml", specifier = ">=6" },
+]
+provides-extras = ["worker"]
 
 [[package]]
 name = "policyengine-il"
@@ -2290,6 +2614,28 @@ wheels = [
 ]
 
 [[package]]
+name = "policyengine-observability"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-proto-grpc" },
+    { name = "opentelemetry-exporter-otlp-proto-http" },
+    { name = "opentelemetry-instrumentation-fastapi" },
+    { name = "opentelemetry-instrumentation-httpx" },
+    { name = "opentelemetry-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/50/121780ac96b8e958ad32037144ceb89aa86b2d3ff1128d983ac32edd0c20/policyengine_observability-1.0.0.tar.gz", hash = "sha256:1fcafdf4585660e42a7336cdfb3be323c925136f69b2aff5e514b5e4a2b8c36f", size = 84131, upload-time = "2026-06-23T20:49:23.988Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/aa/28f4c112fb7b618ab61b028c64174283f8f9773d8f065c1a3c3e90e0135e/policyengine_observability-1.0.0-py3-none-any.whl", hash = "sha256:deb0cdd2792852972f1091177040c97c3ef727865d59489d127375e7498cda8e", size = 21844, upload-time = "2026-06-23T20:49:22.816Z" },
+]
+
+[package.optional-dependencies]
+flask = [
+    { name = "flask" },
+]
+
+[[package]]
 name = "policyengine-uk"
 version = "2.88.18"
 source = { registry = "https://pypi.org/simple" }
@@ -2306,7 +2652,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-us"
-version = "1.744.0"
+version = "1.755.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "microdf-python" },
@@ -2316,9 +2662,9 @@ dependencies = [
     { name = "tables" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/2e/3b5473c30d22a3c242194740dda0b61dac7b60b3306241f061fe64b08bbd/policyengine_us-1.744.0.tar.gz", hash = "sha256:934490d7d3c8313de4dea6d9b90ef878403680d49f2c54ab7453c06f0f694085", size = 10560896, upload-time = "2026-06-24T23:59:09.139Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/7d/20708b169c9c6b918c3453b91f49910df55daa393afc84f878505897e908/policyengine_us-1.755.0.tar.gz", hash = "sha256:b451a3733f3d4a545dacf3e4a783abc63f33f006fcc4c3d24f0c3109d6005bc5", size = 10787173, upload-time = "2026-07-01T23:28:49.977Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/b8/a1471eb8f80a0600de804f312acca8d1e22c7f3ba28428ee05712fbde2a3/policyengine_us-1.744.0-py3-none-any.whl", hash = "sha256:1514fd36e05ad8133f097e648b0969cb95644d318e910c21d8f5f787ddb2627b", size = 12298610, upload-time = "2026-06-24T23:59:05.807Z" },
+    { url = "https://files.pythonhosted.org/packages/54/d3/15ee85d73266e2c2645fcdab9865445e7123543129145cc9f1e8231e8a68/policyengine_us-1.755.0-py3-none-any.whl", hash = "sha256:7751af383460f22d74c04a4f3f07b8f96afd4a011eb59316db22df1b1d50f92f", size = 12681455, upload-time = "2026-07-01T23:28:47.061Z" },
 ]
 
 [[package]]

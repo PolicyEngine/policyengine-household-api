@@ -3,11 +3,11 @@ import json
 import pytest
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_api.endpoints.household import _validate_axes
-from policyengine_household_api.modal_release.routing_metadata import (
+from policyengine_household_common.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
     RESOLVED_CHANNEL_ENVIRON_KEY,
 )
-from policyengine_household_api.utils.config_loader import get_config_value
+from policyengine_household_common.config_loader import get_config_value
 from tests.fixtures.country import (
     valid_household_requesting_ctc_calculation,
 )
@@ -299,21 +299,20 @@ class TestCalculateEndpoint:
         )
 
         assert response.status_code == 400
-        calculate_request = calculate_analytics_capture.calculate_request
-        unknown_variable = calculate_analytics_capture.variable_row(
+        event = calculate_analytics_capture.event
+        context = event.context
+        unknown_variable = calculate_analytics_capture.variable_summary(
             "definitely_not_a_variable"
         )
 
-        assert calculate_request.client_id == "test-client"
-        assert calculate_request.visit_id is not None
-        assert calculate_request.country_id == "us"
-        assert calculate_request.response_status_code == 400
-        assert calculate_request.unsupported_variable_count == 1
+        assert context.client_id == "test-client"
+        assert context.country_id == "us"
+        assert event.response_status_code == 400
+        assert calculate_analytics_capture.unsupported_variable_count == 1
         assert unknown_variable.availability_status == "unsupported"
         assert unknown_variable.entity_type == "person"
         assert unknown_variable.source == "household_input"
         assert unknown_variable.period_granularity == "year"
-        calculate_analytics_capture.db.session.commit.assert_called_once()
 
     def test__analytics_enabled__captures_modal_routing_metadata(
         self, client, calculate_analytics_capture
@@ -329,17 +328,9 @@ class TestCalculateEndpoint:
         )
 
         assert response.status_code == 200
-        calculate_request = calculate_analytics_capture.calculate_request
-        assert calculate_request.requested_version == "1.691.1"
-        assert calculate_request.resolved_channel == "frontier"
-        assert {
-            variable.requested_version
-            for variable in calculate_analytics_capture.variable_rows
-        } == {"1.691.1"}
-        assert {
-            variable.resolved_channel
-            for variable in calculate_analytics_capture.variable_rows
-        } == {"frontier"}
+        context = calculate_analytics_capture.context
+        assert context.requested_version == "1.691.1"
+        assert context.resolved_channel == "frontier"
 
     def test__analytics_enabled__ignores_spoofed_modal_routing_headers(
         self, client, calculate_analytics_capture
@@ -355,9 +346,9 @@ class TestCalculateEndpoint:
         )
 
         assert response.status_code == 200
-        calculate_request = calculate_analytics_capture.calculate_request
-        assert calculate_request.requested_version is None
-        assert calculate_request.resolved_channel is None
+        context = calculate_analytics_capture.context
+        assert context.requested_version is None
+        assert context.resolved_channel is None
 
     def test__unknown_axis_variable__returns_400_with_errors(self, client):
         household = {
@@ -399,7 +390,7 @@ class TestCalculateEndpoint:
             "'axes[0].name' must be a non-empty string" in payload["message"]
         )
 
-    def test__analytics_enabled__truncates_overlong_variable_names(
+    def test__analytics_enabled__captures_overlong_variable_names(
         self, client, calculate_analytics_capture
     ):
         long_variable_name = "very_long_" + ("x" * 251)
@@ -420,16 +411,13 @@ class TestCalculateEndpoint:
         )
 
         assert response.status_code == 400
-        truncated_row = next(
-            row
-            for row in calculate_analytics_capture.variable_rows
-            if row.variable_name_truncated
+        summary = calculate_analytics_capture.variable_summary(
+            long_variable_name
         )
-        assert truncated_row.variable_name == long_variable_name[:250] + "..."
-        assert len(truncated_row.variable_name) == 253
-        assert truncated_row.availability_status == "unsupported"
+        assert summary.variable_name == long_variable_name
+        assert summary.availability_status == "unsupported"
 
-    def test__analytics_enabled__keeps_duplicate_truncated_variable_rows(
+    def test__analytics_enabled__captures_distinct_overlong_variable_names(
         self, client, calculate_analytics_capture
     ):
         shared_prefix = "x" * 250
@@ -453,22 +441,22 @@ class TestCalculateEndpoint:
         )
 
         assert response.status_code == 400
-        truncated_rows = [
-            row
-            for row in calculate_analytics_capture.variable_rows
-            if row.variable_name_truncated
+        overlong_summaries = [
+            summary
+            for summary in calculate_analytics_capture.variable_summaries
+            if summary.variable_name
+            in {first_variable_name, second_variable_name}
         ]
-        assert len(truncated_rows) == 2
-        assert {row.variable_name for row in truncated_rows} == {
-            shared_prefix + "..."
+        assert len(overlong_summaries) == 2
+        assert {summary.variable_name for summary in overlong_summaries} == {
+            first_variable_name,
+            second_variable_name,
         }
         assert all(
-            row.availability_status == "unsupported" for row in truncated_rows
+            summary.availability_status == "unsupported"
+            for summary in overlong_summaries
         )
-        assert (
-            calculate_analytics_capture.calculate_request.unsupported_variable_count
-            == 2
-        )
+        assert calculate_analytics_capture.unsupported_variable_count == 2
 
 
 class TestAxesValidation:

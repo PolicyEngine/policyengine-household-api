@@ -9,7 +9,7 @@ from modal_release_check_common import (
     get_file_at_ref,
     parse_pr_body_check_args,
 )
-from policyengine_household_api.modal_release.release_config import (
+from policyengine_household_common.release_config import (
     ModalReleaseConfigError,
     body_contains_modal_release_config,
     parse_modal_release_config_from_body,
@@ -57,16 +57,36 @@ def validate_release_body_config(
     parse_modal_release_config_from_body(body)
 
 
+# The pyproject carrying the policyengine-us/uk pins. The root pyproject is
+# a virtual workspace root without a [project] section.
+PIN_PYPROJECT = "libs/household-api/pyproject.toml"
+LEGACY_PIN_PYPROJECT = "pyproject.toml"
+
+
 def changed_files_update_release_packages(
     changed_files: list[str],
     base_ref: str | None,
 ) -> bool:
-    if "pyproject.toml" not in changed_files:
+    if (
+        PIN_PYPROJECT not in changed_files
+        and LEGACY_PIN_PYPROJECT not in changed_files
+    ):
         return False
 
+    head_path = Path(PIN_PYPROJECT)
+    if not head_path.exists():
+        head_path = Path(LEGACY_PIN_PYPROJECT)
+
+    try:
+        base_pyproject = get_file_at_ref(PIN_PYPROJECT, base_ref)
+    except Exception:
+        # Base refs from before the workspace layout keep the pins in the
+        # root pyproject.
+        base_pyproject = get_file_at_ref(LEGACY_PIN_PYPROJECT, base_ref)
+
     return release_package_versions_changed(
-        get_file_at_ref("pyproject.toml", base_ref),
-        Path("pyproject.toml").read_text(encoding="utf-8"),
+        base_pyproject,
+        head_path.read_text(encoding="utf-8"),
     )
 
 

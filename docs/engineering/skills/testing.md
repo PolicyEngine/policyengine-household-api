@@ -4,7 +4,10 @@ Use this skill whenever adding, moving, or reviewing tests.
 
 ## Canonical Layout
 
-- Put unit tests under `tests/unit/`.
+- Put unit tests under `tests/unit/`, except analytics writer tests,
+  which live in `projects/analytics-api/tests/` so PR CI can run them in
+  that member's slim dependency closure (see
+  `docs/engineering/skills/monorepo-layout.md`).
 - Put authenticated integration tests under `tests/integration_with_auth/`.
 - Put deployed-service tests under `tests/deployed/`.
 - Treat `tests/to_refactor/` as a legacy lane. Do not add new tests there

@@ -10,9 +10,15 @@ from datetime import datetime
 @pytest.fixture
 def mock_analytics_enabled():
     """Mock analytics as enabled."""
-    with patch(
-        "policyengine_household_api.decorators.analytics.is_analytics_enabled",
-        return_value=True,
+    with (
+        patch(
+            "policyengine_household_api.decorators.analytics.is_analytics_enabled",
+            return_value=True,
+        ),
+        patch(
+            "policyengine_household_api.decorators.analytics._collect_variable_usage",
+            return_value=False,
+        ),
     ):
         yield
 
@@ -35,46 +41,6 @@ def mock_analytics_error():
         side_effect=Exception("Error"),
     ):
         yield
-
-
-@pytest.fixture
-def mock_analytics_schema_not_ready():
-    """Mock analytics schema readiness as failed."""
-    with patch(
-        "policyengine_household_api.decorators.analytics.is_analytics_schema_ready",
-        return_value=False,
-    ):
-        yield
-
-
-@pytest.fixture
-def mock_visit_instance():
-    """Create a mock Visit instance that properly tracks attribute assignments."""
-
-    class MockVisit:
-        def __init__(self):
-            self.client_id = None
-            self.api_version = None
-            self.endpoint = None
-            self.method = None
-            self.content_length_bytes = None
-            self.datetime = None
-
-    return MockVisit()
-
-
-@pytest.fixture
-def mock_visit_class(mock_visit_instance):
-    """Mock the Visit class to return a mock instance."""
-    # Create a mock class that returns our instance when called as Visit()
-    mock_class = MagicMock(return_value=mock_visit_instance)
-
-    # Patch Visit where it's imported in the decorator module
-    with patch(
-        "policyengine_household_api.decorators.analytics.Visit",
-        mock_class,
-    ):
-        yield mock_class, mock_visit_instance
 
 
 @pytest.fixture
@@ -110,40 +76,44 @@ def mock_request_without_auth():
 
 
 @pytest.fixture
-def mock_jwt_valid_with_suffix():
-    """Mock verified JWT sub to return client ID with @clients suffix."""
+def mock_validated_token_sub_with_suffix():
+    """Mock validated token sub to return client ID with @clients suffix."""
     with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
+        "policyengine_household_api.decorators.analytics."
+        "_sub_claim_from_validated_token",
         return_value="test-client@clients",
     ):
         yield
 
 
 @pytest.fixture
-def mock_jwt_valid_without_suffix():
-    """Mock verified JWT sub to return client ID without suffix."""
+def mock_validated_token_sub_without_suffix():
+    """Mock validated token sub to return client ID without suffix."""
     with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
+        "policyengine_household_api.decorators.analytics."
+        "_sub_claim_from_validated_token",
         return_value="test-client",
     ):
         yield
 
 
 @pytest.fixture
-def mock_jwt_invalid():
-    """Mock verified JWT sub to raise an error."""
+def mock_validated_token_sub_error():
+    """Mock validated token sub extraction to raise an error."""
     with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
+        "policyengine_household_api.decorators.analytics."
+        "_sub_claim_from_validated_token",
         side_effect=Exception("Invalid token"),
     ):
         yield
 
 
 @pytest.fixture
-def mock_jwt_unverified():
-    """Mock verified JWT sub to return None (signature could not be verified)."""
+def mock_validated_token_sub_missing():
+    """Mock missing validated token sub."""
     with patch(
-        "policyengine_household_api.decorators.analytics._verified_sub_claim",
+        "policyengine_household_api.decorators.analytics."
+        "_sub_claim_from_validated_token",
         return_value=None,
     ):
         yield
@@ -172,48 +142,3 @@ def mock_version():
         "1.0.0",
     ):
         yield
-
-
-@pytest.fixture
-def mock_db_session():
-    """Mock database session."""
-    # Patch db where it's imported in the decorator
-    with patch(
-        "policyengine_household_api.decorators.analytics.db"
-    ) as mock_db:
-        session = MagicMock()
-        mock_db.session = session
-        yield session
-
-
-@pytest.fixture
-def mock_db_session_with_error():
-    """Mock database session where add raises an error."""
-    # Patch db where it's imported in the decorator
-    with patch(
-        "policyengine_household_api.decorators.analytics.db"
-    ) as mock_db:
-        session = MagicMock()
-        session.add.side_effect = Exception("Database error")
-        mock_db.session = session
-        yield session
-
-
-@pytest.fixture
-def setup_analytics_decorator_test(
-    mock_analytics_enabled,
-    mock_visit_class,
-    mock_request_with_auth,
-    mock_jwt_valid_with_suffix,
-    mock_datetime_fixed,
-    mock_version,
-    mock_db_session,
-):
-    """Combined fixture for standard analytics decorator test setup."""
-    _, visit_instance = mock_visit_class
-    return {
-        "visit": visit_instance,
-        "session": mock_db_session,
-        "fixed_time": mock_datetime_fixed,
-        "request": mock_request_with_auth,
-    }

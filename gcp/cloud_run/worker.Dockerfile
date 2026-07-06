@@ -8,20 +8,20 @@ RUN apt-get update && \
 
 RUN pip install --no-cache-dir -U uv
 
-COPY ./pyproject.toml ./uv.lock ./README.md /build/
-COPY ./alembic.ini /build/alembic.ini
-COPY ./alembic /build/alembic
+COPY ./pyproject.toml ./uv.lock /build/
 COPY ./config /build/config
-COPY ./policyengine_household_api /build/policyengine_household_api
+COPY ./libs /build/libs
+COPY ./projects /build/projects
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev \
+    --package policyengine-household-failover-api --extra worker
 
 ARG HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON={}
 ENV HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON=${HOUSEHOLD_FAILOVER_PACKAGE_VERSIONS_JSON}
 
 RUN /opt/venv/bin/python - <<'PY' > /tmp/country-package-specs.txt
-from policyengine_household_api.modal_release.images import (
+from policyengine_household_api.deployment import (
     country_package_install_specs,
 )
 
@@ -34,7 +34,7 @@ RUN if [ -s /tmp/country-package-specs.txt ]; then \
     fi
 
 RUN /opt/venv/bin/python -c \
-    "from policyengine_household_api.modal_release._image_setup import snapshot_tax_benefit_systems; snapshot_tax_benefit_systems()"
+    "from policyengine_household_api.deployment import snapshot_tax_benefit_systems; snapshot_tax_benefit_systems()"
 
 FROM --platform=linux/amd64 python:3.13-slim AS production
 
@@ -45,11 +45,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /build/pyproject.toml /app/pyproject.toml
-COPY --from=builder /build/alembic.ini /app/alembic.ini
-COPY --from=builder /build/alembic /app/alembic
+COPY --from=builder /build/libs/household-api/pyproject.toml /app/pyproject.toml
 COPY --from=builder /build/config /app/config
-COPY --from=builder /build/policyengine_household_api /app/policyengine_household_api
+COPY --from=builder /build/libs/household-api/policyengine_household_api /app/policyengine_household_api
+COPY --from=builder /build/libs/household-common/policyengine_household_common /app/policyengine_household_common
+COPY --from=builder /build/libs/household-analytics/policyengine_household_analytics /app/policyengine_household_analytics
+COPY --from=builder /build/projects/cloud-run-failover-api/policyengine_household_failover /app/policyengine_household_failover
 COPY ./gcp/cloud_run/worker_start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 

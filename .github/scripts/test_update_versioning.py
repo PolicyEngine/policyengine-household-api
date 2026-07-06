@@ -34,14 +34,15 @@ def write_test_project(
         "### Changed\n\n"
         "- Legacy entry.\n"
     )
+    core = root / "libs" / "household-api"
+    core.mkdir(parents=True)
+    (core / "pyproject.toml").write_text(
+        '[project]\nname = "policyengine-household-api"\nversion = "1.2.3"\n'
+    )
     (root / "pyproject.toml").write_text(
         """
-[project]
-name = "demo"
-version = "1.2.3"
-
 [tool.towncrier]
-package = "demo"
+name = "demo"
 directory = "changelog.d"
 filename = "CHANGELOG.md"
 title_format = "## [{version}] - {project_date}"
@@ -89,7 +90,10 @@ def test_update_versioning_builds_release_and_preserves_legacy_changelog(
     new_version = update_versioning.update_versioning(tmp_path)
 
     assert new_version == "1.3.0"
-    assert 'version = "1.3.0"' in (tmp_path / "pyproject.toml").read_text()
+    assert (
+        'version = "1.3.0"'
+        in (tmp_path / "libs" / "household-api" / "pyproject.toml").read_text()
+    )
 
     changelog = (tmp_path / "CHANGELOG.md").read_text()
     assert re.match(r"## \[1\.3\.0\] - \d{4}-\d{2}-\d{2}", changelog)

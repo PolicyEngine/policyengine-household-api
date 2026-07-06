@@ -2,7 +2,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from policyengine_household_api.modal_release.gateway_app import (
+from policyengine_household_modal.gateway_app import (
     GATEWAY_APP_NAME,
     GATEWAY_CUSTOM_DOMAIN,
     GATEWAY_WEB_ENDPOINT_LABEL,

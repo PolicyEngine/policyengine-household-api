@@ -19,6 +19,16 @@ analytics:
   # when analytics are enabled. Request/response bodies, values, entity IDs,
   # and household membership relationships are not stored.
   collect_variable_usage: true
+
+  # Cloud Tasks producer configuration for calculate analytics writes.
+  cloud_tasks:
+    project: ""
+    location: ""
+    queue: ""
+    target_url: ""
+    service_account_email: ""
+    oidc_audience: ""
+    dispatch_deadline_seconds: 300
   
   # Database connection for analytics (only used if enabled=true)
   # These will be overridden by environment variables in production

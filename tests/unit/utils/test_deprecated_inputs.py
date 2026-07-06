@@ -8,7 +8,7 @@ them get a structured warning + working response instead of a
 
 import copy
 
-from policyengine_household_api.utils.deprecated_inputs import (
+from policyengine_household_common.deprecated_inputs import (
     DEPRECATED_VARIABLES,
     DeprecatedInputsResult,
     DeprecatedVariableWarning,

@@ -1,0 +1,203 @@
+name: Publish Docker image
+
+# Publishes ghcr.io images that mirror the Modal release channels. This is a
+# distribution artifact for self-hosting and local development, not part of
+# the deploy pipeline: it observes completed "Release to Modal" runs and must
+# never gate or modify Modal deployments (see
+# docs/engineering/skills/docker-images.md).
+
+on:
+  workflow_run:
+    workflows: ["Release to Modal"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      policyengine_us_version:
+        description: >-
+          Exact policyengine-us version to publish as us-<version>. The
+          pairing with current API code is best-effort and not covered by CI.
+        required: false
+        type: string
+      sync_channel_tags:
+        description: >-
+          Repoint current/frontier/latest tags to match the live gateway,
+          building any missing exact-version image first.
+        required: false
+        type: boolean
+        default: false
+
+env:
+  IMAGE: ghcr.io/policyengine/policyengine-household-api
+  IMAGE_REPOSITORY: policyengine/policyengine-household-api
+  PYTHON_VERSION: "3.13"
+
+concurrency:
+  group: household-api-publish-docker
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan image builds and tags
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'PolicyEngine/policyengine-household-api' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push'
+        )
+      )
+    permissions:
+      contents: read
+    outputs:
+      builds: ${{ steps.plan.outputs.builds }}
+      retags: ${{ steps.plan.outputs.retags }}
+      has_builds: ${{ steps.plan.outputs.has_builds }}
+      has_retags: ${{ steps.plan.outputs.has_retags }}
+      checkout_ref: ${{ steps.ref.outputs.checkout_ref }}
+    steps:
+      - name: Resolve build ref and mode
+        id: ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            echo "checkout_ref=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+            echo "mode=release" >> "$GITHUB_OUTPUT"
+          else
+            echo "checkout_ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "mode=dispatch" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.checkout_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Plan builds and retags
+        id: plan
+        env:
+          MODE: ${{ steps.ref.outputs.mode }}
+          HEAD_SHA: ${{ steps.ref.outputs.checkout_ref }}
+          REQUESTED_US_VERSION: ${{ inputs.policyengine_us_version }}
+          SYNC_CHANNEL_TAGS: ${{ inputs.sync_channel_tags }}
+        run: |
+          python .github/scripts/plan_docker_tags.py \
+            --mode "$MODE" \
+            --head-sha "$HEAD_SHA" \
+            --requested-us-version "$REQUESTED_US_VERSION" \
+            --sync-channel-tags "${SYNC_CHANNEL_TAGS:-false}" \
+            --repository "$IMAGE_REPOSITORY" \
+            --github-output "$GITHUB_OUTPUT"
+
+  build:
+    name: Build us-${{ matrix.us_version }}
+    runs-on: ubuntu-latest
+    needs: plan
+    if: needs.plan.outputs.has_builds == 'true'
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.builds) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.checkout_ref }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compose image references
+        id: refs
+        env:
+          TAGS: ${{ matrix.tags }}
+        run: |
+          refs=""
+          for tag in $TAGS; do
+            refs="${refs}${IMAGE}:${tag},"
+          done
+          echo "refs=${refs%,}" >> "$GITHUB_OUTPUT"
+          echo "first=${IMAGE}:${TAGS%% *}" >> "$GITHUB_OUTPUT"
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./gcp/policyengine_household_api/Dockerfile.production
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            POLICYENGINE_US_VERSION=${{ matrix.us_version }}
+          tags: ${{ steps.refs.outputs.refs }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify pushed image
+        env:
+          FIRST_REF: ${{ steps.refs.outputs.first }}
+        run: docker buildx imagetools inspect "$FIRST_REF"
+
+  retag:
+    name: Repoint channel tags
+    runs-on: ubuntu-latest
+    needs: [plan, build]
+    if: |
+      !cancelled() &&
+      needs.plan.result == 'success' &&
+      needs.plan.outputs.has_retags == 'true' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.checkout_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      # Re-read channel state now that the (slow) build job has finished. The
+      # plan job read it before the build, so a release completing mid-build
+      # could otherwise make this step repoint a channel backward or at a
+      # not-yet-built image. Recomputing here, and emitting retags only for
+      # already-published images, keeps the channel tags monotonic; the
+      # serialized next publish run repoints anything skipped.
+      - name: Recompute channel tags from live gateway state
+        id: live
+        run: |
+          python .github/scripts/plan_docker_tags.py \
+            --live-retags \
+            --repository "$IMAGE_REPOSITORY" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Log in to GitHub Container Registry
+        if: steps.live.outputs.has_retags == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Repoint channel tags at exact-version images
+        if: steps.live.outputs.has_retags == 'true'
+        env:
+          RETAGS: ${{ steps.live.outputs.retags }}
+        run: |
+          echo "$RETAGS" | jq -c '.[]' | while read -r entry; do
+            source=$(jq -r '.source' <<<"$entry")
+            args=""
+            for target in $(jq -r '.targets[]' <<<"$entry"); do
+              args="$args --tag $IMAGE:$target"
+            done
+            echo "Repointing $(jq -r '.targets | join(", ")' <<<"$entry") -> $source"
+            # shellcheck disable=SC2086
+            docker buildx imagetools create $args "$IMAGE:$source"
+          done

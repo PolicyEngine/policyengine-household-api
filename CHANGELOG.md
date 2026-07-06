@@ -1,3 +1,109 @@
+## [0.26.3] - 2026-07-06
+
+### Fixed
+
+- Modal worker deploys now block until the new version answers a liveness dispatch, so integration tests no longer race the snapshot/initialisation window and lose analytics events. The warm gate bounds each dispatch by its remaining budget, fails fast when the app has no dispatch entrypoint, and reuses the shared worker-dispatch helper (with the legacy function fallback) that the Modal and Cloud Run gateways now also call.
+
+
+## [0.26.2] - 2026-07-04
+
+### Changed
+
+- Restructure the repository into a uv-workspace monorepo: per-service projects with enforced dependency closures, the analytics writer deployed before integration-test lanes, analytics database migrations in a dedicated deploy job, and HTTP startup probes on all Cloud Run services.
+
+
+## [0.26.1] - 2026-07-03
+
+### Fixed
+
+- Keep the analytics writer import chain free of numpy and country model packages so the slim Cloud Run analytics writer image boots.
+
+
+## [0.26.0] - 2026-07-03
+
+### Added
+
+- Move calculate analytics writes off the request path using Cloud Tasks and a Cloud Run analytics writer.
+
+
+## [0.25.8] - 2026-07-02
+
+### Fixed
+
+- Fail closed at startup when authentication is enabled but required Auth0 configuration is missing, instead of silently serving endpoints unauthenticated. The configuration error is reported through observability before the process exits.
+
+
+## [0.25.7] - 2026-07-01
+
+### Changed
+
+- Update PolicyEngine US to 1.755.0.
+
+
+## [0.25.6] - 2026-06-30
+
+### Fixed
+
+- Rolled back Google Cloud Logging observability routing while deployed staging test timeouts are investigated.
+
+
+## [0.25.5] - 2026-06-30
+
+### Changed
+
+- Route deployed household API observability logs to Google Cloud Logging through `policyengine-observability`.
+
+
+## [0.25.4] - 2026-06-30
+
+### Fixed
+
+- Made retired Modal app cleanup idempotent: stopping an already-deleted app is now treated as success so it no longer aborts the cleanup job, and cleaned-up apps are pruned from the release manifest only after the stop succeeds so they are not re-listed for cleanup on every release.
+
+
+## [0.25.3] - 2026-06-30
+
+### Fixed
+
+- Parallelized Cloud Run fallback warmup and tested both current and frontier fallback channels.
+
+
+## [0.25.2] - 2026-06-29
+
+### Fixed
+
+- Hardened Cloud Run fallback tests against analytics write failures and cold fallback paths.
+
+
+## [0.25.1] - 2026-06-29
+
+### Fixed
+
+- Fix lightweight Modal and Cloud Run gateway startup after observability instrumentation.
+
+
+## [0.25.0] - 2026-06-29
+
+### Added
+
+- Add OTel-aligned operational observability for household API requests, gateways, timing breakdowns, and structured request logs, backed by the shared `policyengine-observability` runtime.
+  Propagate observability context through Modal gateway executor calls so backend lookup and remote execution segments remain attached to the originating request.
+
+
+## [0.24.1] - 2026-06-29
+
+### Changed
+
+- Updated GitHub Actions workflows for Node 24-compatible action runtimes.
+
+
+## [0.24.0] - 2026-06-29
+
+### Added
+
+- Publish versioned Docker images to GHCR after each Modal release, with `current`/`frontier` channel tags, exact `us-<version>` tags, and a build arg for arbitrary policyengine-us versions.
+
+
 ## [0.23.4] - 2026-06-29
 
 ### Fixed
