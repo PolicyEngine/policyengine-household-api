@@ -1,3 +1,10 @@
+## [0.27.0] - 2026-07-06
+
+### Added
+
+- Added best-effort Slack webhook alerts for Modal-to-Cloud-Run failover lifecycle events.
+
+
 ## [0.26.5] - 2026-07-06
 
 ### Changed
