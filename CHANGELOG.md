@@ -1,3 +1,10 @@
+## [0.26.3] - 2026-07-06
+
+### Fixed
+
+- Modal worker deploys now block until the new version answers a liveness dispatch, so integration tests no longer race the snapshot/initialisation window and lose analytics events. The warm gate bounds each dispatch by its remaining budget, fails fast when the app has no dispatch entrypoint, and reuses the shared worker-dispatch helper (with the legacy function fallback) that the Modal and Cloud Run gateways now also call.
+
+
 ## [0.26.2] - 2026-07-04
 
 ### Changed
