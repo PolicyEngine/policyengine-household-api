@@ -70,7 +70,7 @@ def worker_function_options(
 
 
 def worker_concurrency_options() -> dict[str, int]:
-    return {"max_inputs": 2, "target_inputs": 1}
+    return {"max_inputs": 3, "target_inputs": 2}
 
 
 @app.cls(**worker_function_options())

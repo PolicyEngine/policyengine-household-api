@@ -85,19 +85,18 @@ def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
 
 
 def test_worker_concurrency_options_set_max_inputs(worker_app):
-    """Heavy customer calculates cost 12-50 CPU-seconds each; 2-way input
-    concurrency bounds in-container contention and caps the collateral of
-    Modal's cancel-shuts-down-the-container semantics at one sibling input
+    """Heavy customer calculates cost 12-50 CPU-seconds each; a low input
+    concurrency cap bounds in-container contention and limits the
+    collateral of Modal's cancel-shuts-down-the-container semantics
     (issue #1609)."""
-    assert worker_app.worker_concurrency_options()["max_inputs"] == 2
+    assert worker_app.worker_concurrency_options()["max_inputs"] == 3
 
 
 def test_worker_concurrency_options_set_target_inputs(worker_app):
-    """`target_inputs=1` makes the autoscaler add capacity as soon as
-    containers average more than one in-flight request, so simultaneous
-    heavy requests spread across containers instead of piling onto one
-    (issue #1609)."""
-    assert worker_app.worker_concurrency_options()["target_inputs"] == 1
+    """A low autoscale target adds capacity before containers saturate,
+    so simultaneous heavy requests spread across containers instead of
+    piling onto one (issue #1609)."""
+    assert worker_app.worker_concurrency_options()["target_inputs"] == 2
 
 
 def test_worker_function_options_reserve_calculation_cpu(worker_app):
