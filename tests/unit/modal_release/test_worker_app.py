@@ -99,15 +99,22 @@ def test_worker_concurrency_options_set_target_inputs(worker_app):
     assert worker_app.worker_concurrency_options()["target_inputs"] == 2
 
 
-def test_worker_function_options_reserve_calculation_cpu(worker_app):
-    """One calculation runs ~2 numpy threads; without an explicit
-    reservation Modal guarantees only 0.125 cores and heavy requests
-    starve under load (issue #1609)."""
-    for environment in ("main", "staging", "testing"):
+def test_worker_function_options_reserve_calculation_cpu_in_main_only(
+    worker_app,
+):
+    """One calculation runs ~2 numpy threads; production reserves them so
+    heavy requests cannot be starved under host contention (issue #1609).
+    Testing and staging must carry no reserved infrastructure, so they
+    keep Modal's default best-effort allocation."""
+    assert (
+        worker_app.worker_function_options(modal_environment="main")["cpu"]
+        == 2.0
+    )
+    for environment in ("staging", "testing"):
         options = worker_app.worker_function_options(
             modal_environment=environment
         )
-        assert options["cpu"] == 2.0
+        assert "cpu" not in options
 
 
 def test_worker_function_options_execution_budget(worker_app):

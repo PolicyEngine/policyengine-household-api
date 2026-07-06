@@ -51,7 +51,6 @@ def worker_function_options(
         "image": household_api_worker_image(),
         "secrets": [household_api_secret()],
         "timeout": 300,
-        "cpu": 2.0,
         "scaledown_window": 300,
         "enable_memory_snapshot": True,
         # Hard cap on autoscale. Without this Modal is bounded only by the
@@ -63,6 +62,7 @@ def worker_function_options(
         "max_containers": 100,
     }
     if environment == "main":
+        options["cpu"] = 2.0
         options["min_containers"] = 3
         options["buffer_containers"] = 2
         options["scaledown_window"] = 600
