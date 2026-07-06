@@ -62,6 +62,16 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
     assert "DEPLOY_APP=frontier-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.691.1"}' in log
+    # Code-mode redeploys re-trigger the snapshot/init window on every
+    # active app, so each one must be warmed (issue #1607).
+    assert (
+        "-m policyengine_household_modal.warm_worker "
+        "--app-name current-app" in log
+    )
+    assert (
+        "-m policyengine_household_modal.warm_worker "
+        "--app-name frontier-app" in log
+    )
     assert "-m policyengine_household_modal.update_manifest" not in log
     assert "cleanup-called" not in log
 
@@ -98,11 +108,16 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "policyengine_household_modal.analytics_revision" in log
     assert "-m policyengine_household_modal.canary_app" in log
     assert "DEPLOY_APP=release-app" in log
-    assert (
-        "-m policyengine_household_modal.warm_worker "
-        "--app-name release-app" in log
+    warm_release_app = (
+        "-m policyengine_household_modal.warm_worker --app-name release-app"
     )
+    assert warm_release_app in log
     assert "-m policyengine_household_modal.update_manifest" in log
+    # The serve gate must hold before the manifest flips traffic to the
+    # newly deployed worker.
+    assert log.index(warm_release_app) < log.index(
+        "-m policyengine_household_modal.update_manifest"
+    )
     assert "--source-commit" not in log
     assert "cleanup-called" in log
     assert "-m policyengine_household_modal.prune_manifest" in log

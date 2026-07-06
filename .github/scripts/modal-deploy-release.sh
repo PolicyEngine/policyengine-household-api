@@ -56,10 +56,9 @@ deploy_worker_app() {
   # serves; block until a container of the new version answers a liveness
   # dispatch so integration tests never race the snapshot/init window
   # (issue #1607).
-  MODAL_ENVIRONMENT="${modal_environment}" \
-    uv run python -m policyengine_household_modal.warm_worker \
-      --app-name "${app_name}" \
-      --modal-environment "${modal_environment}"
+  uv run python -m policyengine_household_modal.warm_worker \
+    --app-name "${app_name}" \
+    --modal-environment "${modal_environment}"
 }
 
 deploy_canary_app() {

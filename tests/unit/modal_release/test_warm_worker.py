@@ -1,77 +1,104 @@
-import sys
-import types
+import itertools
 
 import pytest
 
-from policyengine_household_common.dispatch_codec import (
-    encode_dispatch_response,
-)
 from policyengine_household_modal import warm_worker
+from tests.fixtures.modal_fakes import (
+    FakeModalNotFoundError,
+    FakeWorkerDispatch,
+    install_fake_modal,
+)
+
+# The raw result shape HouseholdWorker.handle_household_request returns
+# (dispatch_to_flask_app output), not the Cloud Run dispatch codec.
+OK_RESULT = {"status_code": 200, "body": b"OK", "headers": []}
+UNAVAILABLE_RESULT = {"status_code": 503, "body": b"", "headers": []}
 
 
-class _FakeWorker:
-    def __init__(self, results):
-        self._results = results
-        self.calls = 0
-
-    def handle_household_request_remote(self, payload):
-        self.calls += 1
-        result = self._results[min(self.calls - 1, len(self._results) - 1)]
-        if isinstance(result, Exception):
-            raise result
-        return result
-
-
-def _install_fake_modal(monkeypatch, worker: _FakeWorker):
-    class _FakeMethod:
-        def remote(self, payload):
-            return worker.handle_household_request_remote(payload)
-
-    class _FakeInstance:
-        handle_household_request = _FakeMethod()
-
-    class _FakeCls:
-        @staticmethod
-        def from_name(app_name, cls_name, environment_name=None):
-            assert cls_name == "HouseholdWorker"
-            return lambda: _FakeInstance()
-
-    fake_modal = types.SimpleNamespace(Cls=_FakeCls)
-    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+def fake_clock():
+    return itertools.count(0, 10).__next__
 
 
 def test_warm_worker_returns_once_new_version_serves(monkeypatch):
-    ok = encode_dispatch_response(
-        {"status_code": 200, "headers": {}, "body": b"OK"}
+    worker = FakeWorkerDispatch(
+        results=[RuntimeError("snapshotting"), OK_RESULT],
+        expected_app_name="household-api-test-worker",
+        expected_environment_name="staging",
     )
-    worker = _FakeWorker([RuntimeError("snapshotting"), ok])
-    _install_fake_modal(monkeypatch, worker)
+    install_fake_modal(monkeypatch, worker)
 
     warm_worker.warm_worker_app(
         "household-api-test-worker",
         modal_environment="staging",
         timeout_seconds=60,
         sleep=lambda _s: None,
-        monotonic=iter(range(0, 600, 5)).__next__,
+        monotonic=fake_clock(),
     )
 
     assert worker.calls == 2
+    # Each dispatch waits at most the remaining warm budget instead of
+    # hanging indefinitely on a wedged container.
+    assert worker.get_timeouts == [50, 30]
 
 
 def test_warm_worker_fails_after_deadline(monkeypatch):
-    bad = encode_dispatch_response(
-        {"status_code": 503, "headers": {}, "body": b""}
+    worker = FakeWorkerDispatch(
+        results=[UNAVAILABLE_RESULT],
+        expected_app_name="household-api-test-worker",
+        expected_environment_name="staging",
     )
-    worker = _FakeWorker([bad])
-    _install_fake_modal(monkeypatch, worker)
+    install_fake_modal(monkeypatch, worker)
 
-    with pytest.raises(SystemExit, match="did not serve within"):
+    with pytest.raises(SystemExit, match="did not serve within 65s"):
         warm_worker.warm_worker_app(
             "household-api-test-worker",
             modal_environment="staging",
-            timeout_seconds=20,
+            timeout_seconds=65,
             sleep=lambda _s: None,
-            monotonic=iter(range(0, 600, 5)).__next__,
+            monotonic=fake_clock(),
         )
 
-    assert worker.calls >= 1
+    # The 10s-step fake clock and 65s budget yield exactly three attempts.
+    assert worker.calls == 3
+
+
+def test_warm_worker_falls_back_to_legacy_function_worker(monkeypatch):
+    worker = FakeWorkerDispatch(
+        results=[OK_RESULT],
+        expected_app_name="household-api-test-worker",
+        expected_environment_name="staging",
+        cls_lookup_error=FakeModalNotFoundError("no HouseholdWorker class"),
+    )
+    install_fake_modal(monkeypatch, worker)
+
+    warm_worker.warm_worker_app(
+        "household-api-test-worker",
+        modal_environment="staging",
+        timeout_seconds=60,
+        sleep=lambda _s: None,
+        monotonic=fake_clock(),
+    )
+
+    assert worker.calls == 1
+
+
+def test_warm_worker_fails_fast_when_app_is_missing(monkeypatch):
+    worker = FakeWorkerDispatch(
+        results=[],
+        cls_lookup_error=FakeModalNotFoundError("no HouseholdWorker class"),
+        function_lookup_error=FakeModalNotFoundError("no function"),
+    )
+    install_fake_modal(monkeypatch, worker)
+
+    with pytest.raises(SystemExit, match="no dispatch entrypoint"):
+        warm_worker.warm_worker_app(
+            "no-such-app",
+            modal_environment="staging",
+            timeout_seconds=60,
+            sleep=lambda _s: None,
+            monotonic=fake_clock(),
+        )
+
+    # A missing app is permanent: no dispatch is attempted and no retry
+    # budget is burned.
+    assert worker.calls == 0

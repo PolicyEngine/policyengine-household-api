@@ -219,6 +219,9 @@ jobs:
   deploy-modal-staging:
     name: Deploy Modal release to staging
     runs-on: ubuntu-latest
+    # Bounds the worker warm gate: each worker app deploy blocks for up to
+    # 20 minutes waiting for the new version to serve (issue #1607).
+    timeout-minutes: 90
     needs: [resolve-modal-release-config, migrate-analytics-db-staging]
     environment: staging
     permissions:
@@ -700,6 +703,9 @@ jobs:
   deploy-modal-production:
     name: Deploy Modal release to production
     runs-on: ubuntu-latest
+    # Bounds the worker warm gate: each worker app deploy blocks for up to
+    # 20 minutes waiting for the new version to serve (issue #1607).
+    timeout-minutes: 90
     needs: [resolve-modal-release-config, migrate-analytics-db-production]
     environment: production
     permissions:

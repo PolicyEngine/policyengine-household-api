@@ -81,6 +81,17 @@ redeploys the gateway without changing the manifest. Ordinary push events do
 not deploy Modal apps. Manual `workflow_dispatch` runs are explicit release
 operations and use the weekly release shape by default.
 
+Every worker app deploy — release mode and code mode alike — blocks until the
+newly deployed worker answers a liveness dispatch
+(`policyengine_household_modal.warm_worker`, default budget 1200 seconds,
+bounded by `timeout-minutes` on the deploy jobs). `modal deploy` returns when
+the new version is registered, but the worker only builds its memory snapshot
+and initialises the API on first invocation; the warm gate keeps deploy jobs
+from reporting success — and integration tests from starting — until the new
+version actually serves (issue #1607). In release mode the gate runs before
+`update_manifest`, so the manifest never flips traffic to a worker that has
+not served.
+
 The household API primary serving path is Modal-only. Do not add App Engine or
 GCP traffic-promotion deployment steps to the release workflow, and do not route
 primary household traffic through anything other than the Modal gateway. The one

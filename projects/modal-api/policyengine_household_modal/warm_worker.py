@@ -13,28 +13,28 @@ proves nothing; only a served request does.
 from __future__ import annotations
 
 import argparse
-import sys
 import time
 
-from policyengine_household_common.dispatch_codec import (
-    decode_dispatch_response,
-    encode_dispatch_request,
+from policyengine_household_common.worker_dispatch import (
+    call_modal_worker_dispatch,
 )
 
-DEFAULT_TIMEOUT_SECONDS = 600
+# The first dispatch triggers the worker's snapshot build and API
+# initialisation, so the budget must cover a full cold start, not a network
+# round trip. Matches the Cloud Run fallback worker warm budget.
+DEFAULT_TIMEOUT_SECONDS = 1200
 RETRY_BACKOFF_SECONDS = 10
 
-
-def _liveness_dispatch_payload() -> dict:
-    return encode_dispatch_request(
-        {
-            "method": "GET",
-            "path": "liveness_check",
-            "query_string": "",
-            "headers": {},
-            "body": None,
-        }
-    )
+# The raw payload shape the Modal gateway sends to
+# HouseholdWorker.handle_household_request; see
+# policyengine_household_common.gateway._request_payload.
+LIVENESS_DISPATCH_PAYLOAD = {
+    "method": "GET",
+    "path": "/liveness_check",
+    "query_string": "",
+    "headers": {},
+    "body": b"",
+}
 
 
 def warm_worker_app(
@@ -48,30 +48,42 @@ def warm_worker_app(
     import modal
 
     deadline = monotonic() + timeout_seconds
-    payload = _liveness_dispatch_payload()
     last_error: str | None = None
     attempt = 0
 
-    while monotonic() < deadline:
+    while True:
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            break
         attempt += 1
         try:
-            worker_cls = modal.Cls.from_name(
+            result = call_modal_worker_dispatch(
                 app_name,
-                "HouseholdWorker",
+                LIVENESS_DISPATCH_PAYLOAD,
                 environment_name=modal_environment,
+                timeout_seconds=remaining,
             )
-            raw = worker_cls().handle_household_request.remote(payload)
-            response = decode_dispatch_response(raw)
-            status_code = int(response.get("status_code") or 0)
+            status_code = int(result["status_code"])
             if status_code == 200:
                 print(
-                    f"Worker app {app_name} serves (attempt {attempt}, "
-                    "liveness dispatch returned 200)."
+                    f"Worker app {app_name} serves: liveness dispatch "
+                    f"returned 200 on attempt {attempt}.",
+                    flush=True,
                 )
                 return
             last_error = f"liveness dispatch returned {status_code}"
-        except Exception as exc:  # noqa: BLE001 - report and retry
+        except modal.exception.NotFoundError as exc:
+            # Neither the class-based worker nor the legacy function
+            # entrypoint exists; retrying cannot fix a missing app.
+            raise SystemExit(
+                f"Worker app {app_name} has no dispatch entrypoint in "
+                f"Modal environment {modal_environment}: {exc!r}"
+            )
+        except Exception as exc:
             last_error = repr(exc)
+        print(f"Attempt {attempt}: {last_error}.", flush=True)
+        if monotonic() + RETRY_BACKOFF_SECONDS >= deadline:
+            break
         sleep(RETRY_BACKOFF_SECONDS)
 
     raise SystemExit(
@@ -80,7 +92,7 @@ def warm_worker_app(
     )
 
 
-def main() -> int:
+def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Invoke a deployed Modal worker until its new version serves."
@@ -94,14 +106,15 @@ def main() -> int:
         default=DEFAULT_TIMEOUT_SECONDS,
     )
     args = parser.parse_args()
+    if args.timeout_seconds <= 0:
+        parser.error("--timeout-seconds must be positive")
 
     warm_worker_app(
         args.app_name,
         modal_environment=args.modal_environment,
         timeout_seconds=args.timeout_seconds,
     )
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
