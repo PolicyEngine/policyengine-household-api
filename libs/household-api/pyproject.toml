@@ -1,6 +1,6 @@
 [project]
 name = "policyengine-household-api"
-version = "0.27.0"
+version = "0.28.0"
 description = "PolicyEngine Household API"
 readme = "README.md"
 authors = [
@@ -8,8 +8,8 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "policyengine-household-common==0.27.0",
-    "policyengine-household-analytics==0.27.0",
+    "policyengine-household-common==0.28.0",
+    "policyengine-household-analytics==0.28.0",
     "Authlib>=1.7.0",
     "flask>=2.2",
     "flask-cors>=3",

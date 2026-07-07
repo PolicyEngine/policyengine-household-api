@@ -1,3 +1,10 @@
+## [0.28.0] - 2026-07-07
+
+### Removed
+
+- Removed the retired App Engine deployment assets (`app.yaml`, `app.staging.yaml`, `dispatch.yaml`, `gcp/export.py`, the App Engine version/traffic helper scripts, and the `make deploy` target). The household API serves exclusively from Modal + Cloud Run; the published Docker image (`Dockerfile.production`) is unaffected.
+
+
 ## [0.27.0] - 2026-07-06
 
 ### Added
