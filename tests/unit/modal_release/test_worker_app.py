@@ -99,16 +99,17 @@ def test_worker_concurrency_options_set_target_inputs(worker_app):
     assert worker_app.worker_concurrency_options()["target_inputs"] == 2
 
 
-def test_worker_function_options_do_not_reserve_cpu(worker_app):
-    """Workers keep Modal's default best-effort CPU allocation in every
-    environment; contention from simultaneous heavy calculates is bounded
-    by the input-concurrency cap instead of a reservation, which would
-    raise the idle-warm billing floor (issue #1609)."""
+def test_worker_function_options_reserve_cpu(worker_app):
+    """Workers reserve a 1-core CPU floor in every environment. Modal
+    guarantees only 0.125 cores by default (rest is best-effort burst), so
+    containers running simultaneous heavy calculates starve and time out,
+    surfacing as 503 backend_unavailable (notably the Amplifi household on
+    staging). 1.0 is a cost-balanced floor vs the 2.0 dropped in #1610."""
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
             modal_environment=environment
         )
-        assert "cpu" not in options
+        assert options["cpu"] == 1.0
 
 
 def test_worker_function_options_execution_budget(worker_app):
