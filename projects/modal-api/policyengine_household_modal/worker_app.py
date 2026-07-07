@@ -53,6 +53,15 @@ def worker_function_options(
         "timeout": 300,
         "scaledown_window": 300,
         "enable_memory_snapshot": True,
+        # Reserve a 1-core CPU floor. Modal guarantees only 0.125 cores by
+        # default (the rest is best-effort burst), so a container running
+        # several heavy household calculates concurrently (input concurrency up
+        # to 3) starves and exceeds the execution budget -> the gateway returns
+        # 503 backend_unavailable. This surfaced on the Amplifi household
+        # against Cloud Run staging, which keeps no warm workers. 1.0 is a
+        # cost-balanced floor vs the 2.0 dropped in #1610; raise toward 2.0 if
+        # starvation persists under concurrent load.
+        "cpu": 1.0,
         # Hard cap on autoscale. Without this Modal is bounded only by the
         # workspace quota, so a runaway traffic spike (or a buggy partner
         # client) could scale to hundreds of containers and rack up cost.
