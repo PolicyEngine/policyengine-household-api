@@ -1,12 +1,18 @@
-# Docker guidance
+# GCP container assets
 
-The deployment actions build Docker images and deploy them to Google App Engine. The docker images themselves are based off a starter image (to save each API docker image having to spend 5 minutes installing the same dependencies). The starter image is the `Dockerfile` in this directory.
+This directory holds the container build assets for the household API's GCP
+footprint. The production serving path is **Modal + Cloud Run**; App Engine has
+been retired.
 
-To update the starter image:
-* `uv build` to build the python package
-* `twine upload dist/*` to upload the package to pypi as `policyengine-household-api`
-* `cd gcp`
-* `docker build .`
-* `docker images` to get the image id (the most recent one should be the one you just built)
-* `docker tag <image id> policyengine/policyengine-household-api`
-* `docker push policyengine/policyengine-household-api`
+- `cloud_run/` — Dockerfiles and entrypoints for the Cloud Run services on the
+  live serving path: the request `gateway`, the failover `worker`, and the
+  `analytics_writer`. Built and deployed by `.github/workflows/deploy-staged.yml`
+  (see `docs/engineering/skills/modal-cloud-run-failover.md`).
+- `policyengine_household_api/Dockerfile.production` (+ `start.sh`) — the
+  self-hosting / local-development image published to ghcr.io by
+  `.github/workflows/publish-docker-image.yml`. It is a distribution artifact,
+  not part of the deploy pipeline (see
+  `docs/engineering/skills/docker-images.md`).
+
+Do not add App Engine deployment assets (`app.yaml`, `dispatch.yaml`,
+`gcloud app deploy`) here — the release workflow is Modal-only.

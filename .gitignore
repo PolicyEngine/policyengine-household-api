@@ -8,8 +8,6 @@
 .gac.json
 .dbpw
 .github_microdata_token
-/app.yaml
-/Dockerfile
 dist/*
 **/*.rdb
 **/*.h5
