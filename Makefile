@@ -28,15 +28,6 @@ format: ## Format code with Ruff
 format-check: ## Check code formatting with Ruff
 	uv run ruff format --check .
 
-deploy: ## Deploy to GCP
-	python gcp/export.py
-	gcloud config set app/cloud_build_timeout 1800
-	cp gcp/policyengine_household_api/* .
-	y | gcloud app deploy --service-account=github-deployment@policyengine-household-api.iam.gserviceaccount.com
-	rm app.yaml
-	rm Dockerfile
-	rm .gac.json
-
 changelog: ## Build changelog
 	uv run python .github/scripts/update_versioning.py
 

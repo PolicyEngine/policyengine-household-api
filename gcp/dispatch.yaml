@@ -1,3 +1,0 @@
-dispatch:
-- url: household.api.policyengine.org/*
-  service: default
