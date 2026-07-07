@@ -1,4 +1,6 @@
 import importlib
+import os
+from types import SimpleNamespace
 
 import pytest
 
@@ -82,6 +84,35 @@ def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
     Python object state but not live TCP sockets across snapshots."""
     worker_cls = worker_app.HouseholdWorker
     assert hasattr(worker_cls, "reset_post_snapshot_state")
+
+
+def test_post_snapshot_reset_restarts_observability_after_credentials(
+    worker_app, monkeypatch
+):
+    """Memory snapshots preserve neither threads nor /tmp: the queued
+    log transport's listener thread dies at snapshot time, so a restored
+    container must rebuild its log destinations or silently drop every
+    Google-bound record — and only after the credentials file is
+    re-materialized, so the fresh Google client can authenticate."""
+    calls = []
+    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/stale.json")
+    monkeypatch.setattr(
+        worker_app,
+        "configure_google_credentials",
+        lambda: calls.append("credentials"),
+    )
+    monkeypatch.setattr(
+        worker_app,
+        "restart_observability",
+        lambda: calls.append("restart_observability"),
+    )
+
+    worker_app.reset_post_snapshot_process_state(
+        SimpleNamespace(extensions={})
+    )
+
+    assert calls == ["credentials", "restart_observability"]
+    assert "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ
 
 
 def test_worker_concurrency_options_set_max_inputs(worker_app):

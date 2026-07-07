@@ -5,6 +5,7 @@ from typing import Any
 
 import modal
 from policyengine_observability import operation
+from policyengine_observability import restart_observability
 from policyengine_observability import set_attribute
 
 from policyengine_household_modal.google_credentials import (
@@ -81,6 +82,55 @@ def worker_concurrency_options() -> dict[str, int]:
     return {"max_inputs": 3, "target_inputs": 2}
 
 
+def reset_post_snapshot_process_state(flask_app) -> None:
+    """Reset process state a memory-snapshot restore cannot preserve.
+
+    Runs on every container start AFTER snapshot restore. Memory
+    snapshots preserve Python object state but not live network
+    connections or threads.
+
+    Force-recreate the Google credentials file first: Modal preserves
+    env vars across snapshot restore, but /tmp is not guaranteed to be
+    preserved. Without popping the env var, configure_google_credentials()
+    would short-circuit on the surviving GOOGLE_APPLICATION_CREDENTIALS
+    and leave it pointing at a missing file.
+    See: https://modal.com/docs/guide/memory-snapshot
+    """
+    os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+    configure_google_credentials()
+
+    # The queued log transport's listener thread was started at snapshot
+    # creation and did not survive the restore, so the container would
+    # silently drop every Google-bound record. Rebuild the destinations
+    # (and their fresh clients) now that credentials are re-materialized.
+    restart_observability()
+
+    # The SQLAlchemy pool and the Cloud SQL Connector captured in the
+    # snapshot hold sockets that closed at snapshot time. Reset them so
+    # the first request opens fresh connections.
+    from policyengine_household_analytics import analytics_setup
+
+    if (
+        not analytics_setup.is_analytics_enabled()
+        or "sqlalchemy" not in flask_app.extensions
+    ):
+        return
+
+    analytics_setup.cleanup()
+
+    try:
+        with flask_app.app_context():
+            analytics_setup.db.engine.dispose()
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Failed to dispose analytics DB engine after snapshot "
+            "restore; subsequent queries may reconnect lazily: %s",
+            exc,
+        )
+
+
 @app.cls(**worker_function_options())
 @modal.concurrent(**worker_concurrency_options())
 class HouseholdWorker:
@@ -111,43 +161,7 @@ class HouseholdWorker:
 
     @modal.enter(snap=False)
     def reset_post_snapshot_state(self) -> None:
-        # Runs on every container start AFTER snapshot restore. Memory
-        # snapshots preserve Python object state but not live network
-        # connections; the SQLAlchemy pool and the Cloud SQL Connector
-        # captured in the snapshot hold sockets that closed at snapshot
-        # time. Reset them so the first request opens fresh connections.
-        #
-        # Also force-recreate the Google credentials file: Modal preserves
-        # env vars across snapshot restore, but /tmp is not guaranteed to
-        # be preserved. Without popping the env var first,
-        # configure_google_credentials() would short-circuit on the
-        # surviving GOOGLE_APPLICATION_CREDENTIALS and leave it pointing
-        # at a missing file, breaking analytics DB reconnects.
-        # See: https://modal.com/docs/guide/memory-snapshot
-        os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
-        configure_google_credentials()
-
-        from policyengine_household_analytics import analytics_setup
-
-        if (
-            not analytics_setup.is_analytics_enabled()
-            or "sqlalchemy" not in self.flask_app.extensions
-        ):
-            return
-
-        analytics_setup.cleanup()
-
-        try:
-            with self.flask_app.app_context():
-                analytics_setup.db.engine.dispose()
-        except Exception as exc:
-            import logging
-
-            logging.getLogger(__name__).warning(
-                "Failed to dispose analytics DB engine after snapshot "
-                "restore; subsequent queries may reconnect lazily: %s",
-                exc,
-            )
+        reset_post_snapshot_process_state(self.flask_app)
 
     @modal.method()
     def handle_household_request(
