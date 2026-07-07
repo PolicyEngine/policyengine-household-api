@@ -5,9 +5,6 @@
 .vscode
 **/*.db
 **/*.db-journal
-.gac.json
-.dbpw
-.github_microdata_token
 dist/*
 **/*.rdb
 **/*.h5
