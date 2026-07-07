@@ -1,3 +1,10 @@
+## [0.28.1] - 2026-07-07
+
+### Fixed
+
+- Reserve a 1-core CPU floor on Modal workers. Without a reservation Modal guarantees only 0.125 cores, so a container running several heavy household calculates concurrently could starve and exceed the execution budget, surfacing as `503 backend_unavailable` (notably the Amplifi household against Cloud Run staging, which keeps no warm workers). This restores a cost-balanced CPU floor after the reservation was dropped in #1610.
+
+
 ## [0.28.0] - 2026-07-07
 
 ### Removed
