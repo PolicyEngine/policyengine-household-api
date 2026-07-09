@@ -104,7 +104,7 @@ def _add_calculate_analytics_request(
     variable_rows: list[dict],
     requested_version: str | None = "current",
     resolved_channel: str | None = "current",
-    client_id: str = "test-client",
+    client_id: str | None = "test-client",
 ) -> CalculateRequest:
     visit = Visit()
     visit.client_id = client_id

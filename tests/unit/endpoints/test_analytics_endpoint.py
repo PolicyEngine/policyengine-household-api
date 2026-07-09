@@ -73,11 +73,13 @@ def test__calculate_analytics_requests__filters_by_client_id(
     add_calculate_analytics_request,
     calculate_analytics_variable,
 ):
+    # A sub-shaped identifier: interactive-user rows carry these, and
+    # the pipe must round-trip through query parsing untouched.
     partner_request = add_calculate_analytics_request(
         "partner-request",
         datetime(2026, 5, 10, 12, 0, 0),
         [calculate_analytics_variable("age")],
-        client_id="partner-client",
+        client_id="google-oauth2|partner-123",
     )
     add_calculate_analytics_request(
         "probe-request",
@@ -88,18 +90,18 @@ def test__calculate_analytics_requests__filters_by_client_id(
 
     with analytics_endpoint_app.test_request_context(
         "/analytics/calculate/requests?"
-        "client_id=partner-client&"
+        "client_id=google-oauth2%7Cpartner-123&"
         "start_time=2026-05-07T00:00:00Z"
     ):
         response = get_calculate_analytics_requests()
 
     payload = json.loads(response.data)
     assert response.status_code == 200
-    assert payload["client_id"] == "partner-client"
+    assert payload["client_id"] == "google-oauth2|partner-123"
     assert [request["request_uuid"] for request in payload["requests"]] == [
         partner_request.request_uuid
     ]
-    assert payload["requests"][0]["client_id"] == "partner-client"
+    assert payload["requests"][0]["client_id"] == "google-oauth2|partner-123"
 
 
 def test__calculate_analytics_requests__unknown_client_id_matches_nothing(
@@ -119,11 +121,77 @@ def test__calculate_analytics_requests__unknown_client_id_matches_nothing(
         response = get_calculate_analytics_requests()
 
     payload = json.loads(response.data)
-    # The filter is an opaque string match, not an enum: an unknown
-    # value is an empty result, never a 400.
     assert response.status_code == 200
     assert payload["client_id"] == "no-such-client"
     assert payload["requests"] == []
+
+
+def test__calculate_analytics_requests__blank_client_id_means_no_filter(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    add_calculate_analytics_request(
+        "partner-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?client_id=%20%20"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    # Blank strips to None: unfiltered results and a null echo, so a
+    # form that submits an empty field cannot silently match nothing.
+    assert response.status_code == 200
+    assert payload["client_id"] is None
+    assert len(payload["requests"]) == 1
+
+
+def test__calculate_analytics_requests__null_client_id_rows_serialize_and_filter(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    # Auth-disabled instances store NULL client_ids; those rows must
+    # serialize as null and stay out of client-scoped views.
+    add_calculate_analytics_request(
+        "anonymous-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+        client_id=None,
+    )
+    add_calculate_analytics_request(
+        "partner-request",
+        datetime(2026, 5, 10, 13, 0, 0),
+        [calculate_analytics_variable("age")],
+        client_id="partner-client",
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests"
+    ):
+        unfiltered = get_calculate_analytics_requests()
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?client_id=partner-client"
+    ):
+        filtered = get_calculate_analytics_requests()
+
+    unfiltered_payload = json.loads(unfiltered.data)
+    client_ids = {
+        request["request_uuid"]: request["client_id"]
+        for request in unfiltered_payload["requests"]
+    }
+    assert client_ids == {
+        "anonymous-request": None,
+        "partner-request": "partner-client",
+    }
+    filtered_payload = json.loads(filtered.data)
+    assert [
+        request["request_uuid"] for request in filtered_payload["requests"]
+    ] == ["partner-request"]
 
 
 def test__calculate_analytics_requests__unique_respects_client_id_filter(

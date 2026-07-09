@@ -14,12 +14,14 @@ TOP_LEVEL_ANALYTICS_KEYS = {
     "end_time",
     "requested_version",
     "resolved_channel",
+    "client_id",
     "unique",
     "requests",
 }
 REQUEST_ANALYTICS_KEYS = {
     "request_uuid",
     "created_at",
+    "client_id",
     "api_version",
     "country_id",
     "model_version",
@@ -251,6 +253,8 @@ def _analytics_payload(
     assert payload["end_time"] is None
     assert payload["requested_version"] == requested_version
     assert payload["resolved_channel"] == resolved_channel
+    # No client_id filter is sent, so the envelope echoes null.
+    assert payload["client_id"] is None
     assert payload["unique"] is False
     assert isinstance(payload["requests"], list)
     return payload
@@ -277,6 +281,10 @@ def _assert_request_metadata(
     assert set(request_record) == REQUEST_ANALYTICS_KEYS
     UUID(request_record["request_uuid"])
     assert _parse_api_datetime(request_record["created_at"])
+    # Deployed tests authenticate as an M2M client, so the record must
+    # carry its attributed (opaque) client_id.
+    assert isinstance(request_record["client_id"], str)
+    assert request_record["client_id"]
     assert isinstance(request_record["api_version"], str)
     assert request_record["api_version"]
     assert request_record["country_id"] == "us"
