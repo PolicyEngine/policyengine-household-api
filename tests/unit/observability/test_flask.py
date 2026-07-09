@@ -130,11 +130,13 @@ def test_request_log_contains_request_metadata_and_timing(monkeypatch):
 
 def test_request_log_contains_runtime_metadata(monkeypatch):
     monkeypatch.delenv("OBSERVABILITY_SERVICE_ROLE", raising=False)
+    monkeypatch.setenv("OBSERVABILITY_LOG_DESTINATIONS", "stdout")
     monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
     monkeypatch.setenv("OBSERVABILITY_RUNTIME_ROLE", "cloud_run_gateway")
     monkeypatch.setenv("K_SERVICE", "household-api-gateway")
     monkeypatch.setenv("K_REVISION", "household-api-gateway-00001")
     monkeypatch.setenv("K_CONFIGURATION", "household-api-gateway")
+    monkeypatch.setenv("OBSERVABILITY_GOOGLE_CLOUD_PROJECT", "central-logs")
     monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "policyengine-test")
 
     records = []
@@ -155,7 +157,134 @@ def test_request_log_contains_runtime_metadata(monkeypatch):
     assert payload["cloud_run_service"] == "household-api-gateway"
     assert payload["cloud_run_revision"] == "household-api-gateway-00001"
     assert payload["cloud_run_configuration"] == "household-api-gateway"
-    assert payload["google_cloud_project"] == "policyengine-test"
+    assert payload["google_cloud_project"] == "central-logs"
+
+
+def _clear_log_routing_env(monkeypatch):
+    for key in (
+        "OBSERVABILITY_LOG_DESTINATIONS",
+        "OBSERVABILITY_LOG_PROFILE",
+        "OBSERVABILITY_STDOUT_FORMAT",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_local_observability_defaults_to_stdout_logs(monkeypatch):
+    _clear_log_routing_env(monkeypatch)
+    monkeypatch.delenv("OBSERVABILITY_PLATFORM", raising=False)
+    monkeypatch.delenv("K_SERVICE", raising=False)
+    monkeypatch.delenv("K_REVISION", raising=False)
+    monkeypatch.delenv("MODAL_ENVIRONMENT", raising=False)
+    monkeypatch.delenv("MODAL_TASK_ID", raising=False)
+    monkeypatch.delenv("OBSERVABILITY_MODAL_APP_NAME", raising=False)
+
+    app = Flask(__name__)
+    init_observability(app, service_role="test_api")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_destinations == ("stdout",)
+    assert runtime.config.stdout_format == "plain"
+
+
+def test_cloud_run_observability_defaults_to_agent_stdout(monkeypatch):
+    """Cloud Run's logging agent ingests stdout, so the gcp-agent profile
+    routes google-formatted lines there — no network writes at all."""
+    _clear_log_routing_env(monkeypatch)
+    monkeypatch.delenv("OBSERVABILITY_PLATFORM", raising=False)
+    monkeypatch.setenv("K_SERVICE", "household-api-gateway")
+
+    app = Flask(__name__)
+    init_observability(app, service_role="failover_gateway")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_profile == "gcp-agent"
+    assert runtime.config.log_destinations == ("stdout",)
+    assert runtime.config.stdout_format == "google"
+
+
+def test_modal_observability_defaults_to_stdout_plus_google_logs(monkeypatch):
+    """Modal has no stdout-ingesting agent, so the gcp-direct profile
+    keeps plain stdout as the durable record and adds direct Cloud
+    Logging writes, which the package queues off the request path."""
+    _clear_log_routing_env(monkeypatch)
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "modal")
+    monkeypatch.setenv("OBSERVABILITY_GOOGLE_CLOUD_PROJECT", "central-logs")
+    monkeypatch.setenv("OBSERVABILITY_SERVICE_ROLE", "modal_worker")
+    monkeypatch.setenv(
+        "OBSERVABILITY_MODAL_APP_NAME",
+        "policyengine-household-api-current",
+    )
+    monkeypatch.setenv(
+        "OBSERVABILITY_MODAL_FUNCTION_NAME",
+        "HouseholdWorker.handle_household_request",
+    )
+
+    app = Flask(__name__)
+    init_observability(app, service_role="api")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_profile == "gcp-direct"
+    assert runtime.config.log_destinations == (
+        "stdout",
+        "google_cloud_logging",
+    )
+    assert runtime.config.stdout_format == "plain"
+
+
+def test_modal_without_google_project_downgrades_to_plain_stdout(
+    monkeypatch,
+):
+    """gcp-direct needs a Google project; without one the package must
+    warn and downgrade to plain stdout rather than fail or half-route."""
+    _clear_log_routing_env(monkeypatch)
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "modal")
+    for key in (
+        "OBSERVABILITY_GOOGLE_CLOUD_PROJECT",
+        "GOOGLE_CLOUD_PROJECT",
+        "GCP_PROJECT",
+        "GCLOUD_PROJECT",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    app = Flask(__name__)
+    init_observability(app, service_role="api")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_profile == "plain-sync"
+    assert runtime.config.log_destinations == ("stdout",)
+    assert runtime.config.config_warnings
+
+
+def test_observability_log_destination_env_overrides_deployed_default(
+    monkeypatch,
+):
+    monkeypatch.delenv("OBSERVABILITY_LOG_PROFILE", raising=False)
+    monkeypatch.setenv("OBSERVABILITY_LOG_DESTINATIONS", "stdout")
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "google_cloud_run")
+
+    app = Flask(__name__)
+    init_observability(app, service_role="failover_gateway")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_destinations == ("stdout",)
+
+
+def test_plain_sync_log_profile_is_an_operational_kill_switch(monkeypatch):
+    """OBSERVABILITY_LOG_PROFILE=plain-sync must force plain stdout on a
+    deployed platform — the no-code-change rollback lever, plumbed
+    through both deploy scripts."""
+    monkeypatch.delenv("OBSERVABILITY_LOG_DESTINATIONS", raising=False)
+    monkeypatch.delenv("OBSERVABILITY_STDOUT_FORMAT", raising=False)
+    monkeypatch.setenv("OBSERVABILITY_LOG_PROFILE", "plain-sync")
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "modal")
+    monkeypatch.setenv("OBSERVABILITY_GOOGLE_CLOUD_PROJECT", "central-logs")
+
+    app = Flask(__name__)
+    init_observability(app, service_role="api")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_destinations == ("stdout",)
+    assert runtime.config.stdout_format == "plain"
 
 
 def _runtime_with_context(monkeypatch):
@@ -607,3 +736,49 @@ def test_production_segment_call_sites_use_registry():
             violations.append(str(path.relative_to(repo_root)))
 
     assert violations == []
+
+
+def test_google_destination_failure_falls_back_to_stdout_and_serves(
+    monkeypatch, tmp_path
+):
+    """A broken Google Cloud Logging setup must never affect serving: the
+    destination fails to construct, the runtime falls back to stdout, and
+    requests still succeed. Modal (gcp-direct) is the only platform that
+    still builds a Google client — Cloud Run ships logs via agent-ingested
+    stdout — so the regression is pinned on a Modal-shaped environment."""
+    _clear_log_routing_env(monkeypatch)
+    monkeypatch.setenv("OBSERVABILITY_PLATFORM", "modal")
+    monkeypatch.setenv("OBSERVABILITY_GOOGLE_CLOUD_PROJECT", "central-logs")
+    # Deterministically broken credentials: point at a missing file and
+    # clear every source the credential helper could materialize from.
+    monkeypatch.setenv(
+        "GOOGLE_APPLICATION_CREDENTIALS", str(tmp_path / "missing.json")
+    )
+    monkeypatch.delenv("GCP_CREDENTIALS_JSON", raising=False)
+    monkeypatch.delenv("MODAL_IDENTITY_TOKEN", raising=False)
+    monkeypatch.delenv("OBSERVABILITY_GOOGLE_OIDC_TOKEN", raising=False)
+    monkeypatch.delenv(
+        "OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER", raising=False
+    )
+
+    app = Flask(__name__)
+
+    @app.get("/ping")
+    def ping():
+        return "pong"
+
+    init_observability(app, service_role="api")
+    runtime = app.extensions["policyengine_observability"]
+
+    response = app.test_client().get("/ping")
+
+    assert response.status_code == 200
+    assert runtime.config.log_destinations == (
+        "stdout",
+        "google_cloud_logging",
+    )
+    destination_names = [
+        type(destination).__name__
+        for destination in runtime.log_destination_manager.destinations
+    ]
+    assert destination_names == ["StdoutJsonDestination"]

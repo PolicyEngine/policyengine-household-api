@@ -7,7 +7,8 @@ def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
 
     # The gateway installs its member's locked closure (which carries
-    # policyengine-observability) rather than a hand-maintained pip list.
+    # policyengine-observability[flask,google]) rather than a
+    # hand-maintained pip list.
     assert "uv sync --frozen --no-install-workspace" in dockerfile
     assert "--package policyengine-household-failover-api" in dockerfile
     assert "--extra worker" not in dockerfile
@@ -75,7 +76,13 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS": "2",
         "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS": "300",
         "OBSERVABILITY_ENABLED": "true",
+        "OBSERVABILITY_GOOGLE_CLOUD_PROJECT": "policyengine-observability",
         "OBSERVABILITY_LOG_RAW_IP": "false",
+        "OBSERVABILITY_LOG_DESTINATIONS": "stdout",
+        "OBSERVABILITY_LOG_PROFILE": "plain-sync",
+        "OBSERVABILITY_LOG_QUEUE_MAXSIZE": "500",
+        "OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS": "1.5",
+        "OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS": "5",
         "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS": "ignored",
         "OBSERVABILITY_REQUEST_LOGS_ENABLED": "true",
         "OTEL_ENABLED": "true",
@@ -124,7 +131,14 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "  staging" in log
     assert "OBSERVABILITY_PLATFORM: |-" in log
     assert "  google_cloud_run" in log
+    assert "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-" in log
+    assert "  policyengine-observability" in log
     assert "OBSERVABILITY_ENABLED: |-" in log
+    assert "OBSERVABILITY_LOG_DESTINATIONS: |-" in log
+    assert "OBSERVABILITY_LOG_PROFILE: |-" in log
+    assert "OBSERVABILITY_LOG_QUEUE_MAXSIZE: |-" in log
+    assert "OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS: |-" in log
+    assert "OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS: |-" in log
     assert "OBSERVABILITY_LOG_RAW_IP: |-" in log
     assert "OBSERVABILITY_REQUEST_LOGS_ENABLED: |-" in log
     assert "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS" not in log

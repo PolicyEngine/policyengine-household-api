@@ -16,7 +16,7 @@ dependencies = [
     "flask>=2.2",
     "pydantic",
     "pyyaml>=6",
-    "policyengine-observability[flask]>=1.0.0",
+    "policyengine-observability[flask,google]>=1.4.0,<2",
 ]
 
 [build-system]

@@ -18,6 +18,7 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "GCP_CREDENTIALS_JSON": "{}",
+        "GOOGLE_CLOUD_PROJECT": "policyengine-household-api",
         "ANALYTICS__ENABLED": "false",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
         "USER_ANALYTICS_DB_USERNAME": "analytics-user",
@@ -33,6 +34,18 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         ),
         "ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE": "https://writer.run.app",
         "OBSERVABILITY_ENABLED": "true",
+        "OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL": (
+            "observability-writer@policyengine-api.iam.gserviceaccount.com"
+        ),
+        "OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER": (
+            "projects/389282473430/locations/global/"
+            "workloadIdentityPools/modal/providers/modal"
+        ),
+        "OBSERVABILITY_LOG_DESTINATIONS": "google_cloud_logging",
+        "OBSERVABILITY_LOG_PROFILE": "gcp-direct",
+        "OBSERVABILITY_LOG_QUEUE_MAXSIZE": "500",
+        "OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS": "1.5",
+        "OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS": "5",
         "OBSERVABILITY_LOG_RAW_IP": "false",
         "OBSERVABILITY_METRIC_ATTRIBUTE_KEYS": "ignored",
         "OBSERVABILITY_REQUEST_LOGS_ENABLED": "true",
@@ -56,6 +69,23 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
     assert payload["MODAL_ENVIRONMENT"] == "staging"
     assert payload["OBSERVABILITY_ENVIRONMENT"] == "staging"
     assert payload["OBSERVABILITY_PLATFORM"] == "modal"
+    assert (
+        payload["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"]
+        == "policyengine-household-api"
+    )
+    assert payload["OBSERVABILITY_LOG_DESTINATIONS"] == "google_cloud_logging"
+    assert payload["OBSERVABILITY_LOG_PROFILE"] == "gcp-direct"
+    assert payload["OBSERVABILITY_LOG_QUEUE_MAXSIZE"] == "500"
+    assert payload["OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS"] == "1.5"
+    assert payload["OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS"] == "5"
+    assert (
+        payload["OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL"]
+        == "observability-writer@policyengine-api.iam.gserviceaccount.com"
+    )
+    assert payload["OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER"] == (
+        "projects/389282473430/locations/global/"
+        "workloadIdentityPools/modal/providers/modal"
+    )
     assert payload["OBSERVABILITY_ENABLED"] == "true"
     assert payload["OBSERVABILITY_LOG_RAW_IP"] == "false"
     assert payload["OBSERVABILITY_REQUEST_LOGS_ENABLED"] == "true"
