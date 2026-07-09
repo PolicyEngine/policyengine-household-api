@@ -1,3 +1,10 @@
+## [0.28.3] - 2026-07-09
+
+### Changed
+
+- Reimplemented Google Cloud Logging observability routing on policyengine-observability 1.4.0 log profiles: Cloud Run services emit google-formatted stdout that the platform's logging agent ingests (no network writes), while Modal services keep plain stdout and add direct Cloud Logging writes over Workload Identity Federation credentials — queued off the request path with a bounded 10s per-write budget, so a degraded Logging API can never stall a request. The path is fail-open end to end (any credential, construction, or delivery failure falls back to stdout without affecting serving), Modal workers rebuild the queued transport after memory-snapshot restore, and `OBSERVABILITY_LOG_PROFILE=plain-sync` is a no-code-change kill switch.
+
+
 ## [0.28.2] - 2026-07-08
 
 ### Changed
