@@ -64,7 +64,100 @@ def test__calculate_analytics_requests__filters_by_time_window(
     assert old_request.request_uuid not in {
         request["request_uuid"] for request in payload["requests"]
     }
-    assert "client_id" not in payload["requests"][0]
+    assert payload["client_id"] is None
+    assert payload["requests"][0]["client_id"] == "test-client"
+
+
+def test__calculate_analytics_requests__filters_by_client_id(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    partner_request = add_calculate_analytics_request(
+        "partner-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+        client_id="partner-client",
+    )
+    add_calculate_analytics_request(
+        "probe-request",
+        datetime(2026, 5, 10, 13, 0, 0),
+        [calculate_analytics_variable("age")],
+        client_id="probe-client",
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?"
+        "client_id=partner-client&"
+        "start_time=2026-05-07T00:00:00Z"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert payload["client_id"] == "partner-client"
+    assert [request["request_uuid"] for request in payload["requests"]] == [
+        partner_request.request_uuid
+    ]
+    assert payload["requests"][0]["client_id"] == "partner-client"
+
+
+def test__calculate_analytics_requests__unknown_client_id_matches_nothing(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    add_calculate_analytics_request(
+        "partner-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?client_id=no-such-client"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    # The filter is an opaque string match, not an enum: an unknown
+    # value is an empty result, never a 400.
+    assert response.status_code == 200
+    assert payload["client_id"] == "no-such-client"
+    assert payload["requests"] == []
+
+
+def test__calculate_analytics_requests__unique_respects_client_id_filter(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    add_calculate_analytics_request(
+        "partner-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+        client_id="partner-client",
+    )
+    add_calculate_analytics_request(
+        "probe-request",
+        datetime(2026, 5, 11, 12, 0, 0),
+        [
+            calculate_analytics_variable("age"),
+            calculate_analytics_variable("employment_income"),
+        ],
+        client_id="probe-client",
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?unique=true&client_id=partner-client"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert payload["client_id"] == "partner-client"
+    assert [key["variable_name"] for key in payload["unique_keys"]] == ["age"]
+    assert payload["unique_keys"][0]["request_count"] == 1
+    assert payload["unique_keys"][0]["occurrence_count"] == 1
 
 
 def test__calculate_analytics_requests__unique_returns_grouped_keys(
