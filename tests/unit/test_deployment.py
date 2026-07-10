@@ -1,5 +1,9 @@
+import re
+import subprocess
 from datetime import date
+from pathlib import Path
 
+from policyengine_household_api import deployment
 from policyengine_household_api.deployment import (
     parameter_prewarm_instants,
     prewarm_parameter_caches,
@@ -74,3 +78,40 @@ def test_prewarm_populates_the_cache_the_request_path_reads():
     )
 
     assert instant in system.parameters._at_instant_cache
+
+
+def test_dockerfile_deployment_imports_reference_real_helpers():
+    """Dockerfiles invoke deployment helpers by name inside `python -c`
+    strings, which no Python tooling follows: renaming a helper without
+    updating them fails only inside the real image build, mid-deploy
+    (issue #1625 -- `gcp/cloud_run/worker.Dockerfile` still called
+    `snapshot_tax_benefit_systems` after #1623 renamed it, killing the
+    failover staging deploy). Pin every such reference to a real
+    attribute so the break surfaces in `make test` instead."""
+    repo_root = Path(__file__).resolve().parents[2]
+    tracked = subprocess.run(
+        ["git", "ls-files", "*Dockerfile*"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    assert tracked, "expected at least one tracked Dockerfile"
+
+    referenced = set()
+    for relative_path in tracked:
+        source = (repo_root / relative_path).read_text()
+        for match in re.finditer(
+            r"from policyengine_household_api\.deployment import ([\w, ]+)",
+            source,
+        ):
+            for name in match.group(1).split(","):
+                referenced.add((relative_path, name.strip()))
+
+    assert referenced, "expected Dockerfiles to import deployment helpers"
+    for relative_path, name in sorted(referenced):
+        assert hasattr(deployment, name), (
+            f"{relative_path} imports `{name}` from "
+            "policyengine_household_api.deployment, which no longer "
+            "exists -- update the Dockerfile alongside the rename"
+        )
