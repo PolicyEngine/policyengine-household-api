@@ -1363,6 +1363,9 @@ components:
         - message
         - start_time
         - end_time
+        - requested_version
+        - resolved_channel
+        - client_id
         - unique
       properties:
         status:
