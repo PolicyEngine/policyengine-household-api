@@ -34,7 +34,7 @@ RUN if [ -s /tmp/country-package-specs.txt ]; then \
     fi
 
 RUN /opt/venv/bin/python -c \
-    "from policyengine_household_api.deployment import snapshot_tax_benefit_systems; snapshot_tax_benefit_systems()"
+    "from policyengine_household_api.deployment import preload_country_packages; preload_country_packages()"
 
 FROM --platform=linux/amd64 python:3.13-slim AS production
 
