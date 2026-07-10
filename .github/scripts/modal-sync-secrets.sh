@@ -20,7 +20,6 @@ required = [
 ]
 optional = [
     "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME",
-    "OBSERVABILITY_GOOGLE_CLOUD_PROJECT",
     "OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL",
     "OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER",
     "OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS",
@@ -71,12 +70,10 @@ settings = {
 }
 # The log sink is a fixed dedicated project; it must not drift with the
 # runtime project when the deploy env omits an explicit override.
-observability_project = os.getenv(
+settings["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"] = os.getenv(
     "OBSERVABILITY_GOOGLE_CLOUD_PROJECT",
     "policyengine-observability",
 )
-if observability_project:
-    settings["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"] = observability_project
 for key in required + optional:
     value = os.getenv(key)
     if value:

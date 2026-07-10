@@ -5,7 +5,13 @@ import subprocess
 
 def _base_env(tmp_path: Path, output_path: Path) -> dict:
     return {
-        **os.environ,
+        # Strip inherited observability vars so the assertions below see
+        # exactly the values this test sets, not developer-shell state.
+        **{
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("OBSERVABILITY_")
+        },
         "PATH": f"{tmp_path}:{os.environ['PATH']}",
         "UV_BIN": str(tmp_path / "uv"),
         "DOCKER_BIN": str(tmp_path / "docker"),
@@ -61,6 +67,15 @@ def test_cloud_run_deploy_analytics_deploys_writer_with_startup_probe(
     assert "APP__ENVIRONMENT: |-" in log
     assert "  staging" in log
     assert "OBSERVABILITY_PLATFORM: |-" in log
+    # GOOGLE_CLOUD_PROJECT is the runtime project here; the log sink must
+    # fall back to the fixed dedicated project instead of drifting to it.
+    assert (
+        "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-\n"
+        "  policyengine-observability\n"
+    ) in log
+    # Unset observability knobs must be omitted so the package's clamped
+    # defaults govern at runtime.
+    assert "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME" not in log
     assert "WEB_TIMEOUT: |-" in log
     assert "USER_ANALYTICS_DB_CONNECTION_NAME: |-" in log
     assert (
