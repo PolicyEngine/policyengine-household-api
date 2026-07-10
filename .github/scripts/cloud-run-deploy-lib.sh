@@ -92,6 +92,7 @@ append_observability_env() {
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_PROFILE
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_QUEUE_MAXSIZE
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS
+  append_env_if_set "${env_file}" OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME
   append_env_if_set "${env_file}" OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS
   append_env_if_set "${env_file}" OBSERVABILITY_REQUEST_LOGS_ENABLED
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_RAW_IP

@@ -40,6 +40,7 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         ),
         "ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE": "https://writer.run.app",
         "OBSERVABILITY_ENABLED": "true",
+        "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME": "household-logs",
         "OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL": (
             "observability-writer@policyengine-api.iam.gserviceaccount.com"
         ),
@@ -79,6 +80,7 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         payload["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"]
         == "policyengine-household-api"
     )
+    assert payload["OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME"] == "household-logs"
     assert payload["OBSERVABILITY_LOG_DESTINATIONS"] == "google_cloud_logging"
     assert payload["OBSERVABILITY_LOG_PROFILE"] == "gcp-direct"
     assert payload["OBSERVABILITY_LOG_QUEUE_MAXSIZE"] == "500"
@@ -165,6 +167,7 @@ def test_modal_sync_secrets_includes_cloud_tasks_analytics_config(tmp_path):
     )
     # Unset observability knobs must be omitted so the package's clamped
     # defaults govern at runtime.
+    assert "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME" not in payload
     assert "OBSERVABILITY_LOG_DESTINATIONS" not in payload
     assert "OBSERVABILITY_LOG_PROFILE" not in payload
     assert "OBSERVABILITY_LOG_QUEUE_MAXSIZE" not in payload
