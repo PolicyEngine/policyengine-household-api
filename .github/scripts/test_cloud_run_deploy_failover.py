@@ -457,7 +457,14 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
     _write_fake_curl(tmp_path, log_path)
 
     env = {
-        **os.environ,
+        # Strip inherited observability vars: this scenario also pins
+        # that unset knobs stay out of the deploy env (package defaults
+        # govern unless deliberately overridden).
+        **{
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("OBSERVABILITY_")
+        },
         "PATH": f"{tmp_path}:{os.environ['PATH']}",
         "UV_BIN": str(tmp_path / "uv"),
         "DOCKER_BIN": str(tmp_path / "docker"),
@@ -506,6 +513,14 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
         "gcloud run deploy household-api-staging-analytics-writer" not in log
     )
     assert "ANALYTICS__ENABLED: |-" in log
+    # Unset observability knobs must be omitted so the package's clamped
+    # defaults govern at runtime (platform and project are always set).
+    assert "OBSERVABILITY_PLATFORM: |-" in log
+    assert "OBSERVABILITY_LOG_DESTINATIONS" not in log
+    assert "OBSERVABILITY_LOG_PROFILE" not in log
+    assert "OBSERVABILITY_LOG_QUEUE_MAXSIZE" not in log
+    assert "OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS" not in log
+    assert "OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS" not in log
     assert "ANALYTICS__CLOUD_TASKS__QUEUE" not in log
     assert "USER_ANALYTICS_DB_CONNECTION_NAME" not in log
     assert "USER_ANALYTICS_DB_USERNAME" not in log

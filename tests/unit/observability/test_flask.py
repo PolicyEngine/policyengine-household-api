@@ -202,6 +202,25 @@ def test_cloud_run_observability_defaults_to_agent_stdout(monkeypatch):
     assert runtime.config.stdout_format == "google"
 
 
+def test_cloud_run_revision_marker_alone_routes_agent_stdout(monkeypatch):
+    """Household platform detection accepts K_REVISION as a Cloud Run
+    marker; the package's own auto-detection does not. init_observability
+    makes the household detection authoritative so routing can never
+    disagree with the platform stamped on request metadata."""
+    _clear_log_routing_env(monkeypatch)
+    monkeypatch.delenv("OBSERVABILITY_PLATFORM", raising=False)
+    monkeypatch.delenv("K_SERVICE", raising=False)
+    monkeypatch.setenv("K_REVISION", "household-api-gateway-00001")
+
+    app = Flask(__name__)
+    init_observability(app, service_role="failover_gateway")
+    runtime = app.extensions["policyengine_observability"]
+
+    assert runtime.config.log_profile == "gcp-agent"
+    assert runtime.config.log_destinations == ("stdout",)
+    assert runtime.config.stdout_format == "google"
+
+
 def test_modal_observability_defaults_to_stdout_plus_google_logs(monkeypatch):
     """Modal has no stdout-ingesting agent, so the gcp-direct profile
     keeps plain stdout as the durable record and adds direct Cloud

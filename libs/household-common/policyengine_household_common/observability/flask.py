@@ -115,20 +115,32 @@ def init_observability(app: Flask, *, service_role: str = "api") -> None:
 
     service_role = _service_role(service_role)
     platform = _platform()
-    # Log routing is delegated to the package's log profiles: deploy
-    # scripts set OBSERVABILITY_PLATFORM, which "auto" resolves to
-    # gcp-agent on Cloud Run (google-formatted stdout, agent-ingested)
-    # and gcp-direct on Modal (stdout plus queued Cloud Logging writes).
-    # Anywhere without a platform marker keeps the stdout default.
-    config = replace(
-        ObservabilityConfig.from_env(
-            service_name=SERVICE_NAME,
-            service_role=service_role,
-            span_prefix=SPAN_PREFIX,
-            extra_metric_attribute_keys=HOUSEHOLD_METRIC_ATTRIBUTE_KEYS,
-        ),
-        environment=_environment(),
-    )
+    # Log routing is delegated to the package's log profiles: "auto"
+    # resolves to gcp-agent on Cloud Run (google-formatted stdout,
+    # agent-ingested) and gcp-direct on Modal (stdout plus queued Cloud
+    # Logging writes). Anywhere without a platform marker keeps the
+    # stdout default. Household platform detection is made authoritative
+    # for that resolution — it accepts markers the package's own
+    # auto-detection does not (K_REVISION, OBSERVABILITY_MODAL_APP_NAME),
+    # and routing must never disagree with the platform we stamp on
+    # request metadata. The variable is pinned only while the config is
+    # built so no env state leaks into the process.
+    pin_platform = "OBSERVABILITY_PLATFORM" not in os.environ
+    if pin_platform:
+        os.environ["OBSERVABILITY_PLATFORM"] = platform
+    try:
+        config = replace(
+            ObservabilityConfig.from_env(
+                service_name=SERVICE_NAME,
+                service_role=service_role,
+                span_prefix=SPAN_PREFIX,
+                extra_metric_attribute_keys=HOUSEHOLD_METRIC_ATTRIBUTE_KEYS,
+            ),
+            environment=_environment(),
+        )
+    finally:
+        if pin_platform:
+            os.environ.pop("OBSERVABILITY_PLATFORM", None)
     init_flask_observability(
         app,
         config=config,
