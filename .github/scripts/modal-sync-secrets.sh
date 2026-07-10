@@ -69,9 +69,11 @@ settings = {
     ),
     "OBSERVABILITY_PLATFORM": os.getenv("OBSERVABILITY_PLATFORM", "modal"),
 }
+# The log sink is a fixed dedicated project; it must not drift with the
+# runtime project when the deploy env omits an explicit override.
 observability_project = os.getenv(
     "OBSERVABILITY_GOOGLE_CLOUD_PROJECT",
-    os.getenv("GOOGLE_CLOUD_PROJECT"),
+    "policyengine-observability",
 )
 if observability_project:
     settings["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"] = observability_project

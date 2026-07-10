@@ -518,6 +518,10 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
     # Unset observability knobs must be omitted so the package's clamped
     # defaults govern at runtime (platform and project are always set).
     assert "OBSERVABILITY_PLATFORM: |-" in log
+    # GOOGLE_CLOUD_PROJECT is the runtime project here; the log sink must
+    # fall back to the fixed dedicated project instead of drifting to it.
+    assert "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-" in log
+    assert "  policyengine-observability" in log
     assert "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME" not in log
     assert "OBSERVABILITY_LOG_DESTINATIONS" not in log
     assert "OBSERVABILITY_LOG_PROFILE" not in log

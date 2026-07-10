@@ -82,7 +82,9 @@ EOF
 
 append_observability_env() {
   local env_file="${1:?env file is required}"
-  local observability_project="${OBSERVABILITY_GOOGLE_CLOUD_PROJECT:-${GOOGLE_CLOUD_PROJECT:-}}"
+  # The log sink is a fixed dedicated project; it must not drift with the
+  # runtime project when the deploy env omits an explicit override.
+  local observability_project="${OBSERVABILITY_GOOGLE_CLOUD_PROJECT:-policyengine-observability}"
 
   append_env_value "${env_file}" OBSERVABILITY_ENVIRONMENT "${environment}"
   append_env_value "${env_file}" OBSERVABILITY_PLATFORM "google_cloud_run"
