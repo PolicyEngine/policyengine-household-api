@@ -10,7 +10,13 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
     _write_fake_uv(tmp_path, log_path)
 
     env = {
-        **os.environ,
+        # Strip inherited observability vars so the assertions below see
+        # exactly the values this test sets, not developer-shell state.
+        **{
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("OBSERVABILITY_")
+        },
         "PATH": f"{tmp_path}:{os.environ['PATH']}",
         "MODAL_SECRET_JSON": str(secret_json),
         "MODAL_ENVIRONMENT": "staging",
@@ -113,7 +119,14 @@ def test_modal_sync_secrets_includes_cloud_tasks_analytics_config(tmp_path):
     _write_fake_uv(tmp_path, log_path)
 
     env = {
-        **os.environ,
+        # Strip inherited observability vars: this scenario also pins
+        # that unset knobs stay out of the secret (package defaults
+        # govern unless deliberately overridden).
+        **{
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("OBSERVABILITY_")
+        },
         "PATH": f"{tmp_path}:{os.environ['PATH']}",
         "MODAL_SECRET_JSON": str(secret_json),
         "MODAL_ENVIRONMENT": "staging",
@@ -150,6 +163,13 @@ def test_modal_sync_secrets_includes_cloud_tasks_analytics_config(tmp_path):
     assert payload["ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE"] == (
         "https://writer.run.app"
     )
+    # Unset observability knobs must be omitted so the package's clamped
+    # defaults govern at runtime.
+    assert "OBSERVABILITY_LOG_DESTINATIONS" not in payload
+    assert "OBSERVABILITY_LOG_PROFILE" not in payload
+    assert "OBSERVABILITY_LOG_QUEUE_MAXSIZE" not in payload
+    assert "OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS" not in payload
+    assert "OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS" not in payload
 
 
 def test_modal_sync_secrets_requires_cloud_tasks_analytics_config(tmp_path):
