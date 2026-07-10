@@ -82,7 +82,9 @@ EOF
 
 append_observability_env() {
   local env_file="${1:?env file is required}"
-  local observability_project="${OBSERVABILITY_GOOGLE_CLOUD_PROJECT:-${GOOGLE_CLOUD_PROJECT:-}}"
+  # The log sink is a fixed dedicated project; it must not drift with the
+  # runtime project when the deploy env omits an explicit override.
+  local observability_project="${OBSERVABILITY_GOOGLE_CLOUD_PROJECT:-policyengine-observability}"
 
   append_env_value "${env_file}" OBSERVABILITY_ENVIRONMENT "${environment}"
   append_env_value "${env_file}" OBSERVABILITY_PLATFORM "google_cloud_run"
@@ -92,6 +94,7 @@ append_observability_env() {
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_PROFILE
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_QUEUE_MAXSIZE
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_QUEUE_CLOSE_TIMEOUT_SECONDS
+  append_env_if_set "${env_file}" OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME
   append_env_if_set "${env_file}" OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS
   append_env_if_set "${env_file}" OBSERVABILITY_REQUEST_LOGS_ENABLED
   append_env_if_set "${env_file}" OBSERVABILITY_LOG_RAW_IP

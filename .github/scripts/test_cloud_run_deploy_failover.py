@@ -77,6 +77,7 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS": "300",
         "OBSERVABILITY_ENABLED": "true",
         "OBSERVABILITY_GOOGLE_CLOUD_PROJECT": "policyengine-observability",
+        "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME": "household-logs",
         "OBSERVABILITY_LOG_RAW_IP": "false",
         "OBSERVABILITY_LOG_DESTINATIONS": "stdout",
         "OBSERVABILITY_LOG_PROFILE": "plain-sync",
@@ -131,8 +132,11 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "  staging" in log
     assert "OBSERVABILITY_PLATFORM: |-" in log
     assert "  google_cloud_run" in log
-    assert "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-" in log
-    assert "  policyengine-observability" in log
+    assert (
+        "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-\n"
+        "  policyengine-observability\n"
+    ) in log
+    assert "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME: |-" in log
     assert "OBSERVABILITY_ENABLED: |-" in log
     assert "OBSERVABILITY_LOG_DESTINATIONS: |-" in log
     assert "OBSERVABILITY_LOG_PROFILE: |-" in log
@@ -516,6 +520,13 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
     # Unset observability knobs must be omitted so the package's clamped
     # defaults govern at runtime (platform and project are always set).
     assert "OBSERVABILITY_PLATFORM: |-" in log
+    # GOOGLE_CLOUD_PROJECT is the runtime project here; the log sink must
+    # fall back to the fixed dedicated project instead of drifting to it.
+    assert (
+        "OBSERVABILITY_GOOGLE_CLOUD_PROJECT: |-\n"
+        "  policyengine-observability\n"
+    ) in log
+    assert "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME" not in log
     assert "OBSERVABILITY_LOG_DESTINATIONS" not in log
     assert "OBSERVABILITY_LOG_PROFILE" not in log
     assert "OBSERVABILITY_LOG_QUEUE_MAXSIZE" not in log

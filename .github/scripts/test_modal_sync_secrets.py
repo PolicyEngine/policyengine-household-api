@@ -40,11 +40,13 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         ),
         "ANALYTICS__CLOUD_TASKS__OIDC_AUDIENCE": "https://writer.run.app",
         "OBSERVABILITY_ENABLED": "true",
+        "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME": "household-logs",
         "OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL": (
-            "observability-writer@policyengine-api.iam.gserviceaccount.com"
+            "observability-writer@policyengine-observability."
+            "iam.gserviceaccount.com"
         ),
         "OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER": (
-            "projects/389282473430/locations/global/"
+            "projects/790230211054/locations/global/"
             "workloadIdentityPools/modal/providers/modal"
         ),
         "OBSERVABILITY_LOG_DESTINATIONS": "google_cloud_logging",
@@ -75,10 +77,14 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
     assert payload["MODAL_ENVIRONMENT"] == "staging"
     assert payload["OBSERVABILITY_ENVIRONMENT"] == "staging"
     assert payload["OBSERVABILITY_PLATFORM"] == "modal"
+    # GOOGLE_CLOUD_PROJECT is set to the runtime project above, but the
+    # log sink must fall back to the fixed dedicated project, not drift
+    # with the runtime.
     assert (
         payload["OBSERVABILITY_GOOGLE_CLOUD_PROJECT"]
-        == "policyengine-household-api"
+        == "policyengine-observability"
     )
+    assert payload["OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME"] == "household-logs"
     assert payload["OBSERVABILITY_LOG_DESTINATIONS"] == "google_cloud_logging"
     assert payload["OBSERVABILITY_LOG_PROFILE"] == "gcp-direct"
     assert payload["OBSERVABILITY_LOG_QUEUE_MAXSIZE"] == "500"
@@ -86,10 +92,11 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
     assert payload["OBSERVABILITY_GOOGLE_WRITE_TIMEOUT_SECONDS"] == "5"
     assert (
         payload["OBSERVABILITY_GOOGLE_SERVICE_ACCOUNT_EMAIL"]
-        == "observability-writer@policyengine-api.iam.gserviceaccount.com"
+        == "observability-writer@policyengine-observability."
+        "iam.gserviceaccount.com"
     )
     assert payload["OBSERVABILITY_GOOGLE_WORKLOAD_IDENTITY_PROVIDER"] == (
-        "projects/389282473430/locations/global/"
+        "projects/790230211054/locations/global/"
         "workloadIdentityPools/modal/providers/modal"
     )
     assert payload["OBSERVABILITY_ENABLED"] == "true"
@@ -165,6 +172,7 @@ def test_modal_sync_secrets_includes_cloud_tasks_analytics_config(tmp_path):
     )
     # Unset observability knobs must be omitted so the package's clamped
     # defaults govern at runtime.
+    assert "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME" not in payload
     assert "OBSERVABILITY_LOG_DESTINATIONS" not in payload
     assert "OBSERVABILITY_LOG_PROFILE" not in payload
     assert "OBSERVABILITY_LOG_QUEUE_MAXSIZE" not in payload

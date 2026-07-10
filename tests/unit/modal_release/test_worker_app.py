@@ -77,6 +77,17 @@ def test_household_worker_exposes_snapshot_entrypoint(worker_app):
     assert hasattr(worker_cls, "handle_household_request")
 
 
+def test_snapshot_hook_prewarms_parameter_caches(worker_app):
+    """The snap=True hook must call prewarm_parameter_caches() so the
+    populated parameter at-instant caches ride the memory snapshot;
+    dropping the call silently reintroduces the 60-105s first-request
+    build that flakes the Cloud Run staging lanes (issue #1624)."""
+    import inspect
+
+    source = inspect.getsource(worker_app)
+    assert "prewarm_parameter_caches()" in source
+
+
 def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
     """The class must declare a post-restore hook so network state
     captured in the memory snapshot (SQLAlchemy pool, Cloud SQL
