@@ -1,3 +1,10 @@
+## [0.28.4] - 2026-07-10
+
+### Changed
+
+- Post-merge review follow-ups for the Google Cloud observability routing (#1597): household platform detection is now authoritative for log-profile resolution (it accepts `K_REVISION` and `OBSERVABILITY_MODAL_APP_NAME`, which the package's auto-detection does not, and the `OBSERVABILITY_PLATFORM` pin is scoped to config construction so no env state leaks); deploy-script tests now pin that unset observability knobs are omitted so the package's clamped defaults govern; and the analytics writer drops its direct `google-cloud-logging` dependency, which only existed to serve the pre-1.4.0 synchronous Google destination and still reaches the slim closure through household-common's `[google]` extra.
+
+
 ## [0.28.3] - 2026-07-09
 
 ### Changed
