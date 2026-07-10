@@ -38,6 +38,7 @@ class CalculateAnalyticsQuery:
     end_time: datetime | None
     requested_version: str | None
     resolved_channel: str | None
+    client_id: str | None
     unique: bool
     limit: int
 
@@ -62,6 +63,7 @@ def get_calculate_analytics_requests() -> Response:
         "end_time": _datetime_to_json(query.end_time),
         "requested_version": query.requested_version,
         "resolved_channel": query.resolved_channel,
+        "client_id": query.client_id,
         "unique": query.unique,
     }
     if query.unique:
@@ -140,6 +142,11 @@ def _parse_query_args() -> CalculateAnalyticsQuery:
         resolved_channel=_parse_resolved_channel(
             request.args.get("resolved_channel")
         ),
+        # An opaque equality filter: the column holds Auth0 M2M
+        # client_ids and interactive-user subs alike, so any non-empty
+        # string is a valid query and an unknown one just matches
+        # nothing.
+        client_id=_parse_optional_string(request.args.get("client_id")),
         unique=_parse_bool(request.args.get("unique"), default=False),
         limit=_parse_limit(request.args.get("limit")),
     )
@@ -326,6 +333,8 @@ def _apply_filters(query, filters: CalculateAnalyticsQuery):
         query = query.filter(
             model.resolved_channel == filters.resolved_channel
         )
+    if filters.client_id:
+        query = query.filter(model.client_id == filters.client_id)
     return query
 
 
@@ -336,6 +345,7 @@ def _request_to_dict(
     return {
         "request_uuid": calculate_request.request_uuid,
         "created_at": _datetime_to_json(calculate_request.created_at),
+        "client_id": calculate_request.client_id,
         "api_version": calculate_request.api_version,
         "country_id": calculate_request.country_id,
         "model_version": calculate_request.model_version,

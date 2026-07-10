@@ -104,9 +104,10 @@ def _add_calculate_analytics_request(
     variable_rows: list[dict],
     requested_version: str | None = "current",
     resolved_channel: str | None = "current",
+    client_id: str | None = "test-client",
 ) -> CalculateRequest:
     visit = Visit()
-    visit.client_id = "test-client"
+    visit.client_id = client_id
     visit.datetime = created_at
     visit.api_version = "0.17.0"
     visit.endpoint = "calculate"
@@ -118,7 +119,7 @@ def _add_calculate_analytics_request(
     calculate_request = CalculateRequest()
     calculate_request.visit_id = visit.id
     calculate_request.request_uuid = request_uuid
-    calculate_request.client_id = "test-client"
+    calculate_request.client_id = client_id
     calculate_request.api_version = "0.17.0"
     calculate_request.country_id = "us"
     calculate_request.model_version = "1.691.1"
@@ -141,7 +142,7 @@ def _add_calculate_analytics_request(
     for variable_row in variable_rows:
         variable = CalculateRequestVariable()
         variable.request_id = calculate_request.id
-        variable.client_id = "test-client"
+        variable.client_id = client_id
         variable.created_at = created_at
         variable.country_id = "us"
         variable.api_version = "0.17.0"

@@ -708,7 +708,7 @@ paths:
     get:
       summary: Get calculate request variable analytics
       operationId: get_calculate_analytics_requests
-      description: Returns value-free analytics records for inbound calculate requests. Requires a bearer token with the read:calculate-analytics scope. Each record includes request metadata and grouped variable keys, but not household values, household entity IDs, request bodies, response bodies, or client IDs.
+      description: Returns value-free analytics records for inbound calculate requests. Requires a bearer token with the read:calculate-analytics scope. Each record includes request metadata, grouped variable keys, and the opaque caller client_id, but not household values, household entity IDs, request bodies, or response bodies.
       security:
         - bearerAuth: []
       parameters:
@@ -738,6 +738,12 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/CalculateAnalyticsResolvedChannel"
+        - name: client_id
+          in: query
+          description: Optional filter for the opaque caller identifier stored on each record. Matches exactly; the value may be an Auth0 machine-to-machine client_id or an interactive-user subject. Unknown values return an empty result.
+          required: false
+          schema:
+            type: string
         - name: unique
           in: query
           description: When true, return one row per unique variable key instead of one row per calculate request.
@@ -771,10 +777,12 @@ paths:
                     end_time: "2026-05-13T00:00:00Z"
                     requested_version: null
                     resolved_channel: null
+                    client_id: null
                     unique: false
                     requests:
                       - request_uuid: "018f79e7-6ee3-7621-9eda-6d29cf0cf910"
                         created_at: "2026-05-10T12:00:00Z"
+                        client_id: "M5laaMnHNbCeZ9azRLdPDFOGLbysRIKR"
                         api_version: "0.17.0"
                         country_id: us
                         model_version: "1.691.1"
@@ -805,6 +813,7 @@ paths:
                     end_time: null
                     requested_version: null
                     resolved_channel: null
+                    client_id: null
                     unique: true
                     unique_keys:
                       - variable_name: age
@@ -1354,6 +1363,9 @@ components:
         - message
         - start_time
         - end_time
+        - requested_version
+        - resolved_channel
+        - client_id
         - unique
       properties:
         status:
@@ -1380,6 +1392,9 @@ components:
           enum:
             - current
             - frontier
+        client_id:
+          type: string
+          nullable: true
         unique:
           type: boolean
         requests:
@@ -1399,6 +1414,9 @@ components:
         created_at:
           type: string
           format: date-time
+        client_id:
+          type: string
+          nullable: true
         api_version:
           type: string
           nullable: true
