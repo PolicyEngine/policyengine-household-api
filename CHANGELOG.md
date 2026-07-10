@@ -1,3 +1,11 @@
+## [0.29.1] - 2026-07-10
+
+### Changed
+
+- Observability log-sink configuration now matches the dedicated `policyengine-observability` Google project that deploys already use via repository variables: `OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME` flows through Cloud Run deploys and Modal secret sync as an optional pass-through (omitted when unset so the package default governs), and the workflow and deploy-script fallbacks for the observability project, workload-identity provider, and writer service account point at the dedicated project instead of the retired `policyengine-api` identity.
+- Modal workers now pre-build parameter at-instant projections (monthly instants, current year -3 to +2) at memory-snapshot creation, so restored containers inherit the populated caches. Restored containers previously paid a lazy full-parameter-tree build for every new instant their first heavy calculate touched — 60-105s on staging, exceeding the failover gateway's 90s budget and flaking the Cloud Run staging test lanes.
+
+
 ## [0.29.0] - 2026-07-10
 
 ### Added
