@@ -1,3 +1,10 @@
+## [0.29.2] - 2026-07-10
+
+### Fixed
+
+- The Cloud Run fallback worker image build now calls `preload_country_packages` (renamed from `snapshot_tax_benefit_systems` in #1623 — the Dockerfile's string-based `python -c` reference was missed, failing the failover staging deploy). A unit test now pins every Dockerfile import of deployment helpers to a real attribute so future renames fail in `make test` instead of mid-deploy.
+
+
 ## [0.29.1] - 2026-07-10
 
 ### Changed
