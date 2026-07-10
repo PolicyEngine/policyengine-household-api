@@ -2,16 +2,18 @@
 # Warm the Modal worker behind the Cloud Run gateway before the gateway's
 # Modal-primary integration tests.
 #
-# The Modal workers scale to zero shortly after a deploy, so the first
-# /us/calculate routed through the gateway pays a cold start (container boot +
-# country model load) that can exceed the gateway's Modal request timeout and
-# return 503. This sends a real authenticated calculate through the gateway for
-# the channel under test and waits until it returns 200, so the test step then
-# exercises a warm worker over the same path it asserts on.
+# The Modal workers scale to zero shortly after a deploy, and the first boot
+# per runner profile CREATES the memory snapshot rather than restoring one:
+# it runs the full snap=True hook (country-system builds plus the parameter
+# at-instant prewarm, issue #1624), which takes minutes on Modal CPU -- far
+# past the gateway's 90s Modal request timeout. This sends a real
+# authenticated calculate through the gateway for the channel under test and
+# retries until it returns 200, so the test step starts only once a
+# snapshot-backed worker is actually serving on the same path it asserts on.
 #
-# It must be a full authenticated calculate (not a liveness ping): the cold cost
-# is loading the country model on the first real calculation, so a cheap request
-# would warm the container but not the calculation path the tests exercise.
+# The payload can stay cheap: snapshot-restored containers already hold the
+# prewarmed parameter caches, so any 200 through the gateway proves readiness
+# for the heavy test households too.
 #
 # Best-effort: this never exits non-zero. A worker that cannot be warmed only
 # emits a warning; the deployed test step remains the gate.
@@ -22,7 +24,10 @@ curl_bin="${CURL_BIN:-curl}"
 
 base_url="${HOUSEHOLD_API_BASE_URL:-}"
 auth_token="${HOUSEHOLD_API_AUTH_TOKEN:-}"
-total_timeout="${HOUSEHOLD_GATEWAY_WARM_TIMEOUT_SECONDS:-300}"
+# 600s: snapshot creation now includes the parameter prewarm (~1-2 min on
+# Modal CPU) on top of the country-system builds, so 300s could expire while
+# the first post-deploy boot is still snapshotting (issue #1624).
+total_timeout="${HOUSEHOLD_GATEWAY_WARM_TIMEOUT_SECONDS:-600}"
 attempt_timeout="${HOUSEHOLD_GATEWAY_WARM_ATTEMPT_TIMEOUT_SECONDS:-120}"
 
 if [ -z "${base_url}" ] || [ -z "${auth_token}" ]; then
