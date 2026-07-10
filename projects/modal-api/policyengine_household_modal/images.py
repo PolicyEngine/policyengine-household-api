@@ -33,7 +33,7 @@ def household_api_worker_image() -> modal.Image:
     # containers, whose images deliberately do not ship the core package.
     from policyengine_household_api.deployment import (
         country_package_install_specs,
-        snapshot_tax_benefit_systems,
+        preload_country_packages,
     )
 
     image = modal.Image.debian_slim(python_version="3.13").uv_pip_install(
@@ -45,7 +45,7 @@ def household_api_worker_image() -> modal.Image:
     return (
         image.add_local_python_source(*FIRST_PARTY_PACKAGES, copy=True)
         .add_local_dir("config", remote_path="/app/config", copy=True)
-        .run_function(snapshot_tax_benefit_systems)
+        .run_function(preload_country_packages)
     )
 
 

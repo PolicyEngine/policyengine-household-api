@@ -120,8 +120,16 @@ def prewarm_parameter_caches(
         )
 
 
-def snapshot_tax_benefit_systems() -> None:
-    """Preload country tax-benefit systems into the worker image snapshot."""
+def preload_country_packages() -> None:
+    """Import and build the country packages during the image build.
+
+    Runs via ``Image.run_function``, which snapshots the resulting
+    FILESYSTEM as an image layer -- only disk side effects persist
+    (compiled bytecode, data files downloaded at import/build). The
+    in-memory system instances built here are discarded; memory-state
+    warming belongs in the worker's ``@modal.enter(snap=True)`` hook
+    (see ``prewarm_parameter_caches``).
+    """
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)

@@ -54,3 +54,23 @@ def test_prewarm_parameter_caches_defaults_to_full_window():
     prewarm_parameter_caches(tax_benefit_systems={"us": system})
 
     assert len(system.instants) == len(parameter_prewarm_instants())
+
+
+def test_prewarm_populates_the_cache_the_request_path_reads():
+    """Formulas resolve parameters through the root ParameterNode's
+    string-keyed at-instant cache; prewarm must land its entries in
+    exactly that cache or restored containers still pay the lazy
+    full-tree build (issue #1624). Pinned against the real US system
+    with an instant outside the prewarm window so other tests cannot
+    have populated it."""
+    from policyengine_household_api.country import COUNTRIES
+
+    system = COUNTRIES["us"].tax_benefit_system
+    instant = "2029-06-01"
+    assert instant not in system.parameters._at_instant_cache
+
+    prewarm_parameter_caches(
+        tax_benefit_systems={"us": system}, instants=[instant]
+    )
+
+    assert instant in system.parameters._at_instant_cache

@@ -58,7 +58,7 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
     ) in calls
 
 
-def test_snapshot_tax_benefit_systems_preloads_all_country_packages(
+def test_preload_country_packages_imports_and_builds_all_countries(
     monkeypatch,
 ):
     loaded_packages = []
@@ -77,7 +77,7 @@ def test_snapshot_tax_benefit_systems_preloads_all_country_packages(
 
     monkeypatch.setattr(_image_setup.importlib, "import_module", import_module)
 
-    _image_setup.snapshot_tax_benefit_systems()
+    _image_setup.preload_country_packages()
 
     assert loaded_packages == [
         "policyengine_uk",
