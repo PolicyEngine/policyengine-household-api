@@ -159,6 +159,17 @@ class HouseholdWorker:
 
         self.flask_app = flask_app
 
+        # Bake the parameter at-instant projections into the memory
+        # snapshot: they build lazily per instant, so an unwarmed
+        # container pays a full-parameter-tree build for every new
+        # instant its first heavy request touches -- 60-105s on staging,
+        # past the gateway's 90s budget (issue #1624).
+        from policyengine_household_api.deployment import (
+            prewarm_parameter_caches,
+        )
+
+        prewarm_parameter_caches()
+
     @modal.enter(snap=False)
     def reset_post_snapshot_state(self) -> None:
         reset_post_snapshot_process_state(self.flask_app)
