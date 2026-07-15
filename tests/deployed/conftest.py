@@ -131,7 +131,9 @@ def auth_token() -> str:
     return _get_required_env_var(AUTH_TOKEN_ENV_VAR)
 
 
-def _resolve_active_versions(base_url: str) -> dict[str, str]:
+def _resolve_active_versions(
+    base_url: str, country_id: str = "us"
+) -> dict[str, str]:
     """Ask the deployed gateway which model versions each channel serves.
 
     The gateway is often freshly deployed (cold) when the suite starts, and
@@ -144,7 +146,7 @@ def _resolve_active_versions(base_url: str) -> dict[str, str]:
             time.sleep(VERSION_RESOLUTION_BACKOFF_SECONDS)
         try:
             with request.urlopen(
-                f"{base_url}/versions/us",
+                f"{base_url}/versions/{country_id}",
                 timeout=VERSION_RESOLUTION_TIMEOUT_SECONDS,
             ) as response:
                 return json.loads(response.read().decode("utf-8"))
@@ -154,7 +156,7 @@ def _resolve_active_versions(base_url: str) -> dict[str, str]:
             last_error = repr(exc)
     raise RuntimeError(
         "Could not load active Modal channels from "
-        f"{base_url}/versions/us: {last_error}"
+        f"{base_url}/versions/{country_id}: {last_error}"
     )
 
 
@@ -167,6 +169,31 @@ def request_version(
     override = os.getenv(REQUEST_VERSION_ENV_VAR, "").strip()
     if override:
         return override
+    return _request_version_for_country(
+        base_url, expected_channel, route_mode, "us"
+    )
+
+
+@pytest.fixture(scope="session")
+def uk_request_version(
+    base_url: str,
+    expected_channel: str | None,
+    route_mode: str | None,
+) -> str | None:
+    # The REQUEST_VERSION_ENV_VAR override is an exact US package version,
+    # so it cannot apply to UK requests; UK tests resolve their own exact
+    # version from the gateway instead.
+    return _request_version_for_country(
+        base_url, expected_channel, route_mode, "uk"
+    )
+
+
+def _request_version_for_country(
+    base_url: str,
+    expected_channel: str | None,
+    route_mode: str | None,
+    country_id: str,
+) -> str | None:
     if not route_mode:
         return None
     if not expected_channel:
@@ -176,12 +203,13 @@ def request_version(
         )
 
     try:
-        versions = _resolve_active_versions(base_url)
+        versions = _resolve_active_versions(base_url, country_id)
     except RuntimeError as exc:
         pytest.fail(str(exc))
     if not versions.get(expected_channel):
         pytest.fail(
-            f"Deployed gateway does not expose `{expected_channel}` for US"
+            f"Deployed gateway does not expose `{expected_channel}` for "
+            f"{country_id.upper()}"
         )
 
     if route_mode == "channel":

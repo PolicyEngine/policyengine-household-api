@@ -1,4 +1,5 @@
 import importlib
+import inspect
 from flask import Response
 import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
@@ -469,6 +470,19 @@ class PolicyEngineCountry:
         self.tax_benefit_system: TaxBenefitSystem = (
             self.country_package.CountryTaxBenefitSystem()
         )
+        # policyengine-uk >= 2.43 replaced its core Simulation subclass
+        # with a wrapper that builds its own tax-benefit system and no
+        # longer accepts one from outside (its signature is scenario /
+        # situation / dataset / trace / reform). Detect which shape this
+        # package exposes so calculate() can construct the simulation the
+        # right way; checking the signature rather than the country id
+        # keeps this working when other packages make the same move.
+        self._simulation_accepts_system = (
+            "tax_benefit_system"
+            in inspect.signature(
+                self.country_package.Simulation.__init__
+            ).parameters
+        )
         self.policyengine_bundle = self.build_policyengine_bundle()
         self.build_metadata()
 
@@ -732,32 +746,73 @@ class PolicyEngineCountry:
             data[entity.key] = entity_data
         return data
 
+    @staticmethod
+    def _cast_reform_value(parameter, value):
+        """Cast a reform value to the parameter's node type.
+
+        JSON payloads may carry numbers as strings and integers where the
+        parameter is a float; both casts predate the wrapper-simulation
+        path and stay identical across it.
+        """
+        node_type = type(parameter.values_list[-1].value)
+        if node_type is int:
+            node_type = float
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            pass
+        return node_type(value)
+
+    def _reform_dict_for_wrapper(
+        self, reform: Union[dict, None]
+    ) -> Union[dict, None]:
+        """Prepare a policy dict for a wrapper-style Simulation's `reform`.
+
+        The wrapper applies dict values raw (Scenario.from_reform does no
+        casting), so cast each value here the same way the injected-system
+        path does. Parameter paths are resolved against the shared system
+        purely to learn the node type; nothing is mutated.
+        """
+        if reform is None or len(reform) == 0:
+            return None
+
+        normalized: dict = {}
+        for parameter_name, changes in reform.items():
+            parameter = get_parameter(
+                self.tax_benefit_system.parameters, parameter_name
+            )
+            normalized[parameter_name] = {
+                time_period: self._cast_reform_value(parameter, value)
+                for time_period, value in changes.items()
+            }
+        return normalized
+
     def calculate(
         self,
         household: dict,
         reform: Union[dict, None] = None,
     ):
-        if reform is not None and len(reform.keys()) > 0:
-            system = self.tax_benefit_system.clone()
-            for parameter_name in reform:
-                for time_period, value in reform[parameter_name].items():
-                    start_instant, end_instant = time_period.split(".")
-                    parameter = get_parameter(
-                        system.parameters, parameter_name
-                    )
-                    node_type = type(parameter.values_list[-1].value)
-                    if node_type is int:
-                        node_type = float
-                    try:
-                        value = float(value)
-                    except (TypeError, ValueError):
-                        pass
-                    parameter.update(
-                        start=instant(start_instant),
-                        stop=instant(end_instant),
-                        value=node_type(value),
-                    )
+        if self._simulation_accepts_system:
+            if reform is not None and len(reform.keys()) > 0:
+                system = self.tax_benefit_system.clone()
+                for parameter_name in reform:
+                    for time_period, value in reform[parameter_name].items():
+                        start_instant, end_instant = time_period.split(".")
+                        parameter = get_parameter(
+                            system.parameters, parameter_name
+                        )
+                        parameter.update(
+                            start=instant(start_instant),
+                            stop=instant(end_instant),
+                            value=self._cast_reform_value(parameter, value),
+                        )
+            else:
+                system = self.tax_benefit_system
         else:
+            # The wrapper-style Simulation applies parametric reforms
+            # itself (via Scenario.from_reform), so the shared system
+            # instance is only used for variable metadata below and must
+            # stay unmodified.
             system = self.tax_benefit_system
 
         # Hand a normalized copy to the engine so YEAR-keyed inputs on
@@ -767,10 +822,16 @@ class PolicyEngineCountry:
         # can echo back the partner's keys.
         normalized_household = _normalize_period_keys(household, system)
 
-        simulation = self.country_package.Simulation(
-            tax_benefit_system=system,
-            situation=normalized_household,
-        )
+        if self._simulation_accepts_system:
+            simulation = self.country_package.Simulation(
+                tax_benefit_system=system,
+                situation=normalized_household,
+            )
+        else:
+            simulation = self.country_package.Simulation(
+                situation=normalized_household,
+                reform=self._reform_dict_for_wrapper(reform),
+            )
 
         # Independent clone for the response-building loop below, which
         # mutates `household` to fill in computed values. Not related to
@@ -812,7 +873,13 @@ class PolicyEngineCountry:
                 else:
                     entity_index = population.get_index(entity_id)
                     if variable.value_type == Enum:
-                        entity_result = result.decode()[entity_index].name
+                        # Wrapper-style Simulations decode enum results to
+                        # plain string arrays before returning; core-style
+                        # ones return an EnumArray.
+                        if hasattr(result, "decode"):
+                            entity_result = result.decode()[entity_index].name
+                        else:
+                            entity_result = str(result[entity_index])
                     elif variable.value_type is float:
                         entity_result = float(str(result[entity_index]))
                         # Convert infinities to JSON infinities
