@@ -31,6 +31,25 @@ uk_household_requesting_universal_credit = {
     },
 }
 
+# Minimal case whose expected value is derivable by hand: a single
+# unemployed adult aged 25+ with no housing costs receives only the
+# Universal Credit standard allowance — no elements, no taper.
+uk_household_single_adult_no_income = {
+    "people": {
+        "adult": {
+            "age": {"2026": 30},
+            "employment_income": {"2026": 0},
+        }
+    },
+    "benunits": {
+        "benunit": {
+            "members": ["adult"],
+            "universal_credit": {"2026": None},
+        }
+    },
+    "households": {"household": {"members": ["adult"]}},
+}
+
 uk_household_requesting_enum_outputs = {
     "people": {"parent": {"age": {"2026": 30}}},
     "benunits": {"benunit": {"members": ["parent"]}},
