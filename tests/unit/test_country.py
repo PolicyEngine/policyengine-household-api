@@ -159,6 +159,24 @@ class TestCalculateUK:
         assert baseline_ma == 0
         assert reformed_ma > 0
 
+    def test_uk_package_exposes_scenario_interface(self, uk_country):
+        # _build_simulation_uk resolves Scenario per request; if a future
+        # policyengine-uk moves or renames it (or drops from_reform /
+        # applied_before_data_load), UK reform requests would 500 at
+        # runtime with a raw AttributeError — and the deployed smoke
+        # tests send no policy, so deploy gates wouldn't notice. Pin the
+        # interface here so a version bump fails in CI instead.
+        scenario_cls = uk_country.country_package.Scenario
+        scenario = scenario_cls.from_reform(
+            {
+                "gov.hmrc.income_tax.allowances.personal_allowance.amount": {
+                    "2026-01-01.2026-12-31": 15_000.0,
+                }
+            }
+        )
+        scenario.applied_before_data_load = True
+        assert scenario.applied_before_data_load is True
+
     def test_calculate_supports_axes(self, uk_country):
         result = uk_country.calculate(
             household=uk_household_with_axes,
@@ -213,11 +231,24 @@ class TestCastReformValue:
             is expected
         )
 
-    def test_unrecognized_boolean_string_raises(self):
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "garbage",
+            # Deliberately rejected: the pre-rewrite casting accepted
+            # these by accident ("2" and "1.0" via float-then-bool, None
+            # coercing to False); they are ambiguous as booleans and now
+            # raise instead of silently coercing.
+            "2",
+            "1.0",
+            None,
+        ],
+    )
+    def test_unrecognized_boolean_values_raise(self, value):
         parameter = self._parameter({"2020-01-01": False})
 
         with pytest.raises(ValueError, match="as a boolean"):
-            PolicyEngineCountry._cast_reform_value(parameter, "garbage")
+            PolicyEngineCountry._cast_reform_value(parameter, value)
 
     def test_type_comes_from_most_recent_non_null_value(self):
         # values_list is ordered newest-first; a null placeholder at

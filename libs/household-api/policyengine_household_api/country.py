@@ -461,6 +461,52 @@ def _broadcast_year_value(period_map: dict, year: str, value) -> None:
             period_map[month_key] = value
 
 
+def validate_policy_periods(policy_json: Union[dict, None]) -> None:
+    """Reject policy period keys that aren't ``start.stop`` instant pairs.
+
+    Every period key in a policy dict must be two dot-separated instants
+    (``"2026-01-01.2026-12-31"``), the grammar the core simulation path
+    has always enforced. Without this check, looser grammars reach the
+    engine and either crash mid-calculation or — on the UK path, whose
+    Scenario mechanism accepts bare instants — silently apply the change
+    to a single day, returning near-baseline numbers with a 200.
+
+    This lives here, next to the code that consumes the grammar, and runs
+    on every ``calculate()`` regardless of caller; the calculate endpoint
+    also calls it up front for a cleaner error message. Raises
+    ``ValueError`` with a user-safe message on failure.
+    """
+    if policy_json is None:
+        return
+    if not isinstance(policy_json, dict):
+        raise ValueError("'policy' must be a JSON object")
+
+    for parameter_name, changes in policy_json.items():
+        if not isinstance(changes, dict):
+            raise ValueError(
+                f"'policy.{parameter_name}' must be a JSON object keyed "
+                'by "start.stop" period strings'
+            )
+        for time_period in changes:
+            parts = str(time_period).split(".")
+            if len(parts) != 2 or not all(
+                _is_valid_instant(part) for part in parts
+            ):
+                raise ValueError(
+                    f"Invalid policy period key `{time_period}` for "
+                    f"`{parameter_name}`. Expected two dot-separated "
+                    'instants, e.g. "2026-01-01.2026-12-31".'
+                )
+
+
+def _is_valid_instant(candidate: str) -> bool:
+    try:
+        instant(candidate)
+    except ValueError:
+        return False
+    return True
+
+
 def _cast_bool(value) -> bool:
     """Interpret a JSON-borne reform value as a boolean.
 
@@ -803,17 +849,23 @@ class PolicyEngineCountry:
     def _cast_reform_values(
         self, reform: Union[dict, None]
     ) -> Union[dict, None]:
-        """Resolve and cast every value in a policy dict.
+        """Validate a policy dict's period keys and cast every value.
 
-        Both simulation paths consume the result: the injected-system
-        path applies it to a cloned system, and the wrapper path hands
-        it to the Simulation's `reform` argument (Scenario.from_reform
-        does no casting of its own). Parameter paths are resolved against
-        the shared system purely to learn each node type; nothing is
-        mutated.
+        Both simulation builders consume the result: the standard builder
+        applies it to a cloned system, and the UK builder routes it
+        through a Scenario (which does no casting of its own). Parameter
+        paths are resolved against the shared system purely to learn each
+        node type; nothing is mutated.
+
+        Raises ``ValueError`` for malformed period keys or uncastable
+        values; through the calculate endpoint that surfaces as a 500,
+        the status this API has always used for bad policy input
+        (issue #1628 tracks moving it to 400).
         """
         if not reform:
             return None
+
+        validate_policy_periods(reform)
 
         cast: dict = {}
         for parameter_name, changes in reform.items():
