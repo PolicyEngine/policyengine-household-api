@@ -1,10 +1,13 @@
 import pytest
 
+from policyengine_core.parameters import Parameter
+
 from tests.fixtures.country import (
     valid_household_requesting_ctc_calculation,
     country_package_name_us,
     country_id_us,
     us_household_requesting_income_tax,
+    us_household_with_axes,
     us_standard_deduction_reform,
 )
 from tests.data.uk_households import (
@@ -59,6 +62,21 @@ class TestCalculateReturnValue:
         reformed_tax = reformed["tax_units"]["tax_unit"]["income_tax"]["2024"]
         # Raising the standard deduction must reduce income tax.
         assert reformed_tax < baseline_tax
+
+    def test_calculate_supports_axes(self):
+        # Pins the standard axes reshaping path shared by US/CA/NG/IL.
+        country = COUNTRIES["us"]
+
+        result = country.calculate(
+            household=us_household_with_axes,
+            reform=None,
+        )
+
+        income_tax = result["tax_units"]["tax_unit"]["income_tax"]["2024"]
+        assert isinstance(income_tax, list)
+        assert len(income_tax) == 3
+        # Income tax rises with swept employment income.
+        assert income_tax[-1] > income_tax[0]
 
 
 @pytest.fixture(scope="module")
@@ -154,6 +172,59 @@ class TestCalculateUK:
         assert len(universal_credit) == 3
         # Universal Credit tapers away as swept employment income rises.
         assert universal_credit[0] > universal_credit[-1]
+
+        # Enum outputs under axes come back as decoded names on the UK
+        # path (the standard path returns numeric enum indices).
+        country = result["households"]["household"]["country"]["2026"]
+        assert country == ["ENGLAND", "ENGLAND", "ENGLAND"]
+
+
+class TestCastReformValue:
+    @staticmethod
+    def _parameter(values: dict) -> Parameter:
+        return Parameter("test.parameter", data={"values": values})
+
+    def test_numeric_strings_cast_to_float(self):
+        parameter = self._parameter({"2020-01-01": 100})
+
+        cast = PolicyEngineCountry._cast_reform_value(parameter, "30000")
+
+        assert cast == 30_000.0
+        assert isinstance(cast, float)
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            (True, True),
+            (False, False),
+            ("true", True),
+            ("false", False),
+            ("1", True),
+            ("0", False),
+            (1, True),
+            (0, False),
+        ],
+    )
+    def test_boolean_values_cast_explicitly(self, value, expected):
+        parameter = self._parameter({"2020-01-01": False})
+
+        assert (
+            PolicyEngineCountry._cast_reform_value(parameter, value)
+            is expected
+        )
+
+    def test_unrecognized_boolean_string_raises(self):
+        parameter = self._parameter({"2020-01-01": False})
+
+        with pytest.raises(ValueError, match="as a boolean"):
+            PolicyEngineCountry._cast_reform_value(parameter, "garbage")
+
+    def test_type_comes_from_most_recent_non_null_value(self):
+        # values_list is ordered newest-first; a null placeholder at
+        # either end carries no type information and must be skipped.
+        parameter = self._parameter({"2015-01-01": None, "2020-01-01": 0.25})
+
+        assert PolicyEngineCountry._cast_reform_value(parameter, "0.3") == 0.3
 
 
 class TestPolicyEngineBundle:

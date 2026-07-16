@@ -126,7 +126,11 @@ uk_household_with_axes = {
             "universal_credit": {"2026": None},
         }
     },
-    "households": {"household": {"members": ["parent"]}},
+    # `country` pins enum outputs under axes: the wrapper Simulation
+    # returns them as decoded string arrays.
+    "households": {
+        "household": {"members": ["parent"], "country": {"2026": None}}
+    },
     "axes": [
         [
             {

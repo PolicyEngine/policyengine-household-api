@@ -461,6 +461,28 @@ def _broadcast_year_value(period_map: dict, year: str, value) -> None:
             period_map[month_key] = value
 
 
+def _cast_bool(value) -> bool:
+    """Interpret a JSON-borne reform value as a boolean.
+
+    ``bool("false")`` is True in Python, so string forms need an explicit
+    mapping rather than a bare cast.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in ("true", "1"):
+            return True
+        if lowered in ("false", "0"):
+            return False
+    raise ValueError(
+        f"Cannot interpret {value!r} as a boolean parameter value; "
+        'use true/false (or "true"/"false").'
+    )
+
+
 class PolicyEngineCountry:
     def __init__(self, country_package_name: str, country_id: str):
         self.country_package_name = country_package_name
@@ -471,15 +493,18 @@ class PolicyEngineCountry:
         )
         # policyengine-uk >= 2.43 replaced its core Simulation subclass
         # with a wrapper that builds its own tax-benefit system, takes
-        # reforms as a constructor argument, and no longer accepts a
-        # system from outside. Route by country id here, once, so every
-        # UK-specific accommodation lives in the UK builder and all other
-        # countries share the standard core path.
-        self._build_simulation = (
-            self._build_simulation_uk
-            if country_id == "uk"
-            else self._build_simulation_standard
-        )
+        # reforms as a constructor argument, and decodes enum results to
+        # plain string arrays. Route by country id here, once, so every
+        # UK-specific accommodation lives in a UK strategy function and
+        # all other countries share the standard core path.
+        if country_id == "uk":
+            self._build_simulation = self._build_simulation_uk
+            self._axes_result_values = self._axes_result_values_uk
+            self._enum_result_name = self._enum_result_name_uk
+        else:
+            self._build_simulation = self._build_simulation_standard
+            self._axes_result_values = self._axes_result_values_standard
+            self._enum_result_name = self._enum_result_name_standard
         self.policyengine_bundle = self.build_policyengine_bundle()
         self.build_metadata()
 
@@ -745,18 +770,34 @@ class PolicyEngineCountry:
 
     @staticmethod
     def _cast_reform_value(parameter, value):
-        """Cast a reform value to the parameter's node type.
+        """Cast a reform value to the parameter's value type.
 
-        JSON payloads may carry numbers as strings and integers where the
-        parameter is a float.
+        JSON payloads carry numbers as strings and integers where the
+        parameter is a float; core's parameter interpolation needs the
+        stored type to be consistent, so coerce explicitly per type. The
+        reference type comes from the parameter's most recent non-null
+        value (``values_list`` is ordered newest-first; null placeholders
+        carry no type information).
+
+        Raises ``ValueError`` when the value cannot be interpreted as the
+        parameter's type.
         """
-        node_type = type(parameter.values_list[-1].value)
-        if node_type is int:
-            node_type = float
-        try:
-            value = float(value)
-        except (TypeError, ValueError):
-            pass
+        node_type = next(
+            (
+                type(known.value)
+                for known in parameter.values_list
+                if known.value is not None
+            ),
+            float,
+        )
+        if node_type is bool:
+            return _cast_bool(value)
+        if node_type in (int, float):
+            # Ints are stored as floats: reform values may be fractional
+            # and interpolation expects one numeric type.
+            return float(value)
+        # Core restricts parameter values to float/int/bool/None/list;
+        # lists (and any future type) coerce through their constructor.
         return node_type(value)
 
     def _cast_reform_values(
@@ -844,6 +885,52 @@ class PolicyEngineCountry:
         # loop; the wrapper's internal system is the one calculated on.
         return self.tax_benefit_system, simulation
 
+    def _axes_result_values_standard(
+        self, result, count_entities: int, entity_index: int, variable
+    ) -> list:
+        """Reshape an axes-scan result into this entity's value list.
+
+        Core-style results cast cleanly to float — including EnumArray,
+        which yields the enum's numeric indices (documented behavior the
+        US API has always exposed).
+        """
+        values = (
+            result.astype(float)
+            .reshape((-1, count_entities))
+            .T[entity_index]
+            .tolist()
+        )
+        if any(math.isinf(value) for value in values):
+            raise ValueError("Infinite value")
+        return values
+
+    def _axes_result_values_uk(
+        self, result, count_entities: int, entity_index: int, variable
+    ) -> list:
+        """UK axes results: enums arrive as decoded string arrays.
+
+        The wrapper Simulation decodes enum results before returning, so
+        the standard float cast would raise and the axes error handler
+        would silently null the slot; return the names instead.
+        """
+        if variable.value_type == Enum:
+            return (
+                result.reshape((-1, count_entities)).T[entity_index].tolist()
+            )
+        return self._axes_result_values_standard(
+            result, count_entities, entity_index, variable
+        )
+
+    @staticmethod
+    def _enum_result_name_standard(result, entity_index: int) -> str:
+        return result.decode()[entity_index].name
+
+    @staticmethod
+    def _enum_result_name_uk(result, entity_index: int) -> str:
+        # The wrapper's calculate() has already decoded enum results to
+        # plain string arrays.
+        return str(result[entity_index])
+
     def calculate(
         self,
         household: dict,
@@ -890,29 +977,17 @@ class PolicyEngineCountry:
                         if _entity_id == entity_id:
                             break
                         entity_index += 1
-                    result = (
-                        result.astype(float)
-                        .reshape((-1, count_entities))
-                        .T[entity_index]
-                        .tolist()
+                    household[entity_plural][entity_id][variable_name][
+                        period
+                    ] = self._axes_result_values(
+                        result, count_entities, entity_index, variable
                     )
-                    # If the result contains infinities, throw an error
-                    if any([math.isinf(value) for value in result]):
-                        raise ValueError("Infinite value")
-                    else:
-                        household[entity_plural][entity_id][variable_name][
-                            period
-                        ] = result
                 else:
                     entity_index = population.get_index(entity_id)
                     if variable.value_type == Enum:
-                        # Wrapper-style Simulations decode enum results to
-                        # plain string arrays before returning; core-style
-                        # ones return an EnumArray.
-                        if hasattr(result, "decode"):
-                            entity_result = result.decode()[entity_index].name
-                        else:
-                            entity_result = str(result[entity_index])
+                        entity_result = self._enum_result_name(
+                            result, entity_index
+                        )
                     elif variable.value_type is float:
                         entity_result = float(str(result[entity_index]))
                         # Convert infinities to JSON infinities

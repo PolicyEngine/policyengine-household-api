@@ -33,3 +33,24 @@ us_standard_deduction_reform = {
         "2024-01-01.2024-12-31": "30000",
     }
 }
+
+us_household_with_axes = {
+    "people": {"you": {"age": {"2024": 40}}},
+    "tax_units": {
+        "tax_unit": {"members": ["you"], "income_tax": {"2024": None}}
+    },
+    "families": {"family": {"members": ["you"]}},
+    "households": {"household": {"members": ["you"]}},
+    "spm_units": {"spm_unit": {"members": ["you"]}},
+    "axes": [
+        [
+            {
+                "name": "employment_income",
+                "count": 3,
+                "min": 0,
+                "max": 100_000,
+                "period": "2024",
+            }
+        ]
+    ],
+}
