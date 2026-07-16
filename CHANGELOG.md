@@ -1,3 +1,36 @@
+## [0.29.4] - 2026-07-16
+
+### Changed
+
+- `/calculate` now validates policy period keys explicitly: every key must
+  be two dot-separated instants (`"2026-01-01.2026-12-31"`). Malformed keys
+  return a descriptive 500 — the status the endpoint has always produced
+  for bad policy input — instead of crashing mid-calculation (core path) or
+  silently applying the change to a single day (UK wrapper path). The check
+  runs after household validation, preserving the endpoint's historical
+  error precedence. Issue #1628 tracks moving this to a 400.
+
+### Fixed
+
+- Reform values in `/calculate` policy dicts are now cast explicitly to the
+  parameter's type. Boolean parameters: string `"false"` previously applied
+  as `True` (a Python truthiness accident) and now applies as `False`;
+  accepted forms are true/false, `"true"`/`"false"`, `"1"`/`"0"`, and the
+  numbers 0/1, while ambiguous strings (e.g. `"2"`, `"1.0"`), numbers other
+  than 0/1, and `null` — which previously coerced silently — now return a
+  descriptive error. The
+  parameter's type is now read from its most recent non-null value instead
+  of its oldest, so parameters introduced with null placeholders no longer
+  crash valid reforms.
+- UK `/calculate` requests no longer fail with a 500. policyengine-uk 2.43+
+  replaced its core `Simulation` subclass with a wrapper that builds its own
+  tax-benefit system and takes reforms through a `Scenario`;
+  `PolicyEngineCountry` now routes UK calculations through a dedicated
+  wrapper-style builder (applying reforms before construction so
+  structural-trigger parameters take effect) while other countries keep the
+  core path, and decodes the wrapper's string-array enum results.
+
+
 ## [0.29.3] - 2026-07-14
 
 ### Changed
