@@ -11,7 +11,9 @@ from tests.data.uk_households import (
     uk_household_requesting_universal_credit,
     uk_household_requesting_enum_outputs,
     uk_household_requesting_income_tax,
+    uk_household_married_requesting_marriage_allowance,
     uk_household_with_axes,
+    uk_marriage_allowance_structural_reform,
     uk_personal_allowance_reform,
 )
 from importlib.metadata import PackageNotFoundError
@@ -37,12 +39,11 @@ class TestCalculateReturnValue:
         assert "people" in result
 
     def test_calculate_applies_parametric_reform(self):
-        # policyengine-us's Simulation.__init__ is (*args, **kwargs), so
-        # the core/wrapper detection must classify it as core-style; a
-        # misclassification sends the policy dict to core's `reform`
-        # argument (which expects a Reform class) and breaks every US
-        # reform request. The value is a string on purpose: the API casts
-        # reform values to the parameter's node type.
+        # Pins the standard (core-style) builder's reform path: a routing
+        # mistake that sends the policy dict to the Simulation constructor
+        # (which expects a Reform class there) breaks every US reform
+        # request. The value is a string on purpose: the API casts reform
+        # values to the parameter's node type.
         country = COUNTRIES["us"]
 
         baseline = country.calculate(
@@ -114,6 +115,31 @@ class TestCalculateUK:
         # income must reduce their income tax to zero.
         assert baseline_tax > 0
         assert reformed_tax == 0
+
+    def test_calculate_applies_structural_trigger_reform(self, uk_country):
+        # The wrapper creates structural reforms from parameter values
+        # during construction, so the reform must be applied before that
+        # point (Scenario with applied_before_data_load=True). If it is
+        # applied late — the wrapper's default for `reform=` — the
+        # parameter changes but the structural reform never activates and
+        # this household gets baseline (zero) marriage allowance.
+        baseline = uk_country.calculate(
+            household=uk_household_married_requesting_marriage_allowance,
+            reform=None,
+        )
+        reformed = uk_country.calculate(
+            household=uk_household_married_requesting_marriage_allowance,
+            reform=uk_marriage_allowance_structural_reform,
+        )
+
+        baseline_ma = baseline["people"]["earner"]["marriage_allowance"][
+            "2026"
+        ]
+        reformed_ma = reformed["people"]["earner"]["marriage_allowance"][
+            "2026"
+        ]
+        assert baseline_ma == 0
+        assert reformed_ma > 0
 
     def test_calculate_supports_axes(self, uk_country):
         result = uk_country.calculate(

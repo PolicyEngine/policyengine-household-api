@@ -83,6 +83,41 @@ uk_personal_allowance_reform = {
     }
 }
 
+# A high earner fails the marriage allowance income condition under
+# current law; only the structural reform gated by the parameter below
+# removes that condition. Distinguishes "parameter changed" from
+# "structural reform actually applied".
+uk_household_married_requesting_marriage_allowance = {
+    "people": {
+        "earner": {
+            "age": {"2026": 40},
+            "employment_income": {"2026": 80_000},
+            "marriage_allowance": {"2026": None},
+        },
+        "partner": {
+            "age": {"2026": 40},
+            "employment_income": {"2026": 0},
+        },
+    },
+    "benunits": {
+        "benunit": {
+            "members": ["earner", "partner"],
+            "is_married": {"2026": True},
+        }
+    },
+    "households": {"household": {"members": ["earner", "partner"]}},
+}
+
+# The period must cover the wrapper's default input period (2025 as of
+# policyengine-uk 2.88): structural-trigger parameters are sampled at
+# that instant during Simulation construction, not at the calculation
+# period.
+uk_marriage_allowance_structural_reform = {
+    "gov.contrib.cps.marriage_tax_reforms.expanded_ma.remove_income_condition": {
+        "2025-01-01.2030-12-31": True,
+    }
+}
+
 uk_household_with_axes = {
     "people": {"parent": {"age": {"2026": 30}}},
     "benunits": {

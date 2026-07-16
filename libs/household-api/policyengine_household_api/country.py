@@ -1,5 +1,4 @@
 import importlib
-import inspect
 from flask import Response
 import json
 from policyengine_core.taxbenefitsystems import TaxBenefitSystem
@@ -471,24 +470,15 @@ class PolicyEngineCountry:
             self.country_package.CountryTaxBenefitSystem()
         )
         # policyengine-uk >= 2.43 replaced its core Simulation subclass
-        # with a wrapper that builds its own tax-benefit system and no
-        # longer accepts one from outside (its signature is scenario /
-        # situation / dataset / trace / reform). Detect which shape this
-        # package exposes so calculate() can construct the simulation the
-        # right way; checking the signature rather than the country id
-        # keeps this working when other packages make the same move.
-        # A ``**kwargs``-forwarding __init__ (policyengine-us) passes
-        # everything through to core's Simulation, which does accept
-        # ``tax_benefit_system``, so it counts as core-style.
-        simulation_params = inspect.signature(
-            self.country_package.Simulation.__init__
-        ).parameters
-        self._simulation_accepts_system = (
-            "tax_benefit_system" in simulation_params
-            or any(
-                parameter.kind is inspect.Parameter.VAR_KEYWORD
-                for parameter in simulation_params.values()
-            )
+        # with a wrapper that builds its own tax-benefit system, takes
+        # reforms as a constructor argument, and no longer accepts a
+        # system from outside. Route by country id here, once, so every
+        # UK-specific accommodation lives in the UK builder and all other
+        # countries share the standard core path.
+        self._build_simulation = (
+            self._build_simulation_uk
+            if country_id == "uk"
+            else self._build_simulation_standard
         )
         self.policyengine_bundle = self.build_policyengine_bundle()
         self.build_metadata()
@@ -795,13 +785,71 @@ class PolicyEngineCountry:
             }
         return cast
 
+    def _build_simulation_standard(
+        self,
+        normalized_household: dict,
+        reform: Union[dict, None],
+    ):
+        """Build a core-style Simulation (US, CA, NG, IL).
+
+        Reforms are applied by mutating a clone of the shared system
+        before construction, so the shared instance stays pristine for
+        concurrent requests.
+        """
+        system = self.tax_benefit_system
+        if reform:
+            system = self.tax_benefit_system.clone()
+            for parameter_name, changes in reform.items():
+                parameter = get_parameter(system.parameters, parameter_name)
+                for time_period, value in changes.items():
+                    start_instant, end_instant = time_period.split(".")
+                    parameter.update(
+                        start=instant(start_instant),
+                        stop=instant(end_instant),
+                        value=value,
+                    )
+        simulation = self.country_package.Simulation(
+            tax_benefit_system=system,
+            situation=normalized_household,
+        )
+        return system, simulation
+
+    def _build_simulation_uk(
+        self,
+        normalized_household: dict,
+        reform: Union[dict, None],
+    ):
+        """Build a policyengine-uk wrapper-style Simulation.
+
+        The wrapper constructs its own tax-benefit system internally, so
+        reforms go in through its Scenario mechanism rather than a mutated
+        clone. ``applied_before_data_load`` must be True: the wrapper
+        creates structural reforms from parameter values during
+        construction, so parameter changes applied afterwards (the
+        default for ``Simulation(reform=...)``) never activate the
+        structural reforms they gate. Note the wrapper samples those
+        trigger parameters at its ``default_input_period``, so a reform
+        must cover that instant — not just the calculation period — to
+        activate a structural reform.
+        """
+        scenario = None
+        if reform:
+            scenario = self.country_package.Scenario.from_reform(reform)
+            scenario.applied_before_data_load = True
+        simulation = self.country_package.Simulation(
+            scenario=scenario,
+            situation=normalized_household,
+        )
+        # The shared system serves variable metadata in the response
+        # loop; the wrapper's internal system is the one calculated on.
+        return self.tax_benefit_system, simulation
+
     def calculate(
         self,
         household: dict,
         reform: Union[dict, None] = None,
     ):
         reform = self._cast_reform_values(reform)
-        system = self.tax_benefit_system
 
         # Hand a normalized copy to the engine so YEAR-keyed inputs on
         # MONTH-defined variables behave like the hosted v1 API instead of
@@ -809,35 +857,14 @@ class PolicyEngineCountry:
         # internally so the original `household` is intact and the response
         # can echo back the partner's keys. It reads only variable
         # metadata, which a parametric reform never changes, so the shared
-        # system serves both paths here.
-        normalized_household = _normalize_period_keys(household, system)
+        # system serves both builders here.
+        normalized_household = _normalize_period_keys(
+            household, self.tax_benefit_system
+        )
 
-        if self._simulation_accepts_system:
-            if reform:
-                system = self.tax_benefit_system.clone()
-                for parameter_name, changes in reform.items():
-                    parameter = get_parameter(
-                        system.parameters, parameter_name
-                    )
-                    for time_period, value in changes.items():
-                        start_instant, end_instant = time_period.split(".")
-                        parameter.update(
-                            start=instant(start_instant),
-                            stop=instant(end_instant),
-                            value=value,
-                        )
-            simulation = self.country_package.Simulation(
-                tax_benefit_system=system,
-                situation=normalized_household,
-            )
-        else:
-            # The wrapper-style Simulation applies parametric reforms
-            # itself (via Scenario.from_reform) to its own internal
-            # system; the shared instance stays unmodified.
-            simulation = self.country_package.Simulation(
-                situation=normalized_household,
-                reform=reform,
-            )
+        system, simulation = self._build_simulation(
+            normalized_household, reform
+        )
 
         # Independent clone for the response-building loop below, which
         # mutates `household` to fill in computed values. Not related to

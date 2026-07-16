@@ -1,6 +1,7 @@
 import json
 import logging
 from flask import Response, request
+from policyengine_core.periods import instant
 from policyengine_observability import record_error
 from policyengine_observability import segment
 from policyengine_observability import set_attribute
@@ -61,6 +62,49 @@ def _validate_household_payload(country_id: str, household_json: dict) -> None:
         schema_cls.model_validate(household_for_schema)
     except ValidationError as e:
         raise ValueError(f"Invalid household payload: {e}")
+
+
+def _validate_policy_periods(policy_json: dict) -> None:
+    """Reject policy period keys that aren't ``start.stop`` instant pairs.
+
+    Every period key in a policy dict must be two dot-separated instants
+    (``"2026-01-01.2026-12-31"``), the grammar the core simulation path
+    has always enforced. Without this check, looser grammars reach the
+    engine and either crash mid-calculation or — on the UK path, whose
+    Scenario mechanism accepts bare instants — silently apply the change
+    to a single day, returning near-baseline numbers with a 200.
+
+    Raises ``ValueError`` with a user-safe message on failure.
+    """
+    if policy_json is None:
+        return
+    if not isinstance(policy_json, dict):
+        raise ValueError("'policy' must be a JSON object")
+
+    for parameter_name, changes in policy_json.items():
+        if not isinstance(changes, dict):
+            raise ValueError(
+                f"'policy.{parameter_name}' must be a JSON object keyed "
+                'by "start.stop" period strings'
+            )
+        for time_period in changes:
+            parts = str(time_period).split(".")
+            if len(parts) != 2 or not all(
+                _is_valid_instant(part) for part in parts
+            ):
+                raise ValueError(
+                    f"Invalid policy period key `{time_period}` for "
+                    f"`{parameter_name}`. Expected two dot-separated "
+                    'instants, e.g. "2026-01-01.2026-12-31".'
+                )
+
+
+def _is_valid_instant(candidate: str) -> bool:
+    try:
+        instant(candidate)
+    except ValueError:
+        return False
+    return True
 
 
 def _validate_axes(household_json: dict) -> None:
@@ -156,6 +200,20 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         return _json_response(
             {"status": "error", "message": str(e)},
             status=400,
+        )
+
+    # A malformed policy is a client error and should be a 400, but the
+    # endpoint has always surfaced bad policy input as a 500 (it used to
+    # crash in the engine), so we keep that status for compatibility.
+    # Issue #1628 tracks moving this to 400 and documenting the grammar.
+    try:
+        with segment(SegmentName.PAYLOAD_VALIDATION):
+            _validate_policy_periods(policy_json)
+    except ValueError as e:
+        record_error(e, handled=True, status_code=500, include_stack=False)
+        return _json_response(
+            {"status": "error", "message": str(e)},
+            status=500,
         )
 
     with segment(SegmentName.VARIABLE_VALIDATION):
