@@ -1159,8 +1159,7 @@ components:
             dot-separated instants (start.stop). Values are cast to the
             parameter's type; boolean parameters accept true/false,
             "true"/"false", "1"/"0", or the numbers 0/1. Malformed period
-            keys or values return a 500 with a descriptive message
-            (moving to 400 is tracked in issue #1628).
+            keys or values return a 500 with a descriptive message.
           additionalProperties: true
         version:
           type: string
