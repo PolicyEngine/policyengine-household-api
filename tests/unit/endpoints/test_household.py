@@ -580,7 +580,12 @@ class TestPolicyPeriodValidation:
         assert response.status_code == 500
         payload = json.loads(response.data)
         assert payload["status"] == "error"
-        assert "Invalid policy period key" in payload["message"]
+        # startswith pins the endpoint's own validation call: if a
+        # refactor drops it, the same error still arrives via
+        # calculate() but wrapped in an "Error calculating household
+        # under policy:" prefix, and this assertion catches the
+        # message-contract change.
+        assert payload["message"].startswith("Invalid policy period key")
 
     def test__given_invalid_variable_and_malformed_policy__variable_error_wins(
         self, client

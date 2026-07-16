@@ -221,6 +221,8 @@ class TestCastReformValue:
             ("0", False),
             (1, True),
             (0, False),
+            (1.0, True),
+            (0.0, False),
         ],
     )
     def test_boolean_values_cast_explicitly(self, value, expected):
@@ -236,12 +238,16 @@ class TestCastReformValue:
         [
             "garbage",
             # Deliberately rejected: the pre-rewrite casting accepted
-            # these by accident ("2" and "1.0" via float-then-bool, None
-            # coercing to False); they are ambiguous as booleans and now
-            # raise instead of silently coercing.
+            # these by accident (strings via float-then-bool, None
+            # coercing to False, any nonzero number via bool()); they
+            # are ambiguous as booleans and now raise instead of
+            # silently coercing. Only 0 and 1 are accepted as numbers.
             "2",
             "1.0",
             None,
+            2,
+            -3,
+            2.5,
         ],
     )
     def test_unrecognized_boolean_values_raise(self, value):

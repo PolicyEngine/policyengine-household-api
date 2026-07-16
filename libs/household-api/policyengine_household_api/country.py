@@ -473,8 +473,9 @@ def validate_policy_periods(policy_json: Union[dict, None]) -> None:
 
     This lives here, next to the code that consumes the grammar, and runs
     on every ``calculate()`` regardless of caller; the calculate endpoint
-    also calls it up front for a cleaner error message. Raises
-    ``ValueError`` with a user-safe message on failure.
+    also calls it directly — after all household validation, matching the
+    endpoint's historical error precedence — so clients get the message
+    unwrapped. Raises ``ValueError`` with a user-safe message on failure.
     """
     if policy_json is None:
         return
@@ -510,12 +511,13 @@ def _is_valid_instant(candidate: str) -> bool:
 def _cast_bool(value) -> bool:
     """Interpret a JSON-borne reform value as a boolean.
 
-    ``bool("false")`` is True in Python, so string forms need an explicit
-    mapping rather than a bare cast.
+    ``bool("false")`` is True in Python and ``bool(2)`` hides client
+    mistakes, so only unambiguous forms are accepted: booleans, the
+    numbers 0 and 1, and the strings "true"/"false"/"1"/"0".
     """
     if isinstance(value, bool):
         return value
-    if isinstance(value, (int, float)):
+    if isinstance(value, (int, float)) and value in (0, 1):
         return bool(value)
     if isinstance(value, str):
         lowered = value.strip().lower()
