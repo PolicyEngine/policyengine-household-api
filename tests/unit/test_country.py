@@ -4,6 +4,8 @@ from tests.fixtures.country import (
     valid_household_requesting_ctc_calculation,
     country_package_name_us,
     country_id_us,
+    us_household_requesting_income_tax,
+    us_standard_deduction_reform,
 )
 from tests.data.uk_households import (
     uk_household_requesting_universal_credit,
@@ -33,6 +35,29 @@ class TestCalculateReturnValue:
 
         assert isinstance(result, dict)
         assert "people" in result
+
+    def test_calculate_applies_parametric_reform(self):
+        # policyengine-us's Simulation.__init__ is (*args, **kwargs), so
+        # the core/wrapper detection must classify it as core-style; a
+        # misclassification sends the policy dict to core's `reform`
+        # argument (which expects a Reform class) and breaks every US
+        # reform request. The value is a string on purpose: the API casts
+        # reform values to the parameter's node type.
+        country = COUNTRIES["us"]
+
+        baseline = country.calculate(
+            household=us_household_requesting_income_tax,
+            reform=None,
+        )
+        reformed = country.calculate(
+            household=us_household_requesting_income_tax,
+            reform=us_standard_deduction_reform,
+        )
+
+        baseline_tax = baseline["tax_units"]["tax_unit"]["income_tax"]["2024"]
+        reformed_tax = reformed["tax_units"]["tax_unit"]["income_tax"]["2024"]
+        # Raising the standard deduction must reduce income tax.
+        assert reformed_tax < baseline_tax
 
 
 @pytest.fixture(scope="module")

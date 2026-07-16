@@ -13,7 +13,7 @@ from policyengine_core.parameters import (
     ParameterScaleBracket,
 )
 from policyengine_core.parameters import get_parameter
-from policyengine_core.model_api import Reform, Enum
+from policyengine_core.model_api import Enum
 from policyengine_core.periods import instant, period as parse_period
 import copy
 import dpath
@@ -477,11 +477,18 @@ class PolicyEngineCountry:
         # package exposes so calculate() can construct the simulation the
         # right way; checking the signature rather than the country id
         # keeps this working when other packages make the same move.
+        # A ``**kwargs``-forwarding __init__ (policyengine-us) passes
+        # everything through to core's Simulation, which does accept
+        # ``tax_benefit_system``, so it counts as core-style.
+        simulation_params = inspect.signature(
+            self.country_package.Simulation.__init__
+        ).parameters
         self._simulation_accepts_system = (
-            "tax_benefit_system"
-            in inspect.signature(
-                self.country_package.Simulation.__init__
-            ).parameters
+            "tax_benefit_system" in simulation_params
+            or any(
+                parameter.kind is inspect.Parameter.VAR_KEYWORD
+                for parameter in simulation_params.values()
+            )
         )
         self.policyengine_bundle = self.build_policyengine_bundle()
         self.build_metadata()
@@ -751,8 +758,7 @@ class PolicyEngineCountry:
         """Cast a reform value to the parameter's node type.
 
         JSON payloads may carry numbers as strings and integers where the
-        parameter is a float; both casts predate the wrapper-simulation
-        path and stay identical across it.
+        parameter is a float.
         """
         node_type = type(parameter.values_list[-1].value)
         if node_type is int:
@@ -763,74 +769,74 @@ class PolicyEngineCountry:
             pass
         return node_type(value)
 
-    def _reform_dict_for_wrapper(
+    def _cast_reform_values(
         self, reform: Union[dict, None]
     ) -> Union[dict, None]:
-        """Prepare a policy dict for a wrapper-style Simulation's `reform`.
+        """Resolve and cast every value in a policy dict.
 
-        The wrapper applies dict values raw (Scenario.from_reform does no
-        casting), so cast each value here the same way the injected-system
-        path does. Parameter paths are resolved against the shared system
-        purely to learn the node type; nothing is mutated.
+        Both simulation paths consume the result: the injected-system
+        path applies it to a cloned system, and the wrapper path hands
+        it to the Simulation's `reform` argument (Scenario.from_reform
+        does no casting of its own). Parameter paths are resolved against
+        the shared system purely to learn each node type; nothing is
+        mutated.
         """
-        if reform is None or len(reform) == 0:
+        if not reform:
             return None
 
-        normalized: dict = {}
+        cast: dict = {}
         for parameter_name, changes in reform.items():
             parameter = get_parameter(
                 self.tax_benefit_system.parameters, parameter_name
             )
-            normalized[parameter_name] = {
+            cast[parameter_name] = {
                 time_period: self._cast_reform_value(parameter, value)
                 for time_period, value in changes.items()
             }
-        return normalized
+        return cast
 
     def calculate(
         self,
         household: dict,
         reform: Union[dict, None] = None,
     ):
-        if self._simulation_accepts_system:
-            if reform is not None and len(reform.keys()) > 0:
-                system = self.tax_benefit_system.clone()
-                for parameter_name in reform:
-                    for time_period, value in reform[parameter_name].items():
-                        start_instant, end_instant = time_period.split(".")
-                        parameter = get_parameter(
-                            system.parameters, parameter_name
-                        )
-                        parameter.update(
-                            start=instant(start_instant),
-                            stop=instant(end_instant),
-                            value=self._cast_reform_value(parameter, value),
-                        )
-            else:
-                system = self.tax_benefit_system
-        else:
-            # The wrapper-style Simulation applies parametric reforms
-            # itself (via Scenario.from_reform), so the shared system
-            # instance is only used for variable metadata below and must
-            # stay unmodified.
-            system = self.tax_benefit_system
+        reform = self._cast_reform_values(reform)
+        system = self.tax_benefit_system
 
         # Hand a normalized copy to the engine so YEAR-keyed inputs on
         # MONTH-defined variables behave like the hosted v1 API instead of
         # being silently dropped (issue #1489). The normalizer deep-copies
         # internally so the original `household` is intact and the response
-        # can echo back the partner's keys.
+        # can echo back the partner's keys. It reads only variable
+        # metadata, which a parametric reform never changes, so the shared
+        # system serves both paths here.
         normalized_household = _normalize_period_keys(household, system)
 
         if self._simulation_accepts_system:
+            if reform:
+                system = self.tax_benefit_system.clone()
+                for parameter_name, changes in reform.items():
+                    parameter = get_parameter(
+                        system.parameters, parameter_name
+                    )
+                    for time_period, value in changes.items():
+                        start_instant, end_instant = time_period.split(".")
+                        parameter.update(
+                            start=instant(start_instant),
+                            stop=instant(end_instant),
+                            value=value,
+                        )
             simulation = self.country_package.Simulation(
                 tax_benefit_system=system,
                 situation=normalized_household,
             )
         else:
+            # The wrapper-style Simulation applies parametric reforms
+            # itself (via Scenario.from_reform) to its own internal
+            # system; the shared instance stays unmodified.
             simulation = self.country_package.Simulation(
                 situation=normalized_household,
-                reform=self._reform_dict_for_wrapper(reform),
+                reform=reform,
             )
 
         # Independent clone for the response-building loop below, which
@@ -907,47 +913,6 @@ class PolicyEngineCountry:
                     )
 
         return household
-
-
-def create_policy_reform(policy_data: dict) -> dict:
-    """
-    Create a policy reform.
-
-    Args:
-        policy_data (dict): The policy data.
-
-    Returns:
-        dict: The reform.
-    """
-
-    def modify_parameters(parameters: ParameterNode) -> ParameterNode:
-        for path, values in policy_data.items():
-            node = parameters
-            for step in path.split("."):
-                if "[" in step:
-                    step, index = step.split("[")
-                    index = int(index[:-1])
-                    node = node.children[step].brackets[index]
-                else:
-                    node = node.children[step]
-            for period, value in values.items():
-                start, end = period.split(".")
-                node_type = type(node.values_list[-1].value)
-                if node_type is int:
-                    node_type = float  # '0' is of type int by default, but usually we want to cast to float.
-                node.update(
-                    start=instant(start),
-                    stop=instant(end),
-                    value=node_type(value),
-                )
-
-        return parameters
-
-    class reform(Reform):
-        def apply(self):
-            self.modify_parameters(modify_parameters)
-
-    return reform
 
 
 def get_requested_computations(household: dict):
