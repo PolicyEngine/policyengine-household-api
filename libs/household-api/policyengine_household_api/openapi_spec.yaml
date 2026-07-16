@@ -1151,7 +1151,15 @@ components:
           $ref: "#/components/schemas/Household"
         policy:
           type: object
-          description: Optional policy reform object passed through to the country model.
+          description: >-
+            Optional policy reform object mapping parameter paths to
+            period-keyed values, e.g.
+            {"gov.hmrc.income_tax.allowances.personal_allowance.amount":
+            {"2026-01-01.2026-12-31": 15000}}. Each period key must be two
+            dot-separated instants (start.stop). Values are cast to the
+            parameter's type; boolean parameters accept true/false,
+            "true"/"false", "1"/"0", or the numbers 0/1. Malformed period
+            keys or values return a 500 with a descriptive message.
           additionalProperties: true
         version:
           type: string

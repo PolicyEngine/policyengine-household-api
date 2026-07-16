@@ -12,7 +12,7 @@ from policyengine_core.parameters import (
     ParameterScaleBracket,
 )
 from policyengine_core.parameters import get_parameter
-from policyengine_core.model_api import Reform, Enum
+from policyengine_core.model_api import Enum
 from policyengine_core.periods import instant, period as parse_period
 import copy
 import dpath
@@ -461,6 +461,76 @@ def _broadcast_year_value(period_map: dict, year: str, value) -> None:
             period_map[month_key] = value
 
 
+def validate_policy_periods(policy_json: Union[dict, None]) -> None:
+    """Reject policy period keys that aren't ``start.stop`` instant pairs.
+
+    Every period key in a policy dict must be two dot-separated instants
+    (``"2026-01-01.2026-12-31"``), the grammar the core simulation path
+    has always enforced. Without this check, looser grammars reach the
+    engine and either crash mid-calculation or — on the UK path, whose
+    Scenario mechanism accepts bare instants — silently apply the change
+    to a single day, returning near-baseline numbers with a 200.
+
+    This lives here, next to the code that consumes the grammar, and runs
+    on every ``calculate()`` regardless of caller; the calculate endpoint
+    also calls it directly — after all household validation, matching the
+    endpoint's historical error precedence — so clients get the message
+    unwrapped. Raises ``ValueError`` with a user-safe message on failure.
+    """
+    if policy_json is None:
+        return
+    if not isinstance(policy_json, dict):
+        raise ValueError("'policy' must be a JSON object")
+
+    for parameter_name, changes in policy_json.items():
+        if not isinstance(changes, dict):
+            raise ValueError(
+                f"'policy.{parameter_name}' must be a JSON object keyed "
+                'by "start.stop" period strings'
+            )
+        for time_period in changes:
+            parts = str(time_period).split(".")
+            if len(parts) != 2 or not all(
+                _is_valid_instant(part) for part in parts
+            ):
+                raise ValueError(
+                    f"Invalid policy period key `{time_period}` for "
+                    f"`{parameter_name}`. Expected two dot-separated "
+                    'instants, e.g. "2026-01-01.2026-12-31".'
+                )
+
+
+def _is_valid_instant(candidate: str) -> bool:
+    try:
+        instant(candidate)
+    except ValueError:
+        return False
+    return True
+
+
+def _cast_bool(value) -> bool:
+    """Interpret a JSON-borne reform value as a boolean.
+
+    ``bool("false")`` is True in Python and ``bool(2)`` hides client
+    mistakes, so only unambiguous forms are accepted: booleans, the
+    numbers 0 and 1, and the strings "true"/"false"/"1"/"0".
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in ("true", "1"):
+            return True
+        if lowered in ("false", "0"):
+            return False
+    raise ValueError(
+        f"Cannot interpret {value!r} as a boolean parameter value; "
+        'use true/false (or "true"/"false").'
+    )
+
+
 class PolicyEngineCountry:
     def __init__(self, country_package_name: str, country_id: str):
         self.country_package_name = country_package_name
@@ -469,6 +539,20 @@ class PolicyEngineCountry:
         self.tax_benefit_system: TaxBenefitSystem = (
             self.country_package.CountryTaxBenefitSystem()
         )
+        # policyengine-uk >= 2.43 replaced its core Simulation subclass
+        # with a wrapper that builds its own tax-benefit system, takes
+        # reforms as a constructor argument, and decodes enum results to
+        # plain string arrays. Route by country id here, once, so every
+        # UK-specific accommodation lives in a UK strategy function and
+        # all other countries share the standard core path.
+        if country_id == "uk":
+            self._build_simulation = self._build_simulation_uk
+            self._axes_result_values = self._axes_result_values_uk
+            self._enum_result_name = self._enum_result_name_uk
+        else:
+            self._build_simulation = self._build_simulation_standard
+            self._axes_result_values = self._axes_result_values_standard
+            self._enum_result_name = self._enum_result_name_standard
         self.policyengine_bundle = self.build_policyengine_bundle()
         self.build_metadata()
 
@@ -732,44 +816,195 @@ class PolicyEngineCountry:
             data[entity.key] = entity_data
         return data
 
+    @staticmethod
+    def _cast_reform_value(parameter, value):
+        """Cast a reform value to the parameter's value type.
+
+        JSON payloads carry numbers as strings and integers where the
+        parameter is a float; core's parameter interpolation needs the
+        stored type to be consistent, so coerce explicitly per type. The
+        reference type comes from the parameter's most recent non-null
+        value (``values_list`` is ordered newest-first; null placeholders
+        carry no type information).
+
+        Raises ``ValueError`` when the value cannot be interpreted as the
+        parameter's type.
+        """
+        node_type = next(
+            (
+                type(known.value)
+                for known in parameter.values_list
+                if known.value is not None
+            ),
+            float,
+        )
+        if node_type is bool:
+            return _cast_bool(value)
+        if node_type in (int, float):
+            # Ints are stored as floats: reform values may be fractional
+            # and interpolation expects one numeric type.
+            return float(value)
+        # Core restricts parameter values to float/int/bool/None/list;
+        # lists (and any future type) coerce through their constructor.
+        return node_type(value)
+
+    def _cast_reform_values(
+        self, reform: Union[dict, None]
+    ) -> Union[dict, None]:
+        """Validate a policy dict's period keys and cast every value.
+
+        Both simulation builders consume the result: the standard builder
+        applies it to a cloned system, and the UK builder routes it
+        through a Scenario (which does no casting of its own). Parameter
+        paths are resolved against the shared system purely to learn each
+        node type; nothing is mutated.
+
+        Raises ``ValueError`` for malformed period keys or uncastable
+        values; through the calculate endpoint that surfaces as a 500,
+        the status this API has always used for bad policy input
+        (issue #1628 tracks moving it to 400).
+        """
+        if not reform:
+            return None
+
+        validate_policy_periods(reform)
+
+        cast: dict = {}
+        for parameter_name, changes in reform.items():
+            parameter = get_parameter(
+                self.tax_benefit_system.parameters, parameter_name
+            )
+            cast[parameter_name] = {
+                time_period: self._cast_reform_value(parameter, value)
+                for time_period, value in changes.items()
+            }
+        return cast
+
+    def _build_simulation_standard(
+        self,
+        normalized_household: dict,
+        reform: Union[dict, None],
+    ):
+        """Build a core-style Simulation (US, CA, NG, IL).
+
+        Reforms are applied by mutating a clone of the shared system
+        before construction, so the shared instance stays pristine for
+        concurrent requests.
+        """
+        system = self.tax_benefit_system
+        if reform:
+            system = self.tax_benefit_system.clone()
+            for parameter_name, changes in reform.items():
+                parameter = get_parameter(system.parameters, parameter_name)
+                for time_period, value in changes.items():
+                    start_instant, end_instant = time_period.split(".")
+                    parameter.update(
+                        start=instant(start_instant),
+                        stop=instant(end_instant),
+                        value=value,
+                    )
+        simulation = self.country_package.Simulation(
+            tax_benefit_system=system,
+            situation=normalized_household,
+        )
+        return system, simulation
+
+    def _build_simulation_uk(
+        self,
+        normalized_household: dict,
+        reform: Union[dict, None],
+    ):
+        """Build a policyengine-uk wrapper-style Simulation.
+
+        The wrapper constructs its own tax-benefit system internally, so
+        reforms go in through its Scenario mechanism rather than a mutated
+        clone. ``applied_before_data_load`` must be True: the wrapper
+        creates structural reforms from parameter values during
+        construction, so parameter changes applied afterwards (the
+        default for ``Simulation(reform=...)``) never activate the
+        structural reforms they gate. Note the wrapper samples those
+        trigger parameters at its ``default_input_period``, so a reform
+        must cover that instant — not just the calculation period — to
+        activate a structural reform.
+        """
+        scenario = None
+        if reform:
+            scenario = self.country_package.Scenario.from_reform(reform)
+            scenario.applied_before_data_load = True
+        simulation = self.country_package.Simulation(
+            scenario=scenario,
+            situation=normalized_household,
+        )
+        # The shared system serves variable metadata in the response
+        # loop; the wrapper's internal system is the one calculated on.
+        return self.tax_benefit_system, simulation
+
+    def _axes_result_values_standard(
+        self, result, count_entities: int, entity_index: int, variable
+    ) -> list:
+        """Reshape an axes-scan result into this entity's value list.
+
+        Core-style results cast cleanly to float — including EnumArray,
+        which yields the enum's numeric indices (documented behavior the
+        US API has always exposed).
+        """
+        values = (
+            result.astype(float)
+            .reshape((-1, count_entities))
+            .T[entity_index]
+            .tolist()
+        )
+        if any(math.isinf(value) for value in values):
+            raise ValueError("Infinite value")
+        return values
+
+    def _axes_result_values_uk(
+        self, result, count_entities: int, entity_index: int, variable
+    ) -> list:
+        """UK axes results: enums arrive as decoded string arrays.
+
+        The wrapper Simulation decodes enum results before returning, so
+        the standard float cast would raise and the axes error handler
+        would silently null the slot; return the names instead.
+        """
+        if variable.value_type == Enum:
+            return (
+                result.reshape((-1, count_entities)).T[entity_index].tolist()
+            )
+        return self._axes_result_values_standard(
+            result, count_entities, entity_index, variable
+        )
+
+    @staticmethod
+    def _enum_result_name_standard(result, entity_index: int) -> str:
+        return result.decode()[entity_index].name
+
+    @staticmethod
+    def _enum_result_name_uk(result, entity_index: int) -> str:
+        # The wrapper's calculate() has already decoded enum results to
+        # plain string arrays.
+        return str(result[entity_index])
+
     def calculate(
         self,
         household: dict,
         reform: Union[dict, None] = None,
     ):
-        if reform is not None and len(reform.keys()) > 0:
-            system = self.tax_benefit_system.clone()
-            for parameter_name in reform:
-                for time_period, value in reform[parameter_name].items():
-                    start_instant, end_instant = time_period.split(".")
-                    parameter = get_parameter(
-                        system.parameters, parameter_name
-                    )
-                    node_type = type(parameter.values_list[-1].value)
-                    if node_type is int:
-                        node_type = float
-                    try:
-                        value = float(value)
-                    except (TypeError, ValueError):
-                        pass
-                    parameter.update(
-                        start=instant(start_instant),
-                        stop=instant(end_instant),
-                        value=node_type(value),
-                    )
-        else:
-            system = self.tax_benefit_system
+        reform = self._cast_reform_values(reform)
 
         # Hand a normalized copy to the engine so YEAR-keyed inputs on
         # MONTH-defined variables behave like the hosted v1 API instead of
         # being silently dropped (issue #1489). The normalizer deep-copies
         # internally so the original `household` is intact and the response
-        # can echo back the partner's keys.
-        normalized_household = _normalize_period_keys(household, system)
+        # can echo back the partner's keys. It reads only variable
+        # metadata, which a parametric reform never changes, so the shared
+        # system serves both builders here.
+        normalized_household = _normalize_period_keys(
+            household, self.tax_benefit_system
+        )
 
-        simulation = self.country_package.Simulation(
-            tax_benefit_system=system,
-            situation=normalized_household,
+        system, simulation = self._build_simulation(
+            normalized_household, reform
         )
 
         # Independent clone for the response-building loop below, which
@@ -796,23 +1031,17 @@ class PolicyEngineCountry:
                         if _entity_id == entity_id:
                             break
                         entity_index += 1
-                    result = (
-                        result.astype(float)
-                        .reshape((-1, count_entities))
-                        .T[entity_index]
-                        .tolist()
+                    household[entity_plural][entity_id][variable_name][
+                        period
+                    ] = self._axes_result_values(
+                        result, count_entities, entity_index, variable
                     )
-                    # If the result contains infinities, throw an error
-                    if any([math.isinf(value) for value in result]):
-                        raise ValueError("Infinite value")
-                    else:
-                        household[entity_plural][entity_id][variable_name][
-                            period
-                        ] = result
                 else:
                     entity_index = population.get_index(entity_id)
                     if variable.value_type == Enum:
-                        entity_result = result.decode()[entity_index].name
+                        entity_result = self._enum_result_name(
+                            result, entity_index
+                        )
                     elif variable.value_type is float:
                         entity_result = float(str(result[entity_index]))
                         # Convert infinities to JSON infinities
@@ -840,47 +1069,6 @@ class PolicyEngineCountry:
                     )
 
         return household
-
-
-def create_policy_reform(policy_data: dict) -> dict:
-    """
-    Create a policy reform.
-
-    Args:
-        policy_data (dict): The policy data.
-
-    Returns:
-        dict: The reform.
-    """
-
-    def modify_parameters(parameters: ParameterNode) -> ParameterNode:
-        for path, values in policy_data.items():
-            node = parameters
-            for step in path.split("."):
-                if "[" in step:
-                    step, index = step.split("[")
-                    index = int(index[:-1])
-                    node = node.children[step].brackets[index]
-                else:
-                    node = node.children[step]
-            for period, value in values.items():
-                start, end = period.split(".")
-                node_type = type(node.values_list[-1].value)
-                if node_type is int:
-                    node_type = float  # '0' is of type int by default, but usually we want to cast to float.
-                node.update(
-                    start=instant(start),
-                    stop=instant(end),
-                    value=node_type(value),
-                )
-
-        return parameters
-
-    class reform(Reform):
-        def apply(self):
-            self.modify_parameters(modify_parameters)
-
-    return reform
 
 
 def get_requested_computations(household: dict):

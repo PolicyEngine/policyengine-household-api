@@ -2,6 +2,7 @@ import json
 
 import pytest
 from policyengine_household_api.constants import COUNTRY_PACKAGE_VERSIONS
+from policyengine_household_api.country import validate_policy_periods
 from policyengine_household_api.endpoints.household import _validate_axes
 from policyengine_household_common.routing_metadata import (
     REQUESTED_VERSION_ENVIRON_KEY,
@@ -508,3 +509,109 @@ class TestAxesValidation:
     )
     def test__given_valid_axes__does_not_raise(self, household):
         _validate_axes(household)
+
+
+class TestPolicyPeriodValidation:
+    @pytest.mark.parametrize(
+        "policy,message",
+        [
+            ("not a dict", "'policy' must be a JSON object"),
+            (
+                {"gov.some.parameter": "not a dict"},
+                "'policy.gov.some.parameter' must be a JSON object",
+            ),
+            (
+                {"gov.some.parameter": {"2026-01-01": 1}},
+                "Invalid policy period key `2026-01-01`",
+            ),
+            (
+                {"gov.some.parameter": {"2026": 1}},
+                "Invalid policy period key `2026`",
+            ),
+            (
+                {"gov.some.parameter": {"a.b.c": 1}},
+                "Invalid policy period key `a.b.c`",
+            ),
+            (
+                {"gov.some.parameter": {"garbage.2026-12-31": 1}},
+                "Invalid policy period key `garbage.2026-12-31`",
+            ),
+        ],
+    )
+    def test__given_invalid_policy_periods__raises_value_error(
+        self, policy, message
+    ):
+        with pytest.raises(ValueError) as error:
+            validate_policy_periods(policy)
+
+        assert message in str(error.value)
+
+    @pytest.mark.parametrize(
+        "policy",
+        [
+            None,
+            {},
+            {"gov.some.parameter": {"2026-01-01.2026-12-31": 1}},
+            # Bare years are valid instants, so year.year pairs pass.
+            {"gov.some.parameter": {"2026.2027": 1}},
+        ],
+    )
+    def test__given_valid_policy_periods__does_not_raise(self, policy):
+        validate_policy_periods(policy)
+
+    def test__given_malformed_policy_period__endpoint_returns_500(
+        self, client
+    ):
+        # 500 rather than 400 matches the endpoint's long-standing
+        # behavior for bad policy input; issue #1628 tracks moving to 400.
+        response = client.post(
+            "/us/calculate",
+            json={
+                "household": valid_household_requesting_ctc_calculation,
+                "policy": {
+                    "gov.irs.deductions.standard.amount.SINGLE": {
+                        "2026-01-01": 30_000,
+                    }
+                },
+            },
+            headers=TestCalculateEndpoint.auth_headers,
+        )
+
+        assert response.status_code == 500
+        payload = json.loads(response.data)
+        assert payload["status"] == "error"
+        # startswith pins the endpoint's own validation call: if a
+        # refactor drops it, the same error still arrives via
+        # calculate() but wrapped in an "Error calculating household
+        # under policy:" prefix, and this assertion catches the
+        # message-contract change.
+        assert payload["message"].startswith("Invalid policy period key")
+
+    def test__given_invalid_variable_and_malformed_policy__variable_error_wins(
+        self, client
+    ):
+        # Error precedence must match main: household variable validation
+        # (400) fires before policy validation (500), because bad policy
+        # historically only crashed inside calculate, after all household
+        # validation.
+        household = {
+            **valid_household_requesting_ctc_calculation,
+            "people": {
+                "you": {
+                    "age": {"2024": 40},
+                    "not_a_real_variable": {"2024": 1},
+                }
+            },
+        }
+        response = client.post(
+            "/us/calculate",
+            json={
+                "household": household,
+                "policy": {"gov.some.parameter": {"2026": 1}},
+            },
+            headers=TestCalculateEndpoint.auth_headers,
+        )
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        assert payload["message"] == "Invalid household variables."
