@@ -20,6 +20,7 @@ from policyengine_household_failover.cloud_run_gateway import (
     _modal_canary_confirms_outage,
     _run_modal_operation,
     call_cloud_run_worker,
+    call_modal_worker,
     create_gateway_app,
     modal_status_summary,
     probe_modal_canary,
@@ -717,6 +718,93 @@ def test_probe_modal_canary_uses_configured_modal_app(monkeypatch):
         "object_name": "custom_ping",
         "kwargs": {"environment_name": "testing"},
     }
+
+
+def _install_fake_modal_with_spawn(monkeypatch, captured, *, result):
+    class NotFoundError(Exception):
+        pass
+
+    def _spawn_handle():
+        return types.SimpleNamespace(
+            get=lambda timeout=None: (
+                captured.__setitem__("timeout", timeout) or result
+            )
+        )
+
+    class FakeModalCls:
+        @staticmethod
+        def from_name(app_name, object_name, **kwargs):
+            class FakeWorkerClass:
+                def __call__(self):
+                    return types.SimpleNamespace(
+                        handle_household_request=types.SimpleNamespace(
+                            spawn=lambda payload: _spawn_handle()
+                        )
+                    )
+
+            return FakeWorkerClass()
+
+    class FakeModalFunction:
+        @staticmethod
+        def from_name(app_name, object_name, **kwargs):
+            return types.SimpleNamespace(spawn=lambda: _spawn_handle())
+
+    monkeypatch.setenv("MODAL_ENVIRONMENT", "testing")
+    monkeypatch.setitem(
+        sys.modules,
+        "modal",
+        types.SimpleNamespace(
+            Cls=FakeModalCls,
+            Function=FakeModalFunction,
+            exception=types.SimpleNamespace(NotFoundError=NotFoundError),
+        ),
+    )
+
+
+def test_call_modal_worker_bounds_dispatch_with_timeout(monkeypatch):
+    captured = {}
+    _install_fake_modal_with_spawn(
+        monkeypatch,
+        captured,
+        result={"status_code": 200, "body": b"OK", "headers": []},
+    )
+
+    response = call_modal_worker(
+        "modal-current",
+        {
+            "method": "GET",
+            "path": "/liveness_check",
+            "query_string": "",
+            "headers": {},
+            "body": b"",
+        },
+        timeout_seconds=7.5,
+    )
+
+    assert response.status_code == 200
+    assert captured["timeout"] == 7.5
+
+
+def test_probe_modal_worker_bounds_dispatch_with_timeout(monkeypatch):
+    captured = {}
+    _install_fake_modal_with_spawn(
+        monkeypatch,
+        captured,
+        result={"status_code": 200, "body": b"OK", "headers": []},
+    )
+
+    probe_modal_worker("modal-current", timeout_seconds=2.5)
+
+    assert captured["timeout"] == 2.5
+
+
+def test_probe_modal_canary_bounds_dispatch_with_timeout(monkeypatch):
+    captured = {}
+    _install_fake_modal_with_spawn(monkeypatch, captured, result={"ok": True})
+
+    probe_modal_canary(timeout_seconds=3.0)
+
+    assert captured["timeout"] == 3.0
 
 
 def test_unknown_exact_package_version_returns_unprocessable_entity():
