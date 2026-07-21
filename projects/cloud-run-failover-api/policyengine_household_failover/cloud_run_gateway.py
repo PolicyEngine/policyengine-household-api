@@ -60,6 +60,7 @@ from policyengine_household_common.gateway import (
 )
 from policyengine_household_common.version_routing import VersionRoutingError
 from policyengine_household_common.worker_dispatch import (
+    call_modal_function,
     call_modal_worker_dispatch,
 )
 
@@ -607,10 +608,10 @@ def probe_modal_canary(*, timeout_seconds: float | None = None) -> None:
                 function_name,
             )
         with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
-            if timeout_seconds is None:
-                result = canary_function.remote()
-            else:
-                result = canary_function.spawn().get(timeout=timeout_seconds)
+            result = call_modal_function(
+                canary_function,
+                timeout_seconds=timeout_seconds,
+            )
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
     if not isinstance(result, dict) or result.get("ok") is not True:

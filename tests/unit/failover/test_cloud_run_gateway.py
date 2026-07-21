@@ -1,3 +1,4 @@
+import asyncio
 import concurrent.futures
 import json
 import sys
@@ -720,14 +721,52 @@ def test_probe_modal_canary_uses_configured_modal_app(monkeypatch):
     }
 
 
-def _install_fake_modal_with_spawn(monkeypatch, captured, *, result):
+def _install_fake_modal_with_spawn(
+    monkeypatch,
+    captured,
+    *,
+    result,
+    hang_spawn=False,
+):
     class NotFoundError(Exception):
         pass
 
+    class SyncAsyncCallable:
+        def __init__(self, sync_callback, async_callback=None):
+            self._sync_callback = sync_callback
+            self._async_callback = async_callback
+
+        def __call__(self, *args, **kwargs):
+            return self._sync_callback(*args, **kwargs)
+
+        async def aio(self, *args, **kwargs):
+            if self._async_callback is not None:
+                return await self._async_callback(*args, **kwargs)
+            return self._sync_callback(*args, **kwargs)
+
     def _spawn_handle():
         return types.SimpleNamespace(
-            get=lambda timeout=None: (
-                captured.__setitem__("timeout", timeout) or result
+            get=SyncAsyncCallable(
+                lambda timeout=None: (
+                    captured.__setitem__("timeout", timeout) or result
+                )
+            )
+        )
+
+    async def _spawn_async(*_args):
+        captured["spawn_started"] = True
+        if hang_spawn:
+            try:
+                await asyncio.Event().wait()
+            finally:
+                captured["spawn_cancelled"] = True
+        return _spawn_handle()
+
+    def _modal_method():
+        return types.SimpleNamespace(
+            spawn=SyncAsyncCallable(
+                lambda *_args: _spawn_handle(),
+                _spawn_async,
             )
         )
 
@@ -737,9 +776,7 @@ def _install_fake_modal_with_spawn(monkeypatch, captured, *, result):
             class FakeWorkerClass:
                 def __call__(self):
                     return types.SimpleNamespace(
-                        handle_household_request=types.SimpleNamespace(
-                            spawn=lambda payload: _spawn_handle()
-                        )
+                        handle_household_request=_modal_method()
                     )
 
             return FakeWorkerClass()
@@ -747,7 +784,7 @@ def _install_fake_modal_with_spawn(monkeypatch, captured, *, result):
     class FakeModalFunction:
         @staticmethod
         def from_name(app_name, object_name, **kwargs):
-            return types.SimpleNamespace(spawn=lambda: _spawn_handle())
+            return _modal_method()
 
     monkeypatch.setenv("MODAL_ENVIRONMENT", "testing")
     monkeypatch.setitem(
@@ -805,6 +842,45 @@ def test_probe_modal_canary_bounds_dispatch_with_timeout(monkeypatch):
     probe_modal_canary(timeout_seconds=3.0)
 
     assert captured["timeout"] == 3.0
+
+
+def test_call_modal_worker_cancels_hung_spawn_and_releases_executor_slot(
+    monkeypatch,
+):
+    captured = {}
+    _install_fake_modal_with_spawn(
+        monkeypatch,
+        captured,
+        result={"status_code": 200, "body": b"OK", "headers": []},
+        hang_spawn=True,
+    )
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    semaphore = threading.BoundedSemaphore(1)
+
+    try:
+        with pytest.raises(ModalBackendUnavailable):
+            _run_modal_operation(
+                lambda: call_modal_worker(
+                    "modal-current",
+                    {
+                        "method": "GET",
+                        "path": "/liveness_check",
+                        "query_string": "",
+                        "headers": {},
+                        "body": b"",
+                    },
+                    timeout_seconds=0.01,
+                ),
+                timeout_seconds=0.5,
+                executor=executor,
+                semaphore=semaphore,
+            )
+
+        assert captured["spawn_started"] is True
+        assert captured["spawn_cancelled"] is True
+        assert semaphore.acquire(blocking=False) is True
+    finally:
+        executor.shutdown(wait=True)
 
 
 def test_unknown_exact_package_version_returns_unprocessable_entity():
