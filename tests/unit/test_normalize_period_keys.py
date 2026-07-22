@@ -553,24 +553,26 @@ def _wa_household(income_map, output_key):
     }
 
 
-# Each row pinned against parity with the hosted v1 API; the post-fix
-# household API must return the same numbers.
+# Each row pinned against parity with the hosted v1 API on the same
+# policyengine-us version; the post-fix household API must return the same
+# numbers. Annual 2026 sums re-baselined for policyengine-us 1.779.3, whose
+# SNAP uprating update raised the FY2027 COLA (Oct-Dec 2026 allotments).
 _SNAP_MATRIX = [
     # (income_map, output_key, expected_snap)
     # Year-only inputs.
     ({"2026": 36000}, "2026", {"2026": 0.0}),
     ({"2026": 36000}, "2026-01", {"2026-01": 0.0}),
-    ({"2026": 3600}, "2026", {"2026": 3596.0398}),
+    ({"2026": 3600}, "2026", {"2026": 3607.571}),
     ({"2026": 3600}, "2026-01", {"2026-01": 298.0}),
     # Single-month-only inputs (other 11 months default to 0).
-    ({"2026-01": 36000}, "2026", {"2026": 3298.0398}),
+    ({"2026-01": 36000}, "2026", {"2026": 3309.571}),
     ({"2026-01": 36000}, "2026-01", {"2026-01": 0.0}),
-    ({"2026-01": 3600}, "2026", {"2026": 3298.0398}),
+    ({"2026-01": 3600}, "2026", {"2026": 3309.571}),
     ({"2026-01": 3600}, "2026-01", {"2026-01": 0.0}),
     # Year + same-year month coherent (sum < annual): June pinned to $1800,
     # remainder ($1800/11 ≈ $163.64) distributes to the other 11 months.
     # Pinned against the v1 number — the case Anthony flagged in review.
-    ({"2026": 3600, "2026-06": 1800}, "2026", {"2026": 3321.8796}),
+    ({"2026": 3600, "2026-06": 1800}, "2026", {"2026": 3333.411}),
 ]
 _SNAP_MATRIX_IDS = [
     "A-O1",
