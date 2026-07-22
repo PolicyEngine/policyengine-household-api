@@ -2483,7 +2483,7 @@ requires-dist = [
     { name = "policyengine-ng", specifier = "==0.5.1" },
     { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.4.0,<2" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
-    { name = "policyengine-us", specifier = "==1.771.2" },
+    { name = "policyengine-us", specifier = "==1.779.3" },
     { name = "pydantic" },
     { name = "pyjwt" },
     { name = "python-dotenv" },
@@ -2638,7 +2638,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-us"
-version = "1.771.2"
+version = "1.779.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "microdf-python" },
@@ -2648,9 +2648,9 @@ dependencies = [
     { name = "tables" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b6/ec/f567ad1e60ec89484e69f7e928c1cdfcbbf11f25a2992929fe26bd85d040/policyengine_us-1.771.2.tar.gz", hash = "sha256:046e9445554c90862a4ebc1920d136ed2de72bc42ea2ffbe3e799fd4acf0a2e4", size = 11243325, upload-time = "2026-07-14T21:51:25.667Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8e/6c/5110fadcebfeb8dab3c37588ad14b97c1a6a77be21b5d3f0d31f0c64858e/policyengine_us-1.779.3.tar.gz", hash = "sha256:6ead1a9a48f8cdcc0a5af785423e667a76dee75056784ea82683cd112840c2d3", size = 11296936, upload-time = "2026-07-21T22:47:11.179Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/c3/69ecab31598927fbb75c058e7bf9a10f6bbcd448a3bfb1bf174a6a3c4db7/policyengine_us-1.771.2-py3-none-any.whl", hash = "sha256:091e06e3609781c4f75fd9bb5a31e6e7bd3bf31caba50be6a1076691dd231016", size = 13399705, upload-time = "2026-07-14T21:51:21.682Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/cf/11a87da1523442184104d5bc56d9f6ef51d45b0e2297d707b63f2492253b/policyengine_us-1.779.3-py3-none-any.whl", hash = "sha256:96602a47df402946a197a147e086f4011d6b83b79c6df590501d4191eaa43983", size = 13482830, upload-time = "2026-07-21T22:47:07.023Z" },
 ]
 
 [[package]]
