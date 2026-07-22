@@ -2468,7 +2468,7 @@ requires-dist = [
     { name = "joserfc", specifier = ">=1.6.0" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-canada", specifier = "==0.96.3" },
-    { name = "policyengine-core", specifier = ">=3.30.1" },
+    { name = "policyengine-core", specifier = "==3.30.3" },
     { name = "policyengine-household-analytics", editable = "libs/household-analytics" },
     { name = "policyengine-household-common", editable = "libs/household-common" },
     { name = "policyengine-il", specifier = "==0.1.0" },
