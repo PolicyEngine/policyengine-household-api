@@ -1,3 +1,10 @@
+## [0.29.5] - 2026-07-22
+
+### Changed
+
+- Replaced the policyengine-core randomness-guard cap (issue #1575) with an exact pin to 3.30.3, unblocking weekly policyengine-us updates past 1.779.0; future core versions are adopted through deliberate manual pin-bump PRs, never resolver side effects.
+
+
 ## [0.29.4] - 2026-07-16
 
 ### Changed
