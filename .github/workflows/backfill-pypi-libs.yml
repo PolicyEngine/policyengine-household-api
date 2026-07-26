@@ -1,0 +1,64 @@
+name: Backfill PyPI library packages
+
+# Repair tool for releases published before the three-distribution publish
+# flow (issue #1638): builds the two workspace library packages from an
+# already-released tag and uploads them to PyPI, making the corresponding
+# policyengine-household-api release installable retroactively. The core
+# package is deliberately not built here -- it was already published by the
+# release workflow, and this workflow must never re-ship it.
+#
+# Idempotent: skip-existing means re-runs and already-backfilled refs are
+# no-ops, and it never overwrites an existing upload.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Release tag or commit to build the library packages from (e.g. 0.29.6)"
+        required: true
+        type: string
+
+jobs:
+  backfill:
+    name: Publish library packages
+    runs-on: ubuntu-latest
+    if: github.repository == 'PolicyEngine/policyengine-household-api'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-api
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Build library packages
+        run: |
+          uv build --package policyengine-household-common --out-dir dist/common
+          uv build --package policyengine-household-analytics --out-dir dist/analytics
+
+      # Upload in dependency order (common -> analytics), matching the
+      # release publish job.
+      - name: Publish policyengine-household-common to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/common
+          skip-existing: true
+
+      - name: Publish policyengine-household-analytics to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/analytics
+          skip-existing: true

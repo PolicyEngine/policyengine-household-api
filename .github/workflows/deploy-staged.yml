@@ -1009,15 +1009,37 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
 
-      - name: Build package
-        run: uv build --package policyengine-household-api
+      # Each release is three distributions (see monorepo-layout.md): the two
+      # workspace libraries the core package pins exactly, then the core
+      # package itself. Publishing only the core package leaves it
+      # uninstallable from PyPI (issue #1638).
+      - name: Build packages
+        run: |
+          uv build --package policyengine-household-common --out-dir dist/common
+          uv build --package policyengine-household-analytics --out-dir dist/analytics
+          uv build --package policyengine-household-api --out-dir dist/api
 
-      - name: Publish to PyPI
+      # Upload in dependency order (common -> analytics -> api) so PyPI never
+      # serves a core package whose pinned libraries are still missing.
+      # skip-existing on every step: a workflow_dispatch release does not bump
+      # the version, so the distributions may already be on PyPI -- skip them
+      # instead of failing the run.
+      - name: Publish policyengine-household-common to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # A workflow_dispatch release does not bump the version, so the
-          # version in pyproject may already be on PyPI -- skip it instead of
-          # failing the run.
+          packages-dir: dist/common
+          skip-existing: true
+
+      - name: Publish policyengine-household-analytics to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/analytics
+          skip-existing: true
+
+      - name: Publish policyengine-household-api to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/api
           skip-existing: true
 
   tag-release:
