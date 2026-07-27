@@ -7,34 +7,40 @@ name: Backfill PyPI library packages
 # package is deliberately not built here -- it was already published by the
 # release workflow, and this workflow must never re-ship it.
 #
-# Idempotent: skip-existing means re-runs and already-backfilled refs are
+# Idempotent: skip-existing means re-runs and already-backfilled versions are
 # no-ops, and it never overwrites an existing upload.
 
 on:
   workflow_dispatch:
     inputs:
-      ref:
-        description: "Release tag or commit to build the library packages from (e.g. 0.29.6)"
+      version:
+        description: "Existing policyengine-household-api version to repair (e.g. 0.29.6)"
         required: true
         type: string
 
 jobs:
-  backfill:
-    name: Publish library packages
+  build:
+    name: Validate release and build library packages
     runs-on: ubuntu-latest
     if: github.repository == 'PolicyEngine/policyengine-household-api'
-    environment:
-      name: pypi
-      url: https://pypi.org/p/policyengine-household-api
     permissions:
       contents: read
-      id-token: write
 
     steps:
-      - name: Checkout release ref
+      - name: Validate release version input
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must use X.Y.Z format, got: ${RELEASE_VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Checkout release tag
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.ref }}
+          ref: refs/tags/${{ inputs.version }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -44,21 +50,112 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
 
+      - name: Verify released version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "Release tag must point to a commit on main." >&2
+            exit 1
+          fi
+
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import tomllib
+          from urllib.request import urlopen
+
+          version = os.environ["RELEASE_VERSION"]
+          package_paths = (
+              Path("libs/household-common/pyproject.toml"),
+              Path("libs/household-analytics/pyproject.toml"),
+              Path("libs/household-api/pyproject.toml"),
+          )
+          for path in package_paths:
+              with path.open("rb") as file:
+                  package = tomllib.load(file)["project"]
+              if package["version"] != version:
+                  raise SystemExit(
+                      f"{path}: expected version {version}, "
+                      f"found {package['version']}"
+                  )
+
+          url = (
+              "https://pypi.org/pypi/policyengine-household-api/"
+              f"{version}/json"
+          )
+          with urlopen(url, timeout=30) as response:
+              release = json.load(response)
+          if release["info"]["version"] != version:
+              raise SystemExit(
+                  "PyPI returned an unexpected household API version."
+              )
+          PY
+
       - name: Build library packages
         run: |
           uv build --package policyengine-household-common --out-dir dist/common
           uv build --package policyengine-household-analytics --out-dir dist/analytics
 
-      # Upload in dependency order (common -> analytics), matching the
-      # release publish job.
+      - name: Upload policyengine-household-common distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: pypi-household-common
+          path: dist/common
+
+      - name: Upload policyengine-household-analytics distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: pypi-household-analytics
+          path: dist/analytics
+
+  # Publish in dependency order and keep build code out of the jobs that can
+  # request PyPI credentials.
+  publish-common:
+    name: Publish policyengine-household-common to PyPI
+    runs-on: ubuntu-latest
+    needs: [build]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-common
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download policyengine-household-common distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: pypi-household-common
+          path: dist
+
       - name: Publish policyengine-household-common to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist/common
+          packages-dir: dist
           skip-existing: true
+
+  publish-analytics:
+    name: Publish policyengine-household-analytics to PyPI
+    runs-on: ubuntu-latest
+    needs: [build, publish-common]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-analytics
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download policyengine-household-analytics distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: pypi-household-analytics
+          path: dist
 
       - name: Publish policyengine-household-analytics to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist/analytics
+          packages-dir: dist
           skip-existing: true
