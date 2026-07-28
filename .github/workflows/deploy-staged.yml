@@ -968,10 +968,10 @@ jobs:
             echo "No deferred Modal cleanup manifest; nothing to prune."
           fi
 
-  publish:
-    name: Publish to PyPI
+  build-pypi-distributions:
+    name: Build PyPI distributions
     runs-on: ubuntu-latest
-    # Publish on the normal versioning-commit push, OR on a manual
+    # Build on the normal versioning-commit push, OR on a manual
     # workflow_dispatch release (deploy_mode `release`) so a dispatched re-ship
     # of the weekly -- the documented hotfix re-trigger -- is a complete release
     # and not a Modal-only deploy. This runs after deploy-cloud-run-production,
@@ -990,12 +990,8 @@ jobs:
         )
       )
     needs: [resolve-modal-release-config, deploy-cloud-run-production]
-    environment:
-      name: pypi
-      url: https://pypi.org/p/policyengine-household-api
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout code
@@ -1009,22 +1005,115 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
 
-      - name: Build package
-        run: uv build --package policyengine-household-api
+      # Each release is three distributions (see monorepo-layout.md): the two
+      # workspace libraries the core package pins exactly, then the core
+      # package itself. Publishing only the core package leaves it
+      # uninstallable from PyPI (issue #1638).
+      - name: Build packages
+        run: |
+          uv build --package policyengine-household-common --out-dir dist/common
+          uv build --package policyengine-household-analytics --out-dir dist/analytics
+          uv build --package policyengine-household-api --out-dir dist/api
 
-      - name: Publish to PyPI
+      - name: Upload policyengine-household-common distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: pypi-household-common
+          path: dist/common
+
+      - name: Upload policyengine-household-analytics distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: pypi-household-analytics
+          path: dist/analytics
+
+      - name: Upload policyengine-household-api distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: pypi-household-api
+          path: dist/api
+
+  # Publish in dependency order (common -> analytics -> api) so PyPI never
+  # serves a core package whose pinned libraries are still missing. Each job
+  # invokes the PyPI action exactly once and contains no build code; only these
+  # jobs receive the OIDC permission used by PyPI trusted publishing.
+  publish-common:
+    name: Publish policyengine-household-common to PyPI
+    runs-on: ubuntu-latest
+    needs: [build-pypi-distributions]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-common
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download policyengine-household-common distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: pypi-household-common
+          path: dist
+
+      - name: Publish policyengine-household-common to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          skip-existing: true
+
+  publish-analytics:
+    name: Publish policyengine-household-analytics to PyPI
+    runs-on: ubuntu-latest
+    needs: [build-pypi-distributions, publish-common]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-analytics
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download policyengine-household-analytics distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: pypi-household-analytics
+          path: dist
+
+      - name: Publish policyengine-household-analytics to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          skip-existing: true
+
+  publish-api:
+    name: Publish policyengine-household-api to PyPI
+    runs-on: ubuntu-latest
+    needs: [build-pypi-distributions, publish-analytics]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/policyengine-household-api
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download policyengine-household-api distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: pypi-household-api
+          path: dist
+
+      - name: Publish policyengine-household-api to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           # A workflow_dispatch release does not bump the version, so the
-          # version in pyproject may already be on PyPI -- skip it instead of
+          # distributions may already be on PyPI -- skip them instead of
           # failing the run.
+          packages-dir: dist
           skip-existing: true
 
   tag-release:
     name: Publish git tag
     runs-on: ubuntu-latest
     # Tag on the normal versioning-commit push, OR on a manual workflow_dispatch
-    # release, matching the publish job above so a dispatched re-ship is also
+    # release, matching the publish jobs above so a dispatched re-ship is also
     # tagged. publish-git-tag.sh is idempotent (skips if the tag already exists).
     if: |
       github.repository == 'PolicyEngine/policyengine-household-api' &&
@@ -1038,7 +1127,7 @@ jobs:
           needs.resolve-modal-release-config.outputs.deploy_mode == 'release'
         )
       )
-    needs: [resolve-modal-release-config, publish]
+    needs: [resolve-modal-release-config, publish-api]
     permissions:
       contents: write
 
