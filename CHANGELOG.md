@@ -1,3 +1,10 @@
+## [0.29.7] - 2026-07-28
+
+### Fixed
+
+- Publish all three workspace distributions (policyengine-household-common, policyengine-household-analytics, policyengine-household-api) to PyPI on release, in dependency order. Releases 0.29.3 through 0.29.6 were uninstallable from PyPI because the core package pinned the two library packages, which were never uploaded. Adds a manual backfill workflow to repair those existing releases in place.
+
+
 ## [0.29.6] - 2026-07-22
 
 ### Changed
