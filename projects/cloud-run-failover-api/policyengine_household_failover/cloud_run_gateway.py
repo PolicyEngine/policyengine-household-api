@@ -60,6 +60,7 @@ from policyengine_household_common.gateway import (
 )
 from policyengine_household_common.version_routing import VersionRoutingError
 from policyengine_household_common.worker_dispatch import (
+    call_modal_function,
     call_modal_worker_dispatch,
 )
 
@@ -379,9 +380,6 @@ def create_gateway_app(
     # ``request.get_data()`` on a small gateway container.
     app.config["MAX_CONTENT_LENGTH"] = max_content_length_bytes()
     load_manifest = manifest_loader or GcsFailoverManifestLoader()
-    call_modal = modal_request or call_modal_worker
-    probe_modal = modal_health_probe or probe_modal_worker
-    probe_canary = modal_canary_probe or probe_modal_canary
     call_fallback = fallback_request or call_cloud_run_worker
     check_modal_status = modal_status_checker or fetch_modal_status
     warm_fallback = fallback_warmup or warm_cloud_run_worker
@@ -413,6 +411,30 @@ def create_gateway_app(
             legacy_timeout_seconds=modal_timeout_seconds,
         )
     )
+
+    # The resolved deadlines must reach the Modal SDK calls themselves, not
+    # just the executor-side result wait: a dispatch without its own deadline
+    # blocks an executor thread forever when the control-plane connection
+    # black-holes, and each hung call permanently leaks one of the
+    # MODAL_EXECUTOR_MAX_WORKERS slots until the pool saturates (#1633).
+    def _call_modal_with_deadline(
+        app_name: str, payload: dict[str, Any]
+    ) -> Response:
+        return call_modal_worker(
+            app_name,
+            payload,
+            timeout_seconds=request_timeout,
+        )
+
+    def _probe_modal_with_deadline(app_name: str) -> None:
+        probe_modal_worker(app_name, timeout_seconds=probe_timeout)
+
+    def _probe_canary_with_deadline() -> None:
+        probe_modal_canary(timeout_seconds=canary_timeout)
+
+    call_modal = modal_request or _call_modal_with_deadline
+    probe_modal = modal_health_probe or _probe_modal_with_deadline
+    probe_canary = modal_canary_probe or _probe_canary_with_deadline
 
     @app.get("/liveness_check")
     def liveness_check() -> Response:
@@ -535,13 +557,26 @@ def create_gateway_app(
     return app
 
 
-def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:
+def call_modal_worker(
+    app_name: str,
+    payload: dict[str, Any],
+    *,
+    timeout_seconds: float | None = None,
+) -> Response:
     return _response_from_dispatch_result(
-        _call_modal_worker_dispatch(app_name, payload)
+        _call_modal_worker_dispatch(
+            app_name,
+            payload,
+            timeout_seconds=timeout_seconds,
+        )
     )
 
 
-def probe_modal_worker(app_name: str) -> None:
+def probe_modal_worker(
+    app_name: str,
+    *,
+    timeout_seconds: float | None = None,
+) -> None:
     result = _call_modal_worker_dispatch(
         app_name,
         {
@@ -551,12 +586,13 @@ def probe_modal_worker(app_name: str) -> None:
             "headers": {},
             "body": b"",
         },
+        timeout_seconds=timeout_seconds,
     )
     if int(result["status_code"]) != 200:
         raise ModalBackendUnavailable("Modal worker liveness check failed")
 
 
-def probe_modal_canary() -> None:
+def probe_modal_canary(*, timeout_seconds: float | None = None) -> None:
     import modal
 
     app_name = os.getenv(MODAL_CANARY_APP_NAME_ENV, MODAL_CANARY_APP_NAME)
@@ -572,7 +608,10 @@ def probe_modal_canary() -> None:
                 function_name,
             )
         with segment(SegmentName.MODAL_REMOTE_EXECUTION, backend="modal"):
-            result = canary_function.remote()
+            result = call_modal_function(
+                canary_function,
+                timeout_seconds=timeout_seconds,
+            )
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc
     if not isinstance(result, dict) or result.get("ok") is not True:
@@ -582,6 +621,8 @@ def probe_modal_canary() -> None:
 def _call_modal_worker_dispatch(
     app_name: str,
     payload: dict[str, Any],
+    *,
+    timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
     environment = os.getenv(MODAL_ENVIRONMENT_ENV, "").strip()
     try:
@@ -589,6 +630,7 @@ def _call_modal_worker_dispatch(
             app_name,
             payload,
             environment_name=environment or None,
+            timeout_seconds=timeout_seconds,
         )
     except Exception as exc:
         raise ModalBackendUnavailable(str(exc)) from exc

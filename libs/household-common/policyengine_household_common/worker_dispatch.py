@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Coroutine
+import threading
 from typing import Any
 
 from policyengine_household_common.observability.segments import SegmentName
@@ -15,6 +18,52 @@ HOP_BY_HOP_RESPONSE_HEADERS = {
     "content-length",
     "transfer-encoding",
 }
+
+
+class _ModalAsyncRunner:
+    """Run timed Modal calls on one lazily created process-local event loop."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._thread: threading.Thread | None = None
+
+    def run(self, coroutine: Coroutine[Any, Any, Any]) -> Any:
+        loop = self._get_loop()
+        try:
+            future = asyncio.run_coroutine_threadsafe(coroutine, loop)
+        except BaseException:
+            coroutine.close()
+            raise
+        return future.result()
+
+    def _get_loop(self) -> asyncio.AbstractEventLoop:
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                assert self._loop is not None
+                return self._loop
+
+            loop = asyncio.new_event_loop()
+            started = threading.Event()
+
+            def run_loop() -> None:
+                asyncio.set_event_loop(loop)
+                started.set()
+                loop.run_forever()
+
+            thread = threading.Thread(
+                target=run_loop,
+                name="household-modal-async",
+                daemon=True,
+            )
+            self._loop = loop
+            self._thread = thread
+            thread.start()
+            started.wait()
+            return loop
+
+
+_MODAL_ASYNC_RUNNER = _ModalAsyncRunner()
 
 
 def dispatch_to_flask_app(
@@ -70,9 +119,9 @@ def call_modal_worker_dispatch(
     top-level ``handle_household_request`` function; fall back to that shape
     when the class is not present.
 
-    ``timeout_seconds`` bounds the wait for the dispatch result; without it
-    Modal waits indefinitely, including for an input queued behind a
-    container that never finishes booting.
+    ``timeout_seconds`` bounds both the control-plane dispatch and the wait
+    for its result; without it Modal waits indefinitely, including for an
+    input queued behind a container that never finishes booting.
     """
     import modal
 
@@ -113,6 +162,45 @@ def _dispatch_result(
     payload: dict[str, Any],
     timeout_seconds: float | None,
 ) -> dict[str, Any]:
+    return call_modal_function(
+        method,
+        payload,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+def call_modal_function(
+    function: Any,
+    *args: Any,
+    timeout_seconds: float | None = None,
+    **kwargs: Any,
+) -> Any:
+    """Invoke a Modal function with a deadline covering dispatch and result.
+
+    Modal's synchronous ``spawn()`` performs the initial control-plane RPC
+    before returning a function-call handle, so applying a timeout only to
+    ``handle.get()`` still allows ``spawn()`` itself to hang indefinitely.
+    Run both async phases in one timeout context so cancellation also reaches
+    a black-holed dispatch RPC.
+    """
     if timeout_seconds is None:
-        return method.remote(payload)
-    return method.spawn(payload).get(timeout=timeout_seconds)
+        return function.remote(*args, **kwargs)
+    return _MODAL_ASYNC_RUNNER.run(
+        _call_modal_function_with_timeout(
+            function,
+            args,
+            kwargs,
+            timeout_seconds,
+        )
+    )
+
+
+async def _call_modal_function_with_timeout(
+    function: Any,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    timeout_seconds: float,
+) -> Any:
+    async with asyncio.timeout(timeout_seconds):
+        function_call = await function.spawn.aio(*args, **kwargs)
+        return await function_call.get.aio(timeout=timeout_seconds)

@@ -1,3 +1,4 @@
+import asyncio
 import concurrent.futures
 import json
 import sys
@@ -20,6 +21,7 @@ from policyengine_household_failover.cloud_run_gateway import (
     _modal_canary_confirms_outage,
     _run_modal_operation,
     call_cloud_run_worker,
+    call_modal_worker,
     create_gateway_app,
     modal_status_summary,
     probe_modal_canary,
@@ -717,6 +719,168 @@ def test_probe_modal_canary_uses_configured_modal_app(monkeypatch):
         "object_name": "custom_ping",
         "kwargs": {"environment_name": "testing"},
     }
+
+
+def _install_fake_modal_with_spawn(
+    monkeypatch,
+    captured,
+    *,
+    result,
+    hang_spawn=False,
+):
+    class NotFoundError(Exception):
+        pass
+
+    class SyncAsyncCallable:
+        def __init__(self, sync_callback, async_callback=None):
+            self._sync_callback = sync_callback
+            self._async_callback = async_callback
+
+        def __call__(self, *args, **kwargs):
+            return self._sync_callback(*args, **kwargs)
+
+        async def aio(self, *args, **kwargs):
+            if self._async_callback is not None:
+                return await self._async_callback(*args, **kwargs)
+            return self._sync_callback(*args, **kwargs)
+
+    def _spawn_handle():
+        return types.SimpleNamespace(
+            get=SyncAsyncCallable(
+                lambda timeout=None: (
+                    captured.__setitem__("timeout", timeout) or result
+                )
+            )
+        )
+
+    async def _spawn_async(*_args):
+        captured["spawn_started"] = True
+        if hang_spawn:
+            try:
+                await asyncio.Event().wait()
+            finally:
+                captured["spawn_cancelled"] = True
+        return _spawn_handle()
+
+    def _modal_method():
+        return types.SimpleNamespace(
+            spawn=SyncAsyncCallable(
+                lambda *_args: _spawn_handle(),
+                _spawn_async,
+            )
+        )
+
+    class FakeModalCls:
+        @staticmethod
+        def from_name(app_name, object_name, **kwargs):
+            class FakeWorkerClass:
+                def __call__(self):
+                    return types.SimpleNamespace(
+                        handle_household_request=_modal_method()
+                    )
+
+            return FakeWorkerClass()
+
+    class FakeModalFunction:
+        @staticmethod
+        def from_name(app_name, object_name, **kwargs):
+            return _modal_method()
+
+    monkeypatch.setenv("MODAL_ENVIRONMENT", "testing")
+    monkeypatch.setitem(
+        sys.modules,
+        "modal",
+        types.SimpleNamespace(
+            Cls=FakeModalCls,
+            Function=FakeModalFunction,
+            exception=types.SimpleNamespace(NotFoundError=NotFoundError),
+        ),
+    )
+
+
+def test_call_modal_worker_bounds_dispatch_with_timeout(monkeypatch):
+    captured = {}
+    _install_fake_modal_with_spawn(
+        monkeypatch,
+        captured,
+        result={"status_code": 200, "body": b"OK", "headers": []},
+    )
+
+    response = call_modal_worker(
+        "modal-current",
+        {
+            "method": "GET",
+            "path": "/liveness_check",
+            "query_string": "",
+            "headers": {},
+            "body": b"",
+        },
+        timeout_seconds=7.5,
+    )
+
+    assert response.status_code == 200
+    assert captured["timeout"] == 7.5
+
+
+def test_probe_modal_worker_bounds_dispatch_with_timeout(monkeypatch):
+    captured = {}
+    _install_fake_modal_with_spawn(
+        monkeypatch,
+        captured,
+        result={"status_code": 200, "body": b"OK", "headers": []},
+    )
+
+    probe_modal_worker("modal-current", timeout_seconds=2.5)
+
+    assert captured["timeout"] == 2.5
+
+
+def test_probe_modal_canary_bounds_dispatch_with_timeout(monkeypatch):
+    captured = {}
+    _install_fake_modal_with_spawn(monkeypatch, captured, result={"ok": True})
+
+    probe_modal_canary(timeout_seconds=3.0)
+
+    assert captured["timeout"] == 3.0
+
+
+def test_call_modal_worker_cancels_hung_spawn_and_releases_executor_slot(
+    monkeypatch,
+):
+    captured = {}
+    _install_fake_modal_with_spawn(
+        monkeypatch,
+        captured,
+        result={"status_code": 200, "body": b"OK", "headers": []},
+        hang_spawn=True,
+    )
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    semaphore = threading.BoundedSemaphore(1)
+
+    try:
+        with pytest.raises(ModalBackendUnavailable):
+            _run_modal_operation(
+                lambda: call_modal_worker(
+                    "modal-current",
+                    {
+                        "method": "GET",
+                        "path": "/liveness_check",
+                        "query_string": "",
+                        "headers": {},
+                        "body": b"",
+                    },
+                    timeout_seconds=0.01,
+                ),
+                timeout_seconds=0.5,
+                executor=executor,
+                semaphore=semaphore,
+            )
+
+        assert captured["spawn_started"] is True
+        assert captured["spawn_cancelled"] is True
+        assert semaphore.acquire(blocking=False) is True
+    finally:
+        executor.shutdown(wait=True)
 
 
 def test_unknown_exact_package_version_returns_unprocessable_entity():

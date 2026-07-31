@@ -4,8 +4,8 @@ Production code imports ``modal`` lazily inside functions, so patching
 ``sys.modules["modal"]`` with :func:`install_fake_modal` makes those lazy
 imports resolve to the fake. The fake covers the worker-dispatch surface:
 ``modal.Cls.from_name`` / ``modal.Function.from_name`` lookups (including
-the pre-#1528 function-shaped fallback), ``.remote`` and
-``.spawn().get(timeout=...)`` invocation, and
+the pre-#1528 function-shaped fallback), synchronous ``.remote`` and async
+``.spawn.aio()`` / ``.get.aio(timeout=...)`` invocation, and
 ``modal.exception.NotFoundError``.
 """
 
@@ -57,22 +57,32 @@ class FakeWorkerDispatch:
 
 
 def install_fake_modal(monkeypatch, worker: FakeWorkerDispatch) -> None:
+    class _SyncAsyncCallable:
+        def __init__(self, callback):
+            self._callback = callback
+
+        def __call__(self, *args, **kwargs):
+            return self._callback(*args, **kwargs)
+
+        async def aio(self, *args, **kwargs):
+            return self._callback(*args, **kwargs)
+
     class _FakeFunctionCall:
         def __init__(self, payload):
-            self._payload = payload
-
-        def get(self, timeout=None):
-            return worker.dispatch(self._payload, timeout)
+            self.get = _SyncAsyncCallable(
+                lambda timeout=None: worker.dispatch(payload, timeout)
+            )
 
     class _FakeMethod:
-        def remote(self, payload):
-            return worker.dispatch(payload, None)
-
-        def spawn(self, payload):
-            return _FakeFunctionCall(payload)
+        def __init__(self):
+            self.remote = _SyncAsyncCallable(
+                lambda payload: worker.dispatch(payload, None)
+            )
+            self.spawn = _SyncAsyncCallable(_FakeFunctionCall)
 
     class _FakeInstance:
-        handle_household_request = _FakeMethod()
+        def __init__(self):
+            self.handle_household_request = _FakeMethod()
 
     class _FakeCls:
         @staticmethod
