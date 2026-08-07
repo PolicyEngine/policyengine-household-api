@@ -57,7 +57,7 @@ def worker_function_options(
         # Reserve a 1-core CPU floor. Modal guarantees only 0.125 cores by
         # default (the rest is best-effort burst), so a container running
         # several heavy household calculates concurrently (input concurrency up
-        # to 3) starves and exceeds the execution budget -> the gateway returns
+        # to 2) starves and exceeds the execution budget -> the gateway returns
         # 503 backend_unavailable. This surfaced on the Amplifi household
         # against Cloud Run staging, which keeps no warm workers. 1.0 is a
         # cost-balanced floor vs the 2.0 dropped in #1610; raise toward 2.0 if
@@ -79,7 +79,7 @@ def worker_function_options(
 
 
 def worker_concurrency_options() -> dict[str, int]:
-    return {"max_inputs": 3, "target_inputs": 2}
+    return {"max_inputs": 2, "target_inputs": 1}
 
 
 def reset_post_snapshot_process_state(flask_app) -> None:
