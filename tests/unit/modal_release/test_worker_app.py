@@ -130,15 +130,15 @@ def test_worker_concurrency_options_set_max_inputs(worker_app):
     """Heavy customer calculates cost 12-50 CPU-seconds each; a low input
     concurrency cap bounds in-container contention and limits the
     collateral of Modal's cancel-shuts-down-the-container semantics
-    (issue #1609)."""
-    assert worker_app.worker_concurrency_options()["max_inputs"] == 3
+    (issue #1644)."""
+    assert worker_app.worker_concurrency_options()["max_inputs"] == 2
 
 
 def test_worker_concurrency_options_set_target_inputs(worker_app):
     """A low autoscale target adds capacity before containers saturate,
     so simultaneous heavy requests spread across containers instead of
-    piling onto one (issue #1609)."""
-    assert worker_app.worker_concurrency_options()["target_inputs"] == 2
+    piling onto one (issue #1644)."""
+    assert worker_app.worker_concurrency_options()["target_inputs"] == 1
 
 
 def test_worker_function_options_reserve_cpu(worker_app):
