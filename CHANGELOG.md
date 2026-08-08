@@ -1,3 +1,10 @@
+## [0.29.10] - 2026-08-08
+
+### Changed
+
+- Reduce Modal worker input concurrency so simultaneous household calculations spread across more containers and have lower tail latency under load.
+
+
 ## [0.29.9] - 2026-08-05
 
 ### Changed
