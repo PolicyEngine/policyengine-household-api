@@ -4,9 +4,10 @@ from datetime import datetime, timezone
 from alembic import command
 from alembic.config import Config
 from flask import Flask
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import MetaData, create_engine, func, inspect, select, text
 
 from policyengine_household_analytics.analytics_setup import db
+from policyengine_household_analytics.legacy import legacy_visit_request_uuid
 from policyengine_household_analytics.orm import (
     CalculateRequest,
     CalculateRequestVariable,
@@ -64,6 +65,8 @@ def test__alembic_upgrade_head__creates_expected_analytics_schema(
     }
     assert "requested_version" in request_columns
     assert "resolved_channel" in request_columns
+    assert "record_source" in request_columns
+    assert "variable_metadata_collected" in request_columns
     assert "requested_version" in variable_columns
     assert "resolved_channel" in variable_columns
     assert "entity_type" in variable_columns
@@ -93,6 +96,14 @@ def test__alembic_upgrade_head__creates_expected_analytics_schema(
     }
     assert "ix_calculate_requests_channel_created" in request_indexes
     assert "ix_calculate_requests_requested_created" in request_indexes
+    assert "ix_calculate_requests_visit_id" in request_indexes
+
+    country_id_column = next(
+        column
+        for column in inspector.get_columns("calculate_requests")
+        if column["name"] == "country_id"
+    )
+    assert country_id_column["nullable"] is True
 
 
 def test__migrated_schema__stores_truncated_variable_name_with_orm(
@@ -131,7 +142,7 @@ def test__migrated_schema__stores_truncated_variable_name_with_orm(
             request.request_uuid = "00000000-0000-0000-0000-000000000001"
             request.client_id = "test-client"
             request.api_version = "1.0.0"
-            request.country_id = "us"
+            request.country_id = None
             request.model_version = "0.0.0"
             request.requested_version = "frontier"
             request.resolved_channel = "frontier"
@@ -195,8 +206,87 @@ def test__migrated_schema__stores_truncated_variable_name_with_orm(
                 variable.resolved_channel == "frontier"
                 for variable in stored_variables
             )
+            assert request.record_source == "live"
+            assert request.variable_metadata_collected is True
+            assert request.country_id is None
         finally:
             db.session.remove()
+
+
+def test__legacy_schema_downgrade_removes_legacy_rows_before_not_null(
+    tmp_path,
+    monkeypatch,
+):
+    database_path = tmp_path / "analytics.db"
+    database_url = f"sqlite:///{database_path}"
+    monkeypatch.setenv("ANALYTICS_DATABASE_URL", database_url)
+
+    repo_root = Path(__file__).resolve().parents[3]
+    alembic_config = _alembic_config(repo_root)
+    command.upgrade(alembic_config, "head")
+
+    app = Flask(__name__)
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    db.init_app(app)
+
+    now = datetime.now(timezone.utc)
+    with app.app_context():
+        try:
+            visit = Visit()
+            visit.client_id = "legacy-client"
+            visit.datetime = now
+            visit.api_version = "0.17.0"
+            visit.endpoint = "calculate"
+            visit.method = "POST"
+            visit.content_length_bytes = 123
+            db.session.add(visit)
+            db.session.flush()
+
+            request = CalculateRequest()
+            request.visit_id = visit.id
+            request.request_uuid = legacy_visit_request_uuid(visit.id)
+            request.client_id = visit.client_id
+            request.api_version = visit.api_version
+            request.country_id = None
+            request.model_version = None
+            request.endpoint = visit.endpoint
+            request.method = visit.method
+            request.content_length_bytes = visit.content_length_bytes
+            request.response_status_code = None
+            request.distinct_variable_count = 0
+            request.unsupported_variable_count = 0
+            request.deprecated_allowlisted_variable_count = 0
+            request.record_source = "legacy_visits"
+            request.variable_metadata_collected = False
+            request.created_at = visit.datetime
+            db.session.add(request)
+            db.session.commit()
+        finally:
+            db.session.remove()
+
+    command.downgrade(alembic_config, "20260519_0004")
+
+    engine = create_engine(database_url)
+    inspector = inspect(engine)
+    request_columns = {
+        column["name"]: column
+        for column in inspector.get_columns("calculate_requests")
+    }
+    assert "record_source" not in request_columns
+    assert "variable_metadata_collected" not in request_columns
+    assert request_columns["country_id"]["nullable"] is False
+
+    metadata = MetaData()
+    metadata.reflect(
+        bind=engine,
+        only=("calculate_requests",),
+    )
+    request_table = metadata.tables["calculate_requests"]
+    with engine.connect() as connection:
+        request_count = connection.execute(
+            select(func.count()).select_from(request_table)
+        ).scalar_one()
+    assert request_count == 0
 
 
 def test__alembic_downgrade_from_truncation_revision__drops_truncated_rows(
