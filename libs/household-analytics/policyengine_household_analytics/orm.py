@@ -1,6 +1,7 @@
 from policyengine_household_analytics.analytics_setup import db
 from policyengine_household_common.models.analytics import (
     AnalyticsHttpMethod,
+    AnalyticsRecordSource,
     AvailabilityStatus,
     ModalResolvedChannel,
     PeriodGranularity,
@@ -13,6 +14,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    true,
 )
 from sqlalchemy.orm import mapped_column
 
@@ -51,7 +53,7 @@ class CalculateRequest(db.Model):
     request_uuid = mapped_column(String(36), nullable=False, unique=True)
     client_id = mapped_column(String(255), nullable=True)
     api_version = mapped_column(String(32), nullable=True)
-    country_id = mapped_column(String(16), nullable=False)
+    country_id = mapped_column(String(16), nullable=True)
     model_version = mapped_column(String(64), nullable=True)
     requested_version = mapped_column(String(64), nullable=True)
     resolved_channel = mapped_column(
@@ -73,6 +75,19 @@ class CalculateRequest(db.Model):
     )
     deprecated_allowlisted_variable_count = mapped_column(
         Integer, nullable=False, default=0
+    )
+    record_source = mapped_column(
+        String(16),
+        nullable=False,
+        default=AnalyticsRecordSource.LIVE.value,
+        server_default=AnalyticsRecordSource.LIVE.value,
+        info={"options": _enum_values(AnalyticsRecordSource)},
+    )
+    variable_metadata_collected = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default=true(),
     )
     created_at = mapped_column(DateTime, nullable=False)
 

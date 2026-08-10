@@ -53,3 +53,28 @@ class TestHomeEndpoint:
             == "#/components/schemas/CalculateRequest"
         )
         assert "bearerAuth" in payload["components"]["securitySchemes"]
+
+        analytics_operation = payload["paths"][
+            "/analytics/calculate/requests"
+        ]["get"]
+        assert (
+            "variable_metadata_collected=false"
+            in analytics_operation["description"]
+        )
+        unique_parameter = next(
+            parameter
+            for parameter in analytics_operation["parameters"]
+            if parameter["name"] == "unique"
+        )
+        assert "cannot be reconstructed" in unique_parameter["description"]
+
+        record_schema = payload["components"]["schemas"][
+            "CalculateAnalyticsRequestRecord"
+        ]
+        properties = record_schema["properties"]
+        assert properties["country_id"]["nullable"] is True
+        assert properties["record_source"]["enum"] == [
+            "live",
+            "legacy_visits",
+        ]
+        assert properties["variable_metadata_collected"]["type"] == "boolean"

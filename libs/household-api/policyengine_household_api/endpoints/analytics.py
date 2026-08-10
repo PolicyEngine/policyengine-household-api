@@ -361,6 +361,10 @@ def _request_to_dict(
         "deprecated_allowlisted_variable_count": (
             calculate_request.deprecated_allowlisted_variable_count
         ),
+        "record_source": calculate_request.record_source,
+        "variable_metadata_collected": bool(
+            calculate_request.variable_metadata_collected
+        ),
         "variables": [
             _variable_to_dict(variable_row) for variable_row in variable_rows
         ],

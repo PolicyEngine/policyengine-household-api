@@ -33,6 +33,8 @@ REQUEST_ANALYTICS_KEYS = {
     "distinct_variable_count",
     "unsupported_variable_count",
     "deprecated_allowlisted_variable_count",
+    "record_source",
+    "variable_metadata_collected",
     "variables",
 }
 VARIABLE_ANALYTICS_KEYS = {
@@ -298,6 +300,8 @@ def _assert_request_metadata(
     assert request_record["distinct_variable_count"] == len(EXPECTED_VARIABLES)
     assert request_record["unsupported_variable_count"] == 0
     assert request_record["deprecated_allowlisted_variable_count"] == 0
+    assert request_record["record_source"] == "live"
+    assert request_record["variable_metadata_collected"] is True
 
     variables_by_name = {
         variable["variable_name"]: variable

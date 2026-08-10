@@ -55,6 +55,8 @@ REQUIRED_ANALYTICS_COLUMNS = {
         "distinct_variable_count",
         "unsupported_variable_count",
         "deprecated_allowlisted_variable_count",
+        "record_source",
+        "variable_metadata_collected",
         "created_at",
     },
     "calculate_request_variables": {

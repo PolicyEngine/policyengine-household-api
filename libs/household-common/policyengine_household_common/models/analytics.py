@@ -19,6 +19,13 @@ class AnalyticsHttpMethod(StrEnum):
     PUT = "PUT"
 
 
+class AnalyticsRecordSource(StrEnum):
+    """Origin of a persisted calculate-request analytics record."""
+
+    LIVE = "live"
+    LEGACY_VISITS = "legacy_visits"
+
+
 class VariableSource(StrEnum):
     HOUSEHOLD_INPUT = "household_input"
     REQUESTED_OUTPUT = "requested_output"
