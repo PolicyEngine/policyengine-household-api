@@ -105,6 +105,11 @@ def _add_calculate_analytics_request(
     requested_version: str | None = "current",
     resolved_channel: str | None = "current",
     client_id: str | None = "test-client",
+    country_id: str | None = "us",
+    model_version: str | None = "1.691.1",
+    response_status_code: int | None = 200,
+    record_source: str = "live",
+    variable_metadata_collected: bool = True,
 ) -> CalculateRequest:
     visit = Visit()
     visit.client_id = client_id
@@ -121,20 +126,22 @@ def _add_calculate_analytics_request(
     calculate_request.request_uuid = request_uuid
     calculate_request.client_id = client_id
     calculate_request.api_version = "0.17.0"
-    calculate_request.country_id = "us"
-    calculate_request.model_version = "1.691.1"
+    calculate_request.country_id = country_id
+    calculate_request.model_version = model_version
     calculate_request.requested_version = requested_version
     calculate_request.resolved_channel = resolved_channel
     calculate_request.endpoint = "calculate"
     calculate_request.method = "POST"
     calculate_request.content_length_bytes = 123
-    calculate_request.response_status_code = 200
+    calculate_request.response_status_code = response_status_code
     calculate_request.distinct_variable_count = len(variable_rows)
     calculate_request.unsupported_variable_count = sum(
         variable["availability_status"] == "unsupported"
         for variable in variable_rows
     )
     calculate_request.deprecated_allowlisted_variable_count = 0
+    calculate_request.record_source = record_source
+    calculate_request.variable_metadata_collected = variable_metadata_collected
     calculate_request.created_at = created_at
     db.session.add(calculate_request)
     db.session.flush()
@@ -146,10 +153,10 @@ def _add_calculate_analytics_request(
         variable.created_at = created_at
         variable.country_id = "us"
         variable.api_version = "0.17.0"
-        variable.model_version = "1.691.1"
+        variable.model_version = model_version
         variable.requested_version = requested_version
         variable.resolved_channel = resolved_channel
-        variable.response_status_code = 200
+        variable.response_status_code = response_status_code
         for key, value in variable_row.items():
             setattr(variable, key, value)
         db.session.add(variable)

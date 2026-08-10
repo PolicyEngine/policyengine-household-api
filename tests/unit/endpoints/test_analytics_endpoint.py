@@ -48,6 +48,8 @@ def test__calculate_analytics_requests__filters_by_time_window(
     ]
     assert payload["requests"][0]["requested_version"] == "current"
     assert payload["requests"][0]["resolved_channel"] == "current"
+    assert payload["requests"][0]["record_source"] == "live"
+    assert payload["requests"][0]["variable_metadata_collected"] is True
     assert payload["requests"][0]["variables"] == [
         {
             "variable_name": "employment_income",
@@ -284,6 +286,52 @@ def test__calculate_analytics_requests__unique_returns_grouped_keys(
             "last_seen": "2026-05-11T12:00:00Z",
         },
     ]
+
+
+def test__calculate_analytics_requests__legacy_rows_expose_missing_metadata(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+):
+    add_calculate_analytics_request(
+        "legacy-request",
+        datetime(2025, 9, 8, 12, 0, 0),
+        [],
+        requested_version=None,
+        resolved_channel=None,
+        country_id=None,
+        model_version=None,
+        response_status_code=None,
+        record_source="legacy_visits",
+        variable_metadata_collected=False,
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests"
+    ):
+        request_response = get_calculate_analytics_requests()
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?unique=true"
+    ):
+        unique_response = get_calculate_analytics_requests()
+
+    request_payload = json.loads(request_response.data)
+    legacy_request = request_payload["requests"][0]
+    assert request_response.status_code == 200
+    assert legacy_request["record_source"] == "legacy_visits"
+    assert legacy_request["variable_metadata_collected"] is False
+    assert legacy_request["country_id"] is None
+    assert legacy_request["model_version"] is None
+    assert legacy_request["requested_version"] is None
+    assert legacy_request["resolved_channel"] is None
+    assert legacy_request["response_status_code"] is None
+    assert legacy_request["distinct_variable_count"] == 0
+    assert legacy_request["unsupported_variable_count"] == 0
+    assert legacy_request["deprecated_allowlisted_variable_count"] == 0
+    assert legacy_request["variables"] == []
+
+    unique_payload = json.loads(unique_response.data)
+    assert unique_response.status_code == 200
+    assert unique_payload["unique_keys"] == []
 
 
 def test__calculate_analytics_requests__filters_by_modal_routing(

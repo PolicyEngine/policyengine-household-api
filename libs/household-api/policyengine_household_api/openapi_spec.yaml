@@ -708,7 +708,7 @@ paths:
     get:
       summary: Get calculate request variable analytics
       operationId: get_calculate_analytics_requests
-      description: Returns value-free analytics records for inbound calculate requests. Requires a bearer token with the read:calculate-analytics scope. Each record includes request metadata, grouped variable keys, and the opaque caller client_id, but not household values, household entity IDs, request bodies, or response bodies.
+      description: Returns value-free analytics records for inbound calculate requests. Requires a bearer token with the read:calculate-analytics scope. Each record includes request metadata, grouped variable keys when that metadata was collected, provenance, and the opaque caller client_id, but not household values, household entity IDs, request bodies, or response bodies. Records recovered from the legacy visits table identify unavailable metadata with null values and variable_metadata_collected=false.
       security:
         - bearerAuth: []
       parameters:
@@ -746,7 +746,7 @@ paths:
             type: string
         - name: unique
           in: query
-          description: When true, return one row per unique variable key instead of one row per calculate request.
+          description: When true, return one row per unique variable key instead of one row per calculate request. Summaries cover only requests where variable_metadata_collected is true; variable usage cannot be reconstructed for legacy visits.
           required: false
           schema:
             type: boolean
@@ -794,6 +794,8 @@ paths:
                         distinct_variable_count: 2
                         unsupported_variable_count: 0
                         deprecated_allowlisted_variable_count: 0
+                        record_source: live
+                        variable_metadata_collected: true
                         variables:
                           - variable_name: employment_income
                             entity_type: person
@@ -1430,6 +1432,8 @@ components:
           nullable: true
         country_id:
           type: string
+          nullable: true
+          description: Country identifier, or null when it was not collected for a legacy visit.
         model_version:
           type: string
           nullable: true
@@ -1464,8 +1468,18 @@ components:
           type: integer
         deprecated_allowlisted_variable_count:
           type: integer
+        record_source:
+          type: string
+          description: Whether the request was recorded by live analytics collection or recovered from the legacy visits table.
+          enum:
+            - live
+            - legacy_visits
+        variable_metadata_collected:
+          type: boolean
+          description: False when variable usage metadata was never collected and therefore cannot be reconstructed.
         variables:
           type: array
+          description: Grouped variable metadata. Empty when variable_metadata_collected is false.
           items:
             $ref: "#/components/schemas/CalculateAnalyticsVariableRecord"
     CalculateAnalyticsVariableRecord:
