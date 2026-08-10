@@ -1,3 +1,11 @@
+## [0.30.0] - 2026-08-10
+
+### Added
+
+- Add analytics schema support for recovering historical calculate requests from
+  the legacy visits table with explicit provenance and metadata availability.
+
+
 ## [0.29.10] - 2026-08-08
 
 ### Changed
