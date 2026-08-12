@@ -2435,7 +2435,6 @@ name = "policyengine-household-api"
 version = "0.30.1"
 source = { editable = "libs/household-api" }
 dependencies = [
-    { name = "authlib" },
     { name = "flask" },
     { name = "flask-caching" },
     { name = "flask-cors" },
@@ -2444,12 +2443,11 @@ dependencies = [
     { name = "google-cloud-tasks" },
     { name = "gunicorn" },
     { name = "inflect" },
-    { name = "joserfc" },
     { name = "modal" },
     { name = "policyengine-canada" },
     { name = "policyengine-core" },
     { name = "policyengine-household-analytics" },
-    { name = "policyengine-household-common" },
+    { name = "policyengine-household-common", extra = ["auth"] },
     { name = "policyengine-il" },
     { name = "policyengine-ng" },
     { name = "policyengine-observability", extra = ["flask", "google"] },
@@ -2464,7 +2462,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "authlib", specifier = ">=1.7.0" },
     { name = "flask", specifier = ">=2.2" },
     { name = "flask-caching", specifier = "==2.0.2" },
     { name = "flask-cors", specifier = ">=3" },
@@ -2473,12 +2470,11 @@ requires-dist = [
     { name = "google-cloud-tasks" },
     { name = "gunicorn" },
     { name = "inflect" },
-    { name = "joserfc", specifier = ">=1.6.0" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-canada", specifier = "==0.96.3" },
     { name = "policyengine-core", specifier = "==3.30.3" },
     { name = "policyengine-household-analytics", editable = "libs/household-analytics" },
-    { name = "policyengine-household-common", editable = "libs/household-common" },
+    { name = "policyengine-household-common", extras = ["auth"], editable = "libs/household-common" },
     { name = "policyengine-il", specifier = "==0.1.0" },
     { name = "policyengine-ng", specifier = "==0.5.1" },
     { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.4.0,<2" },
@@ -2502,13 +2498,22 @@ dependencies = [
     { name = "pyyaml" },
 ]
 
+[package.optional-dependencies]
+auth = [
+    { name = "authlib" },
+    { name = "joserfc" },
+]
+
 [package.metadata]
 requires-dist = [
+    { name = "authlib", marker = "extra == 'auth'", specifier = ">=1.7.0" },
     { name = "flask", specifier = ">=2.2" },
+    { name = "joserfc", marker = "extra == 'auth'", specifier = ">=1.6.0" },
     { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.4.0,<2" },
     { name = "pydantic" },
     { name = "pyyaml", specifier = ">=6" },
 ]
+provides-extras = ["auth"]
 
 [[package]]
 name = "policyengine-household-failover-api"
@@ -2520,7 +2525,7 @@ dependencies = [
     { name = "google-cloud-storage" },
     { name = "gunicorn" },
     { name = "modal" },
-    { name = "policyengine-household-common" },
+    { name = "policyengine-household-common", extra = ["auth"] },
 ]
 
 [package.optional-dependencies]
@@ -2536,7 +2541,7 @@ requires-dist = [
     { name = "gunicorn" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-household-api", marker = "extra == 'worker'", editable = "libs/household-api" },
-    { name = "policyengine-household-common", editable = "libs/household-common" },
+    { name = "policyengine-household-common", extras = ["auth"], editable = "libs/household-common" },
 ]
 provides-extras = ["worker"]
 

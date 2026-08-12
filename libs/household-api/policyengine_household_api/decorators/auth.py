@@ -19,7 +19,7 @@ from policyengine_observability import record_error
 from policyengine_observability import segment
 from policyengine_observability import set_attribute
 
-from ..auth.validation import Auth0JWTBearerTokenValidator
+from policyengine_household_common.auth import Auth0JWTBearerTokenValidator
 from policyengine_household_common.observability.segments import SegmentName
 from policyengine_household_common.config_loader import get_config_value
 

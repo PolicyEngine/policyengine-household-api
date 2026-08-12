@@ -16,6 +16,10 @@ from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token
 
+from policyengine_household_common.auth import (
+    Auth0JWTBearerTokenValidator,
+    authenticated_auth0_client_id,
+)
 from policyengine_household_common.constants import COUNTRIES
 from policyengine_household_common.dispatch_codec import (
     decode_dispatch_response,
@@ -44,6 +48,7 @@ from policyengine_household_failover.slack_notifications import (
 )
 from policyengine_household_common.observability.flask import (
     init_observability,
+    set_request_log_attribute,
 )
 from policyengine_household_common.observability.segments import SegmentName
 from policyengine_observability import record_error
@@ -372,6 +377,7 @@ def create_gateway_app(
     modal_request_timeout_seconds: float | None = None,
     modal_probe_timeout_seconds: float | None = None,
     modal_canary_timeout_seconds: float | None = None,
+    client_id_attributor: Callable[[str | None], str | None] | None = None,
 ) -> Flask:
     app = Flask(__name__)
     init_observability(app, service_role="failover_gateway")
@@ -385,6 +391,9 @@ def create_gateway_app(
     call_fallback = fallback_request or call_cloud_run_worker
     check_modal_status = modal_status_checker or fetch_modal_status
     warm_fallback = fallback_warmup or warm_cloud_run_worker
+    attribute_client_id = (
+        client_id_attributor or _configured_auth0_client_id_attributor()
+    )
     circuits = circuit_registry or CircuitRegistry()
     policy = circuit_policy or modal_circuit_policy_from_env()
     request_timeout = (
@@ -413,6 +422,19 @@ def create_gateway_app(
             legacy_timeout_seconds=modal_timeout_seconds,
         )
     )
+
+    @app.before_request
+    def _set_authenticated_client_log_attribute() -> None:
+        authorization = request.headers.get("Authorization")
+        if not authorization:
+            return
+        try:
+            client_id = attribute_client_id(authorization)
+        except Exception:
+            LOGGER.warning("Auth0 client ID attribution failed")
+            return
+        if client_id:
+            set_request_log_attribute("auth0_client_id", client_id)
 
     @app.get("/liveness_check")
     def liveness_check() -> Response:
@@ -533,6 +555,22 @@ def create_gateway_app(
             )
 
     return app
+
+
+def _configured_auth0_client_id_attributor() -> Callable[
+    [str | None], str | None
+]:
+    domain = os.getenv("AUTH0_ADDRESS_NO_DOMAIN", "")
+    audience = os.getenv("AUTH0_AUDIENCE_NO_DOMAIN", "")
+    if not domain or not audience:
+        return lambda _authorization: None
+
+    validator = Auth0JWTBearerTokenValidator(domain, audience)
+
+    def attribute_client_id(authorization: str | None) -> str | None:
+        return authenticated_auth0_client_id(authorization, validator)
+
+    return attribute_client_id
 
 
 def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:

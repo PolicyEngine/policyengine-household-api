@@ -6,6 +6,7 @@ import os
 from flask import Flask
 from policyengine_observability import ObservabilityConfig
 from policyengine_observability import ObservabilityRuntime
+from policyengine_observability import current_context
 from policyengine_observability import set_attribute
 from policyengine_observability.adapters.flask import (
     init_flask_observability,
@@ -32,6 +33,13 @@ HOUSEHOLD_METRIC_ATTRIBUTE_KEYS = (
     "period_warning_count",
     "variable_error_count",
 )
+
+
+def set_request_log_attribute(key: str, value: object) -> None:
+    """Add an attribute only to the canonical request completion log."""
+    context = current_context()
+    if context is not None:
+        context.set_attribute(key, value)
 
 
 def _environment() -> str:

@@ -89,6 +89,8 @@ def _client(
     modal_probe_timeout_seconds=None,
     modal_canary_timeout_seconds=None,
     manifest_loader=None,
+    client_id_attributor=None,
+    request_records=None,
 ):
     app = create_gateway_app(
         manifest_loader=manifest_loader or _manifest,
@@ -108,7 +110,29 @@ def _client(
         modal_request_timeout_seconds=modal_request_timeout_seconds,
         modal_probe_timeout_seconds=modal_probe_timeout_seconds,
         modal_canary_timeout_seconds=modal_canary_timeout_seconds,
+        client_id_attributor=client_id_attributor,
     )
+    if request_records is not None:
+        runtime = app.extensions["policyengine_observability"]
+
+        def capture_request_log(context):
+            request_records.append(
+                {
+                    "log": context.as_log_record(
+                        trace_id="test-trace",
+                        span_id="test-span",
+                    ),
+                    "metric_attributes": context.metric_attributes(),
+                    "span_attributes": context.span_attributes(),
+                    "operation_attributes": dict(
+                        context.operation_context.attributes
+                        if context.operation_context is not None
+                        else {}
+                    ),
+                }
+            )
+
+        runtime.emit_request_log = capture_request_log
     return app.test_client()
 
 
@@ -124,6 +148,132 @@ def test_gateway_routes_to_modal_when_health_probe_succeeds():
     assert response.headers["X-PolicyEngine-Backend"] == "modal"
     assert response.headers["X-PolicyEngine-Primary-State"] == "healthy"
     assert response.headers["X-PolicyEngine-Route-Channel"] == "current"
+
+
+def test_gateway_adds_validated_auth0_client_id_only_to_request_log():
+    authorization = "Bearer signed.jwt.value"
+    records = []
+
+    def attribute_client_id(header):
+        assert header == authorization
+        return "client-a"
+
+    response = _client(
+        client_id_attributor=attribute_client_id,
+        request_records=records,
+    ).post(
+        "/us/calculate",
+        json={"household": {}},
+        headers={"Authorization": authorization},
+    )
+
+    assert response.status_code == 200
+    assert len(records) == 1
+    request_record = records[0]
+    request_log = request_record["log"]
+    assert request_log["auth0_client_id"] == "client-a"
+    assert request_log["status_code"] == 200
+    assert request_log["duration_ms"] >= 0
+    assert request_log["backend"] == "modal"
+    assert "auth0_client_id" not in request_record["metric_attributes"]
+    assert (
+        "policyengine.auth0_client_id" not in request_record["span_attributes"]
+    )
+    assert "auth0_client_id" not in request_record["operation_attributes"]
+    assert authorization not in json.dumps(request_log)
+
+
+def test_gateway_uses_deployed_auth0_config_for_attribution(monkeypatch):
+    monkeypatch.setenv("AUTH0_ADDRESS_NO_DOMAIN", "tenant.example")
+    monkeypatch.setenv("AUTH0_AUDIENCE_NO_DOMAIN", "household-api")
+    validator = object()
+    calls = []
+    records = []
+    monkeypatch.setattr(
+        "policyengine_household_failover.cloud_run_gateway."
+        "Auth0JWTBearerTokenValidator",
+        lambda domain, audience: (
+            calls.append(("configure", domain, audience)) or validator
+        ),
+    )
+    monkeypatch.setattr(
+        "policyengine_household_failover.cloud_run_gateway."
+        "authenticated_auth0_client_id",
+        lambda authorization, configured_validator: (
+            calls.append(("attribute", authorization, configured_validator))
+            or "client-a"
+        ),
+    )
+
+    response = _client(request_records=records).post(
+        "/us/calculate",
+        json={"household": {}},
+        headers={"Authorization": "Bearer signed.jwt.value"},
+    )
+
+    assert response.status_code == 200
+    assert calls == [
+        ("configure", "tenant.example", "household-api"),
+        ("attribute", "Bearer signed.jwt.value", validator),
+    ]
+    assert records[0]["log"]["auth0_client_id"] == "client-a"
+
+
+def test_gateway_omits_auth0_client_id_when_attribution_is_unavailable():
+    records = []
+
+    response = _client(
+        client_id_attributor=lambda _header: None,
+        request_records=records,
+    ).post(
+        "/us/calculate",
+        json={"household": {}},
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+
+    assert response.status_code == 200
+    assert "auth0_client_id" not in records[0]["log"]
+
+
+def test_gateway_attribution_failure_does_not_change_response(caplog):
+    records = []
+
+    def fail_attribution(_header):
+        raise RuntimeError("attribution unavailable")
+
+    response = _client(
+        client_id_attributor=fail_attribution,
+        request_records=records,
+    ).post(
+        "/us/calculate",
+        json={"household": {}},
+        headers={"Authorization": "Bearer do-not-log-this-token"},
+    )
+
+    assert response.status_code == 200
+    assert "auth0_client_id" not in records[0]["log"]
+    assert "do-not-log-this-token" not in caplog.text
+
+
+def test_gateway_logs_auth0_client_id_for_gateway_error_response():
+    records = []
+
+    def unavailable_manifest():
+        raise FailoverManifestError("manifest could not be loaded")
+
+    response = _client(
+        manifest_loader=unavailable_manifest,
+        client_id_attributor=lambda _header: "client-a",
+        request_records=records,
+    ).post(
+        "/us/calculate",
+        json={"household": {}},
+        headers={"Authorization": "Bearer signed.jwt.value"},
+    )
+
+    assert response.status_code == 503
+    assert records[0]["log"]["auth0_client_id"] == "client-a"
+    assert records[0]["log"]["status_code"] == 503
 
 
 def test_gateway_routes_to_fallback_after_threshold_and_canary_failure():

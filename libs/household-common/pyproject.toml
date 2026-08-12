@@ -19,6 +19,12 @@ dependencies = [
     "policyengine-observability[flask,google]>=1.4.0,<2",
 ]
 
+[project.optional-dependencies]
+auth = [
+    "Authlib>=1.7.0",
+    "joserfc>=1.6.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

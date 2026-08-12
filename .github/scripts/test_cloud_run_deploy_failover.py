@@ -5,6 +5,9 @@ import subprocess
 
 def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
+    pyproject = Path(
+        "projects/cloud-run-failover-api/pyproject.toml"
+    ).read_text()
 
     # The gateway installs its member's locked closure (which carries
     # policyengine-observability[flask,google]) rather than a
@@ -14,6 +17,7 @@ def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     assert "--extra worker" not in dockerfile
     assert "pip_install" not in dockerfile
     assert "numpy" not in dockerfile
+    assert '"policyengine-household-common[auth]==' in pyproject
 
 
 def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
@@ -212,6 +216,8 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "  2" in log
     assert "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS: |-" in log
     assert "  300" in log
+    assert log.count("AUTH0_ADDRESS_NO_DOMAIN: |-") == 3
+    assert log.count("AUTH0_AUDIENCE_NO_DOMAIN: |-") == 3
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (

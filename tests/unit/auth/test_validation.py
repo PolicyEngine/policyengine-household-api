@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from jwt.algorithms import RSAAlgorithm
 
-from policyengine_household_api.auth import validation
+from policyengine_household_common import auth as validation
 from policyengine_household_api.decorators.auth import ANALYTICS_READ_SCOPE
 
 
@@ -30,7 +30,7 @@ class TestAuth0JWTBearerTokenValidator:
     def test__given_jwks_fetch_fails__validator_constructs_with_none_key(self):
         """A failed JWKS fetch must not raise at import/construction time."""
         with patch(
-            "policyengine_household_api.auth.validation.urlopen",
+            "policyengine_household_common.auth.urlopen",
             side_effect=OSError("network down"),
         ):
             v = validation.Auth0JWTBearerTokenValidator(
@@ -42,7 +42,7 @@ class TestAuth0JWTBearerTokenValidator:
     def test__given_jwks_fetch_uses_timeout(self):
         """The JWKS fetch must pass a non-None timeout to urlopen."""
         with patch(
-            "policyengine_household_api.auth.validation.urlopen",
+            "policyengine_household_common.auth.urlopen",
             side_effect=OSError("network down"),
         ) as mock_urlopen:
             validation.Auth0JWTBearerTokenValidator(
@@ -259,6 +259,113 @@ class TestAuth0JWTBearerTokenValidator:
             validator.validate_token(claims, [ANALYTICS_READ_SCOPE], None)
 
 
+@pytest.mark.parametrize(
+    ("claims", "expected"),
+    [
+        ({"client_id": "client-a"}, "client-a"),
+        ({"azp": "client-a"}, "client-a"),
+        (
+            {"client_id": "client-a", "azp": "client-a"},
+            "client-a",
+        ),
+        ({"sub": "client-a@clients"}, "client-a"),
+        (
+            {"client_id": "client-a", "sub": "client-a@clients"},
+            "client-a",
+        ),
+        ({"azp": "client-a", "sub": "auth0|person-1"}, "client-a"),
+    ],
+)
+def test_auth0_client_id_from_claims_accepts_supported_claims(
+    claims,
+    expected,
+):
+    assert validation.auth0_client_id_from_claims(claims) == expected
+
+
+@pytest.mark.parametrize(
+    "claims",
+    [
+        {},
+        {"sub": "auth0|person-1"},
+        {"sub": "@clients"},
+        {"client_id": "client-a", "azp": "client-b"},
+        {"client_id": "client-a", "sub": "client-b@clients"},
+        {"client_id": 123},
+        {"client_id": "client-a", "azp": ["client-a"]},
+        {"sub": ["client-a@clients"]},
+    ],
+)
+def test_auth0_client_id_from_claims_rejects_ambiguous_or_human_claims(
+    claims,
+):
+    assert validation.auth0_client_id_from_claims(claims) is None
+
+
+def test_authenticated_auth0_client_id_validates_jwt_before_extraction():
+    validation._clear_jwks_cache()
+    private_key = _private_key()
+    validator = _validator_for_key(private_key)
+    token = _signed_token(
+        private_key,
+        {
+            "iss": "https://tenant.example/",
+            "aud": "audience",
+            "exp": int(time.time()) + 300,
+            "azp": "client-a",
+            "sub": "client-a@clients",
+        },
+    )
+
+    client_id = validation.authenticated_auth0_client_id(
+        f"Bearer {token}",
+        validator,
+    )
+
+    assert client_id == "client-a"
+
+
+@pytest.mark.parametrize(
+    "authorization",
+    [
+        None,
+        "",
+        "Basic abc123",
+        "Bearer",
+        "Bearer ",
+        "Bearer token extra",
+    ],
+)
+def test_authenticated_auth0_client_id_ignores_missing_or_malformed_header(
+    authorization,
+):
+    class UnexpectedValidator:
+        def authenticate_token(self, _token):
+            raise AssertionError("malformed headers must not reach validation")
+
+    assert (
+        validation.authenticated_auth0_client_id(
+            authorization,
+            UnexpectedValidator(),
+        )
+        is None
+    )
+
+
+def test_authenticated_auth0_client_id_ignores_invalid_token():
+    class RejectingValidator:
+        def authenticate_token(self, _token):
+            return None
+
+    assert (
+        validation.authenticated_auth0_client_id(
+            "Bearer invalid-token",
+            RejectingValidator(),
+        )
+        is None
+    )
+
+
 def _private_key():
     return rsa.generate_private_key(
         public_exponent=65537,
@@ -302,7 +409,7 @@ def _validator_for_key(private_key):
             return json.dumps(jwks).encode()
 
     with patch(
-        "policyengine_household_api.auth.validation.urlopen",
+        "policyengine_household_common.auth.urlopen",
         return_value=FakeResponse(),
     ):
         return validation.Auth0JWTBearerTokenValidator(

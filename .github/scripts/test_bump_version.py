@@ -103,6 +103,28 @@ class TestUpdateFile:
         assert updated is False
         assert 'version = "1.2.3"' in pyproject_path.read_text()
 
+    def test_updates_exact_sibling_pin_with_extras(self, tmp_path):
+        pyproject_path = tmp_path / "pyproject.toml"
+        pyproject_path.write_text(
+            "[project]\n"
+            'version = "1.2.3"\n'
+            "dependencies = [\n"
+            '    "policyengine-household-common[auth]==1.2.3",\n'
+            "]\n"
+        )
+
+        updated = bump_version.update_file(
+            pyproject_path,
+            "1.2.3",
+            "1.2.4",
+        )
+
+        assert updated is True
+        assert (
+            "policyengine-household-common[auth]==1.2.4"
+            in pyproject_path.read_text()
+        )
+
 
 class TestMain:
     def test_updates_temp_project_version(self, tmp_path):
