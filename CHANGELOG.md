@@ -1,3 +1,10 @@
+## [0.31.0] - 2026-08-12
+
+### Added
+
+- Add validated Auth0 application client IDs to Cloud Run gateway request logs.
+
+
 ## [0.30.1] - 2026-08-12
 
 ### Changed
