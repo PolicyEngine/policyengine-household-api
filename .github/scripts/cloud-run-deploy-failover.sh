@@ -270,6 +270,8 @@ done < "${worker_urls_tsv}"
 append_env_value "${gateway_env_file}" APP__ENVIRONMENT "${environment}"
 append_observability_env "${gateway_env_file}"
 append_env_value "${gateway_env_file}" MODAL_ENVIRONMENT "${MODAL_ENVIRONMENT}"
+append_env_if_set "${gateway_env_file}" AUTH0_ADDRESS_NO_DOMAIN
+append_env_if_set "${gateway_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
 append_env_value \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_MANIFEST_BUCKET \

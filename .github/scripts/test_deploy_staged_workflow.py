@@ -17,6 +17,10 @@ EXPECTED_SLACK_ENV = {
         "${{ vars.HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS }}"
     ),
 }
+EXPECTED_AUTH0_ENV = {
+    "AUTH0_ADDRESS_NO_DOMAIN": "${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}",
+    "AUTH0_AUDIENCE_NO_DOMAIN": "${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}",
+}
 PYPI_PUBLISH_ACTION = "pypa/gh-action-pypi-publish@release/v1"
 
 
@@ -30,6 +34,19 @@ def test_cloud_run_deploy_jobs_pass_slack_alert_environment():
         env = _deploy_step_env(workflow, job_id)
 
         for key, value in EXPECTED_SLACK_ENV.items():
+            assert env[key] == value
+
+
+def test_policyengine_cloud_run_deploy_jobs_pass_auth0_environment():
+    workflow = _load_workflow()
+
+    for job_id in (
+        "deploy-cloud-run-staging",
+        "deploy-cloud-run-production",
+    ):
+        env = _deploy_step_env(workflow, job_id)
+
+        for key, value in EXPECTED_AUTH0_ENV.items():
             assert env[key] == value
 
 

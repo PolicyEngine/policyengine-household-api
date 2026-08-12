@@ -2,9 +2,14 @@ import os
 from pathlib import Path
 import subprocess
 
+import yaml
+
 
 def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
+    pyproject = Path(
+        "projects/cloud-run-failover-api/pyproject.toml"
+    ).read_text()
 
     # The gateway installs its member's locked closure (which carries
     # policyengine-observability[flask,google]) rather than a
@@ -14,6 +19,7 @@ def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     assert "--extra worker" not in dockerfile
     assert "pip_install" not in dockerfile
     assert "numpy" not in dockerfile
+    assert '"policyengine-household-common[auth]==' in pyproject
 
 
 def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
@@ -212,6 +218,20 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "  2" in log
     assert "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS: |-" in log
     assert "  300" in log
+    expected_auth0_env = {
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
+    }
+    for service in (
+        "household-api-staging-current-worker",
+        "household-api-staging-frontier-worker",
+        "household-api-staging-gateway",
+    ):
+        deployed_env = yaml.safe_load(
+            (tmp_path / f"{service}-env.yaml").read_text()
+        )
+        for key, value in expected_auth0_env.items():
+            assert deployed_env[key] == value
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (
@@ -302,6 +322,8 @@ def test_cloud_run_deploy_failover_requires_analytics_writer_url_when_analytics_
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "ANALYTICS__ENABLED": "true",
     }
     env.pop("HOUSEHOLD_ANALYTICS_WRITER_URL", None)
@@ -360,6 +382,8 @@ def test_cloud_run_deploy_failover_requires_analytics_cloud_tasks_config(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "HOUSEHOLD_ANALYTICS_WRITER_URL": (
             "https://household-api-staging-analytics-writer.run.app"
         ),
@@ -421,6 +445,8 @@ def test_cloud_run_deploy_failover_accepts_bootstrapped_writer_urls(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "HOUSEHOLD_ANALYTICS_WRITER_URL": bootstrapped_writer_url,
         "ANALYTICS__ENABLED": "true",
         "ANALYTICS__CLOUD_TASKS__PROJECT": "policyengine-test",
@@ -450,7 +476,7 @@ def test_cloud_run_deploy_failover_accepts_bootstrapped_writer_urls(
     assert f"  {bootstrapped_writer_url}" in log
 
 
-def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
+def test_cloud_run_deploy_failover_omits_unset_optional_config(
     tmp_path,
 ):
     log_path = tmp_path / "commands.log"
@@ -468,6 +494,11 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
             key: value
             for key, value in os.environ.items()
             if not key.startswith("OBSERVABILITY_")
+            and key
+            not in {
+                "AUTH0_ADDRESS_NO_DOMAIN",
+                "AUTH0_AUDIENCE_NO_DOMAIN",
+            }
         },
         "PATH": f"{tmp_path}:{os.environ['PATH']}",
         "UV_BIN": str(tmp_path / "uv"),
@@ -536,6 +567,8 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
     assert "USER_ANALYTICS_DB_CONNECTION_NAME" not in log
     assert "USER_ANALYTICS_DB_USERNAME" not in log
     assert "USER_ANALYTICS_DB_PASSWORD" not in log
+    assert "AUTH0_ADDRESS_NO_DOMAIN" not in log
+    assert "AUTH0_AUDIENCE_NO_DOMAIN" not in log
     assert "analytics@password,with,comma" not in log
     assert "gcloud run deploy household-api-staging-current-worker" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
@@ -582,6 +615,8 @@ def test_cloud_run_deploy_failover_accepts_gateway_public_url_and_ingress(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS": (
             "internal-and-cloud-load-balancing"
         ),
@@ -674,10 +709,19 @@ def _write_fake_gcloud(tmp_path: Path, log_path: Path) -> None:
 set -euo pipefail
 echo "gcloud $*" >> "{log_path}"
 
+deploy_service=""
+if [[ "${{1:-}}" == run && "${{2:-}}" == deploy ]]; then
+  deploy_service="$3"
+fi
+
 for arg in "$@"; do
   if [[ "${{arg}}" == --env-vars-file=* ]]; then
-    echo "env-vars-file ${{arg#--env-vars-file=}}" >> "{log_path}"
-    cat "${{arg#--env-vars-file=}}" >> "{log_path}"
+    env_file="${{arg#--env-vars-file=}}"
+    echo "env-vars-file ${{env_file}}" >> "{log_path}"
+    cat "${{env_file}}" >> "{log_path}"
+    if [[ -n "${{deploy_service}}" ]]; then
+      cp "${{env_file}}" "{tmp_path}/${{deploy_service}}-env.yaml"
+    fi
   fi
 done
 
