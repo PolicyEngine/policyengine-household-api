@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 import subprocess
 
+import yaml
+
 
 def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
@@ -216,8 +218,20 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
     assert "  2" in log
     assert "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS: |-" in log
     assert "  300" in log
-    assert log.count("AUTH0_ADDRESS_NO_DOMAIN: |-") == 3
-    assert log.count("AUTH0_AUDIENCE_NO_DOMAIN: |-") == 3
+    expected_auth0_env = {
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
+    }
+    for service in (
+        "household-api-staging-current-worker",
+        "household-api-staging-frontier-worker",
+        "household-api-staging-gateway",
+    ):
+        deployed_env = yaml.safe_load(
+            (tmp_path / f"{service}-env.yaml").read_text()
+        )
+        for key, value in expected_auth0_env.items():
+            assert deployed_env[key] == value
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (
@@ -695,10 +709,19 @@ def _write_fake_gcloud(tmp_path: Path, log_path: Path) -> None:
 set -euo pipefail
 echo "gcloud $*" >> "{log_path}"
 
+deploy_service=""
+if [[ "${{1:-}}" == run && "${{2:-}}" == deploy ]]; then
+  deploy_service="$3"
+fi
+
 for arg in "$@"; do
   if [[ "${{arg}}" == --env-vars-file=* ]]; then
-    echo "env-vars-file ${{arg#--env-vars-file=}}" >> "{log_path}"
-    cat "${{arg#--env-vars-file=}}" >> "{log_path}"
+    env_file="${{arg#--env-vars-file=}}"
+    echo "env-vars-file ${{env_file}}" >> "{log_path}"
+    cat "${{env_file}}" >> "{log_path}"
+    if [[ -n "${{deploy_service}}" ]]; then
+      cp "${{env_file}}" "{tmp_path}/${{deploy_service}}-env.yaml"
+    fi
   fi
 done
 
