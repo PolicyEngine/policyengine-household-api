@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 import subprocess
 
-import pytest
-
 
 def test_cloud_run_gateway_image_stays_slim_and_lockfile_pinned():
     dockerfile = Path("gcp/cloud_run/gateway.Dockerfile").read_text()
@@ -290,31 +288,6 @@ def test_cloud_run_deploy_failover_requires_service_accounts(tmp_path):
     assert "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT" in result.stdout
 
 
-@pytest.mark.parametrize(
-    "missing_key",
-    (
-        "AUTH0_ADDRESS_NO_DOMAIN",
-        "AUTH0_AUDIENCE_NO_DOMAIN",
-    ),
-)
-def test_cloud_run_deploy_failover_requires_auth0_environment(missing_key):
-    env = _required_failover_environment()
-    env.pop(missing_key)
-
-    result = subprocess.run(
-        ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
-        capture_output=True,
-        env=env,
-        text=True,
-    )
-
-    assert result.returncode == 1
-    assert (
-        f"Missing required environment variable(s): {missing_key}"
-        in result.stdout
-    )
-
-
 def test_cloud_run_deploy_failover_requires_analytics_writer_url_when_analytics_enabled(
     tmp_path,
 ):
@@ -489,7 +462,7 @@ def test_cloud_run_deploy_failover_accepts_bootstrapped_writer_urls(
     assert f"  {bootstrapped_writer_url}" in log
 
 
-def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
+def test_cloud_run_deploy_failover_omits_unset_optional_config(
     tmp_path,
 ):
     log_path = tmp_path / "commands.log"
@@ -507,6 +480,11 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
             key: value
             for key, value in os.environ.items()
             if not key.startswith("OBSERVABILITY_")
+            and key
+            not in {
+                "AUTH0_ADDRESS_NO_DOMAIN",
+                "AUTH0_AUDIENCE_NO_DOMAIN",
+            }
         },
         "PATH": f"{tmp_path}:{os.environ['PATH']}",
         "UV_BIN": str(tmp_path / "uv"),
@@ -526,8 +504,6 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
-        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
-        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "ANALYTICS__ENABLED": "false",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
         "USER_ANALYTICS_DB_USERNAME": "analytics-user",
@@ -577,6 +553,8 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
     assert "USER_ANALYTICS_DB_CONNECTION_NAME" not in log
     assert "USER_ANALYTICS_DB_USERNAME" not in log
     assert "USER_ANALYTICS_DB_PASSWORD" not in log
+    assert "AUTH0_ADDRESS_NO_DOMAIN" not in log
+    assert "AUTH0_AUDIENCE_NO_DOMAIN" not in log
     assert "analytics@password,with,comma" not in log
     assert "gcloud run deploy household-api-staging-current-worker" in log
     assert "gcloud run deploy household-api-staging-gateway" in log
@@ -659,25 +637,6 @@ def test_cloud_run_deploy_failover_accepts_gateway_public_url_and_ingress(
         "Cloud Run failover gateway public URL: "
         "https://household.api.policyengine.org" in result.stdout
     )
-
-
-def _required_failover_environment() -> dict[str, str]:
-    return {
-        "PATH": os.environ["PATH"],
-        "MODAL_ENVIRONMENT": "staging",
-        "GOOGLE_CLOUD_PROJECT": "policyengine-test",
-        "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
-        "MODAL_TOKEN_ID": "modal-token-id",
-        "MODAL_TOKEN_SECRET": "modal-token-secret",
-        "HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT": (
-            "household-api-gateway@policyengine-test.iam.gserviceaccount.com"
-        ),
-        "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
-            "household-api-worker@policyengine-test.iam.gserviceaccount.com"
-        ),
-        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
-        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
-    }
 
 
 def _write_fake_uv(tmp_path: Path, log_path: Path) -> None:

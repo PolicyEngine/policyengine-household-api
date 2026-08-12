@@ -40,8 +40,6 @@ require_env \
   HOUSEHOLD_FAILOVER_MANIFEST_BUCKET \
   MODAL_TOKEN_ID \
   MODAL_TOKEN_SECRET \
-  AUTH0_ADDRESS_NO_DOMAIN \
-  AUTH0_AUDIENCE_NO_DOMAIN \
   HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT \
   HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT
 
@@ -188,14 +186,8 @@ while IFS=$'\t' read -r channel modal_app_name package_versions_json; do
       USER_ANALYTICS_DB_PASSWORD
   fi
   append_env_if_set "${worker_env_file}" AUTH__ENABLED
-  append_env_value \
-    "${worker_env_file}" \
-    AUTH0_ADDRESS_NO_DOMAIN \
-    "${AUTH0_ADDRESS_NO_DOMAIN}"
-  append_env_value \
-    "${worker_env_file}" \
-    AUTH0_AUDIENCE_NO_DOMAIN \
-    "${AUTH0_AUDIENCE_NO_DOMAIN}"
+  append_env_if_set "${worker_env_file}" AUTH0_ADDRESS_NO_DOMAIN
+  append_env_if_set "${worker_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
   worker_env_arg=""
   worker_secret_arg=""
   if worker_env_arg="$(env_args_from_file "${worker_env_file}")"; then
@@ -278,14 +270,8 @@ done < "${worker_urls_tsv}"
 append_env_value "${gateway_env_file}" APP__ENVIRONMENT "${environment}"
 append_observability_env "${gateway_env_file}"
 append_env_value "${gateway_env_file}" MODAL_ENVIRONMENT "${MODAL_ENVIRONMENT}"
-append_env_value \
-  "${gateway_env_file}" \
-  AUTH0_ADDRESS_NO_DOMAIN \
-  "${AUTH0_ADDRESS_NO_DOMAIN}"
-append_env_value \
-  "${gateway_env_file}" \
-  AUTH0_AUDIENCE_NO_DOMAIN \
-  "${AUTH0_AUDIENCE_NO_DOMAIN}"
+append_env_if_set "${gateway_env_file}" AUTH0_ADDRESS_NO_DOMAIN
+append_env_if_set "${gateway_env_file}" AUTH0_AUDIENCE_NO_DOMAIN
 append_env_value \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_MANIFEST_BUCKET \

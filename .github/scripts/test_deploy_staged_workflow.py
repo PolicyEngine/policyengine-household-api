@@ -37,7 +37,7 @@ def test_cloud_run_deploy_jobs_pass_slack_alert_environment():
             assert env[key] == value
 
 
-def test_cloud_run_deploy_jobs_pass_required_auth0_environment():
+def test_policyengine_cloud_run_deploy_jobs_pass_auth0_environment():
     workflow = _load_workflow()
 
     for job_id in (
