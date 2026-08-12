@@ -288,6 +288,42 @@ def test_cloud_run_deploy_failover_requires_service_accounts(tmp_path):
     assert "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT" in result.stdout
 
 
+def test_cloud_run_deploy_failover_requires_auth0_environment(tmp_path):
+    required_env = {
+        **os.environ,
+        "MODAL_ENVIRONMENT": "staging",
+        "GOOGLE_CLOUD_PROJECT": "policyengine-test",
+        "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
+        "MODAL_TOKEN_ID": "modal-token-id",
+        "MODAL_TOKEN_SECRET": "modal-token-secret",
+        "HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT": (
+            "household-api-gateway@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
+            "household-api-worker@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
+    }
+
+    for missing_key in (
+        "AUTH0_ADDRESS_NO_DOMAIN",
+        "AUTH0_AUDIENCE_NO_DOMAIN",
+    ):
+        env = {**required_env}
+        env.pop(missing_key)
+
+        result = subprocess.run(
+            ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
+            capture_output=True,
+            env=env,
+            text=True,
+        )
+
+        assert result.returncode == 1
+        assert missing_key in result.stdout
+
+
 def test_cloud_run_deploy_failover_requires_analytics_writer_url_when_analytics_enabled(
     tmp_path,
 ):
@@ -308,6 +344,8 @@ def test_cloud_run_deploy_failover_requires_analytics_writer_url_when_analytics_
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "ANALYTICS__ENABLED": "true",
     }
     env.pop("HOUSEHOLD_ANALYTICS_WRITER_URL", None)
@@ -366,6 +404,8 @@ def test_cloud_run_deploy_failover_requires_analytics_cloud_tasks_config(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "HOUSEHOLD_ANALYTICS_WRITER_URL": (
             "https://household-api-staging-analytics-writer.run.app"
         ),
@@ -427,6 +467,8 @@ def test_cloud_run_deploy_failover_accepts_bootstrapped_writer_urls(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "HOUSEHOLD_ANALYTICS_WRITER_URL": bootstrapped_writer_url,
         "ANALYTICS__ENABLED": "true",
         "ANALYTICS__CLOUD_TASKS__PROJECT": "policyengine-test",
@@ -493,6 +535,8 @@ def test_cloud_run_deploy_failover_handles_empty_optional_secret_args(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "ANALYTICS__ENABLED": "false",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
         "USER_ANALYTICS_DB_USERNAME": "analytics-user",
@@ -588,6 +632,8 @@ def test_cloud_run_deploy_failover_accepts_gateway_public_url_and_ingress(
         "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
             "household-api-worker@policyengine-test.iam.gserviceaccount.com"
         ),
+        "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
+        "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
         "HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS": (
             "internal-and-cloud-load-balancing"
         ),
