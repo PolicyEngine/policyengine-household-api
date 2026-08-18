@@ -1,3 +1,10 @@
+## [0.31.1] - 2026-08-18
+
+### Fixed
+
+- Send explicit `weekly_hours_worked_before_lsr` in the SNAP parity test fixture so it keeps modelling an eligible adult after policyengine-us dropped the 40-hour default.
+
+
 ## [0.31.0] - 2026-08-12
 
 ### Added
