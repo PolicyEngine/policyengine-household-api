@@ -27,7 +27,7 @@ RETRY_BACKOFF_SECONDS = 10
 
 # The raw payload shape the Cloud Run HTTP service sends to
 # HouseholdWorker.handle_household_request; see
-# policyengine_household_common.request_dispatch.build_worker_request.
+# policyengine_household_common.gateway.build_worker_request.
 LIVENESS_DISPATCH_PAYLOAD = {
     "method": "GET",
     "path": "/liveness_check",

@@ -5,8 +5,8 @@ from types import SimpleNamespace
 from flask import Flask, request
 import pytest
 
-from policyengine_household_common import request_dispatch
-from policyengine_household_common.request_dispatch import (
+from policyengine_household_common import gateway
+from policyengine_household_common.gateway import (
     RequestVersionError,
     build_worker_request,
     country_and_endpoint,
@@ -60,12 +60,12 @@ def test_country_and_endpoint_identifies_supported_country_route():
 def test_build_worker_request_uses_explicit_http_request(monkeypatch):
     app = Flask(__name__)
     monkeypatch.setattr(
-        request_dispatch,
+        gateway,
         "current_context",
         lambda: SimpleNamespace(request_id="request-123"),
     )
     monkeypatch.setattr(
-        request_dispatch,
+        gateway,
         "traceparent_header",
         lambda: "00-trace-parent",
     )

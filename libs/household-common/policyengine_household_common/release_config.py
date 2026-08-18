@@ -28,7 +28,7 @@ MODAL_RELEASE_PATH_PREFIXES = (
     ".github/PULL_REQUEST_TEMPLATE.md",
     "docs/engineering/skills/modal-release-prs.md",
     "projects/modal-api/policyengine_household_modal/",
-    "libs/household-common/policyengine_household_common/request_dispatch.py",
+    "libs/household-common/policyengine_household_common/gateway.py",
     "libs/household-common/policyengine_household_common/release_config.py",
     "libs/household-common/policyengine_household_common/release_manifest.py",
     "libs/household-common/policyengine_household_common/routing_metadata.py",

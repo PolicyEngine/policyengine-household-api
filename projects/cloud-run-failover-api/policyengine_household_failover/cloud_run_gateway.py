@@ -55,7 +55,7 @@ from policyengine_observability import record_error
 from policyengine_observability import record_event
 from policyengine_observability import segment
 from policyengine_observability import set_attribute
-from policyengine_household_common.request_dispatch import (
+from policyengine_household_common.gateway import (
     VERSIONED_ENDPOINTS,
     build_worker_request,
     country_and_endpoint,
