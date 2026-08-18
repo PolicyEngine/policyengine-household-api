@@ -532,7 +532,16 @@ def _wa_household(income_map, output_key):
     """Build a single-person WA SNAP household with a configurable
     ``snap_gross_income`` input map + ``snap`` output request."""
     return {
-        "people": {"person_1": {"age": {"2026": 34}, "rent": {"2026": 10800}}},
+        "people": {
+            "person_1": {
+                "age": {"2026": 34},
+                "rent": {"2026": 10800},
+                # As of policyengine-us 1.815.1, weekly_hours_worked_before_lsr
+                # no longer defaults to 40; send it so this adult passes the
+                # ABAWD test and the v1-parity numbers below still hold.
+                "weekly_hours_worked_before_lsr": {"2026": 40},
+            }
+        },
         "tax_units": {"tax_unit_1": {"members": ["person_1"]}},
         "spm_units": {
             "spm_unit_1": {
