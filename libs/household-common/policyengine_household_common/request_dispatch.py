@@ -1,9 +1,11 @@
+"""Public HTTP-to-worker request and response conversion helpers."""
+
 from __future__ import annotations
 
 import json
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
 
-from flask import Response, jsonify, request
+from flask import Request, Response, jsonify
 
 from policyengine_household_common.constants import COUNTRIES
 from policyengine_observability import (
@@ -14,7 +16,6 @@ from policyengine_observability import (
     traceparent_header,
 )
 from policyengine_household_common.routing_metadata import (
-    MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
 )
 from policyengine_household_common.version_routing import VersionRoutingError
@@ -23,16 +24,33 @@ from policyengine_household_common.version_routing import VersionRoutingError
 VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
 
 
-class ResolvedRequest(Protocol):
+class ResolvedRoute(Protocol):
+    """Routing fields required to build a worker request."""
+
     requested_version: str
     channel: str
 
 
-class GatewayResolutionError(VersionRoutingError):
+class WorkerRequest(TypedDict):
+    """Serializable request payload accepted by a calculation worker."""
+
+    method: str
+    path: str
+    query_string: str
+    headers: dict[str, str]
+    body: bytes
+    modal_routing: dict[str, str]
+
+
+class RequestVersionError(VersionRoutingError):
+    """Raised when a request contains an invalid version selector."""
+
     pass
 
 
-def _extract_requested_version(body: bytes) -> tuple[bytes, str]:
+def extract_requested_version(body: bytes) -> tuple[bytes, str]:
+    """Remove a string version selector from an object-shaped JSON body."""
+
     if not body:
         return body, "current"
 
@@ -46,44 +64,52 @@ def _extract_requested_version(body: bytes) -> tuple[bytes, str]:
 
     requested_version = payload.pop("version", "current") or "current"
     if not isinstance(requested_version, str):
-        raise GatewayResolutionError("`version` must be a string")
+        raise RequestVersionError("`version` must be a string")
 
     return json.dumps(payload).encode("utf-8"), requested_version
 
 
-def _country_and_endpoint(path: str) -> tuple[str | None, str | None]:
+def country_and_endpoint(path: str) -> tuple[str | None, str | None]:
+    """Return a supported country and its endpoint from a request path."""
+
     parts = [part for part in path.split("/") if part]
     if len(parts) < 2 or parts[0] not in COUNTRIES:
         return None, None
     return parts[0], parts[1]
 
 
-def _request_payload(
+def build_worker_request(
+    http_request: Request,
+    *,
     path: str,
     body: bytes,
-    resolved_app: ResolvedRequest,
-) -> dict[str, Any]:
+    route: ResolvedRoute,
+) -> WorkerRequest:
+    """Convert an explicit Flask request and resolved route for dispatch."""
+
     return {
-        "method": request.method,
+        "method": http_request.method,
         "path": path,
-        "query_string": request.query_string.decode("utf-8"),
-        "headers": _forward_headers(),
+        "query_string": http_request.query_string.decode("utf-8"),
+        "headers": forward_request_headers(http_request),
         "body": body,
-        MODAL_ROUTING_PAYLOAD_KEY: modal_routing_payload(
-            requested_version=resolved_app.requested_version,
-            resolved_channel=resolved_app.channel,
+        "modal_routing": modal_routing_payload(
+            requested_version=route.requested_version,
+            resolved_channel=route.channel,
         ),
     }
 
 
-def _forward_headers() -> dict[str, str]:
+def forward_request_headers(http_request: Request) -> dict[str, str]:
+    """Return safe request headers with internal observability context."""
+
     forwarded_headers = {
         key: value
-        for key, value in request.headers.items()
+        for key, value in http_request.headers.items()
         if key.lower() not in {"host", "content-length"}
     }
-    if request.content_type:
-        forwarded_headers["Content-Type"] = request.content_type
+    if http_request.content_type:
+        forwarded_headers["Content-Type"] = http_request.content_type
     context = current_context()
     if context is not None:
         forwarded_headers[REQUEST_ID_HEADER] = context.request_id
@@ -94,7 +120,9 @@ def _forward_headers() -> dict[str, str]:
     return forwarded_headers
 
 
-def _response_from_dispatch_result(result: dict[str, Any]) -> Response:
+def response_from_worker_result(result: dict[str, Any]) -> Response:
+    """Convert a worker result into a Flask response."""
+
     body = result.get("body", b"")
     if isinstance(body, str):
         body = body.encode("utf-8")
@@ -105,7 +133,7 @@ def _response_from_dispatch_result(result: dict[str, Any]) -> Response:
     )
 
 
-def _json_error(
+def json_error_response(
     message: str,
     status: int,
     *,
@@ -114,6 +142,8 @@ def _json_error(
     country_id: str | None = None,
     available_versions: dict[str, str] | None = None,
 ) -> Response:
+    """Build the standard JSON error response returned by request routers."""
+
     payload: dict[str, Any] = {"status": "error", "message": message}
     if code is not None:
         payload["code"] = code

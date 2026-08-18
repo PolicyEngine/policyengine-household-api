@@ -104,7 +104,10 @@ modal_release:
 
 def test_changed_files_require_config_for_modal_release_paths():
     assert changed_files_require_modal_release_config(
-        ["libs/household-common/policyengine_household_common/gateway.py"]
+        [
+            "libs/household-common/"
+            "policyengine_household_common/request_dispatch.py"
+        ]
     )
 
 

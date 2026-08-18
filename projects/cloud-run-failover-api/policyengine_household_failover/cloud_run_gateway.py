@@ -55,13 +55,13 @@ from policyengine_observability import record_error
 from policyengine_observability import record_event
 from policyengine_observability import segment
 from policyengine_observability import set_attribute
-from policyengine_household_common.gateway import (
+from policyengine_household_common.request_dispatch import (
     VERSIONED_ENDPOINTS,
-    _country_and_endpoint,
-    _extract_requested_version,
-    _json_error,
-    _request_payload,
-    _response_from_dispatch_result,
+    build_worker_request,
+    country_and_endpoint,
+    extract_requested_version,
+    json_error_response,
+    response_from_worker_result,
 )
 from policyengine_household_common.version_routing import VersionRoutingError
 from policyengine_household_common.worker_dispatch import (
@@ -462,7 +462,9 @@ def create_gateway_app(
     @app.get("/versions/<country_id>")
     def country_versions(country_id: str) -> Response:
         if country_id not in COUNTRIES:
-            return _json_error(f"Unsupported country `{country_id}`", 404)
+            return json_error_response(
+                f"Unsupported country `{country_id}`", 404
+            )
 
         try:
             manifest = validate_failover_manifest(load_manifest())
@@ -486,7 +488,7 @@ def create_gateway_app(
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
     def route_request(path: str) -> Response:
-        country_id, endpoint = _country_and_endpoint(path)
+        country_id, endpoint = country_and_endpoint(path)
         body = request.get_data()
         set_attribute("country_id", country_id)
         set_attribute("endpoint", endpoint)
@@ -501,7 +503,7 @@ def create_gateway_app(
         try:
             with segment(SegmentName.VERSION_RESOLUTION):
                 if country_id and endpoint in VERSIONED_ENDPOINTS:
-                    body, requested_version = _extract_requested_version(body)
+                    body, requested_version = extract_requested_version(body)
                 else:
                     requested_version = "current"
                 resolved = resolve_failover_channel_for_request(
@@ -511,7 +513,12 @@ def create_gateway_app(
                 )
             set_attribute("requested_version", resolved.requested_version)
             set_attribute("resolved_channel", resolved.channel)
-            payload = _request_payload(path, body, resolved)
+            payload = build_worker_request(
+                request,
+                path=path,
+                body=body,
+                route=resolved,
+            )
             response, backend = _route_to_backend(
                 resolved,
                 payload,
@@ -545,7 +552,7 @@ def create_gateway_app(
                 status_code=status_code,
                 include_stack=False,
             )
-            return _json_error(
+            return json_error_response(
                 str(exc),
                 status_code,
                 code=getattr(exc, "code", None),
@@ -574,7 +581,7 @@ def _configured_auth0_client_id_attributor() -> Callable[
 
 
 def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:
-    return _response_from_dispatch_result(
+    return response_from_worker_result(
         _call_modal_worker_dispatch(app_name, payload)
     )
 
@@ -676,7 +683,7 @@ def call_cloud_run_worker(
         ValueError,
     ) as exc:
         raise FallbackBackendUnavailable(str(exc)) from exc
-    return _response_from_dispatch_result(dispatch_result)
+    return response_from_worker_result(dispatch_result)
 
 
 def warm_cloud_run_worker(resolved: ResolvedFailoverChannel) -> None:

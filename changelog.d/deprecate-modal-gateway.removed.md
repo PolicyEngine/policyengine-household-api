@@ -1,1 +1,1 @@
-Removed the obsolete Modal-hosted HTTP request router. Deployed API validation now runs exclusively through the production-equivalent Cloud Run ingress path, and Modal canary deployments must answer their remote `ping` check before the release continues.
+Removed the obsolete Modal-hosted HTTP request router. Deployed API validation now runs exclusively through the production-equivalent Cloud Run ingress path, shared request-to-worker conversion uses a typed public interface, and Modal canary deployments must answer their remote `ping` check before the release continues.
