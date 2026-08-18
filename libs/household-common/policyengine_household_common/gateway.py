@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol
 
 from flask import Request, Response, jsonify
 
@@ -19,6 +19,10 @@ from policyengine_household_common.routing_metadata import (
     modal_routing_payload,
 )
 from policyengine_household_common.version_routing import VersionRoutingError
+from policyengine_household_common.worker_dispatch import (
+    WorkerRequest,
+    WorkerResult,
+)
 
 
 VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
@@ -29,17 +33,6 @@ class ResolvedRoute(Protocol):
 
     requested_version: str
     channel: str
-
-
-class WorkerRequest(TypedDict):
-    """Serializable request payload accepted by a calculation worker."""
-
-    method: str
-    path: str
-    query_string: str
-    headers: dict[str, str]
-    body: bytes
-    modal_routing: dict[str, str]
 
 
 class RequestVersionError(VersionRoutingError):
@@ -120,7 +113,7 @@ def forward_request_headers(http_request: Request) -> dict[str, str]:
     return forwarded_headers
 
 
-def response_from_worker_result(result: dict[str, Any]) -> Response:
+def response_from_worker_result(result: WorkerResult) -> Response:
     """Convert a worker result into a Flask response."""
 
     body = result.get("body", b"")

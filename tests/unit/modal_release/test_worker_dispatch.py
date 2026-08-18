@@ -142,6 +142,13 @@ def test_dispatch_to_flask_app_removes_hop_by_hop_response_headers():
 
 def test_call_modal_worker_dispatch_uses_worker_class(monkeypatch):
     captured = {}
+    payload = {
+        "method": "POST",
+        "path": "/us/calculate",
+        "query_string": "",
+        "headers": {"Content-Type": "application/json"},
+        "body": b'{"household":{"foo":"bar"}}',
+    }
 
     class StubMethod:
         def remote(self, payload):
@@ -173,20 +180,25 @@ def test_call_modal_worker_dispatch_uses_worker_class(monkeypatch):
         ),
     )
 
-    result = call_modal_worker_dispatch(
-        "frontier-app", {"household": {"foo": "bar"}}
-    )
+    result = call_modal_worker_dispatch("frontier-app", payload)
 
     assert result["status_code"] == 200
     assert captured == {
         "app_name": "frontier-app",
         "class_name": "HouseholdWorker",
-        "payload": {"household": {"foo": "bar"}},
+        "payload": payload,
     }
 
 
 def test_call_modal_worker_dispatch_supports_legacy_function(monkeypatch):
     captured = {}
+    payload = {
+        "method": "POST",
+        "path": "/us/calculate",
+        "query_string": "",
+        "headers": {"Content-Type": "application/json"},
+        "body": b'{"household":{"foo":"bar"}}',
+    }
 
     def fake_cls_from_name(app_name, class_name):
         raise modal.exception.NotFoundError(
@@ -210,13 +222,11 @@ def test_call_modal_worker_dispatch_supports_legacy_function(monkeypatch):
         modal.Function, "from_name", staticmethod(fake_function_from_name)
     )
 
-    result = call_modal_worker_dispatch(
-        "current-app", {"household": {"foo": "bar"}}
-    )
+    result = call_modal_worker_dispatch("current-app", payload)
 
     assert result["status_code"] == 200
     assert captured == {
         "app_name": "current-app",
         "function_name": "handle_household_request",
-        "payload": {"household": {"foo": "bar"}},
+        "payload": payload,
     }

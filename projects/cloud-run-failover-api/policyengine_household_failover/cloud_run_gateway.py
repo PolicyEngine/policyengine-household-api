@@ -57,6 +57,8 @@ from policyengine_observability import segment
 from policyengine_observability import set_attribute
 from policyengine_household_common.gateway import (
     VERSIONED_ENDPOINTS,
+    WorkerRequest,
+    WorkerResult,
     build_worker_request,
     country_and_endpoint,
     extract_requested_version,
@@ -363,11 +365,11 @@ class GcsFailoverManifestLoader:
 def create_gateway_app(
     *,
     manifest_loader: Callable[[], dict[str, Any]] | None = None,
-    modal_request: Callable[[str, dict[str, Any]], Response] | None = None,
+    modal_request: Callable[[str, WorkerRequest], Response] | None = None,
     modal_health_probe: Callable[[str], None] | None = None,
     modal_canary_probe: Callable[[], None] | None = None,
     fallback_request: (
-        Callable[[ResolvedFailoverChannel, dict[str, Any]], Response] | None
+        Callable[[ResolvedFailoverChannel, WorkerRequest], Response] | None
     ) = None,
     modal_status_checker: Callable[[], dict[str, Any]] | None = None,
     fallback_warmup: Callable[[ResolvedFailoverChannel], None] | None = None,
@@ -580,7 +582,7 @@ def _configured_auth0_client_id_attributor() -> Callable[
     return attribute_client_id
 
 
-def call_modal_worker(app_name: str, payload: dict[str, Any]) -> Response:
+def call_modal_worker(app_name: str, payload: WorkerRequest) -> Response:
     return response_from_worker_result(
         _call_modal_worker_dispatch(app_name, payload)
     )
@@ -626,8 +628,8 @@ def probe_modal_canary() -> None:
 
 def _call_modal_worker_dispatch(
     app_name: str,
-    payload: dict[str, Any],
-) -> dict[str, Any]:
+    payload: WorkerRequest,
+) -> WorkerResult:
     environment = os.getenv(MODAL_ENVIRONMENT_ENV, "").strip()
     try:
         return call_modal_worker_dispatch(
@@ -641,7 +643,7 @@ def _call_modal_worker_dispatch(
 
 def call_cloud_run_worker(
     resolved: ResolvedFailoverChannel,
-    payload: dict[str, Any],
+    payload: WorkerRequest,
 ) -> Response:
     dispatch_url = _join_url(
         resolved.cloud_run_worker_url,
@@ -715,15 +717,15 @@ def fetch_modal_status() -> dict[str, Any]:
 
 def _route_to_backend(
     resolved: ResolvedFailoverChannel,
-    payload: dict[str, Any],
+    payload: WorkerRequest,
     *,
     circuits: CircuitRegistry,
     policy: ModalCircuitPolicy,
-    call_modal: Callable[[str, dict[str, Any]], Response],
+    call_modal: Callable[[str, WorkerRequest], Response],
     probe_modal: Callable[[str], None],
     probe_canary: Callable[[], None],
     call_fallback: Callable[
-        [ResolvedFailoverChannel, dict[str, Any]], Response
+        [ResolvedFailoverChannel, WorkerRequest], Response
     ],
     check_modal_status: Callable[[], dict[str, Any]],
     warm_fallback: Callable[[ResolvedFailoverChannel], None],
@@ -924,10 +926,10 @@ def _refresh_open_modal_circuit(
 
 def _route_to_fallback_or_503(
     resolved: ResolvedFailoverChannel,
-    payload: dict[str, Any],
+    payload: WorkerRequest,
     *,
     call_fallback: Callable[
-        [ResolvedFailoverChannel, dict[str, Any]], Response
+        [ResolvedFailoverChannel, WorkerRequest], Response
     ],
 ) -> tuple[Response, str]:
     try:

@@ -2,7 +2,8 @@
 
 Shared kernel for the PolicyEngine Household API services: constants, config
 loading, pydantic models, observability integration, version routing, release
-manifest handling, typed HTTP request dispatch, and dispatch codecs.
+manifest handling, typed HTTP request and response dispatch, and dispatch
+codecs.
 
 This package deliberately keeps a light dependency closure — no numpy, no
 SQLAlchemy, no country model packages, no modal — because the slim analytics

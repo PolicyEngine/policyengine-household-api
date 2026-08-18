@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 
 MODAL_ROUTING_PAYLOAD_KEY = "modal_routing"
@@ -23,7 +23,7 @@ def modal_routing_payload(
     }
 
 
-def routing_environ_overrides(payload: dict[str, Any]) -> dict[str, str]:
+def routing_environ_overrides(payload: Mapping[str, Any]) -> dict[str, str]:
     routing = payload.get(MODAL_ROUTING_PAYLOAD_KEY)
     if not isinstance(routing, dict):
         return {}

@@ -3,8 +3,9 @@
 The household API publishes Docker images to
 `ghcr.io/policyengine/policyengine-household-api` as a distribution artifact
 for self-hosting and local development. Image publishing is not deployment:
-the hosted API runs only on Modal (see `modal-release-prs.md`), and the
-publish workflow must never gate, modify, or participate in Modal releases.
+the hosted API receives public requests through Cloud Run and normally
+dispatches them to Modal workers (see `modal-release-prs.md`). The publish
+workflow must never control or participate in hosted API releases.
 
 ## Tag scheme
 

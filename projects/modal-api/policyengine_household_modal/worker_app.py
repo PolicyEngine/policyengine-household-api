@@ -17,6 +17,8 @@ from policyengine_household_modal.images import (
 )
 from policyengine_household_common.release_manifest import build_app_name
 from policyengine_household_common.worker_dispatch import (
+    WorkerRequest,
+    WorkerResult,
     dispatch_to_flask_app,
 )
 from policyengine_household_common.observability.flask import (
@@ -175,9 +177,7 @@ class HouseholdWorker:
         reset_post_snapshot_process_state(self.flask_app)
 
     @modal.method()
-    def handle_household_request(
-        self, payload: dict[str, Any]
-    ) -> dict[str, Any]:
+    def handle_household_request(self, payload: WorkerRequest) -> WorkerResult:
         with operation(
             "modal_worker_dispatch",
             flavor="modal_worker",
