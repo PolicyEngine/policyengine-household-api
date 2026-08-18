@@ -65,5 +65,7 @@ uv run python -m policyengine_household_modal.warm_worker \
   --app-name <throwaway-worker> --modal-environment <throwaway>
 MODAL_ENVIRONMENT=<throwaway> \
   uv run modal deploy --env <throwaway> -m policyengine_household_modal.canary_app
+uv run python -m policyengine_household_modal.verify_canary \
+  --modal-environment <throwaway>
 uv run modal environment delete <throwaway> --yes
 ```

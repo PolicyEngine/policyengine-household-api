@@ -65,6 +65,9 @@ deploy_canary_app() {
     uv run modal deploy \
       --env "${modal_environment}" \
       -m policyengine_household_modal.canary_app
+
+  uv run python -m policyengine_household_modal.verify_canary \
+    --modal-environment "${modal_environment}"
 }
 
 require_env \
