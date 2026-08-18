@@ -25,7 +25,7 @@ from policyengine_household_common.worker_dispatch import (
 DEFAULT_TIMEOUT_SECONDS = 1200
 RETRY_BACKOFF_SECONDS = 10
 
-# The raw payload shape the Modal gateway sends to
+# The raw payload shape the Cloud Run HTTP service sends to
 # HouseholdWorker.handle_household_request; see
 # policyengine_household_common.gateway._request_payload.
 LIVENESS_DISPATCH_PAYLOAD = {

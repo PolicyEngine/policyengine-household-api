@@ -60,11 +60,12 @@ Mirror the existing staged Modal release pathway:
 
 1. Run the existing lint and test jobs.
 2. Resolve Modal release config.
-3. Deploy the Modal app set to staging.
+3. Deploy the Modal workers and canary to staging.
 4. Deploy staging Cloud Run fallback workers and gateway from the active Modal
    staging manifest.
-5. Run deployed tests against both the Modal gateway and the Cloud Run gateway.
-6. Deploy the Modal app set to production.
+5. Run normal Modal-backend and forced-fallback tests through the Cloud Run
+   gateway.
+6. Deploy the Modal workers and canary to production.
 7. Deploy production Cloud Run fallback workers and gateway from the active
    Modal production manifest.
 8. Smoke-check production Cloud Run gateway health.

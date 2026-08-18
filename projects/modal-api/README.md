@@ -1,9 +1,10 @@
 # modal-api
 
-The Modal apps for the PolicyEngine Household API: the worker apps that host
-the core household application, the version-routing gateway, the health-check
-canary, and the release manifest CLIs (`update_manifest`, `prune_manifest`,
-`rewrite_manifest`, `analytics_revision`).
+The Modal apps for the PolicyEngine Household API: the versioned worker apps
+that host the core household application, the health-check canary, and the
+release manifest CLIs (`update_manifest`, `prune_manifest`,
+`rewrite_manifest`, `analytics_revision`). Public HTTP requests enter through
+the Cloud Run service in `projects/cloud-run-failover-api`.
 
 Never published. Image builds export the member's locked closure with
 `uv export` because Modal's `Image.uv_sync` does not support uv workspaces;

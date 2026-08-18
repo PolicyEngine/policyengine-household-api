@@ -72,6 +72,10 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
         "-m policyengine_household_modal.warm_worker "
         "--app-name frontier-app" in log
     )
+    assert "requirements-modal-gateway.txt" not in log
+    assert "policyengine_household_modal.gateway_app" not in log
+    assert "get-url-called" not in log
+    assert "curl-called" not in log
     assert "-m policyengine_household_modal.update_manifest" not in log
     assert "cleanup-called" not in log
 
@@ -199,12 +203,16 @@ def _deploy_env(tmp_path: Path, log_path: Path) -> dict[str, str]:
 
     get_url_script = tmp_path / "get-url.sh"
     get_url_script.write_text(
-        "#!/usr/bin/env bash\necho http://example.test\n"
+        f"#!/usr/bin/env bash\n"
+        f"echo get-url-called >> {log_path}\n"
+        "echo http://example.test\n"
     )
     get_url_script.chmod(0o755)
 
     fake_curl = tmp_path / "curl"
-    fake_curl.write_text("#!/usr/bin/env bash\nexit 0\n")
+    fake_curl.write_text(
+        f"#!/usr/bin/env bash\necho curl-called >> {log_path}\nexit 0\n"
+    )
     fake_curl.chmod(0o755)
 
     return {

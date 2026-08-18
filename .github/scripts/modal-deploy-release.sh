@@ -9,7 +9,6 @@ modal_sync_secrets_script="${MODAL_SYNC_SECRETS_SCRIPT:-.github/scripts/modal-sy
 modal_active_worker_apps_script="${MODAL_ACTIVE_WORKER_APPS_SCRIPT:-.github/scripts/modal_active_worker_apps.py}"
 modal_require_active_channels_script="${MODAL_REQUIRE_ACTIVE_CHANNELS_SCRIPT:-.github/scripts/modal_require_active_channels.py}"
 modal_cleanup_apps_script="${MODAL_CLEANUP_APPS_SCRIPT:-.github/scripts/modal-cleanup-apps.sh}"
-modal_get_url_script="${MODAL_GET_URL_SCRIPT:-.github/scripts/modal-get-url.sh}"
 
 require_env() {
   local missing=()
@@ -95,9 +94,6 @@ uv run python "${modal_require_active_channels_script}" \
 uv export --frozen --no-dev --no-emit-workspace --no-hashes \
   --package policyengine-household-modal-api --extra worker \
   -o requirements-modal-worker.txt
-uv export --frozen --no-dev --no-emit-workspace --no-hashes \
-  --package policyengine-household-modal-api \
-  -o requirements-modal-gateway.txt
 
 # Migrations run in the dedicated migrate-analytics-db job before this
 # script; here we only read the database's current revision for the manifest.
@@ -154,10 +150,6 @@ else
     --manifest-output modal-manifest.json
 fi
 
-uv run modal deploy \
-  --env "${modal_environment}" \
-  -m policyengine_household_modal.gateway_app
-
 if [ "${deploy_mode}" = "release" ]; then
   cleanup_target="$(config_value cleanup_target)"
   if [ "${cleanup_target}" != "none" ]; then
@@ -176,6 +168,3 @@ if [ "${deploy_mode}" = "release" ]; then
     fi
   fi
 fi
-
-gateway_url="$(bash "${modal_get_url_script}")"
-curl -fsS "${gateway_url}/liveness_check"

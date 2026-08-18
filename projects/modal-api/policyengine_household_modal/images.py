@@ -12,7 +12,6 @@ import modal
 # Keep these factories free of eager work: this module is re-imported inside
 # running containers, where no repository checkout exists.
 WORKER_REQUIREMENTS_FILE = "requirements-modal-worker.txt"
-GATEWAY_REQUIREMENTS_FILE = "requirements-modal-gateway.txt"
 
 FIRST_PARTY_PACKAGES = (
     "policyengine_household_api",
@@ -29,8 +28,8 @@ def household_api_worker_image() -> modal.Image:
         # instead of re-running the deploy-machine-only build steps below.
         return modal.Image.debian_slim(python_version="3.13")
 
-    # Imported lazily: this module is also imported inside gateway and canary
-    # containers, whose images deliberately do not ship the core package.
+    # Imported lazily: this module is also imported inside canary containers,
+    # whose image deliberately does not ship the core package.
     from policyengine_household_api.deployment import (
         country_package_install_specs,
         preload_country_packages,
@@ -46,22 +45,6 @@ def household_api_worker_image() -> modal.Image:
         image.add_local_python_source(*FIRST_PARTY_PACKAGES, copy=True)
         .add_local_dir("config", remote_path="/app/config", copy=True)
         .run_function(preload_country_packages)
-    )
-
-
-def household_api_gateway_image() -> modal.Image:
-    if not modal.is_local():
-        # See household_api_worker_image: containers only need a placeholder.
-        return modal.Image.debian_slim(python_version="3.13")
-
-    return (
-        modal.Image.debian_slim(python_version="3.13")
-        .uv_pip_install(requirements=[GATEWAY_REQUIREMENTS_FILE])
-        .add_local_python_source(
-            "policyengine_household_common",
-            "policyengine_household_modal",
-            copy=True,
-        )
     )
 
 

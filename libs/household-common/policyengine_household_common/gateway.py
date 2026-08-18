@@ -1,232 +1,35 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
-from typing import Any, Callable
+from typing import Any, Protocol
 
-from flask import Flask, Response, jsonify, request
+from flask import Response, jsonify, request
 
 from policyengine_household_common.constants import COUNTRIES
-from policyengine_household_common.observability.flask import (
-    init_observability,
-)
-from policyengine_household_common.observability.segments import SegmentName
 from policyengine_observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
     REQUEST_ID_HEADER,
     TRACEPARENT_HEADER,
     current_context,
-    record_error,
-    segment,
-    set_attribute,
     traceparent_header,
-)
-from policyengine_household_common.release_manifest import (
-    MANIFEST_DICT_KEY,
-    MANIFEST_DICT_NAME,
-    empty_manifest,
-    validate_manifest,
 )
 from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
     modal_routing_payload,
 )
-from policyengine_household_common.version_config import (
-    ACTIVE_RELEASE_CHANNELS,
-)
-from policyengine_household_common.version_routing import (
-    UnsupportedVersionError,
-    VersionRoutingError,
-    active_versions_for_country,
-)
-from policyengine_household_common.worker_dispatch import (
-    call_modal_worker_dispatch,
-)
+from policyengine_household_common.version_routing import VersionRoutingError
 
 
 VERSIONED_ENDPOINTS = {"calculate", "calculate_demo"}
 
 
-@dataclass(frozen=True)
-class ResolvedApp:
-    app_name: str
+class ResolvedRequest(Protocol):
     requested_version: str
     channel: str
 
 
 class GatewayResolutionError(VersionRoutingError):
     pass
-
-
-def create_gateway_app(
-    *,
-    manifest_loader: Callable[[], dict[str, Any]] | None = None,
-    worker_request: Callable[[str, dict[str, Any]], Response] | None = None,
-) -> Flask:
-    app = Flask(__name__)
-    init_observability(app, service_role="modal_gateway")
-    load_manifest = manifest_loader or load_modal_manifest
-    route_to_worker_function = worker_request or call_worker_function
-
-    @app.get("/liveness_check")
-    def liveness_check() -> Response:
-        return Response("OK", status=200, mimetype="text/plain")
-
-    @app.get("/readiness_check")
-    def readiness_check() -> Response:
-        manifest = load_manifest()
-        if not validate_manifest(manifest).get("current"):
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": "No current household API app is configured",
-                }
-            ), 503
-        return Response("OK", status=200, mimetype="text/plain")
-
-    @app.get("/versions")
-    def versions() -> Response:
-        return jsonify(validate_manifest(load_manifest()))
-
-    @app.get("/versions/<country_id>")
-    def country_versions(country_id: str) -> Response:
-        if country_id not in COUNTRIES:
-            return _json_error(f"Unsupported country `{country_id}`", 404)
-
-        manifest = validate_manifest(load_manifest())
-        country_versions = {}
-        for channel in ACTIVE_RELEASE_CHANNELS:
-            app_reference = manifest.get(channel)
-            if not app_reference:
-                continue
-            country_versions[channel] = app_reference["package_versions"].get(
-                country_id
-            )
-        return jsonify(country_versions)
-
-    @app.route(
-        "/",
-        defaults={"path": ""},
-        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    )
-    @app.route(
-        "/<path:path>",
-        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    )
-    def route_request(path: str) -> Response:
-        country_id, endpoint = _country_and_endpoint(path)
-        body = request.get_data()
-        set_attribute("country_id", country_id)
-        set_attribute("endpoint", endpoint)
-
-        try:
-            with segment(SegmentName.MANIFEST_LOAD):
-                manifest = validate_manifest(load_manifest())
-            with segment(SegmentName.VERSION_RESOLUTION):
-                if country_id and endpoint in VERSIONED_ENDPOINTS:
-                    body, requested_version = _extract_requested_version(body)
-                else:
-                    requested_version = "current"
-                resolved_app = resolve_app_for_request(
-                    manifest,
-                    country_id=country_id,
-                    requested_version=requested_version,
-                )
-            set_attribute("backend", "modal")
-            set_attribute("modal_app_name", resolved_app.app_name)
-            set_attribute(
-                "requested_version",
-                resolved_app.requested_version,
-            )
-            set_attribute("resolved_channel", resolved_app.channel)
-            with segment(SegmentName.WORKER_DISPATCH, backend="modal"):
-                return route_to_worker_function(
-                    resolved_app.app_name,
-                    _request_payload(path, body, resolved_app),
-                )
-        except VersionRoutingError as e:
-            record_error(
-                e,
-                handled=True,
-                status_code=e.status_code,
-                include_stack=False,
-            )
-            return _json_error(
-                str(e),
-                e.status_code,
-                code=e.code,
-                requested_version=e.requested_version,
-                country_id=e.country_id,
-                available_versions=e.available_versions,
-            )
-
-    return app
-
-
-def load_modal_manifest() -> dict[str, Any]:
-    import modal
-    from modal.exception import NotFoundError
-
-    try:
-        manifest_dict = modal.Dict.from_name(
-            MANIFEST_DICT_NAME,
-            create_if_missing=False,
-        )
-    except NotFoundError:
-        return empty_manifest()
-    return validate_manifest(manifest_dict.get(MANIFEST_DICT_KEY))
-
-
-def resolve_app_for_request(
-    manifest: dict[str, Any],
-    *,
-    country_id: str | None,
-    requested_version: str | None,
-) -> ResolvedApp:
-    requested = requested_version or "current"
-
-    if requested in ACTIVE_RELEASE_CHANNELS:
-        app_reference = manifest.get(requested)
-        if not app_reference:
-            raise GatewayResolutionError(
-                f"No `{requested}` household API version is available"
-            )
-        return ResolvedApp(
-            app_name=app_reference["app_name"],
-            requested_version=requested,
-            channel=requested,
-        )
-
-    if not country_id:
-        raise GatewayResolutionError(
-            "Exact package version routing requires a country endpoint"
-        )
-
-    for channel in ACTIVE_RELEASE_CHANNELS:
-        app_reference = manifest.get(channel)
-        if not app_reference:
-            continue
-        package_version = app_reference["package_versions"].get(country_id)
-        if package_version == requested:
-            return ResolvedApp(
-                app_name=app_reference["app_name"],
-                requested_version=requested,
-                channel=channel,
-            )
-
-    available_versions = active_versions_for_country(manifest, country_id)
-    raise UnsupportedVersionError(
-        country_id=country_id,
-        requested_version=requested,
-        available_versions=available_versions,
-        active_target_label="household API app",
-    )
-
-
-def call_worker_function(app_name: str, payload: dict[str, Any]) -> Response:
-    return _response_from_dispatch_result(
-        call_modal_worker_dispatch(app_name, payload)
-    )
 
 
 def _extract_requested_version(body: bytes) -> tuple[bytes, str]:
@@ -258,7 +61,7 @@ def _country_and_endpoint(path: str) -> tuple[str | None, str | None]:
 def _request_payload(
     path: str,
     body: bytes,
-    resolved_app: ResolvedApp,
+    resolved_app: ResolvedRequest,
 ) -> dict[str, Any]:
     return {
         "method": request.method,

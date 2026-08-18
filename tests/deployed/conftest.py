@@ -23,10 +23,9 @@ VERSION_RESOLUTION_BACKOFF_SECONDS = 15
 class CaseInsensitiveHeaders(dict):
     """Response headers with case-insensitive lookups.
 
-    Cloud Run serves responses over HTTP/2, which lowercases all header names,
-    while Modal serves HTTP/1.1 with the original casing. Normalising keys keeps
-    assertions such as ``headers["X-PolicyEngine-Backend"]`` working regardless
-    of which gateway answered.
+    Cloud Run serves responses over HTTP/2, which lowercases all header names.
+    Normalising keys keeps assertions such as
+    ``headers["X-PolicyEngine-Backend"]`` independent of transport casing.
     """
 
     def __init__(self, items=()):

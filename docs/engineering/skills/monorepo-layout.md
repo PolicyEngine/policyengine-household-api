@@ -9,10 +9,10 @@ configuration and the dev dependency group.
 
 | Directory | Package | Role |
 |---|---|---|
-| `libs/household-common` | `policyengine_household_common` | Light shared kernel: constants, config loader, pydantic models, observability, version routing, gateway core, release manifest/config, dispatch codecs. **No numpy, SQLAlchemy, modal, or country packages** — the slim writer image installs it, and hygiene tests enforce the boundary. |
+| `libs/household-common` | `policyengine_household_common` | Light shared kernel: constants, config loader, pydantic models, observability, HTTP dispatch helpers, version routing, release manifest/config, dispatch codecs. **No numpy, SQLAlchemy, modal, or country packages** — the slim writer image installs it, and hygiene tests enforce the boundary. |
 | `libs/household-analytics` | `policyengine_household_analytics` | Analytics events, persistence, ORM, database setup; Alembic migration scripts ship inside the package. |
 | `libs/household-api` | `policyengine_household_api` | The core Flask application (endpoints, country engine, auth, analytics producer). The published PyPI package; import path unchanged. |
-| `projects/modal-api` | `policyengine_household_modal` | Modal worker/gateway/canary apps, image builders, release manifest CLIs. Never published. |
+| `projects/modal-api` | `policyengine_household_modal` | Modal worker and canary apps, image builders, release manifest CLIs. Never published. |
 | `projects/cloud-run-failover-api` | `policyengine_household_failover` | Cloud Run gateway + fallback workers. Base closure = slim gateway; the `worker` extra pulls the core app. Never published. |
 | `projects/analytics-api` | `policyengine_household_analytics_api` | The Cloud Run analytics writer + `alembic.ini`. Depends only on the analytics lib; heavy modules are structurally uninstallable in its closure. Never published. |
 

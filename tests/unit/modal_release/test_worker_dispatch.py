@@ -1,6 +1,8 @@
 from flask import Flask, Response, request
+import modal
 
 from policyengine_household_common.worker_dispatch import (
+    call_modal_worker_dispatch,
     dispatch_to_flask_app,
 )
 from policyengine_household_common.routing_metadata import (
@@ -136,3 +138,85 @@ def test_dispatch_to_flask_app_removes_hop_by_hop_response_headers():
     assert "Connection" not in response_headers
     assert "Content-Length" not in response_headers
     assert response_headers["X-Diagnostic"] == "kept"
+
+
+def test_call_modal_worker_dispatch_uses_worker_class(monkeypatch):
+    captured = {}
+
+    class StubMethod:
+        def remote(self, payload):
+            captured["payload"] = payload
+            return {"status_code": 200, "body": b'{"status":"ok"}'}
+
+    class StubInstance:
+        handle_household_request = StubMethod()
+
+    class StubClass:
+        def __call__(self):
+            return StubInstance()
+
+    def fake_cls_from_name(app_name, class_name):
+        captured["app_name"] = app_name
+        captured["class_name"] = class_name
+        return StubClass()
+
+    monkeypatch.setattr(
+        modal.Cls, "from_name", staticmethod(fake_cls_from_name)
+    )
+    monkeypatch.setattr(
+        modal.Function,
+        "from_name",
+        staticmethod(
+            lambda *_args: (_ for _ in ()).throw(
+                AssertionError("legacy function lookup must not run")
+            )
+        ),
+    )
+
+    result = call_modal_worker_dispatch(
+        "frontier-app", {"household": {"foo": "bar"}}
+    )
+
+    assert result["status_code"] == 200
+    assert captured == {
+        "app_name": "frontier-app",
+        "class_name": "HouseholdWorker",
+        "payload": {"household": {"foo": "bar"}},
+    }
+
+
+def test_call_modal_worker_dispatch_supports_legacy_function(monkeypatch):
+    captured = {}
+
+    def fake_cls_from_name(app_name, class_name):
+        raise modal.exception.NotFoundError(
+            f"No class named `{class_name}` in app `{app_name}`"
+        )
+
+    class StubFunction:
+        def remote(self, payload):
+            captured["payload"] = payload
+            return {"status_code": 200, "body": b'{"status":"ok"}'}
+
+    def fake_function_from_name(app_name, function_name):
+        captured["app_name"] = app_name
+        captured["function_name"] = function_name
+        return StubFunction()
+
+    monkeypatch.setattr(
+        modal.Cls, "from_name", staticmethod(fake_cls_from_name)
+    )
+    monkeypatch.setattr(
+        modal.Function, "from_name", staticmethod(fake_function_from_name)
+    )
+
+    result = call_modal_worker_dispatch(
+        "current-app", {"household": {"foo": "bar"}}
+    )
+
+    assert result["status_code"] == 200
+    assert captured == {
+        "app_name": "current-app",
+        "function_name": "handle_household_request",
+        "payload": {"household": {"foo": "bar"}},
+    }
