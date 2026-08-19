@@ -23,7 +23,7 @@ MODAL_RELEASE_PATH_PREFIXES = (
     ".github/scripts/modal",
     ".github/scripts/check_modal_release_",
     ".github/scripts/resolve_modal_release_config.py",
-    ".github/scripts/run-deployed-tests-for-modal-route.sh",
+    ".github/scripts/run-deployed-tests-for-cloud-run-route.sh",
     ".github/workflows/deploy-staged.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
     "docs/engineering/skills/modal-release-prs.md",

@@ -29,6 +29,9 @@ from policyengine_household_failover.cloud_run_gateway import (
 from policyengine_household_common.dispatch_codec import (
     encode_dispatch_response,
 )
+from policyengine_household_common.routing_metadata import (
+    MODAL_ROUTING_PAYLOAD_KEY,
+)
 from policyengine_household_failover.manifest import (
     FailoverManifestError,
     FailoverManifestReadError,
@@ -148,6 +151,118 @@ def test_gateway_routes_to_modal_when_health_probe_succeeds():
     assert response.headers["X-PolicyEngine-Backend"] == "modal"
     assert response.headers["X-PolicyEngine-Primary-State"] == "healthy"
     assert response.headers["X-PolicyEngine-Route-Channel"] == "current"
+
+
+def test_gateway_forwards_request_metadata_and_strips_version():
+    requests = []
+    client = _client(
+        modal_request=lambda app_name, payload: (
+            requests.append((app_name, payload))
+            or _json_response({"backend": "modal"})
+        )
+    )
+
+    response = client.post(
+        "/us/calculate?mode=test",
+        json={"version": "frontier", "household": {}},
+        headers={"X-Test-Header": "forwarded"},
+    )
+
+    assert response.status_code == 200
+    app_name, payload = requests[0]
+    assert app_name == "modal-frontier"
+    assert payload["method"] == "POST"
+    assert payload["path"] == "us/calculate"
+    assert payload["query_string"] == "mode=test"
+    assert payload["headers"]["X-Test-Header"] == "forwarded"
+    assert json.loads(payload["body"]) == {"household": {}}
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "frontier",
+        "resolved_channel": "frontier",
+    }
+
+
+def test_gateway_keeps_version_on_non_versioned_route():
+    requests = []
+    client = _client(
+        modal_request=lambda app_name, payload: (
+            requests.append((app_name, payload))
+            or _json_response({"backend": "modal"})
+        )
+    )
+
+    response = client.post(
+        "/us/metadata",
+        json={"version": "frontier", "household": {}},
+    )
+
+    assert response.status_code == 200
+    app_name, payload = requests[0]
+    assert app_name == "modal-current"
+    assert json.loads(payload["body"])["version"] == "frontier"
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY] == {
+        "requested_version": "current",
+        "resolved_channel": "current",
+    }
+
+
+def test_gateway_keeps_malformed_json_when_defaulting_to_current():
+    requests = []
+    client = _client(
+        modal_request=lambda app_name, payload: (
+            requests.append((app_name, payload))
+            or _json_response({"backend": "modal"})
+        )
+    )
+
+    response = client.post(
+        "/us/calculate",
+        data=b'{"version":',
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    app_name, payload = requests[0]
+    assert app_name == "modal-current"
+    assert payload["body"] == b'{"version":'
+
+
+def test_gateway_routes_non_country_path_to_current():
+    requests = []
+    client = _client(
+        modal_request=lambda app_name, payload: (
+            requests.append((app_name, payload))
+            or _json_response({"backend": "modal"})
+        )
+    )
+
+    response = client.get("/specification")
+
+    assert response.status_code == 200
+    app_name, payload = requests[0]
+    assert app_name == "modal-current"
+    assert payload["path"] == "specification"
+
+
+def test_gateway_readiness_fails_without_current_channel():
+    manifest = _manifest()
+    manifest["channels"]["current"] = None
+
+    response = _client(manifest_loader=lambda: manifest).get(
+        "/readiness_check"
+    )
+
+    assert response.status_code == 503
+    assert response.get_json()["message"] == (
+        "No current failover channel is configured"
+    )
+
+
+def test_gateway_rejects_unsupported_country_versions_path():
+    response = _client().get("/versions/zz")
+
+    assert response.status_code == 404
+    assert response.get_json()["message"] == "Unsupported country `zz`"
 
 
 def test_gateway_adds_validated_auth0_client_id_only_to_request_log():

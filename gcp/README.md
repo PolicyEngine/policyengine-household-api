@@ -11,8 +11,8 @@ here. (App Engine has been retired — do not add App Engine deployment assets,
 - `policyengine_household_api/Dockerfile.production` (+ `start.sh`) — the
   self-hostable API image, published to ghcr.io by
   `.github/workflows/publish-docker-image.yml`. Each image serves exactly one
-  model version; the hosted API's request-body `version` routing is a Modal
-  gateway feature and is not part of these images.
+  model version; the hosted API's Cloud Run service implements request-body
+  `version` routing, which is not part of these images.
 - `cloud_run/` — Dockerfiles and entrypoints for the Cloud Run services on the
   live serving path (`gateway`, failover `worker`, `analytics_writer`), built
   and deployed by `.github/workflows/deploy-staged.yml`.

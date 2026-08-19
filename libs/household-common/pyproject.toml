@@ -9,9 +9,8 @@ authors = [
 requires-python = ">=3.12"
 # Keep this closure light on purpose: no numpy, no SQLAlchemy, no country
 # model packages, no modal. The analytics writer's image depends on it.
-# (gateway.py and worker_dispatch.py import modal lazily at call time; modal
-# is deliberately a dependency of the service projects that run them, not of
-# this lib.)
+# worker_dispatch.py imports modal lazily at call time; modal is deliberately
+# a dependency of the service projects that use it, not of this library.
 dependencies = [
     "flask>=2.2",
     "pydantic",

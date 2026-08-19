@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from policyengine_household_common.observability.segments import SegmentName
 from policyengine_household_common.routing_metadata import (
@@ -17,9 +17,26 @@ HOP_BY_HOP_RESPONSE_HEADERS = {
 }
 
 
-def dispatch_to_flask_app(
-    flask_app, payload: dict[str, Any]
-) -> dict[str, Any]:
+class WorkerRequest(TypedDict):
+    """Serializable HTTP request accepted by a calculation worker."""
+
+    method: str
+    path: str
+    query_string: str
+    headers: dict[str, str]
+    body: bytes
+    modal_routing: NotRequired[dict[str, str] | None]
+
+
+class WorkerResult(TypedDict):
+    """HTTP response returned by a calculation worker."""
+
+    status_code: int
+    body: NotRequired[bytes | str | None]
+    headers: NotRequired[list[tuple[str, str]]]
+
+
+def dispatch_to_flask_app(flask_app, payload: WorkerRequest) -> WorkerResult:
     path = _path_with_query(
         str(payload.get("path") or ""),
         str(payload.get("query_string") or ""),
@@ -57,11 +74,11 @@ def _path_with_query(path: str, query_string: str) -> str:
 
 def call_modal_worker_dispatch(
     app_name: str,
-    payload: dict[str, Any],
+    payload: WorkerRequest,
     *,
     environment_name: str | None = None,
     timeout_seconds: float | None = None,
-) -> dict[str, Any]:
+) -> WorkerResult:
     """Dispatch a request payload to a deployed Modal worker app.
 
     Prefer the class-based worker (post #1528). During a release transition
@@ -110,9 +127,9 @@ def call_modal_worker_dispatch(
 
 def _dispatch_result(
     method: Any,
-    payload: dict[str, Any],
+    payload: WorkerRequest,
     timeout_seconds: float | None,
-) -> dict[str, Any]:
+) -> WorkerResult:
     if timeout_seconds is None:
         return method.remote(payload)
     return method.spawn(payload).get(timeout=timeout_seconds)

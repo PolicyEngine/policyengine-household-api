@@ -16,6 +16,8 @@ from policyengine_household_common.request_limits import (
     max_content_length_bytes,
 )
 from policyengine_household_common.worker_dispatch import (
+    WorkerRequest,
+    WorkerResult,
     dispatch_to_flask_app,
 )
 from policyengine_household_common.observability.flask import (
@@ -29,8 +31,7 @@ from policyengine_household_common.observability.flask import (
 def create_worker_app(
     *,
     flask_app: Flask | None = None,
-    dispatcher: Callable[[Flask, dict[str, Any]], dict[str, Any]]
-    | None = None,
+    dispatcher: Callable[[Flask, WorkerRequest], WorkerResult] | None = None,
 ) -> Flask:
     if flask_app is None:
         configure_process_observability(

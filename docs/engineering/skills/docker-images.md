@@ -3,8 +3,9 @@
 The household API publishes Docker images to
 `ghcr.io/policyengine/policyengine-household-api` as a distribution artifact
 for self-hosting and local development. Image publishing is not deployment:
-the hosted API runs only on Modal (see `modal-release-prs.md`), and the
-publish workflow must never gate, modify, or participate in Modal releases.
+the hosted API receives public requests through Cloud Run and normally
+dispatches them to Modal workers (see `modal-release-prs.md`). The publish
+workflow must never control or participate in hosted API releases.
 
 ## Tag scheme
 
@@ -79,13 +80,13 @@ docker build -f gcp/policyengine_household_api/Dockerfile.production \
 
 ## Constraints
 
-- Do not add image publishing steps to `deploy-staged.yml`; the release
-  workflow stays Modal-only.
+- Do not add image publishing steps to `deploy-staged.yml`; deployment and
+  image publishing remain separate workflows.
 - The publish workflow uses only the built-in `GITHUB_TOKEN` with
   `packages: write`. Do not add registry credentials or other secrets.
-- A container serves exactly one model version. The hosted API's
-  request-body `version` routing is a Modal gateway feature and does not
-  exist in these images.
+- A container serves exactly one model version. The hosted API's Cloud Run
+  service implements request-body `version` routing; the self-hosted image
+  does not.
 - `gcp/policyengine_household_api/Dockerfile.production` is the only
   published Dockerfile. `docker/Dockerfile.api` is the docker-compose dev
   image and is not published.

@@ -50,6 +50,30 @@ def test_policyengine_cloud_run_deploy_jobs_pass_auth0_environment():
             assert env[key] == value
 
 
+def test_deployed_api_tests_only_use_cloud_run_gateway():
+    workflow = _load_workflow()
+    jobs = workflow["jobs"]
+
+    assert "integration-tests-staging" not in jobs
+    for job_id in (
+        "integration-tests-cloud-run-staging",
+        "integration-tests-cloud-run-fallback-staging",
+    ):
+        run_commands = "\n".join(
+            step.get("run", "") for step in jobs[job_id]["steps"]
+        )
+        assert "run-deployed-tests-for-cloud-run-route.sh" in run_commands
+        assert "run-deployed-tests-for-modal-route.sh" not in run_commands
+
+    production_dependencies = jobs["gate-production"]["needs"]
+    assert "integration-tests-staging" not in production_dependencies
+    assert "integration-tests-cloud-run-staging" in production_dependencies
+    assert (
+        "integration-tests-cloud-run-fallback-staging"
+        in production_dependencies
+    )
+
+
 def test_pypi_distributions_are_built_without_oidc_permission():
     workflow = _load_workflow()
     job = workflow["jobs"]["build-pypi-distributions"]

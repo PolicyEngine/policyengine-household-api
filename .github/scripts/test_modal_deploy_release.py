@@ -57,7 +57,11 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
     assert "modal_require_active_channels.py" in log
-    assert "-m policyengine_household_modal.canary_app" in log
+    canary_deploy = "-m policyengine_household_modal.canary_app"
+    canary_verify = "-m policyengine_household_modal.verify_canary"
+    assert canary_deploy in log
+    assert canary_verify in log
+    assert log.index(canary_deploy) < log.index(canary_verify)
     assert "DEPLOY_APP=current-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
     assert "DEPLOY_APP=frontier-app" in log
@@ -72,6 +76,10 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
         "-m policyengine_household_modal.warm_worker "
         "--app-name frontier-app" in log
     )
+    assert "requirements-modal-gateway.txt" not in log
+    assert "policyengine_household_modal.gateway_app" not in log
+    assert "get-url-called" not in log
+    assert "curl-called" not in log
     assert "-m policyengine_household_modal.update_manifest" not in log
     assert "cleanup-called" not in log
 
@@ -107,6 +115,7 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "alembic upgrade" not in log
     assert "policyengine_household_modal.analytics_revision" in log
     assert "-m policyengine_household_modal.canary_app" in log
+    assert "-m policyengine_household_modal.verify_canary" in log
     assert "DEPLOY_APP=release-app" in log
     warm_release_app = (
         "-m policyengine_household_modal.warm_worker --app-name release-app"
@@ -199,12 +208,16 @@ def _deploy_env(tmp_path: Path, log_path: Path) -> dict[str, str]:
 
     get_url_script = tmp_path / "get-url.sh"
     get_url_script.write_text(
-        "#!/usr/bin/env bash\necho http://example.test\n"
+        f"#!/usr/bin/env bash\n"
+        f"echo get-url-called >> {log_path}\n"
+        "echo http://example.test\n"
     )
     get_url_script.chmod(0o755)
 
     fake_curl = tmp_path / "curl"
-    fake_curl.write_text("#!/usr/bin/env bash\nexit 0\n")
+    fake_curl.write_text(
+        f"#!/usr/bin/env bash\necho curl-called >> {log_path}\nexit 0\n"
+    )
     fake_curl.chmod(0o755)
 
     return {

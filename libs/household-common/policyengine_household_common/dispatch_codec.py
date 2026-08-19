@@ -6,12 +6,16 @@ from typing import Any
 from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
+from policyengine_household_common.worker_dispatch import (
+    WorkerRequest,
+    WorkerResult,
+)
 
 
 BODY_B64_KEY = "body_b64"
 
 
-def encode_dispatch_request(payload: dict[str, Any]) -> dict[str, Any]:
+def encode_dispatch_request(payload: WorkerRequest) -> dict[str, Any]:
     return {
         "method": str(payload.get("method") or "GET"),
         "path": str(payload.get("path") or ""),
@@ -22,7 +26,7 @@ def encode_dispatch_request(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def decode_dispatch_request(payload: dict[str, Any]) -> dict[str, Any]:
+def decode_dispatch_request(payload: dict[str, Any]) -> WorkerRequest:
     if not isinstance(payload, dict):
         raise ValueError("Dispatch request payload must be a JSON object")
 
@@ -36,7 +40,7 @@ def decode_dispatch_request(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def encode_dispatch_response(result: dict[str, Any]) -> dict[str, Any]:
+def encode_dispatch_response(result: WorkerResult) -> dict[str, Any]:
     return {
         "status_code": int(result["status_code"]),
         BODY_B64_KEY: _encode_body(result.get("body")),
@@ -44,7 +48,7 @@ def encode_dispatch_response(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def decode_dispatch_response(payload: dict[str, Any]) -> dict[str, Any]:
+def decode_dispatch_response(payload: dict[str, Any]) -> WorkerResult:
     if not isinstance(payload, dict):
         raise ValueError("Dispatch response payload must be a JSON object")
 

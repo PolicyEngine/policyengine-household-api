@@ -2550,11 +2550,9 @@ name = "policyengine-household-modal-api"
 version = "0.31.2"
 source = { editable = "projects/modal-api" }
 dependencies = [
-    { name = "flask" },
     { name = "modal" },
     { name = "policyengine-household-common" },
     { name = "policyengine-observability", extra = ["flask", "google"] },
-    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
@@ -2565,13 +2563,11 @@ worker = [
 
 [package.metadata]
 requires-dist = [
-    { name = "flask", specifier = ">=2.2" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-household-analytics", marker = "extra == 'worker'", editable = "libs/household-analytics" },
     { name = "policyengine-household-api", marker = "extra == 'worker'", editable = "libs/household-api" },
     { name = "policyengine-household-common", editable = "libs/household-common" },
     { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.4.0,<2" },
-    { name = "pyyaml", specifier = ">=6" },
 ]
 provides-extras = ["worker"]
 

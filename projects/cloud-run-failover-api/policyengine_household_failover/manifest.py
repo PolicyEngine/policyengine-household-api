@@ -186,13 +186,12 @@ def resolve_failover_channel_for_request(
 
 
 def public_versions_view(manifest: Mapping[str, Any]) -> dict[str, Any]:
-    """Return a public, Modal-gateway-compatible ``/versions`` payload.
+    """Return the public ``/versions`` payload.
 
     The stored failover manifest records private Cloud Run worker URLs and
     nests channels under a ``channels`` key. This view drops the worker URLs
-    and mirrors the Modal gateway's ``/versions`` schema
-    (``{schema_version, current, frontier}`` with ``app_name`` per channel) so
-    clients see the same shape regardless of which gateway serves them.
+    and exposes ``{schema_version, current, frontier}`` with ``app_name`` per
+    channel.
     """
     validated = validate_failover_manifest(manifest)
     payload: dict[str, Any] = {

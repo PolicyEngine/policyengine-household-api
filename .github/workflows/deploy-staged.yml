@@ -271,7 +271,7 @@ jobs:
       - name: Ensure Modal staging environment exists
         run: uv run modal environment create staging 2>/dev/null || true
 
-      - name: Deploy Modal app set
+      - name: Deploy Modal workers and canary
         id: deploy
         env:
           APP__ENVIRONMENT: staging
@@ -308,53 +308,6 @@ jobs:
           name: modal-cleanup-staging
           path: modal-cleanup.json
           if-no-files-found: ignore
-
-  integration-tests-staging:
-    name: Integration tests against Modal staging (${{ matrix.channel }}, ${{ matrix.route_mode }})
-    runs-on: ubuntu-latest
-    # These tests assert analytics rows appear, so the analytics writer must
-    # already be deployed when they run — not racing them in a sibling job.
-    needs: [deploy-modal-staging, deploy-analytics-staging]
-    environment: staging
-    env:
-      MODAL_ENVIRONMENT: staging
-      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
-      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
-    strategy:
-      fail-fast: false
-      matrix:
-        channel: [current, frontier]
-        route_mode: [channel, exact]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.2.0
-
-      - name: Sync dependencies
-        run: uv sync --all-packages
-
-      - name: Fetch Auth0 test token
-        env:
-          AUTH0_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
-          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_ID }}
-          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_SECRET }}
-          AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
-        run: python .github/scripts/fetch_auth0_test_token.py
-
-      - name: Run deployed integration tests for route
-        run: |
-          bash .github/scripts/run-deployed-tests-for-modal-route.sh \
-            "${{ matrix.channel }}" \
-            "${{ matrix.route_mode }}"
 
   deploy-cloud-run-staging:
     name: Deploy Cloud Run failover to staging
@@ -496,7 +449,7 @@ jobs:
 
       - name: Run deployed integration tests for route
         run: |
-          bash .github/scripts/run-deployed-tests-for-modal-route.sh \
+          bash .github/scripts/run-deployed-tests-for-cloud-run-route.sh \
             "${{ matrix.channel }}" \
             "${{ matrix.route_mode }}"
 
@@ -565,7 +518,7 @@ jobs:
         run: |
           status=0
           for channel in current frontier; do
-            bash .github/scripts/run-deployed-tests-for-modal-route.sh \
+            bash .github/scripts/run-deployed-tests-for-cloud-run-route.sh \
               "${channel}" \
               channel || status=$?
           done
@@ -637,7 +590,6 @@ jobs:
     needs:
       [
         resolve-modal-release-config,
-        integration-tests-staging,
         integration-tests-cloud-run-staging,
         integration-tests-cloud-run-fallback-staging,
       ]
@@ -807,7 +759,7 @@ jobs:
       - name: Sync dependencies
         run: uv sync --all-packages
 
-      - name: Deploy Modal app set
+      - name: Deploy Modal workers and canary
         id: deploy
         env:
           APP__ENVIRONMENT: production

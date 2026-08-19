@@ -16,6 +16,7 @@ import argparse
 import time
 
 from policyengine_household_common.worker_dispatch import (
+    WorkerRequest,
     call_modal_worker_dispatch,
 )
 
@@ -25,10 +26,10 @@ from policyengine_household_common.worker_dispatch import (
 DEFAULT_TIMEOUT_SECONDS = 1200
 RETRY_BACKOFF_SECONDS = 10
 
-# The raw payload shape the Modal gateway sends to
+# The raw payload shape the Cloud Run HTTP service sends to
 # HouseholdWorker.handle_household_request; see
-# policyengine_household_common.gateway._request_payload.
-LIVENESS_DISPATCH_PAYLOAD = {
+# policyengine_household_common.gateway.build_worker_request.
+LIVENESS_DISPATCH_PAYLOAD: WorkerRequest = {
     "method": "GET",
     "path": "/liveness_check",
     "query_string": "",

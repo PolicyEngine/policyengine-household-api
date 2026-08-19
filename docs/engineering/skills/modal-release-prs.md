@@ -1,14 +1,11 @@
 # Modal Release PRs
 
-The household API Modal deployment uses a stable gateway app and versioned
-worker apps. For calculation endpoints, the gateway routes requests to the
-active `current` or `frontier` worker based on the request's top-level
-`version` value.
-
-The gateway image must stay lightweight: install only the dependencies needed
-to accept HTTP requests, read the Modal manifest, and dispatch to worker Modal
-functions. The worker image owns the full household API dependency set and must
-preload country tax-benefit systems at image build time.
+The household API Modal deployment uses versioned worker apps and a small
+health-check canary. The Cloud Run HTTP request router selects the active
+`current` or `frontier` Modal worker from its failover manifest based on the
+request's top-level `version` value. The worker image owns the full household
+API dependency set and must preload country tax-benefit systems at image build
+time.
 
 ## PR Body Configuration
 
@@ -76,10 +73,11 @@ The release workflow deploys from the finalized
 `Update PolicyEngine Household API` versioning commit. When that commit has no
 PR-body `modal_release` block, the workflow performs a code-only deploy: it
 redeploys the active `current` and `frontier` worker apps already named in the
-manifest, preserving each app's manifest-declared US/UK package versions, then
-redeploys the gateway without changing the manifest. Ordinary push events do
-not deploy Modal apps. Manual `workflow_dispatch` runs are explicit release
-operations and use the weekly release shape by default.
+manifest, preserving each app's manifest-declared US/UK package versions. The
+subsequent Cloud Run deployment refreshes its failover manifest and HTTP
+service from those active workers. Ordinary push events do not deploy Modal
+apps. Manual `workflow_dispatch` runs are explicit release operations and use
+the weekly release shape by default.
 
 Every worker app deploy — release mode and code mode alike — blocks until the
 newly deployed worker answers a liveness dispatch
@@ -92,28 +90,24 @@ version actually serves (issue #1607). In release mode the gate runs before
 `update_manifest`, so the manifest never flips traffic to a worker that has
 not served.
 
-The household API primary serving path is Modal-only. Do not add App Engine or
-GCP traffic-promotion deployment steps to the release workflow, and do not route
-primary household traffic through anything other than the Modal gateway. The one
-deliberate exception is the Cloud Run failover path documented in
-`modal-cloud-run-failover.md`: that path intentionally adds GCP Artifact
-Registry, Docker image builds, and Cloud Run deploy steps to the release
-workflow to stand up the standby gateway and fallback workers. Keep those steps
-scoped to the failover gateway, the failover workers, and the GCS failover
-manifest; they must not change how the Modal gateway serves current/frontier
-traffic, and Modal remains the primary backend until an explicit traffic
-cutover. Public GHCR Docker images are a distribution artifact, not a deployment
-target: the separate `Publish Docker image` workflow observes completed `Release
-to Modal` runs and publishes images after the fact, and must never gate or
-modify Modal deployments (see `docker-images.md`). The release workflow deploys
-the full Modal app set to the `staging` Modal environment, runs the same
-deployed integration test suite as separate matrix jobs for both `current` and
-`frontier`, then deploys the same release config to the `main` Modal environment
-after all staging jobs pass. Each channel is tested by channel name and by the
-exact US package version from `/versions/us`. Google credentials in the release
-workflow are used for Cloud SQL analytics database access, for syncing the Modal
-worker secret needed to reach that database, and for deploying the Cloud Run
-failover gateway and workers.
+Public household API traffic enters through the Cloud Run service documented
+in `modal-cloud-run-failover.md`. That service normally dispatches to the
+selected Modal worker and uses the matching private Cloud Run worker only when
+the Modal backend is unavailable. Do not add App Engine deployment or GCP
+traffic-promotion steps to the release workflow. Public GHCR Docker images are
+a distribution artifact, not a deployment target: the separate `Publish
+Docker image` workflow observes completed `Release to Modal` runs and publishes
+images after the fact, and must not control Modal deployments (see
+`docker-images.md`). The release workflow deploys Modal workers and the canary
+to the `staging` environment, deploys the Cloud Run HTTP service and fallback
+workers, then runs the deployed integration-test matrix through Cloud Run for
+both `current` and `frontier`. Each channel is tested by channel name and by the
+exact US package version from `/versions/us`. After staging succeeds, the same
+release configuration is deployed to the `main` Modal environment and the
+production Cloud Run services are refreshed. Google credentials in the release
+workflow are used for Cloud SQL analytics database access, for syncing the
+Modal worker secret needed to reach that database, and for deploying the Cloud
+Run services.
 
 Only the US and UK package versions are release-significant. Do not include
 Canada, Nigeria, or Israel package versions in Modal worker app names, manifest
@@ -123,7 +117,7 @@ release.
 
 The canonical manifest schema version is `1`. Runtime code should validate that
 stored manifests already match this schema; do not add legacy normalization to
-the gateway, release updater, or active-app discovery paths. The manifest
+the release updater or active-app discovery paths. The manifest
 rewrite command is the only bridge from older stored shapes: it copies the old
 `current` and `frontier` app references into canonical schema version `1`,
 drops retired history, and removes non-release package keys.
@@ -159,17 +153,17 @@ Modal deployment history for deploy provenance.
 
 ## Request Routing
 
-For `/calculate` and `/calculate_demo`, the Modal gateway reads the top-level
-request field `version` and removes it before dispatching to the worker's
-`HouseholdWorker.handle_household_request` Modal class method. Accepted
-values are:
+For `/calculate` and `/calculate_demo`, the Cloud Run HTTP service reads the
+top-level request field `version` and removes it before dispatching to the
+worker's `HouseholdWorker.handle_household_request` Modal class method.
+Accepted values are:
 
 - omitted or `current`: route to the current worker
 - `frontier`: route to the frontier worker
 - an exact country package version that matches an active current/frontier
   worker for that country
 
-Unknown versions return a 400 from the gateway.
+Unknown versions return a 422 from the Cloud Run service.
 
 Other endpoints are routed to the current worker and do not use
 current/frontier version selection. Worker apps are internal Modal function
@@ -184,6 +178,6 @@ When changing this system, include focused tests for:
   compatibility
 - changed-file detection for requiring the PR-body block
 - manifest transitions across current, frontier, and retired apps
-- gateway routing for current, frontier, exact package versions, and unknown
+- Cloud Run routing for current, frontier, exact package versions, and unknown
   versions
 - analytics migration compatibility checks and destructive-migration rejection
