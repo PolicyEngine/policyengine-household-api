@@ -2380,7 +2380,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-household-analytics"
-version = "0.31.2"
+version = "0.32.0"
 source = { editable = "libs/household-analytics" }
 dependencies = [
     { name = "alembic" },
@@ -2405,7 +2405,7 @@ requires-dist = [
 
 [[package]]
 name = "policyengine-household-analytics-api"
-version = "0.31.2"
+version = "0.32.0"
 source = { editable = "projects/analytics-api" }
 dependencies = [
     { name = "gunicorn" },
@@ -2432,7 +2432,7 @@ dev = [
 
 [[package]]
 name = "policyengine-household-api"
-version = "0.31.2"
+version = "0.32.0"
 source = { editable = "libs/household-api" }
 dependencies = [
     { name = "flask" },
@@ -2489,7 +2489,7 @@ requires-dist = [
 
 [[package]]
 name = "policyengine-household-common"
-version = "0.31.2"
+version = "0.32.0"
 source = { editable = "libs/household-common" }
 dependencies = [
     { name = "flask" },
@@ -2517,7 +2517,7 @@ provides-extras = ["auth"]
 
 [[package]]
 name = "policyengine-household-failover-api"
-version = "0.31.2"
+version = "0.32.0"
 source = { editable = "projects/cloud-run-failover-api" }
 dependencies = [
     { name = "flask" },
@@ -2547,7 +2547,7 @@ provides-extras = ["worker"]
 
 [[package]]
 name = "policyengine-household-modal-api"
-version = "0.31.2"
+version = "0.32.0"
 source = { editable = "projects/modal-api" }
 dependencies = [
     { name = "modal" },
