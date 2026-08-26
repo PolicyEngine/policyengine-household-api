@@ -22,7 +22,7 @@ dependencies = [
     "policyengine-ng==0.5.1",
     "policyengine-il==0.1.0",
     "policyengine_uk==2.88.18",
-    "policyengine_us==1.815.1",
+    "policyengine_us==1.821.2",
     "pyjwt",
     "pyyaml>=6",
     "Flask-Caching==2.0.2",
