@@ -146,10 +146,34 @@ jobs:
           uv run python .github/scripts/resolve_modal_release_config.py \
             --output-json modal-release-config.json
 
+  start-analytics-db-staging:
+    name: Start analytics database (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint-and-test, resolve-modal-release-config]
+    if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
+    environment: staging
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Start staging Cloud SQL instance
+        run: bash .github/scripts/cloud-sql-staging-lifecycle.sh start
+
   migrate-analytics-db-staging:
     name: Migrate analytics database (staging)
     runs-on: ubuntu-latest
-    needs: [lint-and-test, resolve-modal-release-config]
+    needs: [resolve-modal-release-config, start-analytics-db-staging]
     if: needs.resolve-modal-release-config.outputs.should_deploy == 'true'
     environment: staging
     permissions:
@@ -177,6 +201,16 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --all-packages
+
+      - name: Wait for analytics database connectivity
+        run: |
+          timeout 300s bash -c '
+            until uv run alembic \
+              -c projects/analytics-api/alembic.ini current; do
+              echo "Staging analytics database is not ready; retrying in 10 seconds."
+              sleep 10
+            done
+          '
 
       - name: Run analytics database migrations
         run: uv run alembic -c projects/analytics-api/alembic.ini upgrade head
@@ -584,6 +618,37 @@ jobs:
             echo "No deferred Modal cleanup manifest; nothing to prune."
           fi
 
+  stop-analytics-db-staging:
+    name: Stop analytics database (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      [
+        resolve-modal-release-config,
+        integration-tests-cloud-run-staging,
+        integration-tests-cloud-run-fallback-staging,
+      ]
+    if: |
+      always() &&
+      needs.resolve-modal-release-config.outputs.should_deploy == 'true'
+    environment: staging
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Stop staging Cloud SQL instance
+        run: bash .github/scripts/cloud-sql-staging-lifecycle.sh stop
+
   gate-production:
     name: Await production go-live approval
     runs-on: ubuntu-latest
@@ -592,6 +657,7 @@ jobs:
         resolve-modal-release-config,
         integration-tests-cloud-run-staging,
         integration-tests-cloud-run-fallback-staging,
+        stop-analytics-db-staging,
       ]
     # Manual production go-live gate. It pauses ONLY version releases, NOT every
     # deploy. A deploy is a `release` when the merged PR body carries a
