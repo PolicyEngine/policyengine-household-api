@@ -3,13 +3,9 @@ This is the main Flask app for the PolicyEngine API.
 """
 
 # Python imports
-from functools import lru_cache
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as package_version
 import logging
 import os
 from pathlib import Path
-import tomllib
 
 # External imports
 from flask_cors import CORS
@@ -17,6 +13,8 @@ import flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import yaml
+from yaml.constructor import ConstructorError
+from yaml.resolver import BaseResolver
 from policyengine_household_common.observability.flask import (
     init_observability,
 )
@@ -29,6 +27,7 @@ from policyengine_household_analytics.analytics_setup import (
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
+from policyengine_household_api.constants import VERSION
 
 # Endpoints
 from .endpoints import (
@@ -46,8 +45,6 @@ print("Initialising API...")
 logger = logging.getLogger(__name__)
 app = application = flask.Flask(__name__)
 OPENAPI_SPEC_PATH = Path(__file__).with_name("openapi_spec.yaml")
-PACKAGE_NAME = "policyengine-household-api"
-PYPROJECT_PATH = Path(__file__).resolve().parents[1] / "pyproject.toml"
 init_observability(app, service_role="api")
 
 # Reject absurdly large request bodies before any view runs. 10 MiB is
@@ -120,18 +117,48 @@ def specification():
 
 def load_openapi_spec() -> dict:
     with OPENAPI_SPEC_PATH.open() as spec_file:
-        spec = yaml.safe_load(spec_file)
+        spec = yaml.load(spec_file, Loader=UniqueKeySafeLoader)
     spec.setdefault("info", {})["version"] = get_api_version()
     return spec
 
 
-@lru_cache
 def get_api_version() -> str:
-    try:
-        return package_version(PACKAGE_NAME)
-    except PackageNotFoundError:
-        with PYPROJECT_PATH.open("rb") as pyproject_file:
-            return tomllib.load(pyproject_file)["project"]["version"]
+    return VERSION
+
+
+class UniqueKeySafeLoader(yaml.SafeLoader):
+    """Load trusted YAML while rejecting duplicate mapping keys."""
+
+
+def _construct_unique_mapping(loader, node, deep=False):
+    loader.flatten_mapping(node)
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        try:
+            duplicate = key in mapping
+        except TypeError as exc:
+            raise ConstructorError(
+                "while constructing a mapping",
+                node.start_mark,
+                "found an unhashable key",
+                key_node.start_mark,
+            ) from exc
+        if duplicate:
+            raise ConstructorError(
+                "while constructing a mapping",
+                node.start_mark,
+                f"found duplicate key ({key})",
+                key_node.start_mark,
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+UniqueKeySafeLoader.add_constructor(
+    BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_mapping,
+)
 
 
 # Note: `/calculate_demo` is intentionally public (documented in
