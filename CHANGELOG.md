@@ -1,3 +1,10 @@
+## [0.32.3] - 2026-09-01
+
+### Changed
+
+- Stop the staging analytics database between releases after staging validation completes.
+
+
 ## [0.32.2] - 2026-09-01
 
 ### Fixed
