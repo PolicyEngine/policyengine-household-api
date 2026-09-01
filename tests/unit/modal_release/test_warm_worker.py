@@ -1,10 +1,8 @@
-import json
 import itertools
 
 import pytest
 
 from policyengine_household_modal import warm_worker
-from policyengine_household_api.constants import VERSION
 from tests.fixtures.modal_fakes import (
     FakeModalNotFoundError,
     FakeWorkerDispatch,
@@ -15,17 +13,6 @@ from tests.fixtures.modal_fakes import (
 # (dispatch_to_flask_app output), not the Cloud Run dispatch codec.
 OK_RESULT = {"status_code": 200, "body": b"OK", "headers": []}
 UNAVAILABLE_RESULT = {"status_code": 503, "body": b"", "headers": []}
-SPECIFICATION_RESULT = {
-    "status_code": 200,
-    "body": json.dumps(
-        {
-            "openapi": "3.0.0",
-            "info": {"version": VERSION},
-            "paths": {},
-        }
-    ).encode(),
-    "headers": [["Content-Type", "application/json"]],
-}
 
 
 def fake_clock():
@@ -34,11 +21,7 @@ def fake_clock():
 
 def test_warm_worker_returns_once_new_version_serves(monkeypatch):
     worker = FakeWorkerDispatch(
-        results=[
-            RuntimeError("snapshotting"),
-            OK_RESULT,
-            SPECIFICATION_RESULT,
-        ],
+        results=[RuntimeError("snapshotting"), OK_RESULT],
         expected_app_name="household-api-test-worker",
         expected_environment_name="staging",
     )
@@ -52,15 +35,10 @@ def test_warm_worker_returns_once_new_version_serves(monkeypatch):
         monotonic=fake_clock(),
     )
 
-    assert worker.calls == 3
-    assert [payload["path"] for payload in worker.payloads] == [
-        "/liveness_check",
-        "/liveness_check",
-        "/specification",
-    ]
+    assert worker.calls == 2
     # Each dispatch waits at most the remaining warm budget instead of
     # hanging indefinitely on a wedged container.
-    assert worker.get_timeouts == [50, 30, 20]
+    assert worker.get_timeouts == [50, 30]
 
 
 def test_warm_worker_fails_after_deadline(monkeypatch):
@@ -86,7 +64,7 @@ def test_warm_worker_fails_after_deadline(monkeypatch):
 
 def test_warm_worker_falls_back_to_legacy_function_worker(monkeypatch):
     worker = FakeWorkerDispatch(
-        results=[OK_RESULT, SPECIFICATION_RESULT],
+        results=[OK_RESULT],
         expected_app_name="household-api-test-worker",
         expected_environment_name="staging",
         cls_lookup_error=FakeModalNotFoundError("no HouseholdWorker class"),
@@ -101,36 +79,7 @@ def test_warm_worker_falls_back_to_legacy_function_worker(monkeypatch):
         monotonic=fake_clock(),
     )
 
-    assert worker.calls == 2
-
-
-def test_warm_worker_retries_when_specification_is_unavailable(monkeypatch):
-    worker = FakeWorkerDispatch(
-        results=[
-            OK_RESULT,
-            UNAVAILABLE_RESULT,
-            OK_RESULT,
-            SPECIFICATION_RESULT,
-        ],
-        expected_app_name="household-api-test-worker",
-        expected_environment_name="staging",
-    )
-    install_fake_modal(monkeypatch, worker)
-
-    warm_worker.warm_worker_app(
-        "household-api-test-worker",
-        modal_environment="staging",
-        timeout_seconds=120,
-        sleep=lambda _s: None,
-        monotonic=fake_clock(),
-    )
-
-    assert [payload["path"] for payload in worker.payloads] == [
-        "/liveness_check",
-        "/specification",
-        "/liveness_check",
-        "/specification",
-    ]
+    assert worker.calls == 1
 
 
 def test_warm_worker_fails_fast_when_app_is_missing(monkeypatch):

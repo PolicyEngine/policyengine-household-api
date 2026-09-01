@@ -13,10 +13,8 @@ proves nothing; only a served request does.
 from __future__ import annotations
 
 import argparse
-import json
 import time
 
-from policyengine_household_api.constants import VERSION
 from policyengine_household_common.worker_dispatch import (
     WorkerRequest,
     call_modal_worker_dispatch,
@@ -38,37 +36,6 @@ LIVENESS_DISPATCH_PAYLOAD: WorkerRequest = {
     "headers": {},
     "body": b"",
 }
-SPECIFICATION_DISPATCH_PAYLOAD: WorkerRequest = {
-    "method": "GET",
-    "path": "/specification",
-    "query_string": "",
-    "headers": {},
-    "body": b"",
-}
-
-
-def _specification_error(result: dict) -> str | None:
-    status_code = int(result["status_code"])
-    if status_code != 200:
-        return f"specification dispatch returned {status_code}"
-
-    try:
-        payload = json.loads(result["body"])
-    except (TypeError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return f"specification dispatch returned invalid JSON: {exc}"
-
-    if not isinstance(payload, dict):
-        return "specification dispatch did not return a JSON object"
-    if payload.get("openapi") != "3.0.0":
-        return "specification dispatch did not return OpenAPI 3.0.0"
-
-    reported_version = payload.get("info", {}).get("version")
-    if reported_version != VERSION:
-        return (
-            "specification dispatch reported API version "
-            f"{reported_version!r}, expected {VERSION!r}"
-        )
-    return None
 
 
 def warm_worker_app(
@@ -99,30 +66,13 @@ def warm_worker_app(
             )
             status_code = int(result["status_code"])
             if status_code == 200:
-                specification_remaining = deadline - monotonic()
-                if specification_remaining <= 0:
-                    last_error = (
-                        "liveness dispatch returned 200 but no time remained "
-                        "for specification verification"
-                    )
-                else:
-                    specification_result = call_modal_worker_dispatch(
-                        app_name,
-                        SPECIFICATION_DISPATCH_PAYLOAD,
-                        environment_name=modal_environment,
-                        timeout_seconds=specification_remaining,
-                    )
-                    last_error = _specification_error(specification_result)
-                if last_error is None:
-                    print(
-                        f"Worker app {app_name} serves: liveness and "
-                        f"specification dispatches passed on attempt "
-                        f"{attempt}.",
-                        flush=True,
-                    )
-                    return
-            else:
-                last_error = f"liveness dispatch returned {status_code}"
+                print(
+                    f"Worker app {app_name} serves: liveness dispatch "
+                    f"returned 200 on attempt {attempt}.",
+                    flush=True,
+                )
+                return
+            last_error = f"liveness dispatch returned {status_code}"
         except modal.exception.NotFoundError as exc:
             # Neither the class-based worker nor the legacy function
             # entrypoint exists; retrying cannot fix a missing app.

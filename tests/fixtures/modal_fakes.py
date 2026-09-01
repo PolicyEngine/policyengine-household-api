@@ -38,12 +38,10 @@ class FakeWorkerDispatch:
     function_lookup_error: Exception | None = None
     calls: int = 0
     get_timeouts: list[float | None] = field(default_factory=list)
-    payloads: list[dict] = field(default_factory=list)
 
     def dispatch(self, payload: dict, timeout: float | None) -> dict:
         self.calls += 1
         self.get_timeouts.append(timeout)
-        self.payloads.append(payload)
         result = self.results[min(self.calls - 1, len(self.results) - 1)]
         if isinstance(result, Exception):
             raise result
