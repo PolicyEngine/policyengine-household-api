@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Create or update a PR for the weekly policyengine-us update.
+# Create or update a PR for the weekly PolicyEngine model update.
 #
 # This script reads pr_summary.md and creates/updates a PR with the
 # formatted body.
@@ -12,8 +12,8 @@
 #
 set -e
 
-BRANCH_NAME="bot/weekly-us-update"
-PR_TITLE="Weekly policyengine-us update"
+BRANCH_NAME="bot/weekly-model-update"
+PR_TITLE="Weekly PolicyEngine model update"
 
 # Build PR body with summary
 if [ ! -f "pr_summary.md" ]; then
@@ -26,9 +26,7 @@ PR_SUMMARY=$(cat pr_summary.md)
 PR_BODY=$(cat <<EOF
 ## Summary
 
-Automated weekly update of policyengine-us.
-
-Related to #1178
+Automated weekly update of PolicyEngine country-model packages.
 
 ## Modal Version Release
 

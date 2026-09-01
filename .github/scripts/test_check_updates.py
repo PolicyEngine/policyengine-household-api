@@ -1,9 +1,11 @@
 """Unit tests for check_updates.py"""
 
+import pytest
+
 from check_updates import (
     find_updates,
     format_changes,
-    generate_changelog_fragment,
+    generate_changelog_fragments,
     get_changes_between_versions,
     get_current_versions,
     parse_changelog_md,
@@ -44,6 +46,20 @@ dependencies = [
         versions = get_current_versions(pyproject_content)
         assert versions == {"policyengine_us": "4.5.6"}
 
+    def test_extracts_us_and_uk_versions(self):
+        pyproject_content = """
+[project]
+dependencies = [
+    "policyengine_us==1.2.3",
+    "policyengine_uk==4.5.6",
+]
+"""
+        versions = get_current_versions(pyproject_content)
+        assert versions == {
+            "policyengine_us": "1.2.3",
+            "policyengine_uk": "4.5.6",
+        }
+
     def test_no_match_returns_empty(self):
         pyproject_content = """
 [project]
@@ -74,6 +90,18 @@ class TestFindUpdates:
         updates = find_updates(current, latest)
         assert updates == {}
 
+    def test_finds_only_the_country_package_that_changed(self):
+        current = {
+            "policyengine_us": "1.0.0",
+            "policyengine_uk": "2.0.0",
+        }
+        latest = {
+            "policyengine_us": "1.0.0",
+            "policyengine_uk": "2.1.0",
+        }
+        updates = find_updates(current, latest)
+        assert updates == {"policyengine_uk": {"old": "2.0.0", "new": "2.1.0"}}
+
 
 class TestUpdatePyprojectContent:
     def test_updates_version_with_underscore(self):
@@ -100,6 +128,31 @@ dependencies = [
         assert "flask==2.0.0" in result
         assert "policyengine_us==1.5.0" in result
         assert "requests==2.28.0" in result
+
+    def test_updates_us_and_uk_without_changing_equal_unrelated_versions(self):
+        pyproject_content = """[project]
+dependencies = [
+    "unrelated==1.0.0",
+    "policyengine_us==1.0.0",
+    "policyengine_uk==1.0.0",
+]"""
+        updates = {
+            "policyengine_us": {"old": "1.0.0", "new": "1.5.0"},
+            "policyengine_uk": {"old": "1.0.0", "new": "2.0.0"},
+        }
+
+        result = update_pyproject_content(pyproject_content, updates)
+
+        assert '"unrelated==1.0.0"' in result
+        assert '"policyengine_us==1.5.0"' in result
+        assert '"policyengine_uk==2.0.0"' in result
+
+    def test_raises_when_expected_exact_pin_is_absent(self):
+        pyproject_content = '"policyengine_uk==1.0.1"'
+        updates = {"policyengine_uk": {"old": "1.0.0", "new": "2.0.0"}}
+
+        with pytest.raises(ValueError, match="found 0"):
+            update_pyproject_content(pyproject_content, updates)
 
 
 class TestGetChangesBetweenVersions:
@@ -225,8 +278,20 @@ class TestFormatChanges:
         assert "### Removed" not in result
 
 
-class TestGenerateChangelogFragment:
-    def test_generates_correct_format(self):
-        updates = {"policyengine_us": {"old": "1.0.0", "new": "1.5.0"}}
-        result = generate_changelog_fragment(updates)
-        assert result == "Update PolicyEngine US to 1.5.0.\n"
+class TestGenerateChangelogFragments:
+    def test_generates_a_fragment_for_each_updated_package(self):
+        updates = {
+            "policyengine_us": {"old": "1.0.0", "new": "1.5.0"},
+            "policyengine_uk": {"old": "2.0.0", "new": "2.1.0"},
+        }
+
+        result = generate_changelog_fragments(updates)
+
+        assert result == {
+            "policyengine-us-1.5.0.changed.md": (
+                "Update PolicyEngine US to 1.5.0.\n"
+            ),
+            "policyengine-uk-2.1.0.changed.md": (
+                "Update PolicyEngine UK to 2.1.0.\n"
+            ),
+        }

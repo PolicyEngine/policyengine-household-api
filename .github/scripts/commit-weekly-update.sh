@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 UPDATES_SUMMARY="${UPDATES_SUMMARY:?UPDATES_SUMMARY must be set}"
-BRANCH_NAME="bot/weekly-us-update"
+BRANCH_NAME="bot/weekly-model-update"
 
 git config user.name "github-actions[bot]"
 git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -20,5 +20,5 @@ if [ "${#FRAGMENTS[@]}" -eq 0 ]; then
 fi
 
 git add libs/household-api/pyproject.toml uv.lock "${FRAGMENTS[@]}"
-git commit -m "Update policyengine-us (${UPDATES_SUMMARY})"
+git commit -m "Update PolicyEngine models (${UPDATES_SUMMARY})"
 git push -f origin "$BRANCH_NAME"

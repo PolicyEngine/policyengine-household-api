@@ -14,11 +14,19 @@ from pathlib import Path
 
 import requests
 
-# Packages to track (US only - UK is updated separately)
-PACKAGES = ["policyengine_us"]
+# Country packages maintained by this repository's weekly update workflow.
+PACKAGES = ["policyengine_us", "policyengine_uk"]
 
 # Map package names to GitHub repos
-REPO_MAP = {"policyengine_us": "PolicyEngine/policyengine-us"}
+REPO_MAP = {
+    "policyengine_us": "PolicyEngine/policyengine-us",
+    "policyengine_uk": "PolicyEngine/policyengine-uk",
+}
+
+PACKAGE_LABELS = {
+    "policyengine_us": "PolicyEngine US",
+    "policyengine_uk": "PolicyEngine UK",
+}
 
 
 def parse_version(version_str):
@@ -69,18 +77,23 @@ def find_updates(current_versions, latest_versions):
 
 
 def update_pyproject_content(pyproject_content, updates):
-    """Update pyproject.toml content with new versions."""
+    """Update exactly one dependency pin for each requested package."""
     new_content = pyproject_content
     for pkg, versions in updates.items():
         pattern = (
             rf'("{pkg.replace("_", "[-_]")}==)'
             rf'{re.escape(versions["old"])}(")'
         )
-        new_content = re.sub(
+        new_content, replacement_count = re.subn(
             pattern,
             rf"\g<1>{versions['new']}\g<2>",
             new_content,
         )
+        if replacement_count != 1:
+            raise ValueError(
+                f"Expected exactly one {pkg}=={versions['old']} dependency "
+                f"pin, found {replacement_count}."
+            )
     return new_content
 
 
@@ -230,10 +243,14 @@ def generate_summary(updates):
     return "\n\n".join(summary_parts)
 
 
-def generate_changelog_fragment(updates):
-    """Generate towncrier changelog fragment content for this repo."""
-    new_version = updates["policyengine_us"]["new"]
-    return f"Update PolicyEngine US to {new_version}.\n"
+def generate_changelog_fragments(updates):
+    """Generate one Towncrier changelog fragment for each updated package."""
+    return {
+        f"{pkg.replace('_', '-')}-{versions['new']}.changed.md": (
+            f"Update {PACKAGE_LABELS[pkg]} to {versions['new']}.\n"
+        )
+        for pkg, versions in updates.items()
+    }
 
 
 def write_github_output(key, value):
@@ -252,6 +269,12 @@ def main():
 
     current_versions = get_current_versions(pyproject_content)
     print(f"Current versions: {current_versions}")
+    missing_packages = [pkg for pkg in PACKAGES if pkg not in current_versions]
+    if missing_packages:
+        raise ValueError(
+            "Missing exact country-package dependency pins: "
+            + ", ".join(missing_packages)
+        )
 
     # Get latest versions from PyPI
     latest_versions = get_latest_versions()
@@ -279,12 +302,13 @@ def main():
     with open("pr_summary.md", "w") as f:
         f.write(full_summary)
 
-    # Create changelog fragment
+    # Create changelog fragments
     changelog_dir = Path("changelog.d")
     changelog_dir.mkdir(exist_ok=True)
-    new_version = updates["policyengine_us"]["new"]
-    fragment_path = changelog_dir / f"policyengine-us-{new_version}.changed.md"
-    fragment_path.write_text(generate_changelog_fragment(updates))
+    for fragment_name, fragment_content in generate_changelog_fragments(
+        updates
+    ).items():
+        (changelog_dir / fragment_name).write_text(fragment_content)
 
     # Set outputs
     write_github_output("has_updates", "true")

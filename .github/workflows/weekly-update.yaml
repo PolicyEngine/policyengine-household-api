@@ -1,4 +1,4 @@
-name: Weekly US Household API Update
+name: Weekly Household API Model Update
 
 on:
   schedule:
@@ -50,12 +50,12 @@ jobs:
 
       - name: Refresh lockfile
         if: steps.check_updates.outputs.has_updates == 'true'
-        run: uv lock --upgrade-package policyengine-us
+        run: uv lock --upgrade-package policyengine-us --upgrade-package policyengine-uk
 
       - name: No updates available
         if: steps.check_updates.outputs.has_updates != 'true'
         run: |
-          echo "::notice::No package updates available. policyengine_us is already at the latest version."
+          echo "::notice::No package updates available. PolicyEngine US and UK are already at their latest versions."
 
       - name: Commit and push changes
         if: steps.check_updates.outputs.has_updates == 'true'
