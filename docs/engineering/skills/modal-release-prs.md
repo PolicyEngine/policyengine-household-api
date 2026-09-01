@@ -128,6 +128,14 @@ block, plus `deploy_scope`: `staging-only` stops the run before any
 production job, which is how deploy changes are validated from a branch. The
 deploy workflow and Modal images use Python 3.13.
 
+The staging analytics database normally has Cloud SQL activation policy
+`NEVER`. Every staging deployment sets it to `ALWAYS` before database
+migrations, verifies connectivity, and returns it to `NEVER` after both the
+normal-routing and forced-fallback staging tests finish. The shutdown job runs
+after staging failures as well as successes. Production deployment requires a
+successful shutdown, so a database shutdown error stops the release before
+production changes begin.
+
 ## Analytics Migrations
 
 Modal releases use the same shared analytics database for `current` and
@@ -150,6 +158,14 @@ Each manifest app reference records the worker's minimum required analytics
 revision and the database revision observed after the release migration step.
 The manifest must not include source commit metadata; use GitHub Actions and
 Modal deployment history for deploy provenance.
+
+The deployed staging services remain active while their analytics database is
+off. Staging analytics reads and writes can therefore fail or retry between
+releases; this is expected and must not be treated as production behavior. If a
+workflow is manually cancelled before its shutdown job finishes, an operator
+must directly set the staging Cloud SQL instance's activation policy to
+`NEVER`. Do not add committed one-time recovery scripts or a scheduled startup
+or shutdown workflow.
 
 ## Request Routing
 

@@ -116,13 +116,53 @@ persists analytics.
 
 ## Rollout
 
-The release workflow deploys staging and production in a single run: a push to
-`main` deploys Modal and Cloud Run staging, runs the deployed integration
-tests, and then deploys production in the same workflow run. There is no
-staging-only release trigger, so a merge activates both environments minutes
-apart. Analytics enqueue failures do not fail `/calculate` or the integration
+The release workflow deploys staging and production in a single run after a
+release push to `main`: it deploys Modal and Cloud Run staging, runs the
+deployed integration tests, and then deploys production. A manual workflow
+dispatch can select `staging-only` when validating deployment changes from a
+branch. Analytics enqueue failures do not fail `/calculate` or the integration
 tests, so a broken analytics path will not stop the pipeline; the row-level
 checks below are the only verification that analytics still flow.
+
+### Staging database lifecycle
+
+The staging analytics Cloud SQL instance normally uses activation policy
+`NEVER`, which stops its compute charges while preserving its storage and
+network configuration. The release workflow performs this sequence:
+
+1. Set the staging instance's activation policy to `ALWAYS` and verify that it
+   reports `RUNNABLE`.
+2. Retry the read-only `alembic current` connectivity check for up to five
+   minutes, then apply `alembic upgrade head` once.
+3. Deploy the staging services and run both the normal-routing and forced
+   Cloud Run fallback tests.
+4. Set the staging instance's activation policy back to `NEVER` and verify the
+   policy. Cloud SQL can continue reporting state `RUNNABLE` after this change;
+   the activation policy is the shutdown source of truth.
+5. Allow production deployment only after the shutdown job succeeds.
+
+The deployed staging services remain active between releases. Their analytics
+database operations can fail or be retried while the database is off, and
+staging analytics is not available for ad hoc use during that period.
+
+The shutdown job runs after earlier job failures, but GitHub Actions cannot run
+it after the entire workflow is manually cancelled. In that case, use `gcloud`
+directly rather than adding a committed recovery script:
+
+```bash
+gcloud sql instances patch STAGING_INSTANCE \
+  --project=STAGING_PROJECT \
+  --activation-policy=NEVER \
+  --quiet
+
+gcloud sql instances describe STAGING_INSTANCE \
+  --project=STAGING_PROJECT \
+  --format='value(settings.activationPolicy)'
+```
+
+Use the exact staging project and instance enforced by
+`.github/scripts/cloud-sql-staging-lifecycle.sh`; never substitute the
+production analytics instance. The verification command must print `NEVER`.
 
 1. Before merging, bootstrap the writer service without changing Modal worker
    configuration.
