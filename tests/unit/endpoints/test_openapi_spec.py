@@ -4,6 +4,8 @@ import re
 import pytest
 import yaml
 from openapi_spec_validator import validate
+from yaml.constructor import ConstructorError
+from yaml.resolver import BaseResolver
 
 from policyengine_household_api import api
 from policyengine_household_api.constants import COUNTRIES
@@ -13,6 +15,46 @@ HTTP_METHODS = {"delete", "get", "patch", "post", "put"}
 INTENTIONALLY_UNDOCUMENTED_OPERATIONS = {
     ("/{country_id}/calculate_demo", "post"),
 }
+
+
+class UniqueKeySafeLoader(yaml.SafeLoader):
+    """Load YAML in tests while rejecting duplicate mapping keys."""
+
+
+def _construct_unique_mapping(loader, node, deep=False):
+    loader.flatten_mapping(node)
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        try:
+            duplicate = key in mapping
+        except TypeError as exc:
+            raise ConstructorError(
+                "while constructing a mapping",
+                node.start_mark,
+                "found an unhashable key",
+                key_node.start_mark,
+            ) from exc
+        if duplicate:
+            raise ConstructorError(
+                "while constructing a mapping",
+                node.start_mark,
+                f"found duplicate key ({key})",
+                key_node.start_mark,
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+UniqueKeySafeLoader.add_constructor(
+    BaseResolver.DEFAULT_MAPPING_TAG,
+    _construct_unique_mapping,
+)
+
+
+def _load_yaml_with_unique_keys(path):
+    with path.open() as yaml_file:
+        return yaml.load(yaml_file, Loader=UniqueKeySafeLoader)
 
 
 def _runtime_operations():
@@ -39,7 +81,7 @@ def _documented_operations(spec):
     }
 
 
-def test_openapi_loader_rejects_duplicate_mapping_keys(monkeypatch, tmp_path):
+def test_openapi_test_loader_rejects_duplicate_mapping_keys(tmp_path):
     spec_path = tmp_path / "openapi.yaml"
     spec_path.write_text(
         """
@@ -51,14 +93,16 @@ info:
 paths: {}
 """.lstrip()
     )
-    monkeypatch.setattr(api, "OPENAPI_SPEC_PATH", spec_path)
 
     with pytest.raises(yaml.constructor.ConstructorError, match="title"):
-        api.load_openapi_spec()
+        _load_yaml_with_unique_keys(spec_path)
 
 
 def test_openapi_document_is_valid():
-    validate(api.load_openapi_spec())
+    spec = _load_yaml_with_unique_keys(api.OPENAPI_SPEC_PATH)
+    spec["info"]["version"] = api.get_api_version()
+
+    validate(spec)
 
 
 def test_openapi_operations_match_runtime_except_calculate_demo():

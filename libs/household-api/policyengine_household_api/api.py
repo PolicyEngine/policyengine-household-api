@@ -13,8 +13,6 @@ import flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import yaml
-from yaml.constructor import ConstructorError
-from yaml.resolver import BaseResolver
 from policyengine_household_common.observability.flask import (
     init_observability,
 )
@@ -117,48 +115,13 @@ def specification():
 
 def load_openapi_spec() -> dict:
     with OPENAPI_SPEC_PATH.open() as spec_file:
-        spec = yaml.load(spec_file, Loader=UniqueKeySafeLoader)
+        spec = yaml.safe_load(spec_file)
     spec.setdefault("info", {})["version"] = get_api_version()
     return spec
 
 
 def get_api_version() -> str:
     return VERSION
-
-
-class UniqueKeySafeLoader(yaml.SafeLoader):
-    """Load trusted YAML while rejecting duplicate mapping keys."""
-
-
-def _construct_unique_mapping(loader, node, deep=False):
-    loader.flatten_mapping(node)
-    mapping = {}
-    for key_node, value_node in node.value:
-        key = loader.construct_object(key_node, deep=deep)
-        try:
-            duplicate = key in mapping
-        except TypeError as exc:
-            raise ConstructorError(
-                "while constructing a mapping",
-                node.start_mark,
-                "found an unhashable key",
-                key_node.start_mark,
-            ) from exc
-        if duplicate:
-            raise ConstructorError(
-                "while constructing a mapping",
-                node.start_mark,
-                f"found duplicate key ({key})",
-                key_node.start_mark,
-            )
-        mapping[key] = loader.construct_object(value_node, deep=deep)
-    return mapping
-
-
-UniqueKeySafeLoader.add_constructor(
-    BaseResolver.DEFAULT_MAPPING_TAG,
-    _construct_unique_mapping,
-)
 
 
 # Note: `/calculate_demo` is intentionally public (documented in
