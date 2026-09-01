@@ -1,3 +1,10 @@
+## [0.32.2] - 2026-09-01
+
+### Fixed
+
+- Repair the OpenAPI specification and ensure deployed workers serve it with the correct API version.
+
+
 ## [0.32.1] - 2026-08-26
 
 ### Changed
