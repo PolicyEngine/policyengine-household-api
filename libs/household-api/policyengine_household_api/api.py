@@ -3,13 +3,9 @@ This is the main Flask app for the PolicyEngine API.
 """
 
 # Python imports
-from functools import lru_cache
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as package_version
 import logging
 import os
 from pathlib import Path
-import tomllib
 
 # External imports
 from flask_cors import CORS
@@ -29,6 +25,7 @@ from policyengine_household_analytics.analytics_setup import (
 from policyengine_household_api.decorators.analytics import (
     log_analytics_if_enabled,
 )
+from policyengine_household_api.constants import VERSION
 
 # Endpoints
 from .endpoints import (
@@ -46,8 +43,6 @@ print("Initialising API...")
 logger = logging.getLogger(__name__)
 app = application = flask.Flask(__name__)
 OPENAPI_SPEC_PATH = Path(__file__).with_name("openapi_spec.yaml")
-PACKAGE_NAME = "policyengine-household-api"
-PYPROJECT_PATH = Path(__file__).resolve().parents[1] / "pyproject.toml"
 init_observability(app, service_role="api")
 
 # Reject absurdly large request bodies before any view runs. 10 MiB is
@@ -125,13 +120,8 @@ def load_openapi_spec() -> dict:
     return spec
 
 
-@lru_cache
 def get_api_version() -> str:
-    try:
-        return package_version(PACKAGE_NAME)
-    except PackageNotFoundError:
-        with PYPROJECT_PATH.open("rb") as pyproject_file:
-            return tomllib.load(pyproject_file)["project"]["version"]
+    return VERSION
 
 
 # Note: `/calculate_demo` is intentionally public (documented in

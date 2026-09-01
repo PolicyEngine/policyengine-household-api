@@ -28,6 +28,10 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
             calls.append(("add_local_dir", args, kwargs))
             return self
 
+        def add_local_file(self, *args, **kwargs):
+            calls.append(("add_local_file", args, kwargs))
+            return self
+
         def run_function(self, *args, **kwargs):
             calls.append(("run_function", args, kwargs))
             return self
@@ -55,6 +59,11 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
             "policyengine_us==1.691.1",
         ),
         {},
+    ) in calls
+    assert (
+        "add_local_file",
+        ("libs/household-api/pyproject.toml",),
+        {"remote_path": "/root/pyproject.toml", "copy": True},
     ) in calls
 
 

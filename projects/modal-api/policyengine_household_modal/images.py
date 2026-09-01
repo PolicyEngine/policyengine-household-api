@@ -12,6 +12,7 @@ import modal
 # Keep these factories free of eager work: this module is re-imported inside
 # running containers, where no repository checkout exists.
 WORKER_REQUIREMENTS_FILE = "requirements-modal-worker.txt"
+WORKER_PYPROJECT_FILE = "libs/household-api/pyproject.toml"
 
 FIRST_PARTY_PACKAGES = (
     "policyengine_household_api",
@@ -43,6 +44,11 @@ def household_api_worker_image() -> modal.Image:
         image = image.uv_pip_install(*package_specs)
     return (
         image.add_local_python_source(*FIRST_PARTY_PACKAGES, copy=True)
+        .add_local_file(
+            WORKER_PYPROJECT_FILE,
+            remote_path="/root/pyproject.toml",
+            copy=True,
+        )
         .add_local_dir("config", remote_path="/app/config", copy=True)
         .run_function(preload_country_packages)
     )
