@@ -9,6 +9,26 @@ from tests.to_refactor.fixtures import client, extract_json_from_file
 API_URL = "https://api.policyengine.org/"
 
 
+def _collapse_axis_expanded_inputs(node):
+    """Collapse constant lists back to the scalar they repeat.
+
+    Since policyengine-api #3825 the main API expands every request-supplied
+    household value across the configured axes, so an input sent as ``40``
+    comes back as ``[40.0] * count``. The household API echoes inputs as sent.
+    Collapsing constant lists on both bodies lets the comparison cover the
+    content of each response rather than that echo format.
+    """
+    if isinstance(node, dict):
+        return {k: _collapse_axis_expanded_inputs(v) for k, v in node.items()}
+    if isinstance(node, list):
+        if node and all(not isinstance(x, (dict, list)) for x in node):
+            if len(set(node)) == 1:
+                return node[0]
+            return node
+        return [_collapse_axis_expanded_inputs(x) for x in node]
+    return node
+
+
 def test_calculate_sync(client):
     """Confirm that the calculate endpoint outputs the same data as the main API"""
 
@@ -36,8 +56,15 @@ def test_calculate_sync(client):
 
     policyengine_bundle = resLight.pop("policyengine_bundle")
 
-    # Compare the legacy response body and assert the new provenance separately.
-    assert resAPI == resLight
+    # The household API echoes inputs exactly as sent, even under axes.
+    assert resLight["result"]["people"]["you"]["age"]["2023"] == 40
+
+    # Compare the legacy response body, tolerating the main API's axis
+    # expansion of request-supplied inputs, and assert the new provenance
+    # separately.
+    assert _collapse_axis_expanded_inputs(
+        resAPI
+    ) == _collapse_axis_expanded_inputs(resLight)
     assert policyengine_bundle == {
         "model_version": COUNTRY_PACKAGE_VERSIONS[country_id],
         "data_version": None,
