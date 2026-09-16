@@ -1,3 +1,10 @@
+## [0.32.8] - 2026-09-16
+
+### Fixed
+
+- Pin `spm-calculator==0.3.1` alongside any policyengine-us 1.x channel image so the `current` channel builds while the workspace lock follows a 2.x frontier (interim fix; see #1667).
+
+
 ## [0.32.7] - 2026-09-16
 
 ### Changed
