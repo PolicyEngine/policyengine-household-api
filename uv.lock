@@ -2597,7 +2597,7 @@ requires-dist = [
     { name = "policyengine-ng", specifier = "==0.5.1" },
     { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.4.0,<2" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
-    { name = "policyengine-us", specifier = "==1.824.6" },
+    { name = "policyengine-us", specifier = "==2.5.0" },
     { name = "pydantic" },
     { name = "pyjwt" },
     { name = "python-dotenv" },
@@ -2757,7 +2757,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-us"
-version = "1.824.6"
+version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "microdf-python" },
@@ -2767,9 +2767,9 @@ dependencies = [
     { name = "tables" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/5b/cad49e4f2c62d695852fda74d4f945c027e2b174dec8634cb35a87402fa8/policyengine_us-1.824.6.tar.gz", hash = "sha256:4d572483f433f57eb75ed4697e0505e7e1e354b3846afbb1304ac4e761ce43c7", size = 11848290, upload-time = "2026-09-08T22:15:59.558Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/b4/7b2b5f2879299cf014f567c7bc06eb0cec78de3f8bdbb38e7b241bd505fb/policyengine_us-2.5.0.tar.gz", hash = "sha256:5af4b471c8db76eefe683686664dca01747812aa173011a98a8761afb18c0477", size = 11962287, upload-time = "2026-09-16T00:32:21.426Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/7e/209f01f60e25f3d213d165cc68408dcfdbb9410e210d9294716910b16ba0/policyengine_us-1.824.6-py3-none-any.whl", hash = "sha256:034984d18f7705437dd9ef56f6dcf7dabf667d12edc084825cc1b5121c7f5b9c", size = 14767479, upload-time = "2026-09-08T22:15:55.82Z" },
+    { url = "https://files.pythonhosted.org/packages/16/44/0aefa0520ca4e7c1db84835527cf29e52216845f9e8d6ed66004d6c253df/policyengine_us-2.5.0-py3-none-any.whl", hash = "sha256:ffffe0f1d9b60c7ae7cfa1f00afba3775ca644b75d7c72b0b9eca6ae48f29ac5", size = 14902068, upload-time = "2026-09-16T00:32:18.685Z" },
 ]
 
 [[package]]
@@ -3420,7 +3420,7 @@ wheels = [
 
 [[package]]
 name = "spm-calculator"
-version = "0.3.1"
+version = "1.0.0.post1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "census" },
@@ -3430,9 +3430,9 @@ dependencies = [
     { name = "requests" },
     { name = "us" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/3b/b805c7e3e18c5b5c00f61b60112f9690d084c910e2481bc020f35390d8fd/spm_calculator-0.3.1.tar.gz", hash = "sha256:41f2f4d00d8c03422a7d57b800052e7760b88e463a5884802f83ed58d35c18c1", size = 75945, upload-time = "2026-04-17T19:52:39.707Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d0/60/8d3e4206039035d8b3a46e9a7c9129748961b4d917bae3abee6c2b94171e/spm_calculator-1.0.0.post1.tar.gz", hash = "sha256:a9f99ce9a490989c40fa9a7d1bcd16dd544036e4788a0b3af4d170156ef9a168", size = 7151823, upload-time = "2026-09-14T02:49:56.258Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/1b/29f705f8a96fc7f55f2c07dfcddbbae78efdc6f174d25d4a0560fc3f5cf9/spm_calculator-0.3.1-py3-none-any.whl", hash = "sha256:52c57ecc5a240ec941b0f2b0d93bc4fa437ef6250e233baed8e11916fa9c1150", size = 57826, upload-time = "2026-04-17T19:52:38.444Z" },
+    { url = "https://files.pythonhosted.org/packages/50/6c/8c2d9380c53c8fb98bdd9da633a8cc16cf83a89b21fa6e0653cc19e1b592/spm_calculator-1.0.0.post1-py3-none-any.whl", hash = "sha256:c9834a761891ba12de1edd585688c8b477be58e9a9c9fa92d9cfdf41e5396a41", size = 7395585, upload-time = "2026-09-14T02:49:54.541Z" },
 ]
 
 [[package]]
