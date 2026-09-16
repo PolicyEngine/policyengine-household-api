@@ -20,6 +20,17 @@ COUNTRY_PACKAGE_DISTRIBUTIONS = {
 }
 PACKAGE_VERSIONS_ENV = "HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON"
 
+# policyengine-us 1.x declares `spm-calculator>=0.2.0` but imports
+# `spm_calculator.geoadj`, which spm-calculator 1.0.0 removed. The
+# workspace lock follows the frontier (2.x, spm-calculator 1.0.0.post1), so
+# installing a 1.x `current` package on top of it leaves the wrong
+# spm-calculator in place. Pin the last compatible release alongside any
+# 1.x install until no active channel runs policyengine-us 1.x. The
+# per-channel dependency freeze in issue #1667 removes the need for this.
+COMPANION_PACKAGE_PINS: tuple[tuple[str, int, str], ...] = (
+    ("us", 2, "spm-calculator==0.3.1"),
+)
+
 # Parameter values resolve through per-instant projections that
 # policyengine-core builds lazily: the first request to touch a
 # never-seen instant pays an eagerly recursive build of the full
@@ -40,11 +51,32 @@ def country_package_install_specs(
         if package_versions is not None
         else deployment_package_versions_from_env()
     )
-    return [
+    specs = [
         f"{COUNTRY_PACKAGE_DISTRIBUTIONS[country]}=={versions[country]}"
         for country in sorted(COUNTRY_PACKAGE_DISTRIBUTIONS)
         if versions.get(country)
     ]
+    specs.extend(companion_package_install_specs(versions))
+    return specs
+
+
+def companion_package_install_specs(
+    package_versions: Mapping[str, str],
+) -> list[str]:
+    """Extra pins a channel's country package needs but does not declare."""
+    return [
+        spec
+        for country, below_major, spec in COMPANION_PACKAGE_PINS
+        if package_versions.get(country)
+        and _major_version(package_versions[country]) < below_major
+    ]
+
+
+def _major_version(version: str) -> int:
+    major = version.split(".", 1)[0]
+    if not major.isdigit():
+        raise ValueError(f"Cannot read a major version from `{version}`")
+    return int(major)
 
 
 def deployment_package_versions_from_env() -> dict[str, str]:

@@ -57,6 +57,7 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
         (
             "policyengine_uk==2.31.0",
             "policyengine_us==1.691.1",
+            "spm-calculator==0.3.1",
         ),
         {},
     ) in calls
