@@ -1,3 +1,10 @@
+## [0.32.6] - 2026-09-16
+
+### Fixed
+
+- Compare `test_calculate_sync` response bodies after collapsing the main API's axis-expanded input echoes, so the legacy sync check no longer fails on the input format change from policyengine-api #3825.
+
+
 ## [0.32.5] - 2026-09-09
 
 ### Changed
