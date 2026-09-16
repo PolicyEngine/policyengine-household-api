@@ -197,12 +197,35 @@ def test_country_package_install_specs_use_release_package_versions_only():
     assert country_package_install_specs(
         {
             "uk": "2.31.0",
-            "us": "1.691.1",
+            "us": "2.5.0",
             "ca": "0.96.3",
         }
     ) == [
         "policyengine_uk==2.31.0",
-        "policyengine_us==1.691.1",
+        "policyengine_us==2.5.0",
+    ]
+
+
+def test_country_package_install_specs_pin_spm_calculator_for_us_1x():
+    assert country_package_install_specs(
+        {"uk": "2.88.18", "us": "1.824.6"}
+    ) == [
+        "policyengine_uk==2.88.18",
+        "policyengine_us==1.824.6",
+        "spm-calculator==0.3.1",
+    ]
+
+
+def test_country_package_install_specs_no_companion_pin_for_us_2x():
+    assert country_package_install_specs({"uk": "2.88.18", "us": "2.5.0"}) == [
+        "policyengine_uk==2.88.18",
+        "policyengine_us==2.5.0",
+    ]
+
+
+def test_country_package_install_specs_no_companion_pin_without_us():
+    assert country_package_install_specs({"uk": "2.88.18"}) == [
+        "policyengine_uk==2.88.18",
     ]
 
 
