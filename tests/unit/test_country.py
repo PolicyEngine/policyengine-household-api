@@ -75,8 +75,12 @@ class TestCalculateReturnValue:
         income_tax = result["tax_units"]["tax_unit"]["income_tax"]["2024"]
         assert isinstance(income_tax, list)
         assert len(income_tax) == 3
+        assert all(type(value) is float for value in income_tax)
         # Income tax rises with swept employment income.
         assert income_tax[-1] > income_tax[0]
+
+        state_name = result["households"]["household"]["state_name"]["2024"]
+        assert state_name == ["CA", "CA", "CA"]
 
 
 @pytest.fixture(scope="module")

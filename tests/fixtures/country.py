@@ -40,7 +40,12 @@ us_household_with_axes = {
         "tax_unit": {"members": ["you"], "income_tax": {"2024": None}}
     },
     "families": {"family": {"members": ["you"]}},
-    "households": {"household": {"members": ["you"]}},
+    "households": {
+        "household": {
+            "members": ["you"],
+            "state_name": {"2024": None},
+        }
+    },
     "spm_units": {"spm_unit": {"members": ["you"]}},
     "axes": [
         [
