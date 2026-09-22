@@ -1,3 +1,10 @@
+## [0.32.9] - 2026-09-22
+
+### Fixed
+
+- Decode enum values to their names in axes-based household calculation responses.
+
+
 ## [0.32.8] - 2026-09-16
 
 ### Fixed
