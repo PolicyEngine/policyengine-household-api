@@ -944,10 +944,18 @@ class PolicyEngineCountry:
     ) -> list:
         """Reshape an axes-scan result into this entity's value list.
 
-        Core-style results cast cleanly to float — including EnumArray,
-        which yields the enum's numeric indices (documented behavior the
-        US API has always exposed).
+        Decode enum names before reshaping. Keep the existing float cast for
+        every other value type so numerical axes results retain their stable
+        API representation.
         """
+        if variable.value_type == Enum:
+            return (
+                result.decode_to_str()
+                .reshape((-1, count_entities))
+                .T[entity_index]
+                .tolist()
+            )
+
         values = (
             result.astype(float)
             .reshape((-1, count_entities))
