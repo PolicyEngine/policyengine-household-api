@@ -1,3 +1,10 @@
+## [0.32.11] - 2026-09-24
+
+### Fixed
+
+- Return HTTP 400 for malformed policy period keys instead of treating them as server errors.
+
+
 ## [0.32.10] - 2026-09-23
 
 ### Changed
