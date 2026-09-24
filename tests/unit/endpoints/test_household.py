@@ -559,11 +559,9 @@ class TestPolicyPeriodValidation:
     def test__given_valid_policy_periods__does_not_raise(self, policy):
         validate_policy_periods(policy)
 
-    def test__given_malformed_policy_period__endpoint_returns_500(
+    def test__given_malformed_policy_period__endpoint_returns_400(
         self, client
     ):
-        # 500 rather than 400 matches the endpoint's long-standing
-        # behavior for bad policy input; issue #1628 tracks moving to 400.
         response = client.post(
             "/us/calculate",
             json={
@@ -577,7 +575,7 @@ class TestPolicyPeriodValidation:
             headers=TestCalculateEndpoint.auth_headers,
         )
 
-        assert response.status_code == 500
+        assert response.status_code == 400
         payload = json.loads(response.data)
         assert payload["status"] == "error"
         # startswith pins the endpoint's own validation call: if a
@@ -590,10 +588,8 @@ class TestPolicyPeriodValidation:
     def test__given_invalid_variable_and_malformed_policy__variable_error_wins(
         self, client
     ):
-        # Error precedence must match main: household variable validation
-        # (400) fires before policy validation (500), because bad policy
-        # historically only crashed inside calculate, after all household
-        # validation.
+        # Household variable validation still runs before policy validation,
+        # so clients receive the more specific household error first.
         household = {
             **valid_household_requesting_ctc_calculation,
             "people": {

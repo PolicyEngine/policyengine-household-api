@@ -157,7 +157,7 @@ paths:
                       data_version: null
                       dataset: null
         "400":
-          description: Invalid request payload or unsupported household variable.
+          description: Invalid request payload, unsupported household variable, or malformed policy period key.
           content:
             application/json:
               schema:
@@ -175,6 +175,11 @@ paths:
                   value:
                     status: error
                     message: "'household' must be a JSON object"
+                invalid_policy_period:
+                  summary: Malformed policy period key
+                  value:
+                    status: error
+                    message: Invalid policy period key `2026` for `gov.hmrc.income_tax.allowances.personal_allowance.amount`. Expected two dot-separated instants, e.g. "2026-01-01.2026-12-31".
         "401":
           description: Missing or invalid bearer token.
           content:
@@ -443,7 +448,8 @@ components:
             dot-separated instants (start.stop). Values are cast to the
             parameter's type; boolean parameters accept true/false,
             "true"/"false", "1"/"0", or the numbers 0/1. Malformed period
-            keys or values return a 500 with a descriptive message.
+            keys return a 400. Values that cannot be cast to the parameter's
+            type return a 500 with a descriptive message.
           additionalProperties: true
         version:
           type: string

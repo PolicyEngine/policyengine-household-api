@@ -859,10 +859,12 @@ class PolicyEngineCountry:
         paths are resolved against the shared system purely to learn each
         node type; nothing is mutated.
 
-        Raises ``ValueError`` for malformed period keys or uncastable
-        values; through the calculate endpoint that surfaces as a 500,
-        the status this API has always used for bad policy input
-        (issue #1628 tracks moving it to 400).
+        Called directly, raises ``ValueError`` for malformed period keys
+        or uncastable values. The calculate endpoint validates policy
+        period keys before entering its calculation handler and returns
+        those validation failures as 400 responses. Value-cast failures
+        occur inside the calculation handler and therefore surface as 500
+        responses, preserving the API's existing behavior.
         """
         if not reform:
             return None

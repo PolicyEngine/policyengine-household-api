@@ -219,23 +219,18 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
         )
     set_attribute("period_warning_count", len(period_warnings))
 
-    # A malformed policy is a client error and should be a 400, but the
-    # endpoint has always surfaced bad policy input as a 500 (it used to
-    # crash in the engine), so we keep that status for compatibility —
-    # and check it last, after all household validation, matching the
-    # error precedence clients saw when the crash happened inside
-    # calculate. Issue #1628 tracks moving this to 400 and documenting
-    # the grammar. calculate() itself re-validates via
-    # _cast_reform_values, so callers that bypass this endpoint get the
-    # same guard.
+    # Check policy periods after household validation so clients still receive
+    # the more specific household error first when both inputs are invalid.
+    # calculate() itself re-validates via _cast_reform_values, so callers that
+    # bypass this endpoint get the same guard.
     try:
         with segment(SegmentName.PAYLOAD_VALIDATION):
             validate_policy_periods(policy_json)
     except ValueError as e:
-        record_error(e, handled=True, status_code=500, include_stack=False)
+        record_error(e, handled=True, status_code=400, include_stack=False)
         return _json_response(
             {"status": "error", "message": str(e)},
-            status=500,
+            status=400,
         )
 
     try:
