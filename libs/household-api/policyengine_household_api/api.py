@@ -13,6 +13,7 @@ import flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import yaml
+from policyengine_household_common.config_loader import get_config_value
 from policyengine_household_common.observability.flask import (
     init_observability,
 )
@@ -41,6 +42,33 @@ require_auth_if_enabled = create_auth_decorator()
 print("Initialising API...")
 
 logger = logging.getLogger(__name__)
+
+
+def _rate_limit_enabled() -> bool:
+    value = get_config_value("rate_limit.enabled", True)
+    if not isinstance(value, bool):
+        raise ValueError(
+            "rate_limit.enabled must be a boolean; "
+            f"received {type(value).__name__}"
+        )
+    return value
+
+
+def create_rate_limiter(flask_app: flask.Flask) -> Limiter:
+    """Create the configured request rate limiter for a Flask app."""
+    enabled = _rate_limit_enabled()
+    if not enabled:
+        logger.warning("Request rate limiting is disabled.")
+
+    return Limiter(
+        app=flask_app,
+        key_func=get_remote_address,
+        default_limits=[],
+        storage_uri="memory://",
+        enabled=enabled,
+    )
+
+
 app = application = flask.Flask(__name__)
 OPENAPI_SPEC_PATH = Path(__file__).with_name("openapi_spec.yaml")
 init_observability(app, service_role="api")
@@ -68,12 +96,7 @@ CORS(app)
 # Use in-memory storage for rate limiting
 # Note that this provides limits per-instance;
 # rate limits not shared if scaling more than 1 instance.
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=[],
-    storage_uri="memory://",
-)
+limiter = create_rate_limiter(app)
 
 app.route("/", methods=["GET"])(get_home)
 

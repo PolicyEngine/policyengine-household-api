@@ -9,6 +9,11 @@ app:
   debug: false  # Set to true for development mode (if analytics are enabled, 
   # stores analytics output in local SQLite database)
 
+# Request rate limiting configuration
+rate_limit:
+  # Whether configured request limits are enforced
+  enabled: true
+
 # User analytics configuration
 # Controls whether user analytics are collected and stored
 analytics:

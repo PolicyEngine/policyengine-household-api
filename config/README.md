@@ -4,7 +4,9 @@ This directory contains configuration files for the PolicyEngine Household API.
 
 ## Current Implementation Status
 
-The application now has a `ConfigLoader` class (`policyengine_household_api/utils/config_loader.py`) that supports hierarchical configuration loading. While the system is ready, the application code still uses environment variables directly. Configuration files in this directory establish the structure for gradual migration.
+The application uses a shared `ConfigLoader` class that supports hierarchical
+configuration loading. Some low-level runtime settings continue to read
+environment variables directly.
 
 ## Configuration Priority
 
@@ -148,6 +150,9 @@ app:
   environment: Environment (can be any string)
   debug: Debug mode (true/false) - When true, if analytics enabled, uses local SQLite database instead of Cloud SQL
 
+rate_limit:
+  enabled: Whether configured request limits are enforced (default: true)
+
 # User analytics (opt-in feature)
 analytics:
   enabled: Whether to collect user analytics (default: false)
@@ -174,6 +179,30 @@ auth:
     test_token_scopes: Space-delimited OAuth scopes for the static test token
 
 ```
+
+## Rate limiting configuration
+
+Request rate limiting is enabled by default. It can be disabled in a mounted
+configuration file for local development or end-to-end tests:
+
+```yaml
+rate_limit:
+  enabled: false
+```
+
+The equivalent environment variable is:
+
+```bash
+RATE_LIMIT__ENABLED=false
+```
+
+The setting must resolve to a Boolean. Invalid types cause application startup
+to fail with a configuration error.
+
+This setting disables every configured request limit, including those on
+`/<country_id>/calculate`, `/analytics/calculate/requests`, and the public
+`/<country_id>/calculate_demo` endpoint. Do not disable it on a publicly
+accessible deployment.
 
 ## User Analytics Configuration
 
