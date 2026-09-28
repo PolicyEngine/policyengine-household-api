@@ -1,3 +1,10 @@
+## [0.33.0] - 2026-09-28
+
+### Added
+
+- Added `RATE_LIMIT__ENABLED=false` configuration for disabling request rate limiting in local development and tests.
+
+
 ## [0.32.11] - 2026-09-24
 
 ### Fixed
