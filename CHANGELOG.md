@@ -1,3 +1,10 @@
+## [0.33.1] - 2026-09-29
+
+### Fixed
+
+- Update dependencies with available security fixes while retaining pytest 8 compatibility.
+
+
 ## [0.33.0] - 2026-09-28
 
 ### Added
