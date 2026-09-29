@@ -1,3 +1,10 @@
+## [0.33.2] - 2026-09-29
+
+### Fixed
+
+- Include required PolicyEngine Core pin upgrades in weekly US update PRs, preserving compatible exact pins and reporting core changes in the summary and changelog.
+
+
 ## [0.33.1] - 2026-09-29
 
 ### Fixed

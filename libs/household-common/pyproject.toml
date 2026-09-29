@@ -1,6 +1,6 @@
 [project]
 name = "policyengine-household-common"
-version = "0.33.1"
+version = "0.33.2"
 description = "Shared kernel for the PolicyEngine Household API services"
 readme = "README.md"
 authors = [
