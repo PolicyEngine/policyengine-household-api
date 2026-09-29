@@ -13,6 +13,9 @@ import tomllib
 from pathlib import Path
 
 import requests
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
+from packaging.version import Version
 
 # Packages to track (US only - UK is updated separately)
 PACKAGES = ["policyengine_us"]
@@ -26,13 +29,13 @@ def parse_version(version_str):
     return tuple(map(int, version_str.split(".")))
 
 
-def get_current_versions(pyproject_content):
+def get_current_versions(pyproject_content, packages=PACKAGES):
     """Extract current package versions from pyproject.toml content."""
     current_versions = {}
     dependencies = tomllib.loads(pyproject_content)["project"].get(
         "dependencies", []
     )
-    for pkg in PACKAGES:
+    for pkg in packages:
         package_names = (pkg, pkg.replace("_", "-"))
         for dependency in dependencies:
             for package_name in package_names:
@@ -66,6 +69,59 @@ def find_updates(current_versions, latest_versions):
                     "new": latest_versions[pkg],
                 }
     return updates
+
+
+def find_required_core_update(pyproject_content, us_version):
+    """Raise the core pin only when the new US release requires it."""
+    response = requests.get(
+        f"https://pypi.org/pypi/policyengine-us/{us_version}/json",
+        timeout=30,
+    )
+    response.raise_for_status()
+    requirements = [
+        Requirement(value)
+        for value in response.json()["info"].get("requires_dist") or []
+    ]
+    core_requirements = [
+        requirement.specifier
+        for requirement in requirements
+        if canonicalize_name(requirement.name) == "policyengine-core"
+        and requirement.marker is None
+    ]
+    if not core_requirements:
+        return {}
+
+    current_version = get_current_versions(
+        pyproject_content, packages=["policyengine_core"]
+    )["policyengine_core"]
+    if all(current_version in specifier for specifier in core_requirements):
+        return {}
+
+    response = requests.get(
+        "https://pypi.org/pypi/policyengine-core/json", timeout=30
+    )
+    response.raise_for_status()
+    candidates = [
+        version
+        for version, files in response.json()["releases"].items()
+        if Version(version) > Version(current_version)
+        and all(
+            specifier.contains(version, prereleases=False)
+            for specifier in core_requirements
+        )
+        and any(not file.get("yanked", False) for file in files)
+    ]
+    if not candidates:
+        raise ValueError(
+            f"No stable policyengine-core upgrade from {current_version} "
+            f"satisfies policyengine-us {us_version}"
+        )
+    return {
+        "policyengine_core": {
+            "old": current_version,
+            "new": min(candidates, key=Version),
+        }
+    }
 
 
 def update_pyproject_content(pyproject_content, updates):
@@ -204,7 +260,10 @@ def generate_summary(updates):
     # Version table
     version_table = "| Package | Old Version | New Version |\n|---------|-------------|-------------|\n"
     for pkg, versions in updates.items():
-        version_table += f"| {pkg} | {versions['old']} | {versions['new']} |\n"
+        version_table = (
+            version_table
+            + f"| {pkg} | {versions['old']} | {versions['new']} |\n"
+        )
     summary_parts.append(version_table)
 
     # Changelog for each package
@@ -233,7 +292,14 @@ def generate_summary(updates):
 def generate_changelog_fragment(updates):
     """Generate towncrier changelog fragment content for this repo."""
     new_version = updates["policyengine_us"]["new"]
-    return f"Update PolicyEngine US to {new_version}.\n"
+    fragment = f"Update PolicyEngine US to {new_version}.\n"
+    if "policyengine_core" in updates:
+        core_version = updates["policyengine_core"]["new"]
+        fragment = (
+            fragment
+            + f"Update PolicyEngine Core to {core_version} as required by US.\n"
+        )
+    return fragment
 
 
 def write_github_output(key, value):
@@ -265,6 +331,11 @@ def main():
         write_github_output("has_updates", "false")
         return 0
 
+    updates.update(
+        find_required_core_update(
+            pyproject_content, updates["policyengine_us"]["new"]
+        )
+    )
     print(f"Updates available: {updates}")
 
     # Update pyproject.toml

@@ -42,7 +42,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests
+          pip install requests packaging
 
       - name: Check for updates and generate summary
         id: check_updates
