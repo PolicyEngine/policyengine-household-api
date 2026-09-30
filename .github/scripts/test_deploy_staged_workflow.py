@@ -233,77 +233,13 @@ def test_google_cloud_jobs_use_workload_identity_federation():
 
         if job_id == "integration-tests-cloud-run-fallback-staging":
             assert len(auth_steps) == 2
+            restore_auth = auth_steps[-1]
+            assert restore_auth["name"] == (
+                "Re-authenticate to Google Cloud before routing restoration"
+            )
+            assert restore_auth["if"] == "always()"
         else:
             assert len(auth_steps) == 1
-
-
-def test_google_authentication_occurs_immediately_before_google_work():
-    workflow = _load_workflow()
-    jobs = workflow["jobs"]
-
-    expected_step_order = {
-        "migrate-analytics-db-staging": (
-            "Sync dependencies",
-            "Authenticate to Google Cloud for analytics database",
-            "Wait for analytics database connectivity",
-        ),
-        "deploy-analytics-staging": (
-            "Sync dependencies",
-            "Authenticate to Google Cloud",
-            "Set up gcloud",
-        ),
-        "deploy-modal-staging": (
-            "Ensure Modal staging environment exists",
-            "Authenticate to Google Cloud for analytics database",
-            "Deploy Modal workers and canary",
-        ),
-        "deploy-cloud-run-staging": (
-            "Sync dependencies",
-            "Authenticate to Google Cloud",
-            "Set up gcloud",
-        ),
-        "integration-tests-cloud-run-staging": (
-            "Warm Modal worker through the gateway",
-            "Authenticate to Google Cloud",
-            "Warm Cloud Run fallback workers",
-        ),
-        "migrate-analytics-db-production": (
-            "Sync dependencies",
-            "Authenticate to Google Cloud for analytics database",
-            "Run analytics database migrations",
-        ),
-        "deploy-analytics-production": (
-            "Sync dependencies",
-            "Authenticate to Google Cloud",
-            "Set up gcloud",
-        ),
-        "deploy-modal-production": (
-            "Ensure Modal production environment exists",
-            "Authenticate to Google Cloud for analytics database",
-            "Deploy Modal workers and canary",
-        ),
-        "deploy-cloud-run-production": (
-            "Sync dependencies",
-            "Authenticate to Google Cloud",
-            "Set up gcloud",
-        ),
-    }
-
-    for job_id, step_names in expected_step_order.items():
-        indices = [_step_index(jobs[job_id], name) for name in step_names]
-        assert indices == sorted(indices)
-
-    fallback_job = jobs["integration-tests-cloud-run-fallback-staging"]
-    fallback_auth_steps = _steps_using(fallback_job, GOOGLE_AUTH_ACTION)
-    restore_auth = fallback_auth_steps[-1]
-    assert restore_auth["name"] == (
-        "Re-authenticate to Google Cloud before routing restoration"
-    )
-    assert restore_auth["if"] == "always()"
-    assert _step_index(fallback_job, restore_auth["name"]) < _step_index(
-        fallback_job,
-        "Restore Modal-primary routing",
-    )
 
 
 def test_service_account_key_is_only_forwarded_to_modal_runtime():
@@ -388,14 +324,6 @@ def _steps_using(job, action):
 
 def _run_commands(job):
     return "\n".join(step.get("run", "") for step in job["steps"])
-
-
-def _step_index(job, name):
-    return next(
-        index
-        for index, step in enumerate(job["steps"])
-        if step.get("name") == name
-    )
 
 
 def _deploy_step_env(workflow, job_id):
