@@ -1,3 +1,10 @@
+## [0.33.4] - 2026-09-30
+
+### Fixed
+
+- Update pytest to a release that fixes vulnerable temporary-directory handling.
+
+
 ## [0.33.3] - 2026-09-30
 
 ### Changed
