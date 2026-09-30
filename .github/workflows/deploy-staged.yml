@@ -86,6 +86,8 @@ jobs:
       - name: Run tests with auth
         run: make test-with-auth
         env:
+          # Public fixtures consumed by the test-only static token validator.
+          # These are not Auth0 credentials; keep these values public.
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: test.invalid
           AUTH0_AUDIENCE_NO_DOMAIN: https://household-api.test.invalid
