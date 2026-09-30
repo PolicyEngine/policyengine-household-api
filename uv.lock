@@ -2529,7 +2529,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-core"
-version = "3.32.8"
+version = "3.32.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dpath" },
@@ -2549,9 +2549,9 @@ dependencies = [
     { name = "standard-imghdr" },
     { name = "wheel" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/df/2fe428d690f02cb109e91d22b8af31ca6dcb047920d7177a2b28487a8ea1/policyengine_core-3.32.8.tar.gz", hash = "sha256:925a8990985ec22885f4d6c4ed129cd13dcc2eab02cf9a130939ca563394fcc3", size = 426369, upload-time = "2026-09-27T19:10:50.428Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/cd/9fc967c5b787baa5f9d83461773ba0982a8e22ae83c40155a7ee55edd11a/policyengine_core-3.32.10.tar.gz", hash = "sha256:0f51e8abfa8f172c69d03ba8f4304632a348fc6dca780e41021b2fd0cec04fde", size = 427479, upload-time = "2026-09-29T17:56:43.582Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/45/bbba25be7ddc52ad9bb6f2b8ea044eb3c670f4168c67044328f631ccb025/policyengine_core-3.32.8-py3-none-any.whl", hash = "sha256:84e470d1f03d531d1d5ee77c173c59444bbbdea50132faf9150a82aa00d54397", size = 246996, upload-time = "2026-09-27T19:10:48.871Z" },
+    { url = "https://files.pythonhosted.org/packages/58/50/291d73da16f39a3c4f05dffb6d40b1142fc400ec39b5a2ca7481e6fe9d90/policyengine_core-3.32.10-py3-none-any.whl", hash = "sha256:124afc555fe7c848ae8237b820fed0b6ea0ea1280e8850ad8bf356937ee10e5b", size = 247410, upload-time = "2026-09-29T17:56:42.218Z" },
 ]
 
 [[package]]
@@ -2602,7 +2602,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pytest" },
+    { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-timeout" },
 ]
 
@@ -2648,7 +2648,7 @@ requires-dist = [
     { name = "inflect" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-canada", specifier = "==0.96.3" },
-    { name = "policyengine-core", specifier = "==3.32.8" },
+    { name = "policyengine-core", specifier = "==3.32.10" },
     { name = "policyengine-household-analytics", editable = "libs/household-analytics" },
     { name = "policyengine-household-common", extras = ["auth"], editable = "libs/household-common" },
     { name = "policyengine-il", specifier = "==0.1.0" },
@@ -3158,7 +3158,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "8.4.2"
+version = "9.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -3167,9 +3167,9 @@ dependencies = [
     { name = "pluggy" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a3/5c/00a0e072241553e1a7496d638deababa67c5058571567b92a7eaa258397c/pytest-8.4.2.tar.gz", hash = "sha256:86c0d0b93306b961d58d62a4db4879f27fe25513d4b969df351abdddb3c30e01", size = 1519618, upload-time = "2025-09-04T14:34:22.711Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa3c9d3fe98a76a1d14c74a9e266d397cf6eb64be5e01/pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313", size = 1636369, upload-time = "2026-06-19T10:58:32.857Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/a4/20da314d277121d6534b3a980b29035dcd51e6744bd79075a6ce8fa4eb8d/pytest-8.4.2-py3-none-any.whl", hash = "sha256:872f880de3fc3a5bdc88a11b39c9710c3497a547cfa9320bc3c5e62fbf272e79", size = 365750, upload-time = "2025-09-04T14:34:20.226Z" },
+    { url = "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c", size = 386536, upload-time = "2026-06-19T10:58:31.347Z" },
 ]
 
 [[package]]

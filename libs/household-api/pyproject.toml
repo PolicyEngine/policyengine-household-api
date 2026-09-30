@@ -17,7 +17,7 @@ dependencies = [
     "gunicorn",
     "inflect",
     "modal>=1.3.0",
-    "policyengine-core==3.32.8",
+    "policyengine-core==3.32.10",
     "policyengine_canada==0.96.3",
     "policyengine-ng==0.5.1",
     "policyengine-il==0.1.0",
