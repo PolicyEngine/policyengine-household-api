@@ -562,30 +562,27 @@ def _wa_household(income_map, output_key):
     }
 
 
-# Each row pinned against parity with the hosted v1 API on the same
-# policyengine-us version; the post-fix household API must return the same
-# numbers. Annual 2026 sums re-baselined for policyengine-us 1.779.3, whose
-# SNAP uprating update raised the FY2027 COLA (Oct-Dec 2026 allotments),
-# and for 1.784.2, whose minimum-allotment rounding fix (7 CFR
-# 273.10(e)(2)(ii)(C)) raises a floor-level month from $23.84 (8% of $298,
-# unrounded) to the published $24 — Mixed-coherent row only; no other row
-# touches the floor.
+# These cases preserve the hosted v1 API's period-normalization contract.
+# Annual 2026 amounts use the FY2027 SNAP parameters introduced in
+# policyengine-us 2.15.7: $298/month through September and $306/month from
+# October. B-O1 totals 9 * $298 + 3 * $306 = $3,600. C-O1 and D-O1 exclude
+# January's $298, giving $3,302. Mixed-coherent replaces June's $298 with
+# the $24 minimum allotment, giving $3,326.
 _SNAP_MATRIX = [
     # (income_map, output_key, expected_snap)
     # Year-only inputs.
     ({"2026": 36000}, "2026", {"2026": 0.0}),
     ({"2026": 36000}, "2026-01", {"2026-01": 0.0}),
-    ({"2026": 3600}, "2026", {"2026": 3607.571}),
+    ({"2026": 3600}, "2026", {"2026": 3600.0}),
     ({"2026": 3600}, "2026-01", {"2026-01": 298.0}),
     # Single-month-only inputs (other 11 months default to 0).
-    ({"2026-01": 36000}, "2026", {"2026": 3309.571}),
+    ({"2026-01": 36000}, "2026", {"2026": 3302.0}),
     ({"2026-01": 36000}, "2026-01", {"2026-01": 0.0}),
-    ({"2026-01": 3600}, "2026", {"2026": 3309.571}),
+    ({"2026-01": 3600}, "2026", {"2026": 3302.0}),
     ({"2026-01": 3600}, "2026-01", {"2026-01": 0.0}),
     # Year + same-year month coherent (sum < annual): June pinned to $1800,
     # remainder ($1800/11 ≈ $163.64) distributes to the other 11 months.
-    # Pinned against the v1 number — the case Anthony flagged in review.
-    ({"2026": 3600, "2026-06": 1800}, "2026", {"2026": 3333.571}),
+    ({"2026": 3600, "2026-06": 1800}, "2026", {"2026": 3326.0}),
 ]
 _SNAP_MATRIX_IDS = [
     "A-O1",
@@ -641,7 +638,7 @@ class TestSnapInputOutputMatrix:
         snap = result["spm_units"]["spm_unit_1"]["snap"]
         assert snap.keys() == expected_snap.keys()
         # ±$0.05 absorbs cross-version float drift from numpy/pandas; the
-        # expected values are pinned against hosted v1 API parity.
+        # expected values use the SNAP amounts documented above.
         for k in snap:
             assert snap[k] == pytest.approx(expected_snap[k], abs=0.05)
 
