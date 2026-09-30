@@ -68,6 +68,7 @@ Dockerfile*
 # CI/CD
 .github/
 .github/workflows/
+gha-creds-*.json
 
 # Logs
 logs/

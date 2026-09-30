@@ -30,6 +30,28 @@ EXPECTED_STATIC_AUTH_ENV = {
 }
 PYPI_PUBLISH_ACTION = "pypa/gh-action-pypi-publish@release/v1"
 CLOUD_SQL_LIFECYCLE_SCRIPT = "cloud-sql-staging-lifecycle.sh"
+GOOGLE_AUTH_ACTION = "google-github-actions/auth@v3"
+EXPECTED_GOOGLE_AUTH_JOBS = {
+    "start-analytics-db-staging",
+    "migrate-analytics-db-staging",
+    "deploy-analytics-staging",
+    "deploy-modal-staging",
+    "deploy-cloud-run-staging",
+    "integration-tests-cloud-run-staging",
+    "integration-tests-cloud-run-fallback-staging",
+    "stop-analytics-db-staging",
+    "migrate-analytics-db-production",
+    "deploy-analytics-production",
+    "deploy-modal-production",
+    "deploy-cloud-run-production",
+}
+EXPECTED_WIF_INPUTS = {
+    "project_id": "${{ env.GOOGLE_CLOUD_PROJECT }}",
+    "workload_identity_provider": (
+        "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
+    ),
+    "service_account": "${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}",
+}
 
 
 def test_local_authenticated_tests_use_public_static_values():
@@ -187,6 +209,124 @@ def test_staging_migration_waits_for_connectivity_before_upgrade():
     assert "upgrade head" in migration_step["run"]
 
 
+def test_google_cloud_jobs_use_workload_identity_federation():
+    workflow = _load_workflow()
+    jobs = workflow["jobs"]
+    auth_jobs = {
+        job_id
+        for job_id, job in jobs.items()
+        if _steps_using(job, GOOGLE_AUTH_ACTION)
+    }
+
+    assert auth_jobs == EXPECTED_GOOGLE_AUTH_JOBS
+    assert "credentials_json" not in WORKFLOW_PATH.read_text()
+
+    for job_id in EXPECTED_GOOGLE_AUTH_JOBS:
+        job = jobs[job_id]
+        auth_steps = _steps_using(job, GOOGLE_AUTH_ACTION)
+
+        assert job["permissions"] == {
+            "contents": "read",
+            "id-token": "write",
+        }
+        assert all(step["with"] == EXPECTED_WIF_INPUTS for step in auth_steps)
+
+        if job_id == "integration-tests-cloud-run-fallback-staging":
+            assert len(auth_steps) == 2
+        else:
+            assert len(auth_steps) == 1
+
+
+def test_google_authentication_occurs_immediately_before_google_work():
+    workflow = _load_workflow()
+    jobs = workflow["jobs"]
+
+    expected_step_order = {
+        "migrate-analytics-db-staging": (
+            "Sync dependencies",
+            "Authenticate to Google Cloud for analytics database",
+            "Wait for analytics database connectivity",
+        ),
+        "deploy-analytics-staging": (
+            "Sync dependencies",
+            "Authenticate to Google Cloud",
+            "Set up gcloud",
+        ),
+        "deploy-modal-staging": (
+            "Ensure Modal staging environment exists",
+            "Authenticate to Google Cloud for analytics database",
+            "Deploy Modal workers and canary",
+        ),
+        "deploy-cloud-run-staging": (
+            "Sync dependencies",
+            "Authenticate to Google Cloud",
+            "Set up gcloud",
+        ),
+        "integration-tests-cloud-run-staging": (
+            "Warm Modal worker through the gateway",
+            "Authenticate to Google Cloud",
+            "Warm Cloud Run fallback workers",
+        ),
+        "migrate-analytics-db-production": (
+            "Sync dependencies",
+            "Authenticate to Google Cloud for analytics database",
+            "Run analytics database migrations",
+        ),
+        "deploy-analytics-production": (
+            "Sync dependencies",
+            "Authenticate to Google Cloud",
+            "Set up gcloud",
+        ),
+        "deploy-modal-production": (
+            "Ensure Modal production environment exists",
+            "Authenticate to Google Cloud for analytics database",
+            "Deploy Modal workers and canary",
+        ),
+        "deploy-cloud-run-production": (
+            "Sync dependencies",
+            "Authenticate to Google Cloud",
+            "Set up gcloud",
+        ),
+    }
+
+    for job_id, step_names in expected_step_order.items():
+        indices = [_step_index(jobs[job_id], name) for name in step_names]
+        assert indices == sorted(indices)
+
+    fallback_job = jobs["integration-tests-cloud-run-fallback-staging"]
+    fallback_auth_steps = _steps_using(fallback_job, GOOGLE_AUTH_ACTION)
+    restore_auth = fallback_auth_steps[-1]
+    assert restore_auth["name"] == (
+        "Re-authenticate to Google Cloud before routing restoration"
+    )
+    assert restore_auth["if"] == "always()"
+    assert _step_index(fallback_job, restore_auth["name"]) < _step_index(
+        fallback_job,
+        "Restore Modal-primary routing",
+    )
+
+
+def test_service_account_key_is_only_forwarded_to_modal_runtime():
+    workflow_text = WORKFLOW_PATH.read_text()
+
+    assert workflow_text.count("${{ secrets.GCP_SA_KEY }}") == 2
+    for job_id in ("deploy-modal-staging", "deploy-modal-production"):
+        job = _load_workflow()["jobs"][job_id]
+        deploy_step = next(
+            step
+            for step in job["steps"]
+            if step.get("name") == "Deploy Modal workers and canary"
+        )
+        assert deploy_step["env"]["GCP_CREDENTIALS_JSON"] == (
+            "${{ secrets.GCP_SA_KEY }}"
+        )
+
+
+def test_generated_google_credentials_are_excluded_from_artifacts():
+    for path in (REPO_ROOT / ".gitignore", REPO_ROOT / ".dockerignore"):
+        assert "gha-creds-*.json" in path.read_text().splitlines()
+
+
 def test_pypi_distributions_are_built_without_oidc_permission():
     workflow = _load_workflow()
     job = workflow["jobs"]["build-pypi-distributions"]
@@ -248,6 +388,14 @@ def _steps_using(job, action):
 
 def _run_commands(job):
     return "\n".join(step.get("run", "") for step in job["steps"])
+
+
+def _step_index(job, name):
+    return next(
+        index
+        for index, step in enumerate(job["steps"])
+        if step.get("name") == name
+    )
 
 
 def _deploy_step_env(workflow, job_id):

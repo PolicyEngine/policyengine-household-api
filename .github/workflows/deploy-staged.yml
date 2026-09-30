@@ -157,6 +157,7 @@ jobs:
     environment: staging
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v7
@@ -164,7 +165,9 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v3
@@ -180,6 +183,7 @@ jobs:
     environment: staging
     permissions:
       contents: read
+      id-token: write
     env:
       ANALYTICS__ENABLED: "true"
       USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
@@ -188,11 +192,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-
-      - name: Authenticate to Google Cloud for analytics database
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - uses: actions/setup-python@v6
         with:
@@ -203,6 +202,13 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --all-packages
+
+      - name: Authenticate to Google Cloud for analytics database
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
       - name: Wait for analytics database connectivity
         run: |
@@ -224,6 +230,7 @@ jobs:
     environment: staging
     permissions:
       contents: read
+      id-token: write
     outputs:
       analytics_writer_url: ${{ steps.deploy.outputs.analytics_writer_url }}
     env:
@@ -236,14 +243,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v3
-
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -253,6 +252,16 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --all-packages
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Deploy Cloud Run analytics writer
         id: deploy
@@ -277,6 +286,7 @@ jobs:
     environment: staging
     permissions:
       contents: read
+      id-token: write
     env:
       MODAL_ENVIRONMENT: staging
       MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
@@ -288,11 +298,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-
-      - name: Authenticate to Google Cloud for analytics database
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - uses: actions/setup-python@v6
         with:
@@ -306,6 +311,13 @@ jobs:
 
       - name: Ensure Modal staging environment exists
         run: uv run modal environment create staging 2>/dev/null || true
+
+      - name: Authenticate to Google Cloud for analytics database
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
       - name: Deploy Modal workers and canary
         id: deploy
@@ -322,6 +334,7 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          # This key only populates the Modal runtime secret. GitHub uses WIF.
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
           ANALYTICS__CLOUD_TASKS__PROJECT: ${{ vars.ANALYTICS_CLOUD_TASKS_PROJECT || env.GOOGLE_CLOUD_PROJECT }}
           ANALYTICS__CLOUD_TASKS__LOCATION: ${{ vars.ANALYTICS_CLOUD_TASKS_LOCATION || env.HOUSEHOLD_CLOUD_RUN_REGION }}
@@ -352,6 +365,7 @@ jobs:
     environment: staging
     permissions:
       contents: read
+      id-token: write
     outputs:
       gateway_url: ${{ steps.deploy.outputs.gateway_url }}
       manifest_uri: ${{ steps.deploy.outputs.manifest_uri }}
@@ -367,14 +381,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v3
-
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -384,6 +390,16 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --all-packages
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Deploy Cloud Run failover services
         id: deploy
@@ -420,6 +436,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [deploy-cloud-run-staging]
     environment: staging
+    permissions:
+      contents: read
+      id-token: write
     env:
       HOUSEHOLD_API_BASE_URL: ${{ needs.deploy-cloud-run-staging.outputs.gateway_url }}
       HOUSEHOLD_API_EXPECTED_BACKEND: modal
@@ -438,14 +457,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v3
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -475,6 +486,16 @@ jobs:
         # test step remains the gate. See the script for details.
         run: bash .github/scripts/cloud-run-warm-modal-via-gateway.sh "${{ matrix.channel }}"
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
       - name: Warm Cloud Run fallback workers
         # The gateway falls back to these min-instances=0 workers when a
         # Modal request times out (e.g. during autoscale cold starts under
@@ -494,6 +515,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [deploy-cloud-run-staging, integration-tests-cloud-run-staging]
     environment: staging
+    permissions:
+      contents: read
+      id-token: write
     env:
       HOUSEHOLD_API_BASE_URL: ${{ needs.deploy-cloud-run-staging.outputs.gateway_url }}
       HOUSEHOLD_API_EXPECTED_BACKEND: cloud_run
@@ -507,14 +531,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v3
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -535,6 +551,16 @@ jobs:
           AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_TEST_TOKEN_CLIENT_SECRET }}
           AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
         run: python .github/scripts/fetch_auth0_test_token.py
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Force Cloud Run fallback
         run: |
@@ -559,6 +585,14 @@ jobs:
               channel || status=$?
           done
           exit "${status}"
+
+      - name: Re-authenticate to Google Cloud before routing restoration
+        if: always()
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
       - name: Restore Modal-primary routing
         if: always()
@@ -636,6 +670,7 @@ jobs:
     environment: staging
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v7
@@ -643,7 +678,9 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v3
@@ -713,6 +750,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     env:
       ANALYTICS__ENABLED: "true"
       USER_ANALYTICS_DB_CONNECTION_NAME: ${{ secrets.USER_ANALYTICS_DB_CONNECTION_NAME }}
@@ -721,11 +759,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-
-      - name: Authenticate to Google Cloud for analytics database
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - uses: actions/setup-python@v6
         with:
@@ -737,6 +770,13 @@ jobs:
       - name: Sync dependencies
         run: uv sync --all-packages
 
+      - name: Authenticate to Google Cloud for analytics database
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
       - name: Run analytics database migrations
         run: uv run alembic -c projects/analytics-api/alembic.ini upgrade head
 
@@ -747,6 +787,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     outputs:
       analytics_writer_url: ${{ steps.deploy.outputs.analytics_writer_url }}
     env:
@@ -759,14 +800,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v3
-
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -776,6 +809,16 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --all-packages
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Deploy Cloud Run analytics writer
         id: deploy
@@ -800,6 +843,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     env:
       MODAL_ENVIRONMENT: main
       MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
@@ -812,11 +856,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Authenticate to Google Cloud for analytics database
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -826,6 +865,16 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --all-packages
+
+      - name: Ensure Modal production environment exists
+        run: uv run modal environment create main 2>/dev/null || true
+
+      - name: Authenticate to Google Cloud for analytics database
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
       - name: Deploy Modal workers and canary
         id: deploy
@@ -842,6 +891,7 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
+          # This key only populates the Modal runtime secret. GitHub uses WIF.
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
           ANALYTICS__CLOUD_TASKS__PROJECT: ${{ vars.ANALYTICS_CLOUD_TASKS_PROJECT || env.GOOGLE_CLOUD_PROJECT }}
           ANALYTICS__CLOUD_TASKS__LOCATION: ${{ vars.ANALYTICS_CLOUD_TASKS_LOCATION || env.HOUSEHOLD_CLOUD_RUN_REGION }}
@@ -874,6 +924,7 @@ jobs:
     environment: production
     permissions:
       contents: read
+      id-token: write
     outputs:
       gateway_url: ${{ steps.deploy.outputs.gateway_url }}
       manifest_uri: ${{ steps.deploy.outputs.manifest_uri }}
@@ -889,14 +940,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v3
-
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -906,6 +949,16 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --all-packages
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Deploy Cloud Run failover services
         id: deploy
