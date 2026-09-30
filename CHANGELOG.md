@@ -1,3 +1,11 @@
+## [0.33.3] - 2026-09-30
+
+### Changed
+
+- Update PolicyEngine US to 2.18.0.
+  Update PolicyEngine Core to 3.32.8 as required by US.
+
+
 ## [0.33.2] - 2026-09-29
 
 ### Fixed
