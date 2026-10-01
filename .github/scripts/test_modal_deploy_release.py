@@ -132,6 +132,33 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "-m policyengine_household_modal.prune_manifest" in log
 
 
+def test_database_revision_uses_runner_credentials(tmp_path):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    env["HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER"] = "modal-provider"
+    env["HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL"] = "modal@example.test"
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            '{"new_app_target":"none","cleanup_target":"none"}',
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert "ANALYTICS_PROVIDER=" in log
+    assert "ANALYTICS_SERVICE_ACCOUNT=" in log
+    assert "ANALYTICS_PROVIDER=modal-provider" not in log
+    assert "ANALYTICS_SERVICE_ACCOUNT=modal@example.test" not in log
+
+
 def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
@@ -247,6 +274,8 @@ set -euo pipefail
 echo "$*" >> "${{UV_LOG}}"
 
 if [[ "$*" == *"policyengine_household_modal.analytics_revision"* ]]; then
+  echo "ANALYTICS_PROVIDER=${{HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER:-}}" >> "${{UV_LOG}}"
+  echo "ANALYTICS_SERVICE_ACCOUNT=${{HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL:-}}" >> "${{UV_LOG}}"
   echo "20260512_0003"
   exit 0
 fi
