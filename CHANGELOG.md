@@ -1,3 +1,12 @@
+## [0.33.5] - 2026-10-01
+
+### Fixed
+
+- Stop pull-request jobs from receiving deployment credentials, use public static
+  values for local authentication tests, and prevent checkout from retaining the
+  GitHub Actions token.
+
+
 ## [0.33.4] - 2026-09-30
 
 ### Fixed
