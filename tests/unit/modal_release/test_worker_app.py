@@ -114,15 +114,32 @@ def test_post_snapshot_reset_restarts_observability_after_credentials(
     )
     monkeypatch.setattr(
         worker_app,
+        "reset_household_google_credentials",
+        lambda: calls.append("reset_household_credentials"),
+    )
+    monkeypatch.setattr(
+        worker_app,
         "restart_observability",
         lambda: calls.append("restart_observability"),
+    )
+    from policyengine_household_api.analytics import cloud_tasks
+
+    monkeypatch.setattr(
+        cloud_tasks,
+        "reset_cloud_tasks_client",
+        lambda: calls.append("reset_cloud_tasks_client"),
     )
 
     worker_app.reset_post_snapshot_process_state(
         SimpleNamespace(extensions={})
     )
 
-    assert calls == ["credentials", "restart_observability"]
+    assert calls == [
+        "credentials",
+        "reset_household_credentials",
+        "restart_observability",
+        "reset_cloud_tasks_client",
+    ]
     assert "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ
 
 

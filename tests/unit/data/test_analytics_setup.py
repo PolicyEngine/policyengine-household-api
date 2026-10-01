@@ -119,6 +119,28 @@ class TestAnalyticsConnector:
         assert connector is not None
         assert connector == mock_google_connector
 
+    def test__connector_receives_household_google_credentials(
+        self,
+        reset_analytics_state,
+        analytics_enabled_env,
+        patch_get_config_value_returns_true,
+        patch_analytics_connector_class,
+        monkeypatch,
+    ):
+        from policyengine_household_analytics import analytics_setup
+
+        credentials = object()
+        connector_class, _ = patch_analytics_connector_class
+        monkeypatch.setattr(
+            analytics_setup,
+            "get_household_google_credentials",
+            lambda: credentials,
+        )
+
+        analytics_setup.get_analytics_connector()
+
+        connector_class.assert_called_once_with(credentials=credentials)
+
     def test__given_connector_initialized__subsequent_calls_return_cached_instance(
         self,
         reset_analytics_state,

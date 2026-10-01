@@ -16,6 +16,9 @@ from policyengine_household_modal.images import (
     household_api_worker_image,
 )
 from policyengine_household_common.release_manifest import build_app_name
+from policyengine_household_common.google_credentials import (
+    reset_household_google_credentials,
+)
 from policyengine_household_common.worker_dispatch import (
     WorkerRequest,
     WorkerResult,
@@ -100,6 +103,7 @@ def reset_post_snapshot_process_state(flask_app) -> None:
     """
     os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
     configure_google_credentials()
+    reset_household_google_credentials()
 
     # The queued log transport's listener thread was started at snapshot
     # creation and did not survive the restore, so the container would
@@ -111,14 +115,19 @@ def reset_post_snapshot_process_state(flask_app) -> None:
     # snapshot hold sockets that closed at snapshot time. Reset them so
     # the first request opens fresh connections.
     from policyengine_household_analytics import analytics_setup
+    from policyengine_household_api.analytics.cloud_tasks import (
+        reset_cloud_tasks_client,
+    )
 
     if (
         not analytics_setup.is_analytics_enabled()
         or "sqlalchemy" not in flask_app.extensions
     ):
+        reset_cloud_tasks_client()
         return
 
     analytics_setup.cleanup()
+    reset_cloud_tasks_client()
 
     try:
         with flask_app.app_context():
