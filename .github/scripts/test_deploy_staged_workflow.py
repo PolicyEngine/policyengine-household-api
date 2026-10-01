@@ -21,8 +21,27 @@ EXPECTED_AUTH0_ENV = {
     "AUTH0_ADDRESS_NO_DOMAIN": "${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}",
     "AUTH0_AUDIENCE_NO_DOMAIN": "${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}",
 }
+EXPECTED_STATIC_AUTH_ENV = {
+    "AUTH__ENABLED": "true",
+    "AUTH0_ADDRESS_NO_DOMAIN": "test.invalid",
+    "AUTH0_AUDIENCE_NO_DOMAIN": "https://household-api.test.invalid",
+    "AUTH0_TEST_TOKEN_NO_DOMAIN": "ci-static-bearer-token",
+    "AUTH0_TEST_TOKEN_SCOPES": "read:calculate-analytics",
+}
 PYPI_PUBLISH_ACTION = "pypa/gh-action-pypi-publish@release/v1"
 CLOUD_SQL_LIFECYCLE_SCRIPT = "cloud-sql-staging-lifecycle.sh"
+
+
+def test_local_authenticated_tests_use_public_static_values():
+    workflow = _load_workflow()
+    auth_step = next(
+        step
+        for step in workflow["jobs"]["lint-and-test"]["steps"]
+        if step.get("run") == "make test-with-auth"
+    )
+
+    assert auth_step["env"] == EXPECTED_STATIC_AUTH_ENV
+    assert "secrets." not in str(workflow["jobs"]["lint-and-test"])
 
 
 def test_cloud_run_deploy_jobs_pass_slack_alert_environment():

@@ -5,12 +5,14 @@ on:
     types: [opened, edited, reopened, synchronize]
 
 env:
-  PROJECT_ID: policyengine-household-api
   PYTHON_VERSION: "3.12"
 
 concurrency:
   group: household-api-pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   check-modal-release-body:
@@ -20,6 +22,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -37,6 +40,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -54,6 +58,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -68,6 +73,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Check changelog fragment exists
         run: bash .github/scripts/check-changelog-fragment.sh
   test:
@@ -76,18 +82,12 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v3
-        with:
-          project_id: ${{ env.PROJECT_ID }}
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
       - name: Install dependencies
@@ -97,11 +97,13 @@ jobs:
       - name: Run tests with auth
         run: make test-with-auth
         env:
-          AUTH__ENABLED: true
-          AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
-          AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          AUTH0_TEST_TOKEN_NO_DOMAIN: ${{ secrets.AUTH0_TEST_TOKEN_NO_DOMAIN }}
-          AUTH0_TEST_TOKEN_SCOPES: ${{ secrets.AUTH0_TEST_TOKEN_SCOPES }}
+          # Public fixtures consumed by the test-only static token validator.
+          # These are not Auth0 credentials; keep these values public.
+          AUTH__ENABLED: "true"
+          AUTH0_ADDRESS_NO_DOMAIN: test.invalid
+          AUTH0_AUDIENCE_NO_DOMAIN: https://household-api.test.invalid
+          AUTH0_TEST_TOKEN_NO_DOMAIN: ci-static-bearer-token
+          AUTH0_TEST_TOKEN_SCOPES: read:calculate-analytics
 
   test-analytics-writer-isolated:
     # Runs the analytics writer's tests in that member's own dependency
@@ -112,6 +114,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
