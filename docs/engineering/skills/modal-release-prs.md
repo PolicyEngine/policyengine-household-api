@@ -114,13 +114,32 @@ deployment service account identified by `GCP_DEPLOY_SERVICE_ACCOUNT`. Set
 `google-github-actions/auth`. Keep authentication steps close to the Google
 Cloud operations so the short-lived credentials remain valid.
 
-The two Modal deployment jobs temporarily continue to read `GCP_SA_KEY`, but
-only to populate `GCP_CREDENTIALS_JSON` in the Modal worker runtime secret.
-They must not pass that key to `google-github-actions/auth`. Remove this
-remaining key use when Modal runtime database access moves to identity
-federation in the next migration phase. The identity pool, provider,
-service-account binding, and repository variables are provisioned once outside
-the workflow; the release workflow consumes them but does not administer IAM.
+Modal workers use a separate Modal-to-Google WIF path for household-project
+runtime access. `HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER` identifies the
+Modal OIDC provider and `HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL` identifies the
+narrow runtime service account. The worker passes these short-lived
+credentials explicitly to the Cloud SQL connector and Cloud Tasks client;
+Cloud Run services continue to use their platform-provided Application Default
+Credentials. The worker recreates its credentials and both clients after a
+Modal memory-snapshot restore.
+
+The staging provider accepts only the PolicyEngine workspace, the Modal
+`staging` environment, household API application names, and the
+`HouseholdWorker.*` function. Its service account can connect only to the
+staging analytics Cloud SQL instance, enqueue only to `analytics-writes`, and
+act only as the analytics task dispatcher. The production pool, provider, and
+service account may be pre-created, but do not add impersonation or resource
+bindings until staging proves the runtime path and the prerequisite pull
+requests have merged.
+
+During staging validation, the Modal deployment job continues to copy
+`GCP_SA_KEY` into `GCP_CREDENTIALS_JSON` as rollback data. No worker code reads
+or materializes it. Do not remove it from the staging Modal secret until the
+WIF-backed staging deployment, cold-start, snapshot-restore, database, Cloud
+Tasks, analytics persistence, and observability checks all pass. The identity
+pools, providers, service-account bindings, and GitHub environment variables
+are provisioned outside the workflow; the workflow consumes them but does not
+administer IAM.
 
 Only the US and UK package versions are release-significant. Do not include
 Canada, Nigeria, or Israel package versions in Modal worker app names, manifest
