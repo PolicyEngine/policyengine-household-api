@@ -8,15 +8,13 @@ from policyengine_observability import operation
 from policyengine_observability import restart_observability
 from policyengine_observability import set_attribute
 
-from policyengine_household_modal.google_credentials import (
-    configure_google_credentials,
-)
 from policyengine_household_modal.images import (
     household_api_secret,
     household_api_worker_image,
 )
 from policyengine_household_common.release_manifest import build_app_name
 from policyengine_household_common.google_credentials import (
+    get_household_google_credentials,
     reset_household_google_credentials,
 )
 from policyengine_household_common.worker_dispatch import (
@@ -92,17 +90,10 @@ def reset_post_snapshot_process_state(flask_app) -> None:
 
     Runs on every container start AFTER snapshot restore. Memory
     snapshots preserve Python object state but not live network
-    connections or threads.
-
-    Force-recreate the Google credentials file first: Modal preserves
-    env vars across snapshot restore, but /tmp is not guaranteed to be
-    preserved. Without popping the env var, configure_google_credentials()
-    would short-circuit on the surviving GOOGLE_APPLICATION_CREDENTIALS
-    and leave it pointing at a missing file.
+    connections or threads. Discard the credential object first so Google
+    clients created in the restored process use this container's Modal token.
     See: https://modal.com/docs/guide/memory-snapshot
     """
-    os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
-    configure_google_credentials()
     reset_household_google_credentials()
 
     # The queued log transport's listener thread was started at snapshot
@@ -161,10 +152,10 @@ class HouseholdWorker:
             modal_app_name=WORKER_APP_NAME,
             modal_function_name="HouseholdWorker.handle_household_request",
         )
-        # Configure credentials before importing the Flask app so any request
-        # path that lazily initializes Google-backed clients after snapshot
-        # restore has a usable credentials file.
-        configure_google_credentials()
+        # Validate the Modal WIF configuration before importing the Flask app.
+        # Google clients receive this credential explicitly and the post-
+        # snapshot hook reconstructs it for each restored container.
+        get_household_google_credentials()
 
         from policyengine_household_api.api import app as flask_app
 

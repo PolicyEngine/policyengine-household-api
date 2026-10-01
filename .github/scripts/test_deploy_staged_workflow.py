@@ -242,7 +242,7 @@ def test_google_cloud_jobs_use_workload_identity_federation():
             assert len(auth_steps) == 1
 
 
-def test_service_account_key_is_only_forwarded_to_modal_runtime():
+def test_modal_runtime_receives_wif_config_and_inert_rollback_key():
     workflow_text = WORKFLOW_PATH.read_text()
 
     assert workflow_text.count("${{ secrets.GCP_SA_KEY }}") == 2
@@ -255,6 +255,14 @@ def test_service_account_key_is_only_forwarded_to_modal_runtime():
         )
         assert deploy_step["env"]["GCP_CREDENTIALS_JSON"] == (
             "${{ secrets.GCP_SA_KEY }}"
+        )
+        assert (
+            deploy_step["env"]["HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER"]
+            == "${{ vars.HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}"
+        )
+        assert (
+            deploy_step["env"]["HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL"]
+            == "${{ vars.HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL }}"
         )
 
 

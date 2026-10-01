@@ -23,6 +23,14 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
         "APP__ENVIRONMENT": "staging",
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
+        "HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER": (
+            "projects/120046258570/locations/global/"
+            "workloadIdentityPools/modal-household-staging/providers/modal"
+        ),
+        "HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL": (
+            "household-modal-staging@policyengine-household-api."
+            "iam.gserviceaccount.com"
+        ),
         "GCP_CREDENTIALS_JSON": "{}",
         "GOOGLE_CLOUD_PROJECT": "policyengine-household-api",
         "ANALYTICS__ENABLED": "false",
@@ -102,6 +110,15 @@ def test_modal_sync_secrets_passes_minimal_observability_env(tmp_path):
     assert payload["OBSERVABILITY_ENABLED"] == "true"
     assert payload["OBSERVABILITY_LOG_RAW_IP"] == "false"
     assert payload["OBSERVABILITY_REQUEST_LOGS_ENABLED"] == "true"
+    assert payload["HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER"] == (
+        "projects/120046258570/locations/global/"
+        "workloadIdentityPools/modal-household-staging/providers/modal"
+    )
+    assert payload["HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL"] == (
+        "household-modal-staging@policyengine-household-api."
+        "iam.gserviceaccount.com"
+    )
+    assert payload["GCP_CREDENTIALS_JSON"] == "{}"
     assert payload["ANALYTICS__ENABLED"] == "false"
     assert "USER_ANALYTICS_DB_CONNECTION_NAME" not in payload
     assert "USER_ANALYTICS_DB_USERNAME" not in payload
@@ -140,6 +157,14 @@ def test_modal_sync_secrets_includes_cloud_tasks_analytics_config(tmp_path):
         "APP__ENVIRONMENT": "staging",
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
+        "HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER": (
+            "projects/120046258570/locations/global/"
+            "workloadIdentityPools/modal-household-staging/providers/modal"
+        ),
+        "HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL": (
+            "household-modal-staging@policyengine-household-api."
+            "iam.gserviceaccount.com"
+        ),
         "GCP_CREDENTIALS_JSON": "{}",
         "ANALYTICS__ENABLED": "true",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",
@@ -193,6 +218,14 @@ def test_modal_sync_secrets_requires_cloud_tasks_analytics_config(tmp_path):
         "APP__ENVIRONMENT": "staging",
         "AUTH0_ADDRESS_NO_DOMAIN": "auth.example.com",
         "AUTH0_AUDIENCE_NO_DOMAIN": "api.example.com",
+        "HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER": (
+            "projects/120046258570/locations/global/"
+            "workloadIdentityPools/modal-household-staging/providers/modal"
+        ),
+        "HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL": (
+            "household-modal-staging@policyengine-household-api."
+            "iam.gserviceaccount.com"
+        ),
         "GCP_CREDENTIALS_JSON": "{}",
         "ANALYTICS__ENABLED": "true",
         "USER_ANALYTICS_DB_CONNECTION_NAME": "project:region:db",

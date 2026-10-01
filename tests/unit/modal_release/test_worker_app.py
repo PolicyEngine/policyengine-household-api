@@ -1,5 +1,4 @@
 import importlib
-import os
 from types import SimpleNamespace
 
 import pytest
@@ -97,21 +96,11 @@ def test_household_worker_exposes_post_snapshot_reset_hook(worker_app):
     assert hasattr(worker_cls, "reset_post_snapshot_state")
 
 
-def test_post_snapshot_reset_restarts_observability_after_credentials(
+def test_post_snapshot_reset_restarts_clients_after_credentials(
     worker_app, monkeypatch
 ):
-    """Memory snapshots preserve neither threads nor /tmp: the queued
-    log transport's listener thread dies at snapshot time, so a restored
-    container must rebuild its log destinations or silently drop every
-    Google-bound record — and only after the credentials file is
-    re-materialized, so the fresh Google client can authenticate."""
+    """A restored container must replace copied credentials and clients."""
     calls = []
-    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/stale.json")
-    monkeypatch.setattr(
-        worker_app,
-        "configure_google_credentials",
-        lambda: calls.append("credentials"),
-    )
     monkeypatch.setattr(
         worker_app,
         "reset_household_google_credentials",
@@ -135,12 +124,10 @@ def test_post_snapshot_reset_restarts_observability_after_credentials(
     )
 
     assert calls == [
-        "credentials",
         "reset_household_credentials",
         "restart_observability",
         "reset_cloud_tasks_client",
     ]
-    assert "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ
 
 
 def test_worker_concurrency_options_set_max_inputs(worker_app):

@@ -334,7 +334,10 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          # This key only populates the Modal runtime secret. GitHub uses WIF.
+          HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ vars.HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          # Retain the key in the Modal secret as rollback data while staging
+          # proves WIF. Worker code does not materialize or use this value.
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
           ANALYTICS__CLOUD_TASKS__PROJECT: ${{ vars.ANALYTICS_CLOUD_TASKS_PROJECT || env.GOOGLE_CLOUD_PROJECT }}
           ANALYTICS__CLOUD_TASKS__LOCATION: ${{ vars.ANALYTICS_CLOUD_TASKS_LOCATION || env.HOUSEHOLD_CLOUD_RUN_REGION }}
@@ -891,7 +894,10 @@ jobs:
           AUTH__ENABLED: "true"
           AUTH0_ADDRESS_NO_DOMAIN: ${{ secrets.AUTH0_ADDRESS_NO_DOMAIN }}
           AUTH0_AUDIENCE_NO_DOMAIN: ${{ secrets.AUTH0_AUDIENCE_NO_DOMAIN }}
-          # This key only populates the Modal runtime secret. GitHub uses WIF.
+          HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ vars.HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          # Retain the key in the Modal secret as rollback data while staging
+          # proves WIF. Worker code does not materialize or use this value.
           GCP_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY }}
           ANALYTICS__CLOUD_TASKS__PROJECT: ${{ vars.ANALYTICS_CLOUD_TASKS_PROJECT || env.GOOGLE_CLOUD_PROJECT }}
           ANALYTICS__CLOUD_TASKS__LOCATION: ${{ vars.ANALYTICS_CLOUD_TASKS_LOCATION || env.HOUSEHOLD_CLOUD_RUN_REGION }}
