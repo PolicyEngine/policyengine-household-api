@@ -1,3 +1,10 @@
+## [0.33.6] - 2026-10-02
+
+### Changed
+
+- Use GitHub OIDC and Google Workload Identity Federation for deployment authentication while retaining the service-account key only for Modal runtime access.
+
+
 ## [0.33.5] - 2026-10-01
 
 ### Fixed
