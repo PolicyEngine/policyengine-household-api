@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from policyengine_household_common.release_manifest import (
@@ -17,6 +18,15 @@ def main() -> None:
     if args.github_output:
         with Path(args.github_output).open("a") as output_file:
             output_file.write(f"worker_app_name={app_name}\n")
+            output_file.write(
+                "package_versions_json="
+                + json.dumps(
+                    package_versions,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
             for country, version in package_versions.items():
                 output_file.write(f"{country}_version={version}\n")
 

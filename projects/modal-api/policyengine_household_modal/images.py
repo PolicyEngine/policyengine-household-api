@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import Mapping
 
 import modal
 
@@ -22,7 +23,9 @@ FIRST_PARTY_PACKAGES = (
 )
 
 
-def household_api_worker_image() -> modal.Image:
+def household_api_worker_image(
+    package_versions: Mapping[str, str] | None = None,
+) -> modal.Image:
     if not modal.is_local():
         # Inside a running container this module is re-imported for the app
         # definitions, but the image is already built; return a placeholder
@@ -39,7 +42,7 @@ def household_api_worker_image() -> modal.Image:
     image = modal.Image.debian_slim(python_version="3.13").uv_pip_install(
         requirements=[WORKER_REQUIREMENTS_FILE]
     )
-    package_specs = country_package_install_specs()
+    package_specs = country_package_install_specs(package_versions)
     if package_specs:
         image = image.uv_pip_install(*package_specs)
     return (

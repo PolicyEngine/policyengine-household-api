@@ -9,23 +9,38 @@ from policyengine_household_api.deployment import (
     country_package_install_specs,
     deployment_package_versions_from_env,
 )
+from policyengine_household_modal.worker_deployment import (
+    WorkerDeployment,
+    WorkerResourceProfile,
+)
 
 
 pytestmark = pytest.mark.usefixtures("worker_app")
 
 
 @pytest.fixture
-def worker_app(monkeypatch):
-    monkeypatch.setenv("MODAL_ENVIRONMENT", "testing")
+def worker_app():
     from policyengine_household_modal import worker_app
 
     return importlib.reload(worker_app)
 
 
+def _deployment(
+    *,
+    environment="main",
+    profile=WorkerResourceProfile.CURRENT,
+):
+    return WorkerDeployment(
+        app_name="test-worker",
+        modal_environment=environment,
+        package_versions={"uk": "2.88.18", "us": "2.18.0"},
+        resource_profile=profile,
+    )
+
+
 def test_worker_function_options_keep_main_workers_warm(worker_app):
     options = worker_app.worker_function_options(
-        modal_environment="main",
-        resource_profile="current",
+        _deployment(),
     )
 
     assert options["min_containers"] == 3
@@ -35,8 +50,7 @@ def test_worker_function_options_keep_main_workers_warm(worker_app):
 
 def test_worker_function_options_reduce_frontier_warm_capacity(worker_app):
     options = worker_app.worker_function_options(
-        modal_environment="main",
-        resource_profile="frontier",
+        _deployment(profile=WorkerResourceProfile.FRONTIER),
     )
 
     assert options["min_containers"] == 1
@@ -44,26 +58,13 @@ def test_worker_function_options_reduce_frontier_warm_capacity(worker_app):
     assert options["scaledown_window"] == 300
 
 
-def test_worker_function_options_require_main_resource_profile(
-    worker_app, monkeypatch
-):
-    monkeypatch.delenv(
-        "HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE", raising=False
-    )
+def test_worker_function_options_sets_only_runtime_app_name(worker_app):
+    options = worker_app.worker_function_options(_deployment())
 
-    with pytest.raises(
-        RuntimeError,
-        match="HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE",
-    ):
-        worker_app.worker_function_options(modal_environment="main")
-
-
-def test_worker_function_options_reject_invalid_resource_profile(worker_app):
-    with pytest.raises(RuntimeError, match="Unsupported Modal worker"):
-        worker_app.worker_function_options(
-            modal_environment="main",
-            resource_profile="unexpected",
-        )
+    assert options["env"] == {
+        "POLICYENGINE_HOUSEHOLD_MODAL_APP_NAME": "test-worker"
+    }
+    assert "resource_profile" not in str(options["env"]).lower()
 
 
 def test_worker_function_options_do_not_keep_staging_workers_warm():
@@ -71,23 +72,29 @@ def test_worker_function_options_do_not_keep_staging_workers_warm():
         worker_function_options,
     )
 
-    options = worker_function_options(modal_environment="staging")
+    options = worker_function_options(_deployment(environment="staging"))
 
     assert "min_containers" not in options
     assert "buffer_containers" not in options
     assert options["scaledown_window"] == 300
 
 
-def test_worker_function_options_do_not_keep_workers_warm_without_env(
+def test_worker_module_imports_without_deployment_environment(
     monkeypatch,
 ):
     monkeypatch.delenv("MODAL_ENVIRONMENT", raising=False)
-    from policyengine_household_modal.worker_app import (
-        worker_function_options,
-    )
+    from policyengine_household_modal import worker_app
 
-    with pytest.raises(RuntimeError, match="MODAL_ENVIRONMENT"):
-        worker_function_options(modal_environment=None)
+    imported = importlib.reload(worker_app)
+
+    assert imported.HouseholdWorker.__name__ == "HouseholdWorker"
+
+
+def test_create_worker_app_registers_household_worker(worker_app):
+    app = worker_app.create_worker_app(_deployment(environment="testing"))
+
+    assert set(app.registered_classes) == {"HouseholdWorker"}
+    assert set(app.registered_functions) == {"HouseholdWorker.*"}
 
 
 def test_worker_function_options_enable_memory_snapshot_in_all_envs(
@@ -95,8 +102,7 @@ def test_worker_function_options_enable_memory_snapshot_in_all_envs(
 ):
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment,
-            resource_profile="current",
+            _deployment(environment=environment),
         )
         assert options["enable_memory_snapshot"] is True, (
             f"enable_memory_snapshot must be True in `{environment}` "
@@ -186,8 +192,7 @@ def test_worker_function_options_reserve_cpu(worker_app):
     staging). 1.0 is a cost-balanced floor vs the 2.0 dropped in #1610."""
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment,
-            resource_profile="current",
+            _deployment(environment=environment),
         )
         assert options["cpu"] == 1.0
 
@@ -198,8 +203,7 @@ def test_worker_function_options_execution_budget(worker_app):
     so the worker's own timeout resolves first (issue #1609)."""
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment,
-            resource_profile="current",
+            _deployment(environment=environment),
         )
         assert options["timeout"] == 300
 
@@ -209,8 +213,7 @@ def test_worker_function_options_do_not_use_deprecated_concurrency_kwarg(
 ):
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment,
-            resource_profile="current",
+            _deployment(environment=environment),
         )
         assert "allow_concurrent_inputs" not in options, (
             "`allow_concurrent_inputs` is deprecated; use "
@@ -225,8 +228,7 @@ def test_worker_function_options_max_containers_capped_in_all_envs(
     client or traffic spike from racking up unbounded cost."""
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment,
-            resource_profile="current",
+            _deployment(environment=environment),
         )
         assert options["max_containers"] == 100, (
             f"max_containers must be 100 in `{environment}` to bound "

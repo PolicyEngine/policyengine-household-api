@@ -50,9 +50,13 @@ worker apps after release.
 ## Worker resource profiles
 
 Production Modal workers use resource profiles based on the channel they
-serve. The deployment script passes the profile through
-`HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE`; a production worker deployment
-fails when that value is missing or invalid.
+serve. `modal_worker_deployment_plan.py` combines the active release manifest
+with the requested release configuration and produces one typed
+`WorkerDeployment` for each app that must be deployed. The deployment command
+passes that object to the worker app factory and calls Modal's `App.deploy()`
+API. App name, Modal environment, country-package versions, and resource
+profile are required command arguments and are validated before Modal builds
+an image.
 
 | Channel | Minimum containers | Idle buffer | Scale-down window | CPU |
 | --- | ---: | ---: | ---: | ---: |
@@ -66,11 +70,20 @@ environment.
 
 Code-only deployments read both active channels from the release manifest and
 redeploy each app with its existing channel's profile. If one app serves both
-channels, it uses the `current` profile. During a normal weekly release, the
+channels, the deployment plan contains one entry with the `current` profile.
+During a normal weekly release, the
 deployment script redeploys the existing frontier app with the `current`
 profile and confirms that it serves before assigning current traffic to it in
 the manifest. The newly built frontier app receives the `frontier` profile.
 This sequencing prevents a promoted worker from retaining frontier capacity.
+If the promoted app and newly built app have the same name, the planner
+consolidates them into one deployment with the `current` profile. Conflicting
+country-package versions for one app name stop the deployment.
+
+The deployment configuration is not transported through process environment
+variables. The app factory copies only the non-secret app name into the worker
+container environment so runtime logs and traces can identify the deployed
+app. Runtime credentials remain in the named `household-api` Modal secret.
 
 Use this release shape when the newly built worker must become both `current`
 and `frontier` in a single release:
@@ -107,7 +120,7 @@ the weekly release shape by default.
 Every worker app deploy — release mode and code mode alike — blocks until the
 newly deployed worker answers a liveness dispatch
 (`policyengine_household_modal.warm_worker`, default budget 1200 seconds,
-bounded by `timeout-minutes` on the deploy jobs). `modal deploy` returns when
+bounded by `timeout-minutes` on the deploy jobs). `App.deploy()` returns when
 the new version is registered, but the worker only builds its memory snapshot
 and initialises the API on first invocation; the warm gate keeps deploy jobs
 from reporting success — and integration tests from starting — until the new

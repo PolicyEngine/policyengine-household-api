@@ -9,6 +9,7 @@ modal_sync_secrets_script="${MODAL_SYNC_SECRETS_SCRIPT:-.github/scripts/modal-sy
 modal_active_worker_apps_script="${MODAL_ACTIVE_WORKER_APPS_SCRIPT:-.github/scripts/modal_active_worker_apps.py}"
 modal_require_active_channels_script="${MODAL_REQUIRE_ACTIVE_CHANNELS_SCRIPT:-.github/scripts/modal_require_active_channels.py}"
 modal_cleanup_apps_script="${MODAL_CLEANUP_APPS_SCRIPT:-.github/scripts/modal-cleanup-apps.sh}"
+modal_worker_deployment_plan_script="${MODAL_WORKER_DEPLOYMENT_PLAN_SCRIPT:-.github/scripts/modal_worker_deployment_plan.py}"
 
 require_env() {
   local missing=()
@@ -42,28 +43,17 @@ github_output() {
 
 deploy_worker_app() {
   local app_name="${1:?app name is required}"
-  local package_versions_json="${2:-}"
+  local package_versions_json="${2:?package versions are required}"
   local resource_profile="${3:?resource profile is required}"
 
-  case "${resource_profile}" in
-    current|frontier)
-      ;;
-    *)
-      echo "::error::Unsupported Modal worker resource profile: ${resource_profile}"
-      exit 1
-      ;;
-  esac
+  uv run python -m policyengine_household_modal.deploy_worker \
+    --app-name "${app_name}" \
+    --modal-environment "${modal_environment}" \
+    --package-versions-json "${package_versions_json}" \
+    --resource-profile "${resource_profile}"
 
-  HOUSEHOLD_MODAL_WORKER_APP_NAME="${app_name}" \
-    HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON="${package_versions_json}" \
-    HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE="${resource_profile}" \
-    MODAL_ENVIRONMENT="${modal_environment}" \
-    uv run modal deploy \
-      --env "${modal_environment}" \
-      -m policyengine_household_modal.worker_app
-
-  # modal deploy returns when the new version is registered, not when it
-  # serves; block until a container of the new version answers a liveness
+  # App.deploy() returns when the new version is registered, not when it
+  # serves. Block until a container of the new version answers a liveness
   # dispatch so integration tests never race the snapshot/init window
   # (issue #1607).
   uv run python -m policyengine_household_modal.warm_worker \
@@ -72,10 +62,9 @@ deploy_worker_app() {
 }
 
 deploy_canary_app() {
-  MODAL_ENVIRONMENT="${modal_environment}" \
-    uv run modal deploy \
-      --env "${modal_environment}" \
-      -m policyengine_household_modal.canary_app
+  uv run modal deploy \
+    --env "${modal_environment}" \
+    -m policyengine_household_modal.canary_app
 
   uv run python -m policyengine_household_modal.verify_canary \
     --modal-environment "${modal_environment}"
@@ -131,55 +120,46 @@ worker_app_name="$(
   awk -F= '$1 == "worker_app_name" {print substr($0, index($0, "=") + 1)}' \
     "${versions_output}"
 )"
+new_package_versions_json="$(
+  awk -F= '$1 == "package_versions_json" {print substr($0, index($0, "=") + 1)}' \
+    "${versions_output}"
+)"
+if [ -z "${new_package_versions_json}" ]; then
+  echo "::error::Could not determine new worker package versions."
+  exit 1
+fi
 
 bash "${modal_sync_secrets_script}"
 deploy_canary_app
 
-active_apps_tsv="$(mktemp)"
-trap 'rm -f "${versions_output}" "${active_apps_tsv}"' EXIT
+active_apps_json="$(mktemp)"
+deployment_plan_tsv="$(mktemp)"
+trap 'rm -f "${versions_output}" "${active_apps_json}" "${deployment_plan_tsv}"' EXIT
 
 uv run python "${modal_active_worker_apps_script}" \
   --modal-environment "${modal_environment}" \
-  --output-tsv "${active_apps_tsv}"
+  --output-json "${active_apps_json}"
 
-if [ "${deploy_mode}" = "code" ]; then
-  while IFS=$'\t' read -r active_app_name package_versions_json resource_profile; do
-    if [ -z "${active_app_name}" ]; then
-      continue
-    fi
-    deploy_worker_app \
-      "${active_app_name}" \
-      "${package_versions_json}" \
-      "${resource_profile}"
-  done < "${active_apps_tsv}"
-else
-  new_app_target="$(config_value new_app_target)"
-  promote_existing_frontier="$(config_value promote_existing_frontier)"
+uv run python "${modal_worker_deployment_plan_script}" \
+  --active-deployments-json "${active_apps_json}" \
+  --deploy-mode "${deploy_mode}" \
+  --modal-environment "${modal_environment}" \
+  --config-json "${config_json}" \
+  --new-app-name "${worker_app_name}" \
+  --new-package-versions-json "${new_package_versions_json}" \
+  --output-tsv "${deployment_plan_tsv}"
 
-  if [ "${promote_existing_frontier}" = "True" ] || \
-    [ "${promote_existing_frontier}" = "true" ]; then
-    while IFS=$'\t' read -r active_app_name package_versions_json resource_profile; do
-      if [ "${resource_profile}" != "frontier" ]; then
-        continue
-      fi
-      deploy_worker_app \
-        "${active_app_name}" \
-        "${package_versions_json}" \
-        "current"
-    done < "${active_apps_tsv}"
+while IFS=$'\t' read -r deploy_app_name package_versions_json resource_profile; do
+  if [ -z "${deploy_app_name}" ]; then
+    continue
   fi
+  deploy_worker_app \
+    "${deploy_app_name}" \
+    "${package_versions_json}" \
+    "${resource_profile}"
+done < "${deployment_plan_tsv}"
 
-  if [ "${new_app_target}" != "none" ]; then
-    new_app_resource_profile="${new_app_target}"
-    if [ "${new_app_target}" = "both" ]; then
-      new_app_resource_profile="current"
-    fi
-    deploy_worker_app \
-      "${worker_app_name}" \
-      "" \
-      "${new_app_resource_profile}"
-  fi
-
+if [ "${deploy_mode}" = "release" ]; then
   uv run python -m policyengine_household_modal.update_manifest \
     --config-json "${config_json}" \
     --new-app-name "${worker_app_name}" \

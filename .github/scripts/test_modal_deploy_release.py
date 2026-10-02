@@ -1,5 +1,7 @@
+import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 
 
@@ -36,10 +38,18 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     _write_fake_uv(
         tmp_path,
         log_path,
-        active_apps_tsv=(
-            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
-            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
-        ),
+        active_apps=[
+            {
+                "app_name": "current-app",
+                "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
+                "resource_profile": "current",
+            },
+            {
+                "app_name": "frontier-app",
+                "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+                "resource_profile": "frontier",
+            },
+        ],
     )
 
     result = subprocess.run(
@@ -62,12 +72,15 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     assert canary_deploy in log
     assert canary_verify in log
     assert log.index(canary_deploy) < log.index(canary_verify)
-    assert "DEPLOY_APP=current-app" in log
-    assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
-    assert "RESOURCE_PROFILE=current" in log
-    assert "DEPLOY_APP=frontier-app" in log
-    assert 'VERSIONS={"uk":"2.31.0","us":"1.691.1"}' in log
-    assert "RESOURCE_PROFILE=frontier" in log
+    assert (
+        "DEPLOY_WORKER app=current-app environment=testing profile=current "
+        'versions={"uk":"2.31.0","us":"1.690.0"}' in log
+    )
+    assert (
+        "DEPLOY_WORKER app=frontier-app environment=testing "
+        'profile=frontier versions={"uk":"2.31.0","us":"1.691.1"}' in log
+    )
+    assert "HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE" not in log
     # Code-mode redeploys re-trigger the snapshot/init window on every
     # active app, so each one must be warmed (issue #1607).
     assert (
@@ -94,10 +107,18 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     _write_fake_uv(
         tmp_path,
         log_path,
-        active_apps_tsv=(
-            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
-            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
-        ),
+        active_apps=[
+            {
+                "app_name": "current-app",
+                "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
+                "resource_profile": "current",
+            },
+            {
+                "app_name": "frontier-app",
+                "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+                "resource_profile": "frontier",
+            },
+        ],
     )
 
     result = subprocess.run(
@@ -125,10 +146,10 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "policyengine_household_modal.analytics_revision" in log
     assert "-m policyengine_household_modal.canary_app" in log
     assert "-m policyengine_household_modal.verify_canary" in log
-    assert "DEPLOY_APP=release-app" in log
-    assert "RESOURCE_PROFILE=frontier" in log
-    assert "DEPLOY_APP=frontier-app" in log
-    assert "PROMOTED_PROFILE=current" in log
+    assert "DEPLOY_WORKER app=release-app" in log
+    assert "profile=frontier" in log
+    assert "DEPLOY_WORKER app=frontier-app" in log
+    assert "app=frontier-app environment=testing profile=current" in log
     warm_release_app = (
         "-m policyengine_household_modal.warm_worker --app-name release-app"
     )
@@ -147,7 +168,7 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
 def test_modal_deploy_release_uses_current_profile_for_both_target(tmp_path):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
-    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+    _write_fake_uv(tmp_path, log_path, active_apps=[])
 
     result = subprocess.run(
         [
@@ -167,15 +188,60 @@ def test_modal_deploy_release_uses_current_profile_for_both_target(tmp_path):
 
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
-    assert "DEPLOY_APP=release-app" in log
-    assert "RESOURCE_PROFILE=current" in log
+    assert "DEPLOY_WORKER app=release-app" in log
+    assert "profile=current" in log
+
+
+def test_modal_deploy_release_deploys_same_named_app_once_at_current_profile(
+    tmp_path,
+):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    _write_fake_uv(
+        tmp_path,
+        log_path,
+        active_apps=[
+            {
+                "app_name": "release-app",
+                "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+                "resource_profile": "frontier",
+            }
+        ],
+    )
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"frontier",'
+                '"promote_existing_frontier":true,'
+                '"cleanup_target":"retired"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    deployments = [
+        line
+        for line in log_path.read_text().splitlines()
+        if line.startswith("DEPLOY_WORKER app=release-app")
+    ]
+    assert deployments == [
+        "DEPLOY_WORKER app=release-app environment=testing profile=current "
+        'versions={"uk":"2.31.0","us":"1.691.1"}'
+    ]
 
 
 def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
     env["HOUSEHOLD_DEFER_MODAL_CLEANUP"] = "true"
-    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+    _write_fake_uv(tmp_path, log_path, active_apps=[])
 
     result = subprocess.run(
         [
@@ -209,7 +275,7 @@ def test_modal_deploy_release_fails_before_deploy_when_channels_missing(
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
     env["REQUIRE_ACTIVE_CHANNELS_RC"] = "1"
-    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+    _write_fake_uv(tmp_path, log_path, active_apps=[])
 
     result = subprocess.run(
         [
@@ -230,7 +296,7 @@ def test_modal_deploy_release_fails_before_deploy_when_channels_missing(
     assert result.returncode == 1
     log = log_path.read_text()
     assert "modal_require_active_channels.py" in log
-    assert "DEPLOY_APP=release-app" not in log
+    assert "DEPLOY_WORKER app=release-app" not in log
     assert "-m policyengine_household_modal.update_manifest" not in log
 
 
@@ -277,8 +343,11 @@ def _write_fake_uv(
     tmp_path: Path,
     log_path: Path,
     *,
-    active_apps_tsv: str,
+    active_apps: list[dict[str, object]],
 ) -> None:
+    real_uv = shutil.which("uv")
+    assert real_uv is not None
+    active_apps_json = json.dumps(active_apps, sort_keys=True)
     uv = tmp_path / "uv"
     uv.write_text(
         f"""#!/usr/bin/env bash
@@ -303,7 +372,10 @@ if [[ "$*" == *"modal_extract_versions.py"* ]]; then
   while [[ "$#" -gt 0 ]]; do
     if [[ "$1" == "--github-output" ]]; then
       shift
-      printf 'worker_app_name=release-app\\n' > "$1"
+      printf '%s\\n' \\
+        'worker_app_name=release-app' \\
+        'package_versions_json={{"uk":"2.31.0","us":"1.691.1"}}' \\
+        > "$1"
       exit 0
     fi
     shift
@@ -312,23 +384,36 @@ fi
 
 if [[ "$*" == *"modal_active_worker_apps.py"* ]]; then
   while [[ "$#" -gt 0 ]]; do
-    if [[ "$1" == "--output-tsv" ]]; then
+    if [[ "$1" == "--output-json" ]]; then
       shift
       cat > "$1" <<'EOF'
-{active_apps_tsv}EOF
+{active_apps_json}
+EOF
       exit 0
     fi
     shift
   done
 fi
 
-if [[ "$*" == *"modal deploy"* && "$*" == *"worker_app"* ]]; then
-  echo "DEPLOY_APP=${{HOUSEHOLD_MODAL_WORKER_APP_NAME:-}}" >> "{log_path}"
-  echo "VERSIONS=${{HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON:-}}" >> "{log_path}"
-  echo "RESOURCE_PROFILE=${{HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE:-}}" >> "{log_path}"
-  if [[ "${{HOUSEHOLD_MODAL_WORKER_APP_NAME:-}}" == "frontier-app" ]]; then
-    echo "PROMOTED_PROFILE=${{HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE:-}}" >> "{log_path}"
-  fi
+if [[ "$*" == *"modal_worker_deployment_plan.py"* ]]; then
+  exec "{real_uv}" "$@"
+fi
+
+if [[ "$*" == *"policyengine_household_modal.deploy_worker"* ]]; then
+  app_name=""
+  modal_environment=""
+  package_versions=""
+  resource_profile=""
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --app-name) shift; app_name="$1" ;;
+      --modal-environment) shift; modal_environment="$1" ;;
+      --package-versions-json) shift; package_versions="$1" ;;
+      --resource-profile) shift; resource_profile="$1" ;;
+    esac
+    shift
+  done
+  echo "DEPLOY_WORKER app=${{app_name}} environment=${{modal_environment}} profile=${{resource_profile}} versions=${{package_versions}}" >> "{log_path}"
   exit 0
 fi
 

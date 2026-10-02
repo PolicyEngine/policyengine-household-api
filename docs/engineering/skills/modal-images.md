@@ -59,12 +59,15 @@ uv run modal environment create <throwaway>
 uv run modal secret create household-api ANALYTICS__ENABLED=false AUTH__ENABLED=false --env <throwaway>
 uv export --frozen --no-dev --no-emit-workspace --no-hashes \
   --package policyengine-household-modal-api --extra worker -o requirements-modal-worker.txt
-HOUSEHOLD_MODAL_WORKER_APP_NAME=<throwaway-worker> MODAL_ENVIRONMENT=<throwaway> \
-  uv run modal deploy --env <throwaway> -m policyengine_household_modal.worker_app
+uv run python -m policyengine_household_modal.deploy_worker \
+  --app-name <throwaway-worker> \
+  --modal-environment <throwaway> \
+  --package-versions-json '{}' \
+  --resource-profile frontier
 uv run python -m policyengine_household_modal.warm_worker \
   --app-name <throwaway-worker> --modal-environment <throwaway>
-MODAL_ENVIRONMENT=<throwaway> \
-  uv run modal deploy --env <throwaway> -m policyengine_household_modal.canary_app
+uv run modal deploy --env <throwaway> \
+  -m policyengine_household_modal.canary_app
 uv run python -m policyengine_household_modal.verify_canary \
   --modal-environment <throwaway>
 uv run modal environment delete <throwaway> --yes
