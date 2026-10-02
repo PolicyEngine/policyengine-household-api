@@ -15,6 +15,9 @@ from policyengine_household_modal.images import (
     household_api_secret,
     household_api_worker_image,
 )
+from policyengine_household_modal.worker_resources import (
+    PRODUCTION_WORKER_RESOURCE_OPTIONS,
+)
 from policyengine_household_common.release_manifest import build_app_name
 from policyengine_household_common.worker_dispatch import (
     WorkerRequest,
@@ -74,9 +77,7 @@ def worker_function_options(
         "max_containers": 100,
     }
     if environment == "main":
-        options["min_containers"] = 3
-        options["buffer_containers"] = 2
-        options["scaledown_window"] = 600
+        options.update(PRODUCTION_WORKER_RESOURCE_OPTIONS["current"])
     return options
 
 

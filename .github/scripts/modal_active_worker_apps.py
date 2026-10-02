@@ -36,6 +36,7 @@ def main() -> None:
                         sort_keys=True,
                         separators=(",", ":"),
                     ),
+                    deployment["resource_profile"],
                 )
             )
             for deployment in deployments

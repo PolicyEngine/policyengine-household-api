@@ -43,6 +43,7 @@ github_output() {
 deploy_worker_app() {
   local app_name="${1:?app name is required}"
   local package_versions_json="${2:-}"
+  local resource_profile="${3:?resource profile is required}"
 
   HOUSEHOLD_MODAL_WORKER_APP_NAME="${app_name}" \
     HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON="${package_versions_json}" \
@@ -51,6 +52,10 @@ deploy_worker_app() {
       --env "${modal_environment}" \
       -m policyengine_household_modal.worker_app
 
+  if [ "${resource_profile}" = "frontier" ]; then
+    update_worker_autoscaler "${app_name}" "frontier"
+  fi
+
   # modal deploy returns when the new version is registered, not when it
   # serves; block until a container of the new version answers a liveness
   # dispatch so integration tests never race the snapshot/init window
@@ -58,6 +63,21 @@ deploy_worker_app() {
   uv run python -m policyengine_household_modal.warm_worker \
     --app-name "${app_name}" \
     --modal-environment "${modal_environment}"
+}
+
+update_worker_autoscaler() {
+  local app_name="${1:?app name is required}"
+  local resource_profile="${2:?resource profile is required}"
+
+  # Non-production workers intentionally retain their scale-to-zero settings.
+  if [ "${modal_environment}" != "main" ]; then
+    return
+  fi
+
+  uv run python -m policyengine_household_modal.update_worker_autoscaler \
+    --app-name "${app_name}" \
+    --modal-environment "${modal_environment}" \
+    --resource-profile "${resource_profile}"
 }
 
 deploy_canary_app() {
@@ -124,24 +144,53 @@ worker_app_name="$(
 bash "${modal_sync_secrets_script}"
 deploy_canary_app
 
+active_apps_tsv="$(mktemp)"
+trap 'rm -f "${versions_output}" "${active_apps_tsv}"' EXIT
+
+uv run python "${modal_active_worker_apps_script}" \
+  --modal-environment "${modal_environment}" \
+  --output-tsv "${active_apps_tsv}"
+
 if [ "${deploy_mode}" = "code" ]; then
-  active_apps_tsv="$(mktemp)"
-  trap 'rm -f "${versions_output}" "${active_apps_tsv}"' EXIT
-
-  uv run python "${modal_active_worker_apps_script}" \
-    --modal-environment "${modal_environment}" \
-    --output-tsv "${active_apps_tsv}"
-
-  while IFS=$'\t' read -r active_app_name package_versions_json; do
+  while IFS=$'\t' read -r active_app_name package_versions_json resource_profile; do
     if [ -z "${active_app_name}" ]; then
       continue
     fi
-    deploy_worker_app "${active_app_name}" "${package_versions_json}"
+    deploy_worker_app \
+      "${active_app_name}" \
+      "${package_versions_json}" \
+      "${resource_profile}"
   done < "${active_apps_tsv}"
 else
   new_app_target="$(config_value new_app_target)"
+  promote_existing_frontier="$(config_value promote_existing_frontier)"
+  current_app_name="$(
+    awk -F $'\t' '$3 == "current" {print $1; exit}' "${active_apps_tsv}"
+  )"
+  frontier_app_name="$(
+    awk -F $'\t' '$3 == "frontier" {print $1; exit}' "${active_apps_tsv}"
+  )"
+
+  if [ "${promote_existing_frontier}" = "True" ] && \
+    [ -n "${frontier_app_name}" ] && \
+    [ "${frontier_app_name}" != "${worker_app_name}" ]; then
+    update_worker_autoscaler "${frontier_app_name}" "current"
+  fi
+
   if [ "${new_app_target}" != "none" ]; then
-    deploy_worker_app "${worker_app_name}" ""
+    new_app_resource_profile="${new_app_target}"
+    if [ "${new_app_target}" = "both" ] || \
+      [ "${worker_app_name}" = "${current_app_name}" ]; then
+      new_app_resource_profile="current"
+    fi
+    if [ "${promote_existing_frontier}" = "True" ] && \
+      [ "${worker_app_name}" = "${frontier_app_name}" ]; then
+      new_app_resource_profile="current"
+    fi
+    deploy_worker_app \
+      "${worker_app_name}" \
+      "" \
+      "${new_app_resource_profile}"
   fi
 
   uv run python -m policyengine_household_modal.update_manifest \
@@ -151,9 +200,7 @@ else
     --modal-environment "${modal_environment}" \
     --cleanup-output modal-cleanup.json \
     --manifest-output modal-manifest.json
-fi
 
-if [ "${deploy_mode}" = "release" ]; then
   cleanup_target="$(config_value cleanup_target)"
   if [ "${cleanup_target}" != "none" ]; then
     if [ -n "${HOUSEHOLD_DEFER_MODAL_CLEANUP:-}" ]; then

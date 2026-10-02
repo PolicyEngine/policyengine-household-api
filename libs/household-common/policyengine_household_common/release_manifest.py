@@ -309,6 +309,11 @@ def active_app_deployments(
         {
             "app_name": app_name,
             "package_versions": package_versions,
+            "resource_profile": (
+                "current"
+                if validated["current"]["app_name"] == app_name
+                else "frontier"
+            ),
         }
         for app_name, package_versions in deployments_by_name.items()
     ]

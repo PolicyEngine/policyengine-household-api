@@ -393,7 +393,36 @@ def test_active_app_deployments_deduplicates_matching_active_app_names():
         {
             "app_name": "shared-app",
             "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+            "resource_profile": "current",
         }
+    ]
+
+
+def test_active_app_deployments_assigns_channel_resource_profiles():
+    manifest = {
+        "schema_version": 1,
+        "current": {
+            **_app("current-app"),
+            "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
+        },
+        "frontier": {
+            **_app("frontier-app"),
+            "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+        },
+        "retired": [],
+    }
+
+    assert active_app_deployments(manifest) == [
+        {
+            "app_name": "current-app",
+            "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
+            "resource_profile": "current",
+        },
+        {
+            "app_name": "frontier-app",
+            "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
+            "resource_profile": "frontier",
+        },
     ]
 
 
