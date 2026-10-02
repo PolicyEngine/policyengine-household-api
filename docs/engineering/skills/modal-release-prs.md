@@ -104,10 +104,23 @@ workers, then runs the deployed integration-test matrix through Cloud Run for
 both `current` and `frontier`. Each channel is tested by channel name and by the
 exact US package version from `/versions/us`. After staging succeeds, the same
 release configuration is deployed to the `main` Modal environment and the
-production Cloud Run services are refreshed. Google credentials in the release
-workflow are used for Cloud SQL analytics database access, for syncing the
-Modal worker secret needed to reach that database, and for deploying the Cloud
-Run services.
+production Cloud Run services are refreshed.
+
+Jobs that access Google Cloud authenticate with a GitHub OIDC token through
+the project's Workload Identity Federation provider, then impersonate the
+deployment service account identified by `GCP_DEPLOY_SERVICE_ACCOUNT`. Set
+`GCP_WORKLOAD_IDENTITY_PROVIDER` to the provider's full resource name. Limit
+`id-token: write` permission to jobs that run
+`google-github-actions/auth`. Keep authentication steps close to the Google
+Cloud operations so the short-lived credentials remain valid.
+
+The two Modal deployment jobs temporarily continue to read `GCP_SA_KEY`, but
+only to populate `GCP_CREDENTIALS_JSON` in the Modal worker runtime secret.
+They must not pass that key to `google-github-actions/auth`. Remove this
+remaining key use when Modal runtime database access moves to identity
+federation in the next migration phase. The identity pool, provider,
+service-account binding, and repository variables are provisioned once outside
+the workflow; the release workflow consumes them but does not administer IAM.
 
 Only the US and UK package versions are release-significant. Do not include
 Canada, Nigeria, or Israel package versions in Modal worker app names, manifest
