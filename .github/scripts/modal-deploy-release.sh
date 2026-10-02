@@ -100,8 +100,13 @@ uv export --frozen --no-dev --no-emit-workspace --no-hashes \
 
 # Migrations run in the dedicated migrate-analytics-db job before this
 # script; here we only read the database's current revision for the manifest.
+# The runner has its own Stage 2 Application Default Credentials. Do not pass
+# the Modal-only WIF configuration into this runner-side database query.
 analytics_database_revision="$(
-  uv run python -m policyengine_household_modal.analytics_revision
+  env \
+    -u HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER \
+    -u HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL \
+    uv run python -m policyengine_household_modal.analytics_revision
 )"
 if [ -z "${analytics_database_revision}" ]; then
   echo "::error::Could not determine analytics database Alembic revision."

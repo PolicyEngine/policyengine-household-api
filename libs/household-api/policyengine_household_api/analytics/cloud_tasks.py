@@ -10,11 +10,22 @@ from policyengine_household_api.analytics.config import (
     cloud_tasks_analytics_config,
 )
 from policyengine_household_analytics.events import CalculateAnalyticsEvent
+from policyengine_household_common.google_credentials import (
+    get_household_google_credentials,
+)
 
 
 @cache
 def _cloud_tasks_client() -> tasks_v2.CloudTasksClient:
-    return tasks_v2.CloudTasksClient()
+    return tasks_v2.CloudTasksClient(
+        credentials=get_household_google_credentials()
+    )
+
+
+def reset_cloud_tasks_client() -> None:
+    """Discard a Cloud Tasks client copied into a memory snapshot."""
+
+    _cloud_tasks_client.cache_clear()
 
 
 def enqueue_calculate_analytics_event(

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from unittest.mock import Mock
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud import tasks_v2
@@ -112,3 +113,44 @@ def test_enqueue_calculate_analytics_event_treats_existing_task_as_success(
     client = FakeCloudTasksClient(fail_already_exists=True)
 
     cloud_tasks.enqueue_calculate_analytics_event(_event(), client=client)
+
+
+def test_cached_client_receives_household_google_credentials(monkeypatch):
+    from policyengine_household_api.analytics import cloud_tasks
+
+    credentials = object()
+    client = object()
+    client_factory = Mock(return_value=client)
+    monkeypatch.setattr(
+        cloud_tasks,
+        "get_household_google_credentials",
+        lambda: credentials,
+    )
+    monkeypatch.setattr(
+        cloud_tasks.tasks_v2,
+        "CloudTasksClient",
+        client_factory,
+    )
+    cloud_tasks.reset_cloud_tasks_client()
+
+    assert cloud_tasks._cloud_tasks_client() is client
+    client_factory.assert_called_once_with(credentials=credentials)
+    cloud_tasks.reset_cloud_tasks_client()
+
+
+def test_reset_cloud_tasks_client_discards_cached_client(monkeypatch):
+    from policyengine_household_api.analytics import cloud_tasks
+
+    client_factory = Mock(side_effect=[object(), object()])
+    monkeypatch.setattr(
+        cloud_tasks.tasks_v2,
+        "CloudTasksClient",
+        client_factory,
+    )
+    cloud_tasks.reset_cloud_tasks_client()
+    first = cloud_tasks._cloud_tasks_client()
+
+    cloud_tasks.reset_cloud_tasks_client()
+
+    assert cloud_tasks._cloud_tasks_client() is not first
+    cloud_tasks.reset_cloud_tasks_client()

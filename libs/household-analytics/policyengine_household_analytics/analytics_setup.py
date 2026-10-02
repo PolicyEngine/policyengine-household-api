@@ -11,6 +11,9 @@ from policyengine_household_common.config_loader import get_config_value
 from policyengine_household_common.analytics_migration import (
     ANALYTICS_ALEMBIC_MINIMUM_REVISION,
 )
+from policyengine_household_common.google_credentials import (
+    get_household_google_credentials,
+)
 from google.cloud.sql.connector import Connector
 from google.cloud.sql.connector import IPTypes
 from pathlib import Path
@@ -368,7 +371,9 @@ def get_analytics_connector(require_analytics_enabled: bool = True):
 
     if _connector is None:
         try:
-            _connector = Connector()
+            _connector = Connector(
+                credentials=get_household_google_credentials()
+            )
         except Exception as e:
             logger.error(f"Failed to initialize analytics connector: {e}")
             return None

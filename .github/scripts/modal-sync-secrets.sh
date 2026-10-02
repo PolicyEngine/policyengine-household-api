@@ -16,6 +16,10 @@ from pathlib import Path
 required = [
     "AUTH0_ADDRESS_NO_DOMAIN",
     "AUTH0_AUDIENCE_NO_DOMAIN",
+    "HOUSEHOLD_GOOGLE_WORKLOAD_IDENTITY_PROVIDER",
+    "HOUSEHOLD_GOOGLE_SERVICE_ACCOUNT_EMAIL",
+    # Retained as inert rollback data until staging WIF is proven. Worker
+    # code no longer materializes this key as Application Default Credentials.
     "GCP_CREDENTIALS_JSON",
 ]
 optional = [

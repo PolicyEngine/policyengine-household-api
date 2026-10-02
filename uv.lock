@@ -2669,6 +2669,7 @@ version = "0.33.6"
 source = { editable = "libs/household-common" }
 dependencies = [
     { name = "flask" },
+    { name = "google-auth" },
     { name = "policyengine-observability", extra = ["flask", "google"] },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -2684,6 +2685,7 @@ auth = [
 requires-dist = [
     { name = "authlib", marker = "extra == 'auth'", specifier = ">=1.7.1" },
     { name = "flask", specifier = ">=3.1.3" },
+    { name = "google-auth", specifier = ">=2.35.0" },
     { name = "joserfc", marker = "extra == 'auth'", specifier = ">=1.6.8" },
     { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.4.0,<2" },
     { name = "pydantic" },
