@@ -7,8 +7,8 @@ Emits two GitHub Actions outputs:
   ``POLICYENGINE_US_VERSION`` build arg.
 - ``retags``: JSON list of ``{"source": ..., "targets": [...]}`` entries that
   repoint floating channel tags (``current``/``frontier``/``latest``) at
-  already-published exact-version images, matching the model package versions
-  selected by the Modal release manifest.
+  already-published exact-version images, mirroring how Modal promotes a
+  frontier worker to current without redeploying it.
 
 Channel state is read from the live gateway ``/versions/us`` endpoint, the
 source of truth for what the hosted API serves, so code-only releases and

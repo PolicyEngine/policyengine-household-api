@@ -81,9 +81,11 @@ def call_modal_worker_dispatch(
 ) -> WorkerResult:
     """Dispatch a request payload to a deployed Modal worker app.
 
-    Prefer the class-based worker (post #1528). An active app can still have
-    been created by a release before #1528, so fall back to the earlier
-    top-level ``handle_household_request`` function when the class is absent.
+    Prefer the class-based worker (post #1528). During a release transition
+    the existing frontier is promoted to current without a redeploy, so for
+    one release cycle the current worker may still expose the pre-#1528
+    top-level ``handle_household_request`` function; fall back to that shape
+    when the class is not present.
 
     ``timeout_seconds`` bounds the wait for the dispatch result; without it
     Modal waits indefinitely, including for an input queued behind a

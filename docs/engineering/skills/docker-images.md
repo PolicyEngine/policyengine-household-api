@@ -26,13 +26,12 @@ its own ordering.
 
 The channel contract is about model package versions, not API-layer code.
 A promoted `current` image keeps the API code it was built with as
-`frontier`. The hosted worker is redeployed from the current release source
-when it is promoted so it can receive the `current` resource profile. A
-code-only release also redeploys both hosted workers, while image publishing
-only rebuilds the pyproject-pinned frontier version. The `current` image's API
-code can therefore lag its hosted worker; model package versions remain
-aligned. Force-rebuild an exact tag with a manual `workflow_dispatch` run if
-this ever matters.
+`frontier`, matching the hosted worker, which is promoted without redeploy.
+One known asymmetry: a code-only release redeploys both hosted workers with
+new API code but only rebuilds the pyproject-pinned (frontier) image, so the
+`current` image's API code can lag its worker until the next weekly
+promotion; model outputs are unaffected. Force-rebuild an exact tag with a
+manual `workflow_dispatch` run if this ever matters.
 
 ## How publishing works
 

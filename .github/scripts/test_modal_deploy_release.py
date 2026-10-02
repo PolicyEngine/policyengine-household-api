@@ -1,7 +1,5 @@
-import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 
 
@@ -32,24 +30,17 @@ def test_modal_deploy_release_requires_explicit_modal_environment():
 def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
+    env["MODAL_ENVIRONMENT"] = "main"
     active_apps_script = tmp_path / "modal_active_worker_apps.py"
     active_apps_script.write_text("# fake active apps script\n")
     env["MODAL_ACTIVE_WORKER_APPS_SCRIPT"] = str(active_apps_script)
     _write_fake_uv(
         tmp_path,
         log_path,
-        active_apps=[
-            {
-                "app_name": "current-app",
-                "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
-                "resource_profile": "current",
-            },
-            {
-                "app_name": "frontier-app",
-                "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
-                "resource_profile": "frontier",
-            },
-        ],
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
     )
 
     result = subprocess.run(
@@ -72,15 +63,15 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     assert canary_deploy in log
     assert canary_verify in log
     assert log.index(canary_deploy) < log.index(canary_verify)
+    assert "DEPLOY_APP=current-app" in log
+    assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
+    assert "DEPLOY_APP=frontier-app" in log
+    assert 'VERSIONS={"uk":"2.31.0","us":"1.691.1"}' in log
+    assert "UPDATE_AUTOSCALER app=current-app" not in log
     assert (
-        "DEPLOY_WORKER app=current-app environment=testing profile=current "
-        'versions={"uk":"2.31.0","us":"1.690.0"}' in log
+        "UPDATE_AUTOSCALER app=frontier-app environment=main "
+        "profile=frontier" in log
     )
-    assert (
-        "DEPLOY_WORKER app=frontier-app environment=testing "
-        'profile=frontier versions={"uk":"2.31.0","us":"1.691.1"}' in log
-    )
-    assert "HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE" not in log
     # Code-mode redeploys re-trigger the snapshot/init window on every
     # active app, so each one must be warmed (issue #1607).
     assert (
@@ -104,21 +95,14 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
 ):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
+    env["MODAL_ENVIRONMENT"] = "main"
     _write_fake_uv(
         tmp_path,
         log_path,
-        active_apps=[
-            {
-                "app_name": "current-app",
-                "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
-                "resource_profile": "current",
-            },
-            {
-                "app_name": "frontier-app",
-                "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
-                "resource_profile": "frontier",
-            },
-        ],
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
     )
 
     result = subprocess.run(
@@ -146,10 +130,16 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "policyengine_household_modal.analytics_revision" in log
     assert "-m policyengine_household_modal.canary_app" in log
     assert "-m policyengine_household_modal.verify_canary" in log
-    assert "DEPLOY_WORKER app=release-app" in log
-    assert "profile=frontier" in log
-    assert "DEPLOY_WORKER app=frontier-app" in log
-    assert "app=frontier-app environment=testing profile=current" in log
+    assert "DEPLOY_APP=release-app" in log
+    assert "DEPLOY_APP=frontier-app" not in log
+    assert (
+        "UPDATE_AUTOSCALER app=frontier-app environment=main "
+        "profile=current" in log
+    )
+    assert (
+        "UPDATE_AUTOSCALER app=release-app environment=main "
+        "profile=frontier" in log
+    )
     warm_release_app = (
         "-m policyengine_household_modal.warm_worker --app-name release-app"
     )
@@ -160,6 +150,9 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert log.index(warm_release_app) < log.index(
         "-m policyengine_household_modal.update_manifest"
     )
+    assert log.index("UPDATE_AUTOSCALER app=frontier-app") < log.index(
+        "-m policyengine_household_modal.update_manifest"
+    )
     assert "--source-commit" not in log
     assert "cleanup-called" in log
     assert "-m policyengine_household_modal.prune_manifest" in log
@@ -168,7 +161,7 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
 def test_modal_deploy_release_uses_current_profile_for_both_target(tmp_path):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
-    _write_fake_uv(tmp_path, log_path, active_apps=[])
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
 
     result = subprocess.run(
         [
@@ -188,8 +181,8 @@ def test_modal_deploy_release_uses_current_profile_for_both_target(tmp_path):
 
     assert result.returncode == 0, result.stderr
     log = log_path.read_text()
-    assert "DEPLOY_WORKER app=release-app" in log
-    assert "profile=current" in log
+    assert "DEPLOY_APP=release-app" in log
+    assert "UPDATE_AUTOSCALER app=release-app" not in log
 
 
 def test_modal_deploy_release_deploys_same_named_app_once_at_current_profile(
@@ -197,16 +190,14 @@ def test_modal_deploy_release_deploys_same_named_app_once_at_current_profile(
 ):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
+    env["MODAL_ENVIRONMENT"] = "main"
     _write_fake_uv(
         tmp_path,
         log_path,
-        active_apps=[
-            {
-                "app_name": "release-app",
-                "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
-                "resource_profile": "frontier",
-            }
-        ],
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'release-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
     )
 
     result = subprocess.run(
@@ -226,22 +217,16 @@ def test_modal_deploy_release_deploys_same_named_app_once_at_current_profile(
     )
 
     assert result.returncode == 0, result.stderr
-    deployments = [
-        line
-        for line in log_path.read_text().splitlines()
-        if line.startswith("DEPLOY_WORKER app=release-app")
-    ]
-    assert deployments == [
-        "DEPLOY_WORKER app=release-app environment=testing profile=current "
-        'versions={"uk":"2.31.0","us":"1.691.1"}'
-    ]
+    log = log_path.read_text()
+    assert log.count("DEPLOY_APP=release-app") == 1
+    assert "UPDATE_AUTOSCALER app=release-app" not in log
 
 
 def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
     env["HOUSEHOLD_DEFER_MODAL_CLEANUP"] = "true"
-    _write_fake_uv(tmp_path, log_path, active_apps=[])
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
 
     result = subprocess.run(
         [
@@ -275,7 +260,7 @@ def test_modal_deploy_release_fails_before_deploy_when_channels_missing(
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
     env["REQUIRE_ACTIVE_CHANNELS_RC"] = "1"
-    _write_fake_uv(tmp_path, log_path, active_apps=[])
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
 
     result = subprocess.run(
         [
@@ -296,7 +281,7 @@ def test_modal_deploy_release_fails_before_deploy_when_channels_missing(
     assert result.returncode == 1
     log = log_path.read_text()
     assert "modal_require_active_channels.py" in log
-    assert "DEPLOY_WORKER app=release-app" not in log
+    assert "DEPLOY_APP=release-app" not in log
     assert "-m policyengine_household_modal.update_manifest" not in log
 
 
@@ -343,11 +328,8 @@ def _write_fake_uv(
     tmp_path: Path,
     log_path: Path,
     *,
-    active_apps: list[dict[str, object]],
+    active_apps_tsv: str,
 ) -> None:
-    real_uv = shutil.which("uv")
-    assert real_uv is not None
-    active_apps_json = json.dumps(active_apps, sort_keys=True)
     uv = tmp_path / "uv"
     uv.write_text(
         f"""#!/usr/bin/env bash
@@ -372,10 +354,7 @@ if [[ "$*" == *"modal_extract_versions.py"* ]]; then
   while [[ "$#" -gt 0 ]]; do
     if [[ "$1" == "--github-output" ]]; then
       shift
-      printf '%s\\n' \\
-        'worker_app_name=release-app' \\
-        'package_versions_json={{"uk":"2.31.0","us":"1.691.1"}}' \\
-        > "$1"
+      printf 'worker_app_name=release-app\\n' > "$1"
       exit 0
     fi
     shift
@@ -384,36 +363,35 @@ fi
 
 if [[ "$*" == *"modal_active_worker_apps.py"* ]]; then
   while [[ "$#" -gt 0 ]]; do
-    if [[ "$1" == "--output-json" ]]; then
+    if [[ "$1" == "--output-tsv" ]]; then
       shift
       cat > "$1" <<'EOF'
-{active_apps_json}
-EOF
+{active_apps_tsv}EOF
       exit 0
     fi
     shift
   done
 fi
 
-if [[ "$*" == *"modal_worker_deployment_plan.py"* ]]; then
-  exec "{real_uv}" "$@"
+if [[ "$*" == *"modal deploy"* && "$*" == *"worker_app"* ]]; then
+  echo "DEPLOY_APP=${{HOUSEHOLD_MODAL_WORKER_APP_NAME:-}}" >> "{log_path}"
+  echo "VERSIONS=${{HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON:-}}" >> "{log_path}"
+  exit 0
 fi
 
-if [[ "$*" == *"policyengine_household_modal.deploy_worker"* ]]; then
+if [[ "$*" == *"policyengine_household_modal.update_worker_autoscaler"* ]]; then
   app_name=""
   modal_environment=""
-  package_versions=""
   resource_profile=""
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --app-name) shift; app_name="$1" ;;
       --modal-environment) shift; modal_environment="$1" ;;
-      --package-versions-json) shift; package_versions="$1" ;;
       --resource-profile) shift; resource_profile="$1" ;;
     esac
     shift
   done
-  echo "DEPLOY_WORKER app=${{app_name}} environment=${{modal_environment}} profile=${{resource_profile}} versions=${{package_versions}}" >> "{log_path}"
+  echo "UPDATE_AUTOSCALER app=${{app_name}} environment=${{modal_environment}} profile=${{resource_profile}}" >> "{log_path}"
   exit 0
 fi
 

@@ -40,9 +40,17 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
         calls.append(("debian_slim", args, kwargs))
         return FakeImage()
 
+    from policyengine_household_api.deployment import (
+        PACKAGE_VERSIONS_ENV,
+    )
+
+    monkeypatch.setenv(
+        PACKAGE_VERSIONS_ENV,
+        '{"uk":"2.31.0","us":"1.691.1"}',
+    )
     monkeypatch.setattr(images.modal.Image, "debian_slim", debian_slim)
 
-    images.household_api_worker_image({"uk": "2.31.0", "us": "1.691.1"})
+    images.household_api_worker_image()
 
     assert (
         "uv_pip_install",

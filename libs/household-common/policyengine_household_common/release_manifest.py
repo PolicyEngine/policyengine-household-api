@@ -283,7 +283,7 @@ def active_app_deployments(
     manifest: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     validated = require_active_current_and_frontier(manifest)
-    deployments_by_name: dict[str, dict[str, Any]] = {}
+    deployments_by_name: dict[str, dict[str, str]] = {}
 
     for channel in ("current", "frontier"):
         app_reference = validated.get(channel)
@@ -295,28 +295,27 @@ def active_app_deployments(
             app_name=app_name,
             channel=channel,
         )
-        existing_deployment = deployments_by_name.get(app_name)
-        if existing_deployment and (
-            existing_deployment["package_versions"] != package_versions
+        if (
+            app_name in deployments_by_name
+            and deployments_by_name[app_name] != package_versions
         ):
             raise ValueError(
                 f"Active Modal app `{app_name}` has conflicting package "
                 "versions in current/frontier manifest entries"
             )
-        if existing_deployment is None:
-            deployments_by_name[app_name] = {
-                "package_versions": package_versions,
-                # Iteration starts with current, so an app serving both
-                # channels keeps the current channel's larger warm capacity.
-                "resource_profile": channel,
-            }
+        deployments_by_name[app_name] = package_versions
 
     return [
         {
             "app_name": app_name,
-            **deployment,
+            "package_versions": package_versions,
+            "resource_profile": (
+                "current"
+                if validated["current"]["app_name"] == app_name
+                else "frontier"
+            ),
         }
-        for app_name, deployment in deployments_by_name.items()
+        for app_name, package_versions in deployments_by_name.items()
     ]
 
 

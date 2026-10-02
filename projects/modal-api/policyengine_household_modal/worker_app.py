@@ -15,9 +15,8 @@ from policyengine_household_modal.images import (
     household_api_secret,
     household_api_worker_image,
 )
-from policyengine_household_modal.worker_deployment import (
-    WorkerDeployment,
-    WorkerResourceProfile,
+from policyengine_household_modal.worker_resources import (
+    PRODUCTION_WORKER_RESOURCE_OPTIONS,
 )
 from policyengine_household_common.release_manifest import build_app_name
 from policyengine_household_common.worker_dispatch import (
@@ -30,35 +29,33 @@ from policyengine_household_common.observability.flask import (
 )
 
 
-WORKER_APP_NAME_ENV = "POLICYENGINE_HOUSEHOLD_MODAL_APP_NAME"
-PRODUCTION_WORKER_RESOURCE_OPTIONS = {
-    WorkerResourceProfile.CURRENT: {
-        "min_containers": 3,
-        "buffer_containers": 2,
-        "scaledown_window": 600,
-    },
-    WorkerResourceProfile.FRONTIER: {
-        "min_containers": 1,
-        "buffer_containers": 1,
-        "scaledown_window": 300,
-    },
-}
+WORKER_APP_NAME = os.getenv(
+    "HOUSEHOLD_MODAL_WORKER_APP_NAME", build_app_name()
+)
+
+app = modal.App(WORKER_APP_NAME)
 
 
-def worker_app_name() -> str:
-    return os.getenv(WORKER_APP_NAME_ENV, build_app_name())
+def worker_modal_environment(
+    modal_environment: str | None = None,
+) -> str:
+    environment = (
+        modal_environment
+        if modal_environment is not None
+        else os.getenv("MODAL_ENVIRONMENT")
+    )
+    if not environment:
+        raise RuntimeError("MODAL_ENVIRONMENT must be set for Modal workers")
+    return environment
 
 
 def worker_function_options(
-    deployment: WorkerDeployment,
+    modal_environment: str | None = None,
 ) -> dict[str, Any]:
+    environment = worker_modal_environment(modal_environment)
     options: dict[str, Any] = {
-        "image": household_api_worker_image(deployment.package_versions),
+        "image": household_api_worker_image(),
         "secrets": [household_api_secret()],
-        # The app name is runtime metadata used by logs and traces. Resource
-        # selection remains deployment-time typed configuration and is not
-        # read from the container environment.
-        "env": {WORKER_APP_NAME_ENV: deployment.app_name},
         "timeout": 300,
         "scaledown_window": 300,
         "enable_memory_snapshot": True,
@@ -79,10 +76,8 @@ def worker_function_options(
         # bounded.
         "max_containers": 100,
     }
-    if deployment.modal_environment == "main":
-        options.update(
-            PRODUCTION_WORKER_RESOURCE_OPTIONS[deployment.resource_profile]
-        )
+    if environment == "main":
+        options.update(PRODUCTION_WORKER_RESOURCE_OPTIONS["current"])
     return options
 
 
@@ -139,6 +134,8 @@ def reset_post_snapshot_process_state(flask_app) -> None:
         )
 
 
+@app.cls(**worker_function_options())
+@modal.concurrent(**worker_concurrency_options())
 class HouseholdWorker:
     """Worker class for handling household API requests.
 
@@ -153,7 +150,7 @@ class HouseholdWorker:
         configure_process_observability(
             platform="modal",
             service_role="modal_worker",
-            modal_app_name=worker_app_name(),
+            modal_app_name=WORKER_APP_NAME,
             modal_function_name="HouseholdWorker.handle_household_request",
         )
         # Configure credentials before importing the Flask app so any request
@@ -187,7 +184,7 @@ class HouseholdWorker:
             flavor="modal_worker",
             platform="modal",
             runtime_role="modal_worker",
-            modal_app_name=worker_app_name(),
+            modal_app_name=WORKER_APP_NAME,
             modal_function_name="HouseholdWorker.handle_household_request",
         ):
             set_attribute("method", str(payload.get("method") or "GET"))
@@ -195,12 +192,3 @@ class HouseholdWorker:
             result = dispatch_to_flask_app(self.flask_app, payload)
             set_attribute("status_code", str(result.get("status_code")))
             return result
-
-
-def create_worker_app(deployment: WorkerDeployment) -> modal.App:
-    app = modal.App()
-    concurrent_worker = modal.concurrent(**worker_concurrency_options())(
-        HouseholdWorker
-    )
-    app.cls(**worker_function_options(deployment))(concurrent_worker)
-    return app
