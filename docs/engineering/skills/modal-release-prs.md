@@ -47,6 +47,31 @@ apps in the retired history are stopped after the manifest is updated. Use
 `cleanup_target: none` only when the user explicitly asks to preserve retired
 worker apps after release.
 
+## Worker resource profiles
+
+Production Modal workers use resource profiles based on the channel they
+serve. The deployment script passes the profile through
+`HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE`; a production worker deployment
+fails when that value is missing or invalid.
+
+| Channel | Minimum containers | Idle buffer | Scale-down window | CPU |
+| --- | ---: | ---: | ---: | ---: |
+| `current` | 3 | 2 | 600 seconds | 1 core |
+| `frontier` | 1 | 1 | 300 seconds | 1 core |
+
+Staging and other non-production environments remain scale-to-zero. Their
+deployments still pass a channel profile so the same command is exercised,
+but the worker applies warm-container settings only in the `main` Modal
+environment.
+
+Code-only deployments read both active channels from the release manifest and
+redeploy each app with its existing channel's profile. If one app serves both
+channels, it uses the `current` profile. During a normal weekly release, the
+deployment script redeploys the existing frontier app with the `current`
+profile and confirms that it serves before assigning current traffic to it in
+the manifest. The newly built frontier app receives the `frontier` profile.
+This sequencing prevents a promoted worker from retaining frontier capacity.
+
 Use this release shape when the newly built worker must become both `current`
 and `frontier` in a single release:
 

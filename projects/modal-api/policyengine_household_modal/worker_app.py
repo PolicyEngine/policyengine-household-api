@@ -29,6 +29,19 @@ from policyengine_household_common.observability.flask import (
 WORKER_APP_NAME = os.getenv(
     "HOUSEHOLD_MODAL_WORKER_APP_NAME", build_app_name()
 )
+WORKER_RESOURCE_PROFILE_ENV = "HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE"
+PRODUCTION_WORKER_RESOURCE_OPTIONS = {
+    "current": {
+        "min_containers": 3,
+        "buffer_containers": 2,
+        "scaledown_window": 600,
+    },
+    "frontier": {
+        "min_containers": 1,
+        "buffer_containers": 1,
+        "scaledown_window": 300,
+    },
+}
 
 app = modal.App(WORKER_APP_NAME)
 
@@ -48,8 +61,27 @@ def worker_modal_environment(
 
 def worker_function_options(
     modal_environment: str | None = None,
+    resource_profile: str | None = None,
 ) -> dict[str, Any]:
     environment = worker_modal_environment(modal_environment)
+    profile = (
+        resource_profile
+        if resource_profile is not None
+        else os.getenv(WORKER_RESOURCE_PROFILE_ENV)
+    )
+    if (
+        profile is not None
+        and profile not in PRODUCTION_WORKER_RESOURCE_OPTIONS
+    ):
+        raise RuntimeError(
+            f"Unsupported Modal worker resource profile: {profile}"
+        )
+    if environment == "main" and profile is None:
+        raise RuntimeError(
+            f"{WORKER_RESOURCE_PROFILE_ENV} must be set to `current` or "
+            "`frontier` for production Modal workers"
+        )
+
     options: dict[str, Any] = {
         "image": household_api_worker_image(),
         "secrets": [household_api_secret()],
@@ -73,10 +105,8 @@ def worker_function_options(
         # bounded.
         "max_containers": 100,
     }
-    if environment == "main":
-        options["min_containers"] = 3
-        options["buffer_containers"] = 2
-        options["scaledown_window"] = 600
+    if environment == "main" and profile is not None:
+        options.update(PRODUCTION_WORKER_RESOURCE_OPTIONS[profile])
     return options
 
 

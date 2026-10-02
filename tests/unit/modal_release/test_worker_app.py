@@ -23,11 +23,47 @@ def worker_app(monkeypatch):
 
 
 def test_worker_function_options_keep_main_workers_warm(worker_app):
-    options = worker_app.worker_function_options(modal_environment="main")
+    options = worker_app.worker_function_options(
+        modal_environment="main",
+        resource_profile="current",
+    )
 
     assert options["min_containers"] == 3
     assert options["buffer_containers"] == 2
     assert options["scaledown_window"] == 600
+
+
+def test_worker_function_options_reduce_frontier_warm_capacity(worker_app):
+    options = worker_app.worker_function_options(
+        modal_environment="main",
+        resource_profile="frontier",
+    )
+
+    assert options["min_containers"] == 1
+    assert options["buffer_containers"] == 1
+    assert options["scaledown_window"] == 300
+
+
+def test_worker_function_options_require_main_resource_profile(
+    worker_app, monkeypatch
+):
+    monkeypatch.delenv(
+        "HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE", raising=False
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE",
+    ):
+        worker_app.worker_function_options(modal_environment="main")
+
+
+def test_worker_function_options_reject_invalid_resource_profile(worker_app):
+    with pytest.raises(RuntimeError, match="Unsupported Modal worker"):
+        worker_app.worker_function_options(
+            modal_environment="main",
+            resource_profile="unexpected",
+        )
 
 
 def test_worker_function_options_do_not_keep_staging_workers_warm():
@@ -59,7 +95,8 @@ def test_worker_function_options_enable_memory_snapshot_in_all_envs(
 ):
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment
+            modal_environment=environment,
+            resource_profile="current",
         )
         assert options["enable_memory_snapshot"] is True, (
             f"enable_memory_snapshot must be True in `{environment}` "
@@ -149,7 +186,8 @@ def test_worker_function_options_reserve_cpu(worker_app):
     staging). 1.0 is a cost-balanced floor vs the 2.0 dropped in #1610."""
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment
+            modal_environment=environment,
+            resource_profile="current",
         )
         assert options["cpu"] == 1.0
 
@@ -160,7 +198,8 @@ def test_worker_function_options_execution_budget(worker_app):
     so the worker's own timeout resolves first (issue #1609)."""
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment
+            modal_environment=environment,
+            resource_profile="current",
         )
         assert options["timeout"] == 300
 
@@ -170,7 +209,8 @@ def test_worker_function_options_do_not_use_deprecated_concurrency_kwarg(
 ):
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment
+            modal_environment=environment,
+            resource_profile="current",
         )
         assert "allow_concurrent_inputs" not in options, (
             "`allow_concurrent_inputs` is deprecated; use "
@@ -185,7 +225,8 @@ def test_worker_function_options_max_containers_capped_in_all_envs(
     client or traffic spike from racking up unbounded cost."""
     for environment in ("main", "staging", "testing"):
         options = worker_app.worker_function_options(
-            modal_environment=environment
+            modal_environment=environment,
+            resource_profile="current",
         )
         assert options["max_containers"] == 100, (
             f"max_containers must be 100 in `{environment}` to bound "

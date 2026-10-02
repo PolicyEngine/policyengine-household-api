@@ -37,8 +37,8 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
         tmp_path,
         log_path,
         active_apps_tsv=(
-            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\n'
-            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\n'
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
         ),
     )
 
@@ -64,8 +64,10 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     assert log.index(canary_deploy) < log.index(canary_verify)
     assert "DEPLOY_APP=current-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
+    assert "RESOURCE_PROFILE=current" in log
     assert "DEPLOY_APP=frontier-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.691.1"}' in log
+    assert "RESOURCE_PROFILE=frontier" in log
     # Code-mode redeploys re-trigger the snapshot/init window on every
     # active app, so each one must be warmed (issue #1607).
     assert (
@@ -89,7 +91,14 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
 ):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
-    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+    _write_fake_uv(
+        tmp_path,
+        log_path,
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
+    )
 
     result = subprocess.run(
         [
@@ -117,6 +126,9 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "-m policyengine_household_modal.canary_app" in log
     assert "-m policyengine_household_modal.verify_canary" in log
     assert "DEPLOY_APP=release-app" in log
+    assert "RESOURCE_PROFILE=frontier" in log
+    assert "DEPLOY_APP=frontier-app" in log
+    assert "PROMOTED_PROFILE=current" in log
     warm_release_app = (
         "-m policyengine_household_modal.warm_worker --app-name release-app"
     )
@@ -130,6 +142,33 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "--source-commit" not in log
     assert "cleanup-called" in log
     assert "-m policyengine_household_modal.prune_manifest" in log
+
+
+def test_modal_deploy_release_uses_current_profile_for_both_target(tmp_path):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"both",'
+                '"promote_existing_frontier":false,'
+                '"cleanup_target":"retired"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert "DEPLOY_APP=release-app" in log
+    assert "RESOURCE_PROFILE=current" in log
 
 
 def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
@@ -286,6 +325,10 @@ fi
 if [[ "$*" == *"modal deploy"* && "$*" == *"worker_app"* ]]; then
   echo "DEPLOY_APP=${{HOUSEHOLD_MODAL_WORKER_APP_NAME:-}}" >> "{log_path}"
   echo "VERSIONS=${{HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON:-}}" >> "{log_path}"
+  echo "RESOURCE_PROFILE=${{HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE:-}}" >> "{log_path}"
+  if [[ "${{HOUSEHOLD_MODAL_WORKER_APP_NAME:-}}" == "frontier-app" ]]; then
+    echo "PROMOTED_PROFILE=${{HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE:-}}" >> "{log_path}"
+  fi
   exit 0
 fi
 

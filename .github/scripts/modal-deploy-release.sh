@@ -43,9 +43,20 @@ github_output() {
 deploy_worker_app() {
   local app_name="${1:?app name is required}"
   local package_versions_json="${2:-}"
+  local resource_profile="${3:?resource profile is required}"
+
+  case "${resource_profile}" in
+    current|frontier)
+      ;;
+    *)
+      echo "::error::Unsupported Modal worker resource profile: ${resource_profile}"
+      exit 1
+      ;;
+  esac
 
   HOUSEHOLD_MODAL_WORKER_APP_NAME="${app_name}" \
     HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON="${package_versions_json}" \
+    HOUSEHOLD_MODAL_WORKER_RESOURCE_PROFILE="${resource_profile}" \
     MODAL_ENVIRONMENT="${modal_environment}" \
     uv run modal deploy \
       --env "${modal_environment}" \
@@ -124,24 +135,49 @@ worker_app_name="$(
 bash "${modal_sync_secrets_script}"
 deploy_canary_app
 
+active_apps_tsv="$(mktemp)"
+trap 'rm -f "${versions_output}" "${active_apps_tsv}"' EXIT
+
+uv run python "${modal_active_worker_apps_script}" \
+  --modal-environment "${modal_environment}" \
+  --output-tsv "${active_apps_tsv}"
+
 if [ "${deploy_mode}" = "code" ]; then
-  active_apps_tsv="$(mktemp)"
-  trap 'rm -f "${versions_output}" "${active_apps_tsv}"' EXIT
-
-  uv run python "${modal_active_worker_apps_script}" \
-    --modal-environment "${modal_environment}" \
-    --output-tsv "${active_apps_tsv}"
-
-  while IFS=$'\t' read -r active_app_name package_versions_json; do
+  while IFS=$'\t' read -r active_app_name package_versions_json resource_profile; do
     if [ -z "${active_app_name}" ]; then
       continue
     fi
-    deploy_worker_app "${active_app_name}" "${package_versions_json}"
+    deploy_worker_app \
+      "${active_app_name}" \
+      "${package_versions_json}" \
+      "${resource_profile}"
   done < "${active_apps_tsv}"
 else
   new_app_target="$(config_value new_app_target)"
+  promote_existing_frontier="$(config_value promote_existing_frontier)"
+
+  if [ "${promote_existing_frontier}" = "True" ] || \
+    [ "${promote_existing_frontier}" = "true" ]; then
+    while IFS=$'\t' read -r active_app_name package_versions_json resource_profile; do
+      if [ "${resource_profile}" != "frontier" ]; then
+        continue
+      fi
+      deploy_worker_app \
+        "${active_app_name}" \
+        "${package_versions_json}" \
+        "current"
+    done < "${active_apps_tsv}"
+  fi
+
   if [ "${new_app_target}" != "none" ]; then
-    deploy_worker_app "${worker_app_name}" ""
+    new_app_resource_profile="${new_app_target}"
+    if [ "${new_app_target}" = "both" ]; then
+      new_app_resource_profile="current"
+    fi
+    deploy_worker_app \
+      "${worker_app_name}" \
+      "" \
+      "${new_app_resource_profile}"
   fi
 
   uv run python -m policyengine_household_modal.update_manifest \
