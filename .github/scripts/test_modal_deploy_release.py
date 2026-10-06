@@ -30,6 +30,7 @@ def test_modal_deploy_release_requires_explicit_modal_environment():
 def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
+    env["MODAL_ENVIRONMENT"] = "main"
     active_apps_script = tmp_path / "modal_active_worker_apps.py"
     active_apps_script.write_text("# fake active apps script\n")
     env["MODAL_ACTIVE_WORKER_APPS_SCRIPT"] = str(active_apps_script)
@@ -37,8 +38,8 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
         tmp_path,
         log_path,
         active_apps_tsv=(
-            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\n'
-            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\n'
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
         ),
     )
 
@@ -66,6 +67,11 @@ def test_modal_deploy_release_code_mode_deploys_manifest_apps_only(tmp_path):
     assert 'VERSIONS={"uk":"2.31.0","us":"1.690.0"}' in log
     assert "DEPLOY_APP=frontier-app" in log
     assert 'VERSIONS={"uk":"2.31.0","us":"1.691.1"}' in log
+    assert "UPDATE_AUTOSCALER app=current-app" not in log
+    assert (
+        "UPDATE_AUTOSCALER app=frontier-app environment=main "
+        "profile=frontier" in log
+    )
     # Code-mode redeploys re-trigger the snapshot/init window on every
     # active app, so each one must be warmed (issue #1607).
     assert (
@@ -89,7 +95,15 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
 ):
     log_path = tmp_path / "uv.log"
     env = _deploy_env(tmp_path, log_path)
-    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+    env["MODAL_ENVIRONMENT"] = "main"
+    _write_fake_uv(
+        tmp_path,
+        log_path,
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
+    )
 
     result = subprocess.run(
         [
@@ -117,6 +131,15 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert "-m policyengine_household_modal.canary_app" in log
     assert "-m policyengine_household_modal.verify_canary" in log
     assert "DEPLOY_APP=release-app" in log
+    assert "DEPLOY_APP=frontier-app" not in log
+    assert (
+        "UPDATE_AUTOSCALER app=frontier-app environment=main "
+        "profile=current" in log
+    )
+    assert (
+        "UPDATE_AUTOSCALER app=release-app environment=main "
+        "profile=frontier" in log
+    )
     warm_release_app = (
         "-m policyengine_household_modal.warm_worker --app-name release-app"
     )
@@ -127,9 +150,157 @@ def test_modal_deploy_release_release_mode_updates_manifest_and_cleans(
     assert log.index(warm_release_app) < log.index(
         "-m policyengine_household_modal.update_manifest"
     )
+    assert log.index("UPDATE_AUTOSCALER app=frontier-app") < log.index(
+        "-m policyengine_household_modal.update_manifest"
+    )
     assert "--source-commit" not in log
     assert "cleanup-called" in log
     assert "-m policyengine_household_modal.prune_manifest" in log
+
+
+def test_modal_deploy_release_uses_current_profile_for_both_target(tmp_path):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    _write_fake_uv(tmp_path, log_path, active_apps_tsv="")
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"both",'
+                '"promote_existing_frontier":false,'
+                '"cleanup_target":"retired"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert "DEPLOY_APP=release-app" in log
+    assert "UPDATE_AUTOSCALER app=release-app" not in log
+
+
+def test_modal_deploy_release_deploys_same_named_app_once_at_current_profile(
+    tmp_path,
+):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    env["MODAL_ENVIRONMENT"] = "main"
+    _write_fake_uv(
+        tmp_path,
+        log_path,
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'release-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
+    )
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"frontier",'
+                '"promote_existing_frontier":true,'
+                '"cleanup_target":"retired"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert log.count("DEPLOY_APP=release-app") == 1
+    assert "UPDATE_AUTOSCALER app=release-app" not in log
+
+
+def test_modal_deploy_release_rejects_invalid_resource_profile(tmp_path):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    env["MODAL_ENVIRONMENT"] = "main"
+    _write_fake_uv(
+        tmp_path,
+        log_path,
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
+    )
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"unsupported",'
+                '"promote_existing_frontier":false,'
+                '"cleanup_target":"none"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert (
+        "Unsupported Modal worker resource profile: unsupported"
+        in result.stdout
+    )
+    log = log_path.read_text()
+    assert "DEPLOY_APP=release-app" not in log
+    assert "-m policyengine_household_modal.update_manifest" not in log
+
+
+def test_modal_deploy_release_keeps_promoted_profile_after_warm_failure(
+    tmp_path,
+):
+    log_path = tmp_path / "uv.log"
+    env = _deploy_env(tmp_path, log_path)
+    env["MODAL_ENVIRONMENT"] = "main"
+    env["WARM_WORKER_RC"] = "23"
+    _write_fake_uv(
+        tmp_path,
+        log_path,
+        active_apps_tsv=(
+            'current-app\t{"uk":"2.31.0","us":"1.690.0"}\tcurrent\n'
+            'frontier-app\t{"uk":"2.31.0","us":"1.691.1"}\tfrontier\n'
+        ),
+    )
+
+    result = subprocess.run(
+        [
+            "bash",
+            ".github/scripts/modal-deploy-release.sh",
+            (
+                '{"new_app_target":"frontier",'
+                '"promote_existing_frontier":true,'
+                '"cleanup_target":"retired"}'
+            ),
+            "release",
+        ],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 23
+    log = log_path.read_text()
+    assert (
+        "UPDATE_AUTOSCALER app=frontier-app environment=main "
+        "profile=current" in log
+    )
+    assert "UPDATE_AUTOSCALER app=current-app" not in log
+    assert "-m policyengine_household_modal.update_manifest" not in log
 
 
 def test_modal_deploy_release_defers_cleanup_when_requested(tmp_path):
@@ -287,6 +458,27 @@ if [[ "$*" == *"modal deploy"* && "$*" == *"worker_app"* ]]; then
   echo "DEPLOY_APP=${{HOUSEHOLD_MODAL_WORKER_APP_NAME:-}}" >> "{log_path}"
   echo "VERSIONS=${{HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON:-}}" >> "{log_path}"
   exit 0
+fi
+
+if [[ "$*" == *"policyengine_household_modal.update_worker_autoscaler"* ]]; then
+  app_name=""
+  modal_environment=""
+  resource_profile=""
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --app-name) shift; app_name="$1" ;;
+      --modal-environment) shift; modal_environment="$1" ;;
+      --resource-profile) shift; resource_profile="$1" ;;
+    esac
+    shift
+  done
+  echo "UPDATE_AUTOSCALER app=${{app_name}} environment=${{modal_environment}} profile=${{resource_profile}}" >> "{log_path}"
+  exit 0
+fi
+
+if [[ "$*" == *"policyengine_household_modal.warm_worker"* ]] && \
+   [[ "${{WARM_WORKER_RC:-0}}" != "0" ]]; then
+  exit "${{WARM_WORKER_RC}}"
 fi
 
 exit 0

@@ -47,6 +47,45 @@ apps in the retired history are stopped after the manifest is updated. Use
 `cleanup_target: none` only when the user explicitly asks to preserve retired
 worker apps after release.
 
+## Worker resource profiles
+
+Production Modal workers use resource profiles based on the channel they
+serve. The worker definition uses the `current` profile as its static Modal
+configuration. The release script applies the `frontier` profile with Modal's
+`update_autoscaler()` API after deploying a frontier worker.
+
+| Channel | Minimum containers | Idle buffer | Scale-down window | CPU |
+| --- | ---: | ---: | ---: | ---: |
+| `current` | 3 | 2 | 600 seconds | 1 core |
+| `frontier` | 1 | 1 | 300 seconds | 1 core |
+
+Staging and other non-production environments remain scale-to-zero. The
+release script calls `update_autoscaler()` only in the `main` Modal
+environment.
+
+Code-only deployments read both active channels from the release manifest and
+redeploy each app with its existing channel's profile. If one app serves both
+channels, it is deployed once and retains the static `current` profile. A
+deployment resets any previous dynamic autoscaler override, so code-only
+deployments reapply the `frontier` profile to the frontier app. During a normal
+weekly release, the script changes the existing frontier app to the `current`
+profile without redeploying it, then deploys the new app and changes it to the
+`frontier` profile. If a retried release refers to the same app as both the
+promoted and newly built app, the script deploys it once and retains the
+`current` profile.
+
+Modal autoscaler updates and deployments are separate operations rather than
+a transaction. If deploying or warming the replacement frontier worker fails
+after the existing frontier receives the `current` profile, the release
+manifest remains unchanged and that existing frontier worker remains at the
+larger profile. A later successful release or code-only deployment reapplies
+the profile associated with each manifest channel. The app already assigned
+to `current` is not rescaled by this promotion sequence.
+
+The resource profile is passed to the autoscaler command as an explicit
+argument. It is not transported through the worker container environment.
+Runtime credentials remain in the named `household-api` Modal secret.
+
 Use this release shape when the newly built worker must become both `current`
 and `frontier` in a single release:
 
@@ -79,13 +118,12 @@ service from those active workers. Ordinary push events do not deploy Modal
 apps. Manual `workflow_dispatch` runs are explicit release operations and use
 the weekly release shape by default.
 
-Every worker app deploy — release mode and code mode alike — blocks until the
-newly deployed worker answers a liveness dispatch
+Every new or code-redeployed worker blocks until it answers a liveness dispatch
 (`policyengine_household_modal.warm_worker`, default budget 1200 seconds,
 bounded by `timeout-minutes` on the deploy jobs). `modal deploy` returns when
 the new version is registered, but the worker only builds its memory snapshot
-and initialises the API on first invocation; the warm gate keeps deploy jobs
-from reporting success — and integration tests from starting — until the new
+and initialises the API on first invocation; the liveness check keeps deploy
+jobs from reporting success and integration tests from starting until the new
 version actually serves (issue #1607). In release mode the gate runs before
 `update_manifest`, so the manifest never flips traffic to a worker that has
 not served.

@@ -56,6 +56,14 @@ def test_calculate_sync(client):
 
     policyengine_bundle = resLight.pop("policyengine_bundle")
 
+    # Accepted divergence: API v1 returns its compact SPM provenance receipt,
+    # while the household API does not expose that API v1-specific response
+    # metadata. Validate the receipt's contract separately and exclude it from
+    # the calculation fields that these two endpoints share.
+    spm_provenance = resAPI.pop("spm_provenance")
+    assert "spm_provenance" not in resLight
+    assert spm_provenance["schema_version"] == "canonical-spm-provenance-v2"
+
     # The household API echoes inputs exactly as sent, even under axes.
     assert resLight["result"]["people"]["you"]["age"]["2023"] == 40
 
