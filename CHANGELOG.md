@@ -1,3 +1,10 @@
+## [0.33.7] - 2026-10-06
+
+### Changed
+
+- Reduced the production Modal frontier worker's warm capacity while preserving the larger current-worker profile during deployments and channel promotions. The release workflow changes channel capacity through Modal's autoscaler API without rebuilding promoted workers.
+
+
 ## [0.33.6] - 2026-10-02
 
 ### Changed
