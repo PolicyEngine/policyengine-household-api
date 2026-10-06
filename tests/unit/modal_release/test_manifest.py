@@ -5,6 +5,7 @@ from policyengine_household_common.analytics_migration import (
 )
 from policyengine_household_common.release_manifest import (
     MANIFEST_SCHEMA_VERSION,
+    WorkerResourceProfile,
     active_app_deployments,
     apply_release_config,
     build_app_reference,
@@ -393,7 +394,7 @@ def test_active_app_deployments_deduplicates_matching_active_app_names():
         {
             "app_name": "shared-app",
             "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
-            "resource_profile": "current",
+            "resource_profile": WorkerResourceProfile.CURRENT,
         }
     ]
 
@@ -416,12 +417,12 @@ def test_active_app_deployments_assigns_channel_resource_profiles():
         {
             "app_name": "current-app",
             "package_versions": {"uk": "2.31.0", "us": "1.690.0"},
-            "resource_profile": "current",
+            "resource_profile": WorkerResourceProfile.CURRENT,
         },
         {
             "app_name": "frontier-app",
             "package_versions": {"uk": "2.31.0", "us": "1.691.1"},
-            "resource_profile": "frontier",
+            "resource_profile": WorkerResourceProfile.FRONTIER,
         },
     ]
 

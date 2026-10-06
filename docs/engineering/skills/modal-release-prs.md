@@ -74,6 +74,14 @@ profile without redeploying it, then deploys the new app and changes it to the
 promoted and newly built app, the script deploys it once and retains the
 `current` profile.
 
+Modal autoscaler updates and deployments are separate operations rather than
+a transaction. If deploying or warming the replacement frontier worker fails
+after the existing frontier receives the `current` profile, the release
+manifest remains unchanged and that existing frontier worker remains at the
+larger profile. A later successful release or code-only deployment reapplies
+the profile associated with each manifest channel. The app already assigned
+to `current` is not rescaled by this promotion sequence.
+
 The resource profile is passed to the autoscaler command as an explicit
 argument. It is not transported through the worker container environment.
 Runtime credentials remain in the named `household-api` Modal secret.

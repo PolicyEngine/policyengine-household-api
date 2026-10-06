@@ -45,6 +45,15 @@ deploy_worker_app() {
   local package_versions_json="${2:-}"
   local resource_profile="${3:?resource profile is required}"
 
+  case "${resource_profile}" in
+    current|frontier)
+      ;;
+    *)
+      echo "::error::Unsupported Modal worker resource profile: ${resource_profile}"
+      return 1
+      ;;
+  esac
+
   HOUSEHOLD_MODAL_WORKER_APP_NAME="${app_name}" \
     HOUSEHOLD_MODAL_PACKAGE_VERSIONS_JSON="${package_versions_json}" \
     MODAL_ENVIRONMENT="${modal_environment}" \

@@ -1,5 +1,8 @@
 import pytest
 
+from policyengine_household_common.release_manifest import (
+    WorkerResourceProfile,
+)
 from policyengine_household_modal import update_worker_autoscaler as updater
 
 
@@ -7,7 +10,7 @@ from policyengine_household_modal import update_worker_autoscaler as updater
     ("profile", "expected"),
     [
         (
-            "current",
+            WorkerResourceProfile.CURRENT,
             {
                 "min_containers": 3,
                 "buffer_containers": 2,
@@ -15,7 +18,7 @@ from policyengine_household_modal import update_worker_autoscaler as updater
             },
         ),
         (
-            "frontier",
+            WorkerResourceProfile.FRONTIER,
             {
                 "min_containers": 1,
                 "buffer_containers": 1,

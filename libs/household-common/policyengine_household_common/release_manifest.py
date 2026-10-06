@@ -3,8 +3,9 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import StrEnum
 import re
-from typing import Any, Mapping
+from typing import Any, Mapping, TypedDict
 
 from policyengine_household_common.constants import COUNTRY_PACKAGE_VERSIONS
 from policyengine_household_common.analytics_migration import (
@@ -44,6 +45,17 @@ MANIFEST_KEYS = {
     "frontier",
     "retired",
 }
+
+
+class WorkerResourceProfile(StrEnum):
+    CURRENT = "current"
+    FRONTIER = "frontier"
+
+
+class ActiveAppDeployment(TypedDict):
+    app_name: str
+    package_versions: dict[str, str]
+    resource_profile: WorkerResourceProfile
 
 
 @dataclass(frozen=True)
@@ -281,7 +293,7 @@ def cleanup_app_names_for_target(
 
 def active_app_deployments(
     manifest: Mapping[str, Any],
-) -> list[dict[str, Any]]:
+) -> list[ActiveAppDeployment]:
     validated = require_active_current_and_frontier(manifest)
     deployments_by_name: dict[str, dict[str, str]] = {}
 
@@ -310,9 +322,9 @@ def active_app_deployments(
             "app_name": app_name,
             "package_versions": package_versions,
             "resource_profile": (
-                "current"
+                WorkerResourceProfile.CURRENT
                 if validated["current"]["app_name"] == app_name
-                else "frontier"
+                else WorkerResourceProfile.FRONTIER
             ),
         }
         for app_name, package_versions in deployments_by_name.items()

@@ -4,6 +4,9 @@ import argparse
 
 import modal
 
+from policyengine_household_common.release_manifest import (
+    WorkerResourceProfile,
+)
 from policyengine_household_modal.worker_resources import (
     PRODUCTION_WORKER_RESOURCE_OPTIONS,
 )
@@ -13,7 +16,7 @@ def update_worker_autoscaler(
     *,
     app_name: str,
     modal_environment: str,
-    resource_profile: str,
+    resource_profile: WorkerResourceProfile,
 ) -> None:
     worker_class = modal.Cls.from_name(
         app_name,
@@ -39,7 +42,7 @@ def main() -> None:
     update_worker_autoscaler(
         app_name=args.app_name,
         modal_environment=args.modal_environment,
-        resource_profile=args.resource_profile,
+        resource_profile=WorkerResourceProfile(args.resource_profile),
     )
 
 
