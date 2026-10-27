@@ -2529,7 +2529,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-core"
-version = "3.32.27"
+version = "3.33.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dpath" },
@@ -2549,9 +2549,9 @@ dependencies = [
     { name = "standard-imghdr" },
     { name = "wheel" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/24/84c0747c64fba95e89d3acd332604ad01e8a220ce7e80cf8d342b3b213bd/policyengine_core-3.32.27.tar.gz", hash = "sha256:632e8708ec243f7b592ec857e1978df207547c1510039373e707c310173cf4e4", size = 599334, upload-time = "2026-10-09T05:44:09.236Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/a2/635bad91b845c13d68babf34cd12b952a4187d19cf85e657b839e4a2d050/policyengine_core-3.33.1.tar.gz", hash = "sha256:924905aaafde51630974b93308e83fe2e11104d6332d8fb68a1ec7180b2397a9", size = 689561, upload-time = "2026-10-10T17:41:12.847Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/b3/fc1a10b03f2a159bc5623f0aa465887d1c1c98ee2f3118fd9ee3e8275921/policyengine_core-3.32.27-py3-none-any.whl", hash = "sha256:d0b0135939252ed628efd496988f76c0ab89bfa3b3437aa90f39000667c37687", size = 278496, upload-time = "2026-10-09T05:44:07.764Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/42/534b43c5182090343ab27a4e617d00ce5bf1aa74aad6aef019d1a6d8d28c/policyengine_core-3.33.1-py3-none-any.whl", hash = "sha256:4a9e3ea8a17e0268838169347878467d8972218dce4a2262c56ffb10db7edc66", size = 301905, upload-time = "2026-10-10T17:41:11.109Z" },
 ]
 
 [[package]]
@@ -2648,14 +2648,14 @@ requires-dist = [
     { name = "inflect" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-canada", specifier = "==0.96.3" },
-    { name = "policyengine-core", specifier = "==3.32.27" },
+    { name = "policyengine-core", specifier = "==3.33.1" },
     { name = "policyengine-household-analytics", editable = "libs/household-analytics" },
     { name = "policyengine-household-common", extras = ["auth"], editable = "libs/household-common" },
     { name = "policyengine-il", specifier = "==0.1.0" },
     { name = "policyengine-ng", specifier = "==0.5.1" },
     { name = "policyengine-observability", extras = ["flask", "google"], specifier = ">=1.4.0,<2" },
     { name = "policyengine-uk", specifier = "==2.88.18" },
-    { name = "policyengine-us", specifier = "==2.53.1" },
+    { name = "policyengine-us", specifier = "==2.72.5" },
     { name = "pydantic" },
     { name = "pyjwt", specifier = ">=2.13.0" },
     { name = "python-dotenv" },
@@ -2815,7 +2815,7 @@ wheels = [
 
 [[package]]
 name = "policyengine-us"
-version = "2.53.1"
+version = "2.72.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "microdf-python" },
@@ -2825,9 +2825,9 @@ dependencies = [
     { name = "tables" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8c/a8/e0e1e6bdf6bab8844e67c94379b0d1512a66737a258e23fb20d4ec990201/policyengine_us-2.53.1.tar.gz", hash = "sha256:3f66899e2e9b3b1ac6e1732b473500f9e9a56e57e4ffedd8a06e7b0fb25593d4", size = 14293190, upload-time = "2026-10-21T02:04:41.012Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/34/942fe992c550f3e623cd4e0cceb2150dd660758ca34f5a49dc536c58218c/policyengine_us-2.72.5.tar.gz", hash = "sha256:2d46a34c97576e2bf4e9eaba4822d82280362567f39c717bd05cf37ca0ecbf30", size = 15631016, upload-time = "2026-10-27T21:16:31.798Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/85/b2/bf7499cb636a5e28dbf2cc858d33354749f5a46d2d4c82ead0a09bc665ef/policyengine_us-2.53.1-py3-none-any.whl", hash = "sha256:fc5cd5c4337a9e8fe3c4b09cd2c8dd7adf32ff3b7d926941016e8cd1ddd348d8", size = 18186952, upload-time = "2026-10-21T02:04:37.019Z" },
+    { url = "https://files.pythonhosted.org/packages/73/20/be1adb02d4ab8c79079c16650ad3ece2c44eca7de1878bec596844094eb0/policyengine_us-2.72.5-py3-none-any.whl", hash = "sha256:d70013be66ce4daea240d1360c167bb020641bdd395ef14bf5db01b81da8aaec", size = 19873210, upload-time = "2026-10-27T21:16:28.095Z" },
 ]
 
 [[package]]
