@@ -1,0 +1,1 @@
+Stopped trusting the compromised eMudhra CA root "emSign ECC Root CA - G3": upgraded certifi to 2026.10.23, refreshed Debian ca-certificates in the Modal worker and Cloud Run images, and pointed gRPC at that store instead of the CA list bundled in grpcio.

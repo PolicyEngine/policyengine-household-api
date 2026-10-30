@@ -24,9 +24,15 @@ FROM --platform=linux/amd64 python:3.13-slim
 
 WORKDIR /app
 
+# Install ca-certificates explicitly so every build takes Debian's current CA
+# store even when the base image is older, and point gRPC clients (such as
+# Google Cloud Logging) at that store instead of the CA list bundled in
+# grpcio, which still trusts the compromised eMudhra root "emSign ECC Root CA
+# - G3" (https://emudhra.we-have-a-problem.com).
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
+ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/etc/ssl/certs/ca-certificates.crt
 
 COPY --from=builder /opt/venv /opt/venv
 COPY ./libs/household-common/policyengine_household_common /app/policyengine_household_common
