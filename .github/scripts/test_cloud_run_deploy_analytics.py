@@ -96,6 +96,79 @@ def test_cloud_run_deploy_analytics_deploys_writer_with_startup_probe(
     )
 
 
+def test_cloud_run_deploy_analytics_adds_password_version_when_none_stored(
+    tmp_path,
+):
+    log_path = tmp_path / "commands.log"
+    output_path = tmp_path / "github-output.txt"
+    _write_fake_uv(tmp_path, log_path)
+    _write_fake_docker(tmp_path, log_path)
+    _write_fake_gcloud(tmp_path, log_path)
+    env = _base_env(tmp_path, output_path)
+
+    result = subprocess.run(
+        ["bash", ".github/scripts/cloud-run-deploy-analytics.sh"],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert (
+        "gcloud secrets versions access latest "
+        "--secret household-api-staging-USER_ANALYTICS_DB_PASSWORD" in log
+    )
+    assert log.count("gcloud secrets versions add") == 1
+    assert (
+        "gcloud secrets versions add "
+        "household-api-staging-USER_ANALYTICS_DB_PASSWORD" in log
+    )
+    assert "analytics@password,with,comma" not in log
+    assert "analytics@password,with,comma" not in result.stdout
+
+
+def test_cloud_run_deploy_analytics_keeps_password_version_when_unchanged(
+    tmp_path,
+):
+    log_path = tmp_path / "commands.log"
+    output_path = tmp_path / "github-output.txt"
+    _write_fake_uv(tmp_path, log_path)
+    _write_fake_docker(tmp_path, log_path)
+    _write_fake_gcloud(
+        tmp_path,
+        log_path,
+        {
+            "household-api-staging-USER_ANALYTICS_DB_PASSWORD": (
+                "analytics@password,with,comma"
+            )
+        },
+    )
+    env = _base_env(tmp_path, output_path)
+
+    result = subprocess.run(
+        ["bash", ".github/scripts/cloud-run-deploy-analytics.sh"],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert "gcloud secrets versions add" not in log
+    assert (
+        "household-api-staging-USER_ANALYTICS_DB_PASSWORD: latest version "
+        "already holds this value; not adding a version." in result.stdout
+    )
+    assert (
+        "--set-secrets=USER_ANALYTICS_DB_PASSWORD="
+        "household-api-staging-USER_ANALYTICS_DB_PASSWORD:latest" in log
+    )
+    assert "analytics@password,with,comma" not in log
+    assert "analytics@password,with,comma" not in result.stdout
+    assert "analytics@password,with,comma" not in result.stderr
+
+
 def test_cloud_run_deploy_analytics_skips_when_analytics_disabled(tmp_path):
     log_path = tmp_path / "commands.log"
     output_path = tmp_path / "github-output.txt"
@@ -161,12 +234,41 @@ echo "docker $*" >> "{log_path}"
     script.chmod(0o755)
 
 
-def _write_fake_gcloud(tmp_path: Path, log_path: Path) -> None:
+def _write_fake_gcloud(
+    tmp_path: Path,
+    log_path: Path,
+    stored_secret_values: dict[str, str] | None = None,
+) -> None:
+    # `secrets versions access latest` serves stored_secret_values by secret
+    # name and fails like a missing version for any other secret.
+    secret_store_dir = tmp_path / "secret-store"
+    secret_store_dir.mkdir(exist_ok=True)
+    for secret_name, stored_value in (stored_secret_values or {}).items():
+        (secret_store_dir / secret_name).write_text(stored_value)
+
     script = tmp_path / "gcloud"
     script.write_text(
         f"""#!/usr/bin/env bash
 set -euo pipefail
 echo "gcloud $*" >> "{log_path}"
+
+if [[ "${{1:-}}" == secrets && "${{2:-}}" == versions && "${{3:-}}" == access ]]; then
+  secret_name=""
+  previous_arg=""
+  for arg in "$@"; do
+    if [[ "${{previous_arg}}" == --secret ]]; then
+      secret_name="${{arg}}"
+    fi
+    previous_arg="${{arg}}"
+  done
+  stored_value_file="{secret_store_dir}/${{secret_name}}"
+  if [[ -n "${{secret_name}}" && -f "${{stored_value_file}}" ]]; then
+    cat "${{stored_value_file}}"
+    exit 0
+  fi
+  echo "NOT_FOUND: secret version not found" >&2
+  exit 1
+fi
 
 for arg in "$@"; do
   if [[ "${{arg}}" == --env-vars-file=* ]]; then

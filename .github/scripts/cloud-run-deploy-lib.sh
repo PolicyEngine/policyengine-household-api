@@ -108,6 +108,21 @@ env_args_from_file() {
   printf '%s\n' "--env-vars-file=${env_file}"
 }
 
+latest_secret_version_matches_file() {
+  # Succeeds only when the version that `<secret>:latest` resolves to holds
+  # exactly the bytes in the given file. The stored value goes through a pipe
+  # into `cmp`, so it is never written to disk or to the job log. Any failure
+  # to read it (no versions yet, latest version disabled, missing
+  # permission) counts as a mismatch, so the caller falls back to adding a
+  # version.
+  local secret_name="${1:?secret name is required}"
+  local value_file="${2:?value file is required}"
+
+  "${gcloud_bin}" secrets versions access latest \
+    --secret "${secret_name}" \
+    --project "${project}" 2>/dev/null | cmp -s - "${value_file}"
+}
+
 sync_secret_if_set() {
   local secrets_file="${1:?secrets file is required}"
   local key="${2:?secret env key is required}"
@@ -131,7 +146,12 @@ sync_secret_if_set() {
   secret_value_file="$(mktemp)"
   chmod 600 "${secret_value_file}"
   printf '%s' "${!key}" > "${secret_value_file}"
-  if ! "${gcloud_bin}" secrets versions add "${secret_name}" \
+  # Secret Manager bills every enabled or disabled version, so only add a
+  # version when the deploy value differs from what `:latest` serves today.
+  if latest_secret_version_matches_file \
+    "${secret_name}" "${secret_value_file}"; then
+    echo "Secret Manager secret ${secret_name}: latest version already holds this value; not adding a version."
+  elif ! "${gcloud_bin}" secrets versions add "${secret_name}" \
     --project "${project}" \
     --data-file "${secret_value_file}" >/dev/null; then
     rm -f "${secret_value_file}"
