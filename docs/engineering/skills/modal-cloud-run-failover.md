@@ -12,7 +12,9 @@ the Modal circuit for a channel opens, the gateway routes that channel to the
 matching private Cloud Run fallback worker.
 
 Cloud Run fallback workers are deployed for both active channels but use
-`min-instances=0`. The Cloud Run gateway uses `min-instances=1`.
+`min-instances=0`. The production Cloud Run gateway uses `min-instances=1`;
+the staging gateway uses `min-instances=0`, because only the release
+workflow's checks and occasional manual requests call it.
 
 The fallback manifest is separate from the strict Modal release manifest and is
 stored in GCS. It records each active channel's Modal worker app name, Cloud
@@ -88,7 +90,8 @@ The Cloud Run deploy wrapper is
 metadata through `.github/scripts/cloud_run_failover_channels.py`, deploys
 private `current` and `frontier` Cloud Run workers with `min-instances=0`,
 uploads the GCS failover manifest, then deploys the public gateway with
-`min-instances=1`.
+`HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES` instances, default `1`. The
+staging deploy job sets it to `0`.
 
 Default Cloud Run concurrency should support at least 25 concurrent household
 requests. Keep gateway container workers, gateway Cloud Run concurrency,
