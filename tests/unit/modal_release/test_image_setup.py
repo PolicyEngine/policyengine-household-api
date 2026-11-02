@@ -67,8 +67,27 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
             "policyengine_us==1.691.1",
             "spm-calculator==0.3.1",
         ),
-        {},
+        {"uv_version": "0.13.6"},
     ) in calls
+    # Every install pins uv 0.13.6: uv verifies HTTPS against its compiled-in
+    # CA list, which trusts the compromised eMudhra root before 0.13.4, and
+    # Modal would otherwise copy whichever uv was latest at build time.
+    dependency_installs = [
+        call for call in calls if call[0] == "uv_pip_install"
+    ]
+    assert dependency_installs[0] == (
+        "uv_pip_install",
+        (),
+        {
+            "requirements": ["requirements-modal-worker.txt"],
+            "uv_version": "0.13.6",
+        },
+    )
+    assert len(dependency_installs) == 2
+    assert all(
+        install_kwargs.get("uv_version") == "0.13.6"
+        for _, _, install_kwargs in dependency_installs
+    )
     assert (
         "add_local_file",
         ("libs/household-api/pyproject.toml",),

@@ -13,6 +13,13 @@ import modal
 # running containers, where no repository checkout exists.
 WORKER_REQUIREMENTS_FILE = "requirements-modal-worker.txt"
 WORKER_PYPROJECT_FILE = "libs/household-api/pyproject.toml"
+# uv verifies HTTPS against a CA list compiled into it, and releases before
+# 0.13.4 trust the compromised eMudhra root "emSign ECC Root CA - G3"
+# (https://emudhra.we-have-a-problem.com). Without uv_version, Modal copies
+# ghcr.io/astral-sh/uv:latest, so a cached install step keeps whichever uv
+# was latest when it was built. 0.13.6 wrote uv.lock and is the uv the
+# workflows install.
+UV_VERSION = "0.13.6"
 
 FIRST_PARTY_PACKAGES = (
     "policyengine_household_api",
@@ -37,11 +44,11 @@ def household_api_worker_image() -> modal.Image:
     )
 
     image = modal.Image.debian_slim(python_version="3.13").uv_pip_install(
-        requirements=[WORKER_REQUIREMENTS_FILE]
+        requirements=[WORKER_REQUIREMENTS_FILE], uv_version=UV_VERSION
     )
     package_specs = country_package_install_specs()
     if package_specs:
-        image = image.uv_pip_install(*package_specs)
+        image = image.uv_pip_install(*package_specs, uv_version=UV_VERSION)
     return (
         # Modal's debian_slim base ships Debian ca-certificates 20230311,
         # which trusts the compromised eMudhra root "emSign ECC Root CA - G3"
