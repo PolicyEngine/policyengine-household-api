@@ -20,6 +20,14 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
                 f"worker image should use uv_pip_install, got {packages}"
             )
 
+        def apt_install(self, *packages):
+            calls.append(("apt_install", packages, {}))
+            return self
+
+        def env(self, variables):
+            calls.append(("env", (variables,), {}))
+            return self
+
         def add_local_python_source(self, *args, **kwargs):
             calls.append(("add_local_python_source", args, kwargs))
             return self
@@ -59,13 +67,61 @@ def test_worker_image_uses_uv_for_package_version_overlays(monkeypatch):
             "policyengine_us==1.691.1",
             "spm-calculator==0.3.1",
         ),
-        {},
+        {"uv_version": "0.13.6"},
     ) in calls
+    # Every install pins uv 0.13.6: uv verifies HTTPS against its compiled-in
+    # CA list, which trusts the compromised eMudhra root before 0.13.4, and
+    # Modal would otherwise copy whichever uv was latest at build time.
+    dependency_installs = [
+        call for call in calls if call[0] == "uv_pip_install"
+    ]
+    assert dependency_installs[0] == (
+        "uv_pip_install",
+        (),
+        {
+            "requirements": ["requirements-modal-worker.txt"],
+            "uv_version": "0.13.6",
+        },
+    )
+    assert len(dependency_installs) == 2
+    assert all(
+        install_kwargs.get("uv_version") == "0.13.6"
+        for _, _, install_kwargs in dependency_installs
+    )
     assert (
         "add_local_file",
         ("libs/household-api/pyproject.toml",),
         {"remote_path": "/root/pyproject.toml", "copy": True},
     ) in calls
+
+    # The CA-store refresh follows both dependency installs, so Modal keeps
+    # their cached builds, and comes before the first-party sources.
+    step_names = [call[0] for call in calls]
+    ca_certificates_step = calls.index(
+        ("apt_install", ("ca-certificates",), {})
+    )
+    grpc_roots_step = calls.index(
+        (
+            "env",
+            (
+                {
+                    "GRPC_DEFAULT_SSL_ROOTS_FILE_PATH": (
+                        "/etc/ssl/certs/ca-certificates.crt"
+                    )
+                },
+            ),
+            {},
+        )
+    )
+    last_dependency_install_step = (
+        len(step_names) - 1 - step_names[::-1].index("uv_pip_install")
+    )
+    assert (
+        last_dependency_install_step
+        < ca_certificates_step
+        < grpc_roots_step
+        < step_names.index("add_local_python_source")
+    )
 
 
 def test_preload_country_packages_imports_and_builds_all_countries(

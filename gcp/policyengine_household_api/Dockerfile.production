@@ -30,9 +30,16 @@ RUN if [ -n "$POLICYENGINE_US_VERSION" ]; then \
 FROM python:3.13-slim AS production
 WORKDIR /app
 
-# Install runtime system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+# Install runtime system dependencies. ca-certificates is listed explicitly
+# so every build takes Debian's current CA store even when the base image is
+# older, and gRPC clients (such as Google Cloud Logging) are pointed at that
+# store instead of the CA list bundled in grpcio, which still trusts the
+# compromised eMudhra root "emSign ECC Root CA - G3"
+# (https://emudhra.we-have-a-problem.com).
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
+ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/etc/ssl/certs/ca-certificates.crt
 
 # Create the runtime user before COPY --chown can reference it. A standalone
 # `chown -R` after copying would duplicate the whole venv into an extra
