@@ -1,3 +1,10 @@
+## [0.33.12] - 2026-11-03
+
+### Fixed
+
+- Stopped trusting the compromised eMudhra CA root "emSign ECC Root CA - G3": upgraded certifi to 2026.10.23, refreshed Debian ca-certificates in the Modal worker and Cloud Run images, pointed gRPC at that store instead of the CA list bundled in grpcio, and pinned the uv that installs the Modal worker's packages to 0.13.6 instead of whichever release was latest when Modal built that step.
+
+
 ## [0.33.11] - 2026-10-27
 
 ### Changed
