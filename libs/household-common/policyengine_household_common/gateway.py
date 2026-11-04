@@ -7,6 +7,9 @@ from typing import Any, Protocol
 
 from flask import Request, Response, jsonify
 
+from policyengine_household_common.cloud_run_responses import (
+    cloud_run_body_response,
+)
 from policyengine_household_common.constants import COUNTRIES
 from policyengine_observability import (
     OBSERVABILITY_INTERNAL_DISPATCH_HEADER,
@@ -114,15 +117,19 @@ def forward_request_headers(http_request: Request) -> dict[str, str]:
 
 
 def response_from_worker_result(result: WorkerResult) -> Response:
-    """Convert a worker result into a Flask response."""
+    """Convert a worker result into a Flask response.
+
+    The gateway runs on Cloud Run, so large bodies are streamed rather than
+    buffered; see ``cloud_run_body_response``.
+    """
 
     body = result.get("body", b"")
     if isinstance(body, str):
         body = body.encode("utf-8")
-    return Response(
+    return cloud_run_body_response(
         body,
         status=int(result["status_code"]),
-        headers=list(result.get("headers") or []),
+        headers=result.get("headers"),
     )
 
 

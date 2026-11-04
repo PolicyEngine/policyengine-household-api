@@ -6,6 +6,9 @@ from policyengine_observability.runtime import OPERATION_LOGGER
 from policyengine_household_failover.cloud_run_worker import (
     create_worker_app,
 )
+from policyengine_household_common.cloud_run_responses import (
+    CLOUD_RUN_BUFFERED_RESPONSE_LIMIT_BYTES,
+)
 from policyengine_household_common.dispatch_codec import (
     decode_dispatch_response,
     encode_dispatch_request,
@@ -103,6 +106,38 @@ def test_worker_preserves_app_level_500_as_dispatch_result():
     assert response.status_code == 200
     result = decode_dispatch_response(response.get_json())
     assert result["status_code"] == 500
+
+
+def test_worker_streams_dispatch_response_cloud_run_would_reject():
+    household_body = b"x" * (CLOUD_RUN_BUFFERED_RESPONSE_LIMIT_BYTES + 1)
+
+    def dispatch_large_response(_household_app, _payload):
+        return {
+            "status_code": 200,
+            "body": household_body,
+            "headers": [("Content-Type", "application/json")],
+        }
+
+    app = create_worker_app(
+        flask_app=_household_app(),
+        dispatcher=dispatch_large_response,
+    )
+    payload = encode_dispatch_request(
+        {
+            "method": "GET",
+            "path": "/analytics/calculate/requests",
+            "headers": {},
+            "body": b"",
+        }
+    )
+
+    response = app.test_client().post("/_internal/dispatch", json=payload)
+
+    assert response.status_code == 200
+    assert "Content-Length" not in response.headers
+    result = decode_dispatch_response(json.loads(response.get_data()))
+    assert result["status_code"] == 200
+    assert result["body"] == household_body
 
 
 def test_worker_rejects_invalid_dispatch_payload():
