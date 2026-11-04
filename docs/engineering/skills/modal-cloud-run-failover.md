@@ -112,6 +112,20 @@ Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
 secret values through `--set-env-vars` or delimiter-joined command arguments.
 
+Secret Manager bills every enabled or disabled secret version, so the sync
+adds a version only when the deploy value differs from the version that
+`<secret>:latest` resolves to. It reads that version with
+`gcloud secrets versions access latest` and compares bytes through a pipe
+into `cmp`, so the stored value never reaches disk or the job log. Only a
+successful read whose bytes match exactly skips the add; do not compare
+through `$(...)`, which strips trailing newlines. A secret the sync has just
+created gets its first version without a read. If the read fails for an
+existing secret (no versions, latest version disabled or destroyed, or the
+deploy account lacks `secretmanager.versions.access`), the sync still adds a
+version so the deploy keeps working, and prints a workflow warning, because
+that path adds a billed version on every deploy. Services keep binding
+`<secret>:latest`.
+
 The gateway can send best-effort Slack alerts for failover lifecycle events.
 Set `HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL` in the deploy environment to sync it
 to Secret Manager and bind it only to the public gateway service. Do not pass
@@ -127,6 +141,9 @@ through one-time setup or IaC before deployment:
 
 - the GitHub deployment service account needs `roles/storage.objectAdmin` on
   the manifest bucket so the workflow can upload manifests
+- the GitHub deployment service account needs
+  `roles/secretmanager.secretAccessor` on the secrets it syncs so it can
+  compare the deploy value with the latest version before adding one
 - the gateway runtime service account needs `roles/storage.objectViewer` on
   the manifest bucket so runtime manifest reads work with least privilege
 - gateway and worker runtime service accounts need
