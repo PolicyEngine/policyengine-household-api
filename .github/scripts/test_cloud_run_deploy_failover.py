@@ -758,6 +758,109 @@ def test_cloud_run_deploy_failover_adds_secret_versions_only_for_changed_values(
         assert value not in result.stderr
 
 
+def test_cloud_run_deploy_failover_adds_one_password_version_for_both_workers(
+    tmp_path,
+):
+    # Both worker channels sync the same password secret. When its value
+    # changed, the first worker adds one version and the second worker reads
+    # that version back and adds nothing.
+    log_path = tmp_path / "commands.log"
+    output_path = tmp_path / "github-output.txt"
+    password_secret = "household-api-staging-USER_ANALYTICS_DB_PASSWORD"
+    _write_fake_uv(tmp_path, log_path)
+    _write_fake_docker(tmp_path, log_path)
+    _write_fake_gcloud(
+        tmp_path,
+        log_path,
+        {
+            password_secret: "previous-analytics-password",
+            "household-api-staging-MODAL_TOKEN_ID": "modal-token-id@example",
+            "household-api-staging-MODAL_TOKEN_SECRET": (
+                "modal-token,secret@example"
+            ),
+        },
+    )
+    _write_fake_curl(tmp_path, log_path)
+
+    env = {
+        **os.environ,
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "UV_BIN": str(tmp_path / "uv"),
+        "DOCKER_BIN": str(tmp_path / "docker"),
+        "GCLOUD_BIN": str(tmp_path / "gcloud"),
+        "CURL_BIN": str(tmp_path / "curl"),
+        "GITHUB_OUTPUT": str(output_path),
+        "GITHUB_SHA": "abc123",
+        "MODAL_ENVIRONMENT": "staging",
+        "GOOGLE_CLOUD_PROJECT": "policyengine-test",
+        "HOUSEHOLD_FAILOVER_MANIFEST_BUCKET": "manifest-bucket",
+        "HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT": (
+            "household-api-gateway@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT": (
+            "household-api-worker@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "HOUSEHOLD_ANALYTICS_WRITER_URL": (
+            "https://household-api-staging-analytics-writer.run.app"
+        ),
+        "ANALYTICS__ENABLED": "true",
+        "ANALYTICS__CLOUD_TASKS__PROJECT": "policyengine-test",
+        "ANALYTICS__CLOUD_TASKS__LOCATION": "us-central1",
+        "ANALYTICS__CLOUD_TASKS__QUEUE": "analytics-writes",
+        "ANALYTICS__CLOUD_TASKS__SERVICE_ACCOUNT_EMAIL": (
+            "tasks@policyengine-test.iam.gserviceaccount.com"
+        ),
+        "MODAL_TOKEN_ID": "modal-token-id@example",
+        "MODAL_TOKEN_SECRET": "modal-token,secret@example",
+        "USER_ANALYTICS_DB_PASSWORD": "rotated-analytics-password",
+        "HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL": "",
+    }
+
+    result = subprocess.run(
+        ["bash", ".github/scripts/cloud-run-deploy-failover.sh"],
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    log = log_path.read_text()
+    assert (
+        log.count(
+            "gcloud secrets versions access latest "
+            f"--secret {password_secret} --project policyengine-test"
+        )
+        == 2
+    )
+    assert log.count(f"gcloud secrets versions add {password_secret}") == 1
+    assert log.count("gcloud secrets versions add") == 1
+    assert (
+        f"{password_secret}: deploy value differs from the latest version; "
+        "adding a version." in result.stdout
+    )
+    assert (
+        f"{password_secret}: latest version already holds this value; "
+        "not adding a version." in result.stdout
+    )
+    assert "::warning::" not in result.stdout
+    # Both workers still bind the password through `:latest`.
+    assert (
+        log.count(
+            "--set-secrets=USER_ANALYTICS_DB_PASSWORD="
+            f"{password_secret}:latest"
+        )
+        == 2
+    )
+    for value in [
+        "previous-analytics-password",
+        "rotated-analytics-password",
+        "modal-token,secret@example",
+    ]:
+        assert value not in log
+        assert value not in result.stdout
+        assert value not in result.stderr
+
+
 def _write_fake_uv(tmp_path: Path, log_path: Path) -> None:
     script = tmp_path / "uv"
     script.write_text(
@@ -813,17 +916,36 @@ def _write_fake_gcloud(
     stored_secret_values: dict[str, str] | None = None,
 ) -> None:
     # `secrets versions access latest` serves stored_secret_values by secret
-    # name and fails like a missing version for any other secret.
+    # name and fails like a missing version for any other secret. When
+    # stored_secret_values is given (even empty), `secrets versions add`
+    # also stores its --data-file bytes, so a later read in the same deploy
+    # sees the version that the deploy added, as Secret Manager would.
     secret_store_dir = tmp_path / "secret-store"
     secret_store_dir.mkdir(exist_ok=True)
     for secret_name, stored_value in (stored_secret_values or {}).items():
         (secret_store_dir / secret_name).write_text(stored_value)
+    record_added_versions = (
+        "true" if stored_secret_values is not None else "false"
+    )
 
     script = tmp_path / "gcloud"
     script.write_text(
         f"""#!/usr/bin/env bash
 set -euo pipefail
 echo "gcloud $*" >> "{log_path}"
+
+if [[ "{record_added_versions}" == true && "${{1:-}}" == secrets && "${{2:-}}" == versions && "${{3:-}}" == add ]]; then
+  data_file=""
+  previous_arg=""
+  for arg in "$@"; do
+    if [[ "${{previous_arg}}" == --data-file ]]; then
+      data_file="${{arg}}"
+    fi
+    previous_arg="${{arg}}"
+  done
+  cp "${{data_file}}" "{secret_store_dir}/$4"
+  exit 0
+fi
 
 if [[ "${{1:-}}" == secrets && "${{2:-}}" == versions && "${{3:-}}" == access ]]; then
   secret_name=""

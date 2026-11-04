@@ -109,18 +109,45 @@ env_args_from_file() {
 }
 
 latest_secret_version_matches_file() {
-  # Succeeds only when the version that `<secret>:latest` resolves to holds
-  # exactly the bytes in the given file. The stored value goes through a pipe
-  # into `cmp`, so it is never written to disk or to the job log. Any failure
-  # to read it (no versions yet, latest version disabled, missing
-  # permission) counts as a mismatch, so the caller falls back to adding a
-  # version.
+  # Compares the version that `<secret>:latest` resolves to with the bytes in
+  # the given file. Returns 0 when they are identical, 1 when they differ,
+  # and 2 when that version could not be read or compared (no versions,
+  # latest version disabled or destroyed, missing
+  # `secretmanager.versions.access`). A match requires gcloud to exit 0, so
+  # partial output from a failed read never counts as a match.
+  #
+  # The stored value only goes through a pipe into `cmp`; it is never
+  # written to disk, and gcloud's error output is discarded. Call this in a
+  # condition or `||` list so `set -e` does not exit on a non-zero status.
   local secret_name="${1:?secret name is required}"
   local value_file="${2:?value file is required}"
+  local pipe_statuses
 
   "${gcloud_bin}" secrets versions access latest \
     --secret "${secret_name}" \
-    --project "${project}" 2>/dev/null | cmp -s - "${value_file}"
+    --project "${project}" 2>/dev/null |
+    {
+      cmp_status=0
+      cmp -s - "${value_file}" || cmp_status=$?
+      # `cmp` stops reading at the first differing byte. Read the rest so
+      # gcloud never writes into a closed pipe; that keeps gcloud's exit
+      # status a reliable signal of whether the read itself worked.
+      cat >/dev/null
+      exit "${cmp_status}"
+    }
+  pipe_statuses=("${PIPESTATUS[@]}")
+
+  if [ "${pipe_statuses[0]}" -ne 0 ]; then
+    return 2
+  fi
+  case "${pipe_statuses[1]}" in
+    0 | 1)
+      return "${pipe_statuses[1]}"
+      ;;
+    *)
+      return 2
+      ;;
+  esac
 }
 
 sync_secret_if_set() {
@@ -130,6 +157,8 @@ sync_secret_if_set() {
   local secret_override_value="${!secret_override_key:-}"
   local secret_name="${secret_override_value:-${secret_prefix}-${key}}"
   local secret_value_file
+  local secret_created=0
+  local compare_status=0
 
   if [ -z "${!key:-}" ]; then
     return
@@ -141,6 +170,7 @@ sync_secret_if_set() {
       --project "${project}" \
       --replication-policy automatic \
       --quiet
+    secret_created=1
   fi
 
   secret_value_file="$(mktemp)"
@@ -148,12 +178,32 @@ sync_secret_if_set() {
   printf '%s' "${!key}" > "${secret_value_file}"
   # Secret Manager bills every enabled or disabled version, so only add a
   # version when the deploy value differs from what `:latest` serves today.
-  if latest_secret_version_matches_file \
-    "${secret_name}" "${secret_value_file}"; then
-    echo "Secret Manager secret ${secret_name}: latest version already holds this value; not adding a version."
-  elif ! "${gcloud_bin}" secrets versions add "${secret_name}" \
-    --project "${project}" \
-    --data-file "${secret_value_file}" >/dev/null; then
+  # A secret created just above has no versions, so there is nothing to
+  # compare with.
+  if [ "${secret_created}" -eq 1 ]; then
+    compare_status=1
+    echo "Secret Manager secret ${secret_name}: created the secret; adding its first version."
+  else
+    latest_secret_version_matches_file \
+      "${secret_name}" "${secret_value_file}" || compare_status=$?
+    case "${compare_status}" in
+      0)
+        echo "Secret Manager secret ${secret_name}: latest version already holds this value; not adding a version."
+        ;;
+      1)
+        echo "Secret Manager secret ${secret_name}: deploy value differs from the latest version; adding a version."
+        ;;
+      *)
+        # Adding a version keeps the deploy working, but this path adds a
+        # billed version on every deploy, so make it visible in the run.
+        echo "::warning::Secret Manager secret ${secret_name}: could not read the latest version to compare with the deploy value (no versions, latest version disabled or destroyed, or the deploy account lacks secretmanager.versions.access); adding a version."
+        ;;
+    esac
+  fi
+  if [ "${compare_status}" -ne 0 ] &&
+    ! "${gcloud_bin}" secrets versions add "${secret_name}" \
+      --project "${project}" \
+      --data-file "${secret_value_file}" >/dev/null; then
     rm -f "${secret_value_file}"
     return 1
   fi

@@ -1,1 +1,1 @@
-Cloud Run deploys add a Secret Manager secret version only when the deploy value differs from the current latest version, instead of on every deploy.
+Cloud Run deploys add a Secret Manager secret version only when the deploy value differs from the current latest version, instead of on every deploy, and print a workflow warning when the latest version of an existing secret cannot be read.
