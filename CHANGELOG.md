@@ -1,3 +1,10 @@
+## [0.33.13] - 2026-11-04
+
+### Fixed
+
+- Cloud Run deploys add a Secret Manager secret version only when the deploy value differs from the current latest version, instead of on every deploy, and print a workflow warning when the latest version of an existing secret cannot be read.
+
+
 ## [0.33.12] - 2026-11-03
 
 ### Fixed
