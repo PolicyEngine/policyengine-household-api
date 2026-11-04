@@ -92,6 +92,17 @@ def test_policyengine_cloud_run_deploy_jobs_pass_auth0_environment():
             assert env[key] == value
 
 
+def test_only_staging_gateway_scales_to_zero():
+    workflow = _load_workflow()
+
+    staging_env = _deploy_step_env(workflow, "deploy-cloud-run-staging")
+    production_env = _deploy_step_env(workflow, "deploy-cloud-run-production")
+
+    assert staging_env["HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES"] == "0"
+    # Production relies on cloud-run-deploy-failover.sh's default of 1.
+    assert "HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES" not in production_env
+
+
 def test_deployed_api_tests_only_use_cloud_run_gateway():
     workflow = _load_workflow()
     jobs = workflow["jobs"]
