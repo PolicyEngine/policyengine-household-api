@@ -334,6 +334,142 @@ def test__calculate_analytics_requests__legacy_rows_expose_missing_metadata(
     assert unique_payload["unique_keys"] == []
 
 
+def test__calculate_analytics_requests__include_variables_false_omits_variables(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+    monkeypatch,
+):
+    add_calculate_analytics_request(
+        "successful-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [
+            calculate_analytics_variable("age"),
+            calculate_analytics_variable("employment_income"),
+        ],
+    )
+    add_calculate_analytics_request(
+        "failed-request",
+        datetime(2026, 5, 11, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+        response_status_code=500,
+    )
+
+    def fail_variable_lookup(request_ids):
+        raise AssertionError("variable rows must not be read")
+
+    monkeypatch.setattr(
+        analytics, "_variables_by_request_id", fail_variable_lookup
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?include_variables=false"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert [
+        (
+            request_record["request_uuid"],
+            request_record["created_at"],
+            request_record["client_id"],
+            request_record["response_status_code"],
+            request_record["distinct_variable_count"],
+        )
+        for request_record in payload["requests"]
+    ] == [
+        ("failed-request", "2026-05-11T12:00:00Z", "test-client", 500, 1),
+        ("successful-request", "2026-05-10T12:00:00Z", "test-client", 200, 2),
+    ]
+    assert all(
+        "variables" not in request_record
+        for request_record in payload["requests"]
+    )
+    # The envelope keeps its existing keys, so callers that read it are
+    # unaffected by the option.
+    assert "include_variables" not in payload
+
+
+@pytest.mark.parametrize(
+    "query_string",
+    ["", "?include_variables=true", "?include_variables=1"],
+)
+def test__calculate_analytics_requests__include_variables_defaults_to_true(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+    query_string,
+):
+    add_calculate_analytics_request(
+        "request-with-variables",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        f"/analytics/calculate/requests{query_string}"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert [
+        variable["variable_name"]
+        for variable in payload["requests"][0]["variables"]
+    ] == ["age"]
+
+
+def test__calculate_analytics_requests__include_variables_false_keeps_unique_keys(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    add_calculate_analytics_request(
+        "request-with-variables",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?unique=true&include_variables=false"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert [key["variable_name"] for key in payload["unique_keys"]] == ["age"]
+
+
+def test__calculate_analytics_requests__invalid_include_variables_returns_400(
+    analytics_endpoint_app,
+):
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?include_variables=sometimes"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 400
+    assert payload == {
+        "status": "error",
+        "message": "`include_variables` must be true or false",
+    }
+
+
+def test__calculate_analytics_requests__invalid_unique_names_unique(
+    analytics_endpoint_app,
+):
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?unique=sometimes"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 400
+    assert payload["message"] == "`unique` must be true or false"
+
+
 def test__calculate_analytics_requests__filters_by_modal_routing(
     analytics_endpoint_app,
     add_calculate_analytics_request,
