@@ -2,6 +2,7 @@ import pytest
 from policyengine_household_api.api import app
 
 pytest_plugins = [
+    "tests.fixtures.axiom_door1",
     "tests.fixtures.data.analytics_setup",
     "tests.fixtures.data.analytics_setup_patches",
     "tests.fixtures.decorators.auth",

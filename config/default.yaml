@@ -64,3 +64,27 @@ auth:
     test_token: "" # Override with AUTH0_TEST_TOKEN_NO_DOMAIN
     # Space-delimited OAuth scopes for the static test token
     test_token_scopes: "" # Override with AUTH0_TEST_TOKEN_SCOPES
+
+# Door 1: Axiom rules under this API through policyengine-axiom.
+# Off by default; see docs/axiom-door1-design.md. Only a Modal worker image
+# built with HOUSEHOLD_AXIOM_DOOR1_PACKAGES installs policyengine-axiom and
+# turns this on. Values are read once, inside the worker's memory snapshot.
+axiom_door1:
+  enabled: false  # Override with AXIOM_DOOR1__ENABLED
+  # Bind-time mode: shadow (PE answers, Axiom compared), compare (Axiom
+  # answers where the provider certifies it, PE still runs and is compared),
+  # or on (Axiom answers, no comparison). strict is refused.
+  mode: shadow  # Override with AXIOM_DOOR1__MODE
+  # Requests whose gateway-resolved channel is listed may get Axiom answers;
+  # every other request runs with the provider capped to off.
+  serve_channels: [frontier]  # Override with AXIOM_DOOR1__SERVE_CHANNELS
+  # Optional allowlist of client ids (token `sub` without "@clients");
+  # empty means every client on a serve channel.
+  clients: []  # Override with AXIOM_DOOR1__CLIENTS (comma-separated)
+  # Requests on these channels that the serving rule above does not select
+  # run in shadow: PolicyEngine answers and Axiom is only compared. Empty
+  # sends them to PolicyEngine with the provider off.
+  shadow_channels: []  # Override with AXIOM_DOOR1__SHADOW_CHANNELS
+  countries: [us]
+  # RuleSpec corpus root; empty uses PE_AXIOM_CORPUS_ROOT.
+  corpus_root: ""

@@ -5,6 +5,7 @@ from policyengine_observability import record_error
 from policyengine_observability import segment
 from policyengine_observability import set_attribute
 from pydantic import ValidationError
+from policyengine_household_api.axiom_door1 import calculation_scope
 from policyengine_household_api.country import (
     COUNTRIES,
     detect_period_warnings,
@@ -235,7 +236,7 @@ def get_calculate(country_id: str, add_missing: bool = False) -> Response:
 
     try:
         result: dict
-        with segment(SegmentName.CALCULATION):
+        with segment(SegmentName.CALCULATION), calculation_scope(country_id):
             result = country.calculate(household_json, policy_json)
     except Exception as e:
         logging.exception(e)

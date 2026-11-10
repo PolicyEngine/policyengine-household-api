@@ -1,0 +1,1 @@
+Add an off-by-default hook for Axiom rules (Door 1) through policyengine-axiom: bind once per Modal worker, select each calculation by its resolved channel into a serving, shadow or off tier, and a Modal Dict kill switch.
