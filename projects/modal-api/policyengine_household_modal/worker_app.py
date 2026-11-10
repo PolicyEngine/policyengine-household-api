@@ -8,6 +8,10 @@ from policyengine_observability import operation
 from policyengine_observability import restart_observability
 from policyengine_observability import set_attribute
 
+from policyengine_household_modal.axiom_door1 import (
+    door1_volumes,
+    start_door1_container_runtime,
+)
 from policyengine_household_modal.google_credentials import (
     configure_google_credentials,
 )
@@ -79,6 +83,11 @@ def worker_function_options(
         # bounded.
         "max_containers": 100,
     }
+    # Door 1 (docs/axiom-door1-design.md): only an image built with
+    # HOUSEHOLD_AXIOM_DOOR1_PACKAGES mounts the outcome-count volume.
+    volumes = door1_volumes()
+    if volumes:
+        options["volumes"] = volumes
     if environment == "main":
         options.update(
             PRODUCTION_WORKER_RESOURCE_OPTIONS[WorkerResourceProfile.CURRENT]
@@ -167,6 +176,14 @@ class HouseholdWorker:
 
         self.flask_app = flask_app
 
+        # Door 1: bind Axiom's manifests into the shared country systems
+        # before the prewarm, so the snapshot holds the bound system. A
+        # no-op (no policyengine-axiom import) unless axiom_door1.enabled;
+        # never raises. Requests are selected per request in the endpoint.
+        from policyengine_household_api.axiom_door1 import bind_door1
+
+        bind_door1()
+
         # Bake the parameter at-instant projections into the memory
         # snapshot: they build lazily per instant, so an unwarmed
         # container pays a full-parameter-tree build for every new
@@ -181,6 +198,15 @@ class HouseholdWorker:
     @modal.enter(snap=False)
     def reset_post_snapshot_state(self) -> None:
         reset_post_snapshot_process_state(self.flask_app)
+        # Door 1: a sink directory for this container and the kill-switch
+        # mirror thread (threads do not survive a snapshot restore).
+        start_door1_container_runtime()
+
+    @modal.exit()
+    def flush_door1_counts(self) -> None:
+        from policyengine_household_api.axiom_door1 import flush_door1
+
+        flush_door1()
 
     @modal.method()
     def handle_household_request(self, payload: WorkerRequest) -> WorkerResult:
