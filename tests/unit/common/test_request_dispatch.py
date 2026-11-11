@@ -6,6 +6,10 @@ from flask import Flask, request
 import pytest
 
 from policyengine_household_common import gateway
+from policyengine_household_common.cloud_run_responses import (
+    CLOUD_RUN_BUFFERED_RESPONSE_LIMIT_BYTES,
+    STREAMED_RESPONSE_THRESHOLD_BYTES,
+)
 from policyengine_household_common.gateway import (
     RequestVersionError,
     build_worker_request,
@@ -121,3 +125,37 @@ def test_response_from_worker_result_builds_flask_response():
     assert response.status_code == 202
     assert response.get_data() == b"accepted"
     assert response.headers["X-Worker"] == "modal"
+
+
+@pytest.mark.parametrize(
+    ("body_size_bytes", "expect_streamed"),
+    [
+        (STREAMED_RESPONSE_THRESHOLD_BYTES, False),
+        (CLOUD_RUN_BUFFERED_RESPONSE_LIMIT_BYTES + 1, True),
+    ],
+)
+def test_response_from_worker_result_streams_only_bodies_over_threshold(
+    body_size_bytes, expect_streamed
+):
+    worker_body = b"x" * body_size_bytes
+    gateway_app = Flask(__name__)
+
+    @gateway_app.get("/analytics/calculate/requests")
+    def analytics_requests():
+        return response_from_worker_result(
+            {
+                "status_code": 200,
+                "body": worker_body,
+                "headers": [("Content-Type", "application/json")],
+            }
+        )
+
+    response = gateway_app.test_client().get("/analytics/calculate/requests")
+
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    if expect_streamed:
+        assert "Content-Length" not in response.headers
+    else:
+        assert response.headers["Content-Length"] == str(body_size_bytes)
+    assert response.get_data() == worker_body
