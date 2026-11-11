@@ -1,3 +1,10 @@
+## [0.33.16] - 2026-11-11
+
+### Changed
+
+- Update PolicyEngine US to 2.116.16.
+
+
 ## [0.33.15] - 2026-11-05
 
 ### Changed
