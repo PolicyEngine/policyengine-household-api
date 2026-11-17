@@ -1,4 +1,5 @@
 import os
+import pytest
 import requests
 import json
 import sys
@@ -7,6 +8,10 @@ from policyengine_household_common.config_loader import get_config_value
 from tests.to_refactor.fixtures import client, extract_json_from_file
 
 API_URL = "https://api.policyengine.org/"
+
+# The main API serves only authenticated PolicyEngine servers, and this test
+# sends it no credential.
+MAIN_API_AUTH_REFUSALS = (401, 403)
 
 
 def _collapse_axis_expanded_inputs(node):
@@ -39,11 +44,6 @@ def test_calculate_sync(client):
         "./tests/to_refactor/python/data/calculate_us_1_data.json"
     )
 
-    # Make a POST request to the API and store its output
-    resAPI = requests.post(
-        API_URL + "/" + country_id + "/calculate", json=input_data
-    ).json()
-
     # Mock a POST request to household-API
     resLight = client.post(
         "/" + country_id + "/calculate",
@@ -56,6 +56,26 @@ def test_calculate_sync(client):
 
     policyengine_bundle = resLight.pop("policyengine_bundle")
 
+    # The household API echoes inputs exactly as sent, even under axes.
+    assert resLight["result"]["people"]["you"]["age"]["2023"] == 40
+    assert policyengine_bundle == {
+        "model_version": COUNTRY_PACKAGE_VERSIONS[country_id],
+        "data_version": None,
+        "dataset": None,
+    }
+
+    # Make a POST request to the API and store its output
+    api_response = requests.post(
+        API_URL + "/" + country_id + "/calculate", json=input_data
+    )
+    if api_response.status_code in MAIN_API_AUTH_REFUSALS:
+        pytest.skip(
+            "The main API refused the unauthenticated request with "
+            f"{api_response.status_code}, so the comparison did not run. "
+            "The household API assertions above passed."
+        )
+    resAPI = api_response.json()
+
     # Accepted divergence: API v1 returns its compact SPM provenance receipt,
     # while the household API does not expose that API v1-specific response
     # metadata. Validate the receipt's contract separately and exclude it from
@@ -64,17 +84,8 @@ def test_calculate_sync(client):
     assert "spm_provenance" not in resLight
     assert spm_provenance["schema_version"] == "canonical-spm-provenance-v2"
 
-    # The household API echoes inputs exactly as sent, even under axes.
-    assert resLight["result"]["people"]["you"]["age"]["2023"] == 40
-
     # Compare the legacy response body, tolerating the main API's axis
-    # expansion of request-supplied inputs, and assert the new provenance
-    # separately.
+    # expansion of request-supplied inputs.
     assert _collapse_axis_expanded_inputs(
         resAPI
     ) == _collapse_axis_expanded_inputs(resLight)
-    assert policyengine_bundle == {
-        "model_version": COUNTRY_PACKAGE_VERSIONS[country_id],
-        "data_version": None,
-        "dataset": None,
-    }
