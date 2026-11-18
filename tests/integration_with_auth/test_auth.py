@@ -31,5 +31,7 @@ def test_no_token(client):
 
 
 def test_variable_options_require_token(client):
-    response = client.get("/us/variables/electricity_provider/options?state=IL")
+    response = client.get(
+        "/us/variables/electricity_provider/options?state=IL"
+    )
     assert response.status_code == 401

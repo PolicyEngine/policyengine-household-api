@@ -510,7 +510,9 @@ def create_gateway_app(
                 elif request.method in {"GET", "HEAD"} and re.fullmatch(
                     r"us/variables/[^/]+/options", path
                 ):
-                    requested_version = request.args.get("version") or "current"
+                    requested_version = (
+                        request.args.get("version") or "current"
+                    )
                 else:
                     requested_version = "current"
                 resolved = resolve_failover_channel_for_request(
