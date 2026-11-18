@@ -1,3 +1,10 @@
+## [0.33.17] - 2026-11-18
+
+### Fixed
+
+- Stop calling the main API in the legacy calculate sync test, which now refuses unauthenticated requests; keep the household API's own assertions.
+
+
 ## [0.33.16] - 2026-11-11
 
 ### Changed
