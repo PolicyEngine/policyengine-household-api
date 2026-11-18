@@ -51,6 +51,78 @@ paths:
                           readiness:
                             type: string
 
+  /us/variables/{variable}/options:
+    get:
+      summary: List utility provider choices for a US state
+      operationId: get_variable_options
+      description: Returns model enum values and bill-facing labels in model order. Named providers serve some customers in the requested state. OTHER covers unlisted providers and UNSPECIFIED covers an unknown provider. Service at an address and benefit eligibility depend on additional information.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: variable
+          in: path
+          required: true
+          schema:
+            type: string
+          description: US input with state service territories, such as electricity_provider or natural_gas_provider.
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          example: IL
+          description: Two-letter state code accepted by the US model, case-insensitive.
+        - name: version
+          in: query
+          schema:
+            type: string
+            default: current
+          description: Hosted gateway selector. Use current, frontier, or an active exact US model version. A self-hosted worker uses its installed model.
+      responses:
+        "200":
+          description: Choices for the state and fuel. Submit the value in the household input and display the label.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, result]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      required: [value, label]
+                      properties:
+                        value:
+                          type: string
+                        label:
+                          type: string
+        "400":
+          description: Missing or unknown state code.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: A bearer token is required when authentication is enabled.
+        "404":
+          description: The selected model version has no state-filtered choices for this variable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "422":
+          description: The requested US model version is unavailable on the hosted gateway.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionRoutingErrorResponse"
+        "429":
+          description: Rate limit exceeded.
+
   /{country_id}/calculate:
     post:
       summary: Calculate household and policy without storing data

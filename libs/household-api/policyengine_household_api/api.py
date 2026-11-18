@@ -31,6 +31,7 @@ from policyengine_household_api.constants import VERSION
 # Endpoints
 from .endpoints import (
     get_home,
+    get_variable_options,
     get_calculate_analytics_requests,
     get_calculate,
 )
@@ -107,6 +108,13 @@ app.route("/", methods=["GET"])(get_home)
 @log_analytics_if_enabled
 def calculate(country_id):
     return get_calculate(country_id)
+
+
+@app.get("/us/variables/<variable>/options")
+@require_auth_if_enabled()
+@limiter.limit("60 per minute")
+def variable_options(variable):
+    return get_variable_options(variable)
 
 
 @app.route("/analytics/calculate/requests", methods=["GET"])

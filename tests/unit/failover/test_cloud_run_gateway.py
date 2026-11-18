@@ -182,6 +182,38 @@ def test_gateway_forwards_request_metadata_and_strips_version():
     }
 
 
+@pytest.mark.parametrize(
+    "version, channel",
+    [
+        (None, "current"),
+        ("frontier", "frontier"),
+        ("1.0.0", "current"),
+        ("2.0.0", "frontier"),
+    ],
+)
+def test_gateway_routes_variable_options_to_selected_model(version, channel):
+    requests = []
+    client = _client(
+        modal_request=lambda app_name, payload: (
+            requests.append((app_name, payload))
+            or _json_response({"status": "ok", "result": []})
+        )
+    )
+    query = {"state": "ID"}
+    if version is not None:
+        query["version"] = version
+    response = client.get(
+        "/us/variables/natural_gas_provider/options", query_string=query
+    )
+    assert response.status_code == 200
+    [(app_name, payload)] = requests
+    assert app_name == f"modal-{channel}"
+    assert "state=ID" in payload["query_string"]
+    assert payload[MODAL_ROUTING_PAYLOAD_KEY]["requested_version"] == (
+        version or "current"
+    )
+
+
 def test_gateway_keeps_version_on_non_versioned_route():
     requests = []
     client = _client(

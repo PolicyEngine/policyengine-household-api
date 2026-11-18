@@ -96,6 +96,21 @@ For development with external networking:
 % make docker-console
 ```
 
+## US utility provider choices
+
+Call `GET /us/variables/electricity_provider/options?state=IL` to populate an
+electricity distributor dropdown. For gas, use `natural_gas_provider` in the
+same path. Send the same bearer token as for `/us/calculate` when authentication
+is enabled. On the hosted API, add `&version=frontier` or an active US package
+version to match the version requested for the calculation.
+
+Each item in `result` has a `label` to display and a `value` to submit on the
+SPM unit. For example, the Illinois electric list includes
+`{"value": "COMED", "label": "ComEd"}`. Ask for the distributor on the bill.
+A listed company may serve only part of the state. Every state offers `OTHER`
+for an unlisted provider and `UNSPECIFIED` for an unknown provider.
+A model version without the mapping returns HTTP 404.
+
 ## Period-key conventions
 
 Every input and output on `/calculate` is keyed by a period string. Two shapes

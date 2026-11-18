@@ -3,3 +3,4 @@ from .analytics import (
 )
 from .home import get_home as get_home
 from .household import get_calculate as get_calculate
+from .variable_options import get_variable_options as get_variable_options

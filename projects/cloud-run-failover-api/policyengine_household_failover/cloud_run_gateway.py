@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import json
 import logging
 import os
+import re
 import threading
 import time
 from typing import Any, Callable
@@ -506,6 +507,10 @@ def create_gateway_app(
             with segment(SegmentName.VERSION_RESOLUTION):
                 if country_id and endpoint in VERSIONED_ENDPOINTS:
                     body, requested_version = extract_requested_version(body)
+                elif request.method in {"GET", "HEAD"} and re.fullmatch(
+                    r"us/variables/[^/]+/options", path
+                ):
+                    requested_version = request.args.get("version") or "current"
                 else:
                     requested_version = "current"
                 resolved = resolve_failover_channel_for_request(
