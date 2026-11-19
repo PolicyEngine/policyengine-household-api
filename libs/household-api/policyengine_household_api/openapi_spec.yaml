@@ -274,6 +274,13 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: include_variables
+          in: query
+          description: When false, each request record leaves out its variables array, and the endpoint does not read variable rows. Use this to count requests without downloading variable usage. Has no effect when unique is true.
+          required: false
+          schema:
+            type: boolean
+            default: true
         - name: limit
           in: query
           description: Maximum number of request records returned when unique is false.
@@ -767,7 +774,7 @@ components:
           description: False when variable usage metadata was never collected and therefore cannot be reconstructed.
         variables:
           type: array
-          description: Grouped variable metadata. Empty when variable_metadata_collected is false.
+          description: Grouped variable metadata. Empty when variable_metadata_collected is false. Absent when the request set include_variables=false.
           items:
             $ref: "#/components/schemas/CalculateAnalyticsVariableRecord"
     CalculateAnalyticsVariableRecord:

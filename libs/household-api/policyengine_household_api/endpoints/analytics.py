@@ -40,6 +40,7 @@ class CalculateAnalyticsQuery:
     resolved_channel: str | None
     client_id: str | None
     unique: bool
+    include_variables: bool
     limit: int
 
 
@@ -147,7 +148,19 @@ def _parse_query_args() -> CalculateAnalyticsQuery:
         # string is a valid query and an unknown one just matches
         # nothing.
         client_id=_parse_optional_string(request.args.get("client_id")),
-        unique=_parse_bool(request.args.get("unique"), default=False),
+        unique=_parse_bool(
+            request.args.get("unique"),
+            name="unique",
+            default=False,
+        ),
+        # Callers that only count requests (such as billing) can leave out
+        # the per-request variable lists, which make up most of the payload
+        # and need a second query over calculate_request_variables.
+        include_variables=_parse_bool(
+            request.args.get("include_variables"),
+            name="include_variables",
+            default=True,
+        ),
         limit=_parse_limit(request.args.get("limit")),
     )
 
@@ -177,7 +190,7 @@ def _parse_optional_datetime(
     return parsed.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-def _parse_bool(value: str | None, *, default: bool) -> bool:
+def _parse_bool(value: str | None, *, name: str, default: bool) -> bool:
     if value is None:
         return default
 
@@ -186,7 +199,7 @@ def _parse_bool(value: str | None, *, default: bool) -> bool:
         return True
     if normalized in FALSE_VALUES:
         return False
-    raise ValueError("`unique` must be true or false")
+    raise ValueError(f"`{name}` must be true or false")
 
 
 def _parse_optional_string(value: str | None) -> str | None:
@@ -232,13 +245,21 @@ def _calculate_requests(
     if not calculate_requests:
         return []
 
+    if not query.include_variables:
+        return [
+            _request_to_dict(calculate_request, variable_rows=None)
+            for calculate_request in calculate_requests
+        ]
+
     variables_by_request_id = _variables_by_request_id(
         [calculate_request.id for calculate_request in calculate_requests]
     )
     return [
         _request_to_dict(
             calculate_request,
-            variables_by_request_id.get(calculate_request.id, []),
+            variable_rows=variables_by_request_id.get(
+                calculate_request.id, []
+            ),
         )
         for calculate_request in calculate_requests
     ]
@@ -340,9 +361,16 @@ def _apply_filters(query, filters: CalculateAnalyticsQuery):
 
 def _request_to_dict(
     calculate_request: CalculateRequest,
-    variable_rows: list[CalculateRequestVariable],
+    *,
+    variable_rows: list[CalculateRequestVariable] | None,
 ) -> dict[str, Any]:
-    return {
+    """Serialize one request record.
+
+    ``variable_rows=None`` means the caller asked to leave the variable
+    lists out, so the ``variables`` key is omitted rather than sent as an
+    empty list, which would read as "no variables were recorded".
+    """
+    record = {
         "request_uuid": calculate_request.request_uuid,
         "created_at": _datetime_to_json(calculate_request.created_at),
         "client_id": calculate_request.client_id,
@@ -365,10 +393,12 @@ def _request_to_dict(
         "variable_metadata_collected": bool(
             calculate_request.variable_metadata_collected
         ),
-        "variables": [
-            _variable_to_dict(variable_row) for variable_row in variable_rows
-        ],
     }
+    if variable_rows is not None:
+        record["variables"] = [
+            _variable_to_dict(variable_row) for variable_row in variable_rows
+        ]
+    return record
 
 
 def _variable_to_dict(
