@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Callable
 
 from flask import Flask, Response, jsonify, request
@@ -8,6 +9,9 @@ from policyengine_observability import record_error
 from policyengine_observability import set_attribute
 from werkzeug.exceptions import BadRequest
 
+from policyengine_household_common.cloud_run_responses import (
+    cloud_run_body_response,
+)
 from policyengine_household_common.dispatch_codec import (
     decode_dispatch_request,
     encode_dispatch_response,
@@ -74,7 +78,15 @@ def create_worker_app(
                 _set_dispatch_attribute(
                     "dispatch_status_code", result.get("status_code")
                 )
-                return jsonify(encode_dispatch_response(result))
+                # The worker also runs on Cloud Run, and base64 makes the
+                # dispatch body a third larger than the household response.
+                return cloud_run_body_response(
+                    json.dumps(encode_dispatch_response(result)).encode(
+                        "utf-8"
+                    ),
+                    status=200,
+                    mimetype="application/json",
+                )
             except (BadRequest, KeyError, TypeError, ValueError) as exc:
                 record_error(
                     exc,
