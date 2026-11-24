@@ -1,3 +1,10 @@
+## [0.34.0] - 2026-11-24
+
+### Added
+
+- Added an `include_variables` query option to `GET /analytics/calculate/requests`. With `include_variables=false`, request records leave out their `variables` lists and the endpoint skips the variable-row query. The default is unchanged.
+
+
 ## [0.33.19] - 2026-11-23
 
 ### Changed
