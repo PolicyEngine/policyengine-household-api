@@ -4,6 +4,11 @@ import os
 
 import modal
 
+from policyengine_household_modal.axiom_door1 import (
+    door1_image_env,
+    door1_install_specs,
+)
+
 # Read docs/engineering/skills/modal-images.md before changing this module.
 #
 # The locked third-party requirements for these images are exported from the
@@ -49,6 +54,17 @@ def household_api_worker_image() -> modal.Image:
     package_specs = country_package_install_specs()
     if package_specs:
         image = image.uv_pip_install(*package_specs, uv_version=UV_VERSION)
+    # Door 1 (docs/axiom-door1-design.md): unset by default, which leaves
+    # the image definition unchanged. --no-deps keeps the locked
+    # policyengine-us/-core pair; the specs must bring every other
+    # dependency policyengine-axiom needs.
+    door1_specs = door1_install_specs()
+    if door1_specs:
+        image = image.uv_pip_install(
+            *door1_specs,
+            uv_version=UV_VERSION,
+            extra_options="--no-deps",
+        ).env(door1_image_env())
     return (
         # Modal's debian_slim base ships Debian ca-certificates 20230311,
         # which trusts the compromised eMudhra root "emSign ECC Root CA - G3"
