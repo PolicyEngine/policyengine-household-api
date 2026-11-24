@@ -1,0 +1,1 @@
+Fixed HTTP 500 responses from `/analytics/calculate/requests` when a page is larger than 32 MiB: the Cloud Run gateway and Cloud Run fallback worker now send bodies over 16 MiB with chunked transfer encoding, which Cloud Run does not size-limit, instead of as one buffered response.
