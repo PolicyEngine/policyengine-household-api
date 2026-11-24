@@ -334,11 +334,13 @@ def test__calculate_analytics_requests__legacy_rows_expose_missing_metadata(
     assert unique_payload["unique_keys"] == []
 
 
+@pytest.mark.parametrize("false_value", ["false", "0", "no", "FALSE"])
 def test__calculate_analytics_requests__include_variables_false_omits_variables(
     analytics_endpoint_app,
     add_calculate_analytics_request,
     calculate_analytics_variable,
     monkeypatch,
+    false_value,
 ):
     add_calculate_analytics_request(
         "successful-request",
@@ -355,6 +357,12 @@ def test__calculate_analytics_requests__include_variables_false_omits_variables(
         response_status_code=500,
     )
 
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests"
+    ):
+        default_response = get_calculate_analytics_requests()
+    default_payload = json.loads(default_response.data)
+
     def fail_variable_lookup(request_ids):
         raise AssertionError("variable rows must not be read")
 
@@ -363,12 +371,23 @@ def test__calculate_analytics_requests__include_variables_false_omits_variables(
     )
 
     with analytics_endpoint_app.test_request_context(
-        "/analytics/calculate/requests?include_variables=false"
+        f"/analytics/calculate/requests?include_variables={false_value}"
     ):
         response = get_calculate_analytics_requests()
 
     payload = json.loads(response.data)
     assert response.status_code == 200
+    # Each record is the default record without its `variables` key, and
+    # the envelope has exactly the default keys.
+    assert payload["requests"] == [
+        {
+            key: value
+            for key, value in default_record.items()
+            if key != "variables"
+        }
+        for default_record in default_payload["requests"]
+    ]
+    assert payload.keys() == default_payload.keys()
     assert [
         (
             request_record["request_uuid"],
@@ -382,18 +401,17 @@ def test__calculate_analytics_requests__include_variables_false_omits_variables(
         ("failed-request", "2026-05-11T12:00:00Z", "test-client", 500, 1),
         ("successful-request", "2026-05-10T12:00:00Z", "test-client", 200, 2),
     ]
-    assert all(
-        "variables" not in request_record
-        for request_record in payload["requests"]
-    )
-    # The envelope keeps its existing keys, so callers that read it are
-    # unaffected by the option.
-    assert "include_variables" not in payload
 
 
 @pytest.mark.parametrize(
     "query_string",
-    ["", "?include_variables=true", "?include_variables=1"],
+    [
+        "",
+        "?include_variables=true",
+        "?include_variables=1",
+        "?include_variables=yes",
+        "?include_variables=TRUE",
+    ],
 )
 def test__calculate_analytics_requests__include_variables_defaults_to_true(
     analytics_endpoint_app,
@@ -441,11 +459,21 @@ def test__calculate_analytics_requests__include_variables_false_keeps_unique_key
     assert [key["variable_name"] for key in payload["unique_keys"]] == ["age"]
 
 
+@pytest.mark.parametrize(
+    "query_string",
+    [
+        "include_variables=sometimes",
+        "include_variables=",
+        # Ignored when unique is true, but still validated.
+        "unique=true&include_variables=sometimes",
+    ],
+)
 def test__calculate_analytics_requests__invalid_include_variables_returns_400(
     analytics_endpoint_app,
+    query_string,
 ):
     with analytics_endpoint_app.test_request_context(
-        "/analytics/calculate/requests?include_variables=sometimes"
+        f"/analytics/calculate/requests?{query_string}"
     ):
         response = get_calculate_analytics_requests()
 

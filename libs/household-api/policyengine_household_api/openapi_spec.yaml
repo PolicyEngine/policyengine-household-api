@@ -276,7 +276,7 @@ paths:
             default: false
         - name: include_variables
           in: query
-          description: When false, each request record leaves out its variables array, and the endpoint does not read variable rows. Use this to count requests without downloading variable usage. Has no effect when unique is true.
+          description: When false, each request record leaves out its variables array, and the endpoint does not read variable rows. Use this to count requests without downloading variable usage. Ignored when unique is true, though the value must still be true or false.
           required: false
           schema:
             type: boolean
