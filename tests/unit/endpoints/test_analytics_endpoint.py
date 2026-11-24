@@ -334,6 +334,170 @@ def test__calculate_analytics_requests__legacy_rows_expose_missing_metadata(
     assert unique_payload["unique_keys"] == []
 
 
+@pytest.mark.parametrize("false_value", ["false", "0", "no", "FALSE"])
+def test__calculate_analytics_requests__include_variables_false_omits_variables(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+    monkeypatch,
+    false_value,
+):
+    add_calculate_analytics_request(
+        "successful-request",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [
+            calculate_analytics_variable("age"),
+            calculate_analytics_variable("employment_income"),
+        ],
+    )
+    add_calculate_analytics_request(
+        "failed-request",
+        datetime(2026, 5, 11, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+        response_status_code=500,
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests"
+    ):
+        default_response = get_calculate_analytics_requests()
+    default_payload = json.loads(default_response.data)
+
+    def fail_variable_lookup(request_ids):
+        raise AssertionError("variable rows must not be read")
+
+    monkeypatch.setattr(
+        analytics, "_variables_by_request_id", fail_variable_lookup
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        f"/analytics/calculate/requests?include_variables={false_value}"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    # Each record is the default record without its `variables` key, and
+    # the envelope has exactly the default keys.
+    assert payload["requests"] == [
+        {
+            key: value
+            for key, value in default_record.items()
+            if key != "variables"
+        }
+        for default_record in default_payload["requests"]
+    ]
+    assert payload.keys() == default_payload.keys()
+    assert [
+        (
+            request_record["request_uuid"],
+            request_record["created_at"],
+            request_record["client_id"],
+            request_record["response_status_code"],
+            request_record["distinct_variable_count"],
+        )
+        for request_record in payload["requests"]
+    ] == [
+        ("failed-request", "2026-05-11T12:00:00Z", "test-client", 500, 1),
+        ("successful-request", "2026-05-10T12:00:00Z", "test-client", 200, 2),
+    ]
+
+
+@pytest.mark.parametrize(
+    "query_string",
+    [
+        "",
+        "?include_variables=true",
+        "?include_variables=1",
+        "?include_variables=yes",
+        "?include_variables=TRUE",
+    ],
+)
+def test__calculate_analytics_requests__include_variables_defaults_to_true(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+    query_string,
+):
+    add_calculate_analytics_request(
+        "request-with-variables",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        f"/analytics/calculate/requests{query_string}"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert [
+        variable["variable_name"]
+        for variable in payload["requests"][0]["variables"]
+    ] == ["age"]
+
+
+def test__calculate_analytics_requests__include_variables_false_keeps_unique_keys(
+    analytics_endpoint_app,
+    add_calculate_analytics_request,
+    calculate_analytics_variable,
+):
+    add_calculate_analytics_request(
+        "request-with-variables",
+        datetime(2026, 5, 10, 12, 0, 0),
+        [calculate_analytics_variable("age")],
+    )
+
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?unique=true&include_variables=false"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 200
+    assert [key["variable_name"] for key in payload["unique_keys"]] == ["age"]
+
+
+@pytest.mark.parametrize(
+    "query_string",
+    [
+        "include_variables=sometimes",
+        "include_variables=",
+        # Ignored when unique is true, but still validated.
+        "unique=true&include_variables=sometimes",
+    ],
+)
+def test__calculate_analytics_requests__invalid_include_variables_returns_400(
+    analytics_endpoint_app,
+    query_string,
+):
+    with analytics_endpoint_app.test_request_context(
+        f"/analytics/calculate/requests?{query_string}"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 400
+    assert payload == {
+        "status": "error",
+        "message": "`include_variables` must be true or false",
+    }
+
+
+def test__calculate_analytics_requests__invalid_unique_names_unique(
+    analytics_endpoint_app,
+):
+    with analytics_endpoint_app.test_request_context(
+        "/analytics/calculate/requests?unique=sometimes"
+    ):
+        response = get_calculate_analytics_requests()
+
+    payload = json.loads(response.data)
+    assert response.status_code == 400
+    assert payload["message"] == "`unique` must be true or false"
+
+
 def test__calculate_analytics_requests__filters_by_modal_routing(
     analytics_endpoint_app,
     add_calculate_analytics_request,
