@@ -12,7 +12,9 @@ the Modal circuit for a channel opens, the gateway routes that channel to the
 matching private Cloud Run fallback worker.
 
 Cloud Run fallback workers are deployed for both active channels but use
-`min-instances=0`. The Cloud Run gateway uses `min-instances=1`.
+`min-instances=0`. The production Cloud Run gateway uses `min-instances=1`;
+the staging gateway uses `min-instances=0`, because only the release
+workflow's checks and occasional manual requests call it.
 
 The fallback manifest is separate from the strict Modal release manifest and is
 stored in GCS. It records each active channel's Modal worker app name, Cloud
@@ -88,7 +90,8 @@ The Cloud Run deploy wrapper is
 metadata through `.github/scripts/cloud_run_failover_channels.py`, deploys
 private `current` and `frontier` Cloud Run workers with `min-instances=0`,
 uploads the GCS failover manifest, then deploys the public gateway with
-`min-instances=1`.
+`HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES` instances, default `1`. The
+staging deploy job sets it to `0`.
 
 Default Cloud Run concurrency should support at least 25 concurrent household
 requests. Keep gateway container workers, gateway Cloud Run concurrency,
@@ -112,6 +115,20 @@ Pass non-secret Cloud Run configuration with `--env-vars-file`. Sync secret
 values to Secret Manager and bind them with `--set-secrets`; do not pass raw
 secret values through `--set-env-vars` or delimiter-joined command arguments.
 
+Secret Manager bills every enabled or disabled secret version, so the sync
+adds a version only when the deploy value differs from the version that
+`<secret>:latest` resolves to. It reads that version with
+`gcloud secrets versions access latest` and compares bytes through a pipe
+into `cmp`, so the stored value never reaches disk or the job log. Only a
+successful read whose bytes match exactly skips the add; do not compare
+through `$(...)`, which strips trailing newlines. A secret the sync has just
+created gets its first version without a read. If the read fails for an
+existing secret (no versions, latest version disabled or destroyed, or the
+deploy account lacks `secretmanager.versions.access`), the sync still adds a
+version so the deploy keeps working, and prints a workflow warning, because
+that path adds a billed version on every deploy. Services keep binding
+`<secret>:latest`.
+
 The gateway can send best-effort Slack alerts for failover lifecycle events.
 Set `HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL` in the deploy environment to sync it
 to Secret Manager and bind it only to the public gateway service. Do not pass
@@ -127,6 +144,9 @@ through one-time setup or IaC before deployment:
 
 - the GitHub deployment service account needs `roles/storage.objectAdmin` on
   the manifest bucket so the workflow can upload manifests
+- the GitHub deployment service account needs
+  `roles/secretmanager.secretAccessor` on the secrets it syncs so it can
+  compare the deploy value with the latest version before adding one
 - the gateway runtime service account needs `roles/storage.objectViewer` on
   the manifest bucket so runtime manifest reads work with least privilege
 - gateway and worker runtime service accounts need

@@ -1,3 +1,53 @@
+## [0.33.19] - 2026-11-23
+
+### Changed
+
+- Update PolicyEngine US to 2.153.8.
+
+
+## [0.33.18] - 2026-11-18
+
+### Changed
+
+- Update PolicyEngine US to 2.145.6.
+  Update PolicyEngine Core to 3.36.0 as required by US.
+
+
+## [0.33.17] - 2026-11-18
+
+### Fixed
+
+- Stop calling the main API in the legacy calculate sync test, which now refuses unauthenticated requests; keep the household API's own assertions.
+
+
+## [0.33.16] - 2026-11-11
+
+### Changed
+
+- Update PolicyEngine US to 2.116.16.
+
+
+## [0.33.15] - 2026-11-05
+
+### Changed
+
+- Update PolicyEngine US to 2.94.7.
+
+
+## [0.33.14] - 2026-11-04
+
+### Changed
+
+- Let the staging Cloud Run gateway scale to zero between releases: the staging deploy job sets `HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES` to `0`. The production gateway keeps one instance.
+
+
+## [0.33.13] - 2026-11-04
+
+### Fixed
+
+- Cloud Run deploys add a Secret Manager secret version only when the deploy value differs from the current latest version, instead of on every deploy, and print a workflow warning when the latest version of an existing secret cannot be read.
+
+
 ## [0.33.12] - 2026-11-03
 
 ### Fixed

@@ -417,6 +417,10 @@ jobs:
           HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT }}
           HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS }}
           HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL: ${{ vars.HOUSEHOLD_CLOUD_RUN_GATEWAY_PUBLIC_URL }}
+          # Staging is called only by this workflow's checks and by occasional
+          # manual requests, so its gateway scales to zero between releases.
+          # Production keeps the script's default of one instance.
+          HOUSEHOLD_CLOUD_RUN_GATEWAY_MIN_INSTANCES: "0"
           HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT: ${{ vars.HOUSEHOLD_CLOUD_RUN_WORKER_SERVICE_ACCOUNT }}
           HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL: ${{ secrets.HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL }}
           HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS: ${{ vars.HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS }}
