@@ -45,6 +45,9 @@ def test_testing_deploy_script_deploys_smokes_and_load_tests(tmp_path):
         "testing/ada-lovelace/failover-manifest.json"
     ) in log
     assert "DEPLOY_ENV HOUSEHOLD_FAILOVER_FORCE_BACKEND=cloud_run" in log
+    # The load test sends 100 calculate requests from one Auth0 client, which
+    # the gateway's per-caller limit would otherwise reject.
+    assert "DEPLOY_ENV HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED=false" in log
     assert (
         "DEPLOY_ENV HOUSEHOLD_CLOUD_RUN_GATEWAY_SERVICE_ACCOUNT="
         "987654321-compute@developer.gserviceaccount.com"

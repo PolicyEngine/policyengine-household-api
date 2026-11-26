@@ -81,6 +81,8 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         "HOUSEHOLD_FAILOVER_SLACK_WEBHOOK_URL": "https://example.com/webhook",
         "HOUSEHOLD_FAILOVER_SLACK_TIMEOUT_SECONDS": "2",
         "HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS": "300",
+        "HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED": "false",
+        "HOUSEHOLD_FAILOVER_TRUSTED_PROXY_COUNT": "2",
         "OBSERVABILITY_ENABLED": "true",
         "OBSERVABILITY_GOOGLE_CLOUD_PROJECT": "policyengine-observability",
         "OBSERVABILITY_GOOGLE_CLOUD_LOG_NAME": "household-logs",
@@ -232,6 +234,19 @@ def test_cloud_run_deploy_failover_deploys_workers_manifest_and_gateway(
         )
         for key, value in expected_auth0_env.items():
             assert deployed_env[key] == value
+    gateway_env = yaml.safe_load(
+        (tmp_path / "household-api-staging-gateway-env.yaml").read_text()
+    )
+    assert gateway_env["HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED"] == "false"
+    assert gateway_env["HOUSEHOLD_FAILOVER_TRUSTED_PROXY_COUNT"] == "2"
+    worker_env = yaml.safe_load(
+        (
+            tmp_path / "household-api-staging-current-worker-env.yaml"
+        ).read_text()
+    )
+    # Per-caller limits run only in the public gateway.
+    assert "HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED" not in worker_env
+    assert "HOUSEHOLD_FAILOVER_TRUSTED_PROXY_COUNT" not in worker_env
     assert "--allow-unauthenticated --min-instances 1" in log
     assert "--concurrency 32" in log
     assert (
