@@ -11,7 +11,7 @@ import time
 from typing import Any, Callable
 from urllib import error, request as urllib_request
 
-from flask import Flask, Response, jsonify, request
+from flask import Flask, Response, g, jsonify, request
 from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2 import id_token
@@ -40,6 +40,12 @@ from policyengine_household_failover.manifest import (
 from policyengine_household_common.request_limits import (
     max_content_length_bytes,
 )
+from policyengine_household_failover.rate_limits import (
+    AUTH0_CLIENT_ID_CONTEXT_KEY,
+    GatewayRateLimitConfig,
+    gateway_rate_limit_config_from_env,
+    install_gateway_rate_limits,
+)
 from policyengine_household_failover.slack_notifications import (
     ALERT_EVENTS as SLACK_ALERT_EVENTS,
 )
@@ -67,6 +73,7 @@ from policyengine_household_common.gateway import (
 )
 from policyengine_household_common.version_routing import VersionRoutingError
 from policyengine_household_common.worker_dispatch import (
+    GATEWAY_RATE_LIMITED_PAYLOAD_KEY,
     call_modal_worker_dispatch,
 )
 
@@ -380,6 +387,7 @@ def create_gateway_app(
     modal_probe_timeout_seconds: float | None = None,
     modal_canary_timeout_seconds: float | None = None,
     client_id_attributor: Callable[[str | None], str | None] | None = None,
+    rate_limit_config: GatewayRateLimitConfig | None = None,
 ) -> Flask:
     app = Flask(__name__)
     init_observability(app, service_role="failover_gateway")
@@ -398,6 +406,7 @@ def create_gateway_app(
     )
     circuits = circuit_registry or CircuitRegistry()
     policy = circuit_policy or modal_circuit_policy_from_env()
+    rate_limits = rate_limit_config or gateway_rate_limit_config_from_env()
     request_timeout = (
         max(modal_request_timeout_seconds, 0.001)
         if modal_request_timeout_seconds is not None
@@ -437,6 +446,11 @@ def create_gateway_app(
             return
         if client_id:
             set_request_log_attribute("auth0_client_id", client_id)
+            # The rate limiter counts authenticated callers by this ID.
+            setattr(g, AUTH0_CLIENT_ID_CONTEXT_KEY, client_id)
+
+    # Registered after the client ID hook above, which it reads.
+    install_gateway_rate_limits(app, rate_limits)
 
     @app.get("/liveness_check")
     def liveness_check() -> Response:
@@ -521,6 +535,9 @@ def create_gateway_app(
                 body=body,
                 route=resolved,
             )
+            # Rate limits are applied per caller above, so workers skip
+            # theirs, which cannot tell callers apart.
+            payload[GATEWAY_RATE_LIMITED_PAYLOAD_KEY] = True
             response, backend = _route_to_backend(
                 resolved,
                 payload,

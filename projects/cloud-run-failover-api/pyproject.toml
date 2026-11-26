@@ -17,6 +17,8 @@ dependencies = [
     "google-auth",
     "google-cloud-storage",
     "gunicorn",
+    # Per-caller request rate limits (Flask-Limiter's storage library).
+    "limits>=5.8.0",
     "modal>=1.3.0",
 ]
 

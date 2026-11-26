@@ -321,6 +321,14 @@ append_env_if_set \
 append_env_if_set \
   "${gateway_env_file}" \
   HOUSEHOLD_FAILOVER_SLACK_COOLDOWN_SECONDS
+# Per-caller request rate limits run only in the gateway (see
+# policyengine_household_failover/rate_limits.py); workers skip them.
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED
+append_env_if_set \
+  "${gateway_env_file}" \
+  HOUSEHOLD_FAILOVER_TRUSTED_PROXY_COUNT
 sync_secret_if_set \
   "${gateway_secrets_file}" \
   MODAL_TOKEN_ID
