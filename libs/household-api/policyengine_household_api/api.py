@@ -14,6 +14,9 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import yaml
 from policyengine_household_common.config_loader import get_config_value
+from policyengine_household_common.worker_dispatch import (
+    GATEWAY_RATE_LIMITED_ENVIRON_KEY,
+)
 from policyengine_household_common.observability.flask import (
     init_observability,
 )
@@ -97,6 +100,17 @@ CORS(app)
 # Note that this provides limits per-instance;
 # rate limits not shared if scaling more than 1 instance.
 limiter = create_rate_limiter(app)
+
+
+@limiter.request_filter
+def _skip_limits_already_applied_by_gateway() -> bool:
+    # Modal and Cloud Run workers replay every caller's request through
+    # Flask's test client, where all callers share one address. The public
+    # Cloud Run gateway marks requests it has already counted per caller,
+    # so these limits apply when this app is served directly, and to
+    # requests from a gateway that does not apply its own limits yet.
+    return flask.request.environ.get(GATEWAY_RATE_LIMITED_ENVIRON_KEY) is True
+
 
 app.route("/", methods=["GET"])(get_home)
 

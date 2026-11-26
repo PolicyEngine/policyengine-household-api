@@ -2692,6 +2692,7 @@ dependencies = [
     { name = "google-auth" },
     { name = "google-cloud-storage" },
     { name = "gunicorn" },
+    { name = "limits" },
     { name = "modal" },
     { name = "policyengine-household-common", extra = ["auth"] },
 ]
@@ -2707,6 +2708,7 @@ requires-dist = [
     { name = "google-auth" },
     { name = "google-cloud-storage" },
     { name = "gunicorn" },
+    { name = "limits", specifier = ">=5.8.0" },
     { name = "modal", specifier = ">=1.3.0" },
     { name = "policyengine-household-api", marker = "extra == 'worker'", editable = "libs/household-api" },
     { name = "policyengine-household-common", extras = ["auth"], editable = "libs/household-common" },

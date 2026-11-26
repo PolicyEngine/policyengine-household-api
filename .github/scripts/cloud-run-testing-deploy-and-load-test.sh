@@ -289,6 +289,10 @@ if [ -z "${GITHUB_SHA:-}" ]; then
   export GITHUB_SHA
 fi
 
+# The load test sends every request with one Auth0 client's token, which the
+# gateway's per-caller limit of 60 calculate requests per minute would reject.
+export HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED="${HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED:-false}"
+
 if [ "${force_backend}" = "none" ]; then
   unset HOUSEHOLD_FAILOVER_FORCE_BACKEND
 else

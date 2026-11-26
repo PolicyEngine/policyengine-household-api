@@ -9,6 +9,16 @@ from policyengine_household_common.routing_metadata import (
 from policyengine_observability import segment
 
 
+# Set by the public Cloud Run gateway on every request it forwards, after it
+# has applied its per-caller rate limits. Requests without it (for example
+# from a gateway deployed before those limits existed) keep the household
+# app's own limits.
+GATEWAY_RATE_LIMITED_PAYLOAD_KEY = "gateway_rate_limited"
+# WSGI environ key set when a replayed request carries that marker. HTTP
+# clients cannot set it: request headers reach the environ only as ``HTTP_*``
+# keys.
+GATEWAY_RATE_LIMITED_ENVIRON_KEY = "policyengine.gateway_rate_limited"
+
 HOP_BY_HOP_RESPONSE_HEADERS = {
     "connection",
     "content-encoding",
@@ -26,6 +36,7 @@ class WorkerRequest(TypedDict):
     headers: dict[str, str]
     body: bytes
     modal_routing: NotRequired[dict[str, str] | None]
+    gateway_rate_limited: NotRequired[bool]
 
 
 class WorkerResult(TypedDict):
@@ -44,7 +55,11 @@ def dispatch_to_flask_app(flask_app, payload: WorkerRequest) -> WorkerResult:
     method = str(payload.get("method") or "GET")
     body = payload.get("body")
     headers = dict(payload.get("headers") or {})
-    environ_overrides = routing_environ_overrides(payload)
+    environ_overrides: dict[str, Any] = dict(
+        routing_environ_overrides(payload)
+    )
+    if payload.get(GATEWAY_RATE_LIMITED_PAYLOAD_KEY) is True:
+        environ_overrides[GATEWAY_RATE_LIMITED_ENVIRON_KEY] = True
 
     response = flask_app.test_client().open(
         path=path,

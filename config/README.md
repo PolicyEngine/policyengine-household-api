@@ -199,6 +199,14 @@ RATE_LIMIT__ENABLED=false
 The setting must resolve to a Boolean. Invalid types cause application startup
 to fail with a configuration error.
 
+These limits count requests by client IP address and apply when the household
+app is served directly, for example from the published Docker image. Modal and
+Cloud Run workers replay requests into the app with every caller appearing as
+`127.0.0.1`, so in the PolicyEngine deployment the public Cloud Run gateway
+applies the same limits per caller before forwarding requests, and marks them
+so the app skips its own limits; see
+`projects/cloud-run-failover-api/README.md`.
+
 This setting disables every configured request limit, including those on
 `/<country_id>/calculate`, `/analytics/calculate/requests`, and the public
 `/<country_id>/calculate_demo` endpoint. Do not disable it on a publicly

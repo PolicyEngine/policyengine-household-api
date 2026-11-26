@@ -7,6 +7,7 @@ from policyengine_household_common.routing_metadata import (
     MODAL_ROUTING_PAYLOAD_KEY,
 )
 from policyengine_household_common.worker_dispatch import (
+    GATEWAY_RATE_LIMITED_PAYLOAD_KEY,
     WorkerRequest,
     WorkerResult,
 )
@@ -16,7 +17,7 @@ BODY_B64_KEY = "body_b64"
 
 
 def encode_dispatch_request(payload: WorkerRequest) -> dict[str, Any]:
-    return {
+    encoded = {
         "method": str(payload.get("method") or "GET"),
         "path": str(payload.get("path") or ""),
         "query_string": str(payload.get("query_string") or ""),
@@ -24,13 +25,16 @@ def encode_dispatch_request(payload: WorkerRequest) -> dict[str, Any]:
         BODY_B64_KEY: _encode_body(payload.get("body")),
         MODAL_ROUTING_PAYLOAD_KEY: payload.get(MODAL_ROUTING_PAYLOAD_KEY),
     }
+    if payload.get(GATEWAY_RATE_LIMITED_PAYLOAD_KEY) is True:
+        encoded[GATEWAY_RATE_LIMITED_PAYLOAD_KEY] = True
+    return encoded
 
 
 def decode_dispatch_request(payload: dict[str, Any]) -> WorkerRequest:
     if not isinstance(payload, dict):
         raise ValueError("Dispatch request payload must be a JSON object")
 
-    return {
+    decoded: WorkerRequest = {
         "method": str(payload.get("method") or "GET"),
         "path": str(payload.get("path") or ""),
         "query_string": str(payload.get("query_string") or ""),
@@ -38,6 +42,9 @@ def decode_dispatch_request(payload: dict[str, Any]) -> WorkerRequest:
         "body": _decode_body(payload.get(BODY_B64_KEY)),
         MODAL_ROUTING_PAYLOAD_KEY: payload.get(MODAL_ROUTING_PAYLOAD_KEY),
     }
+    if payload.get(GATEWAY_RATE_LIMITED_PAYLOAD_KEY) is True:
+        decoded[GATEWAY_RATE_LIMITED_PAYLOAD_KEY] = True
+    return decoded
 
 
 def encode_dispatch_response(result: WorkerResult) -> dict[str, Any]:

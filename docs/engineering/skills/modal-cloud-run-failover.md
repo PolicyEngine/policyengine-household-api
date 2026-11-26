@@ -104,6 +104,30 @@ URL for this pre-cutover check. For a local isolated testing deployment, use
 `.github/scripts/cloud-run-testing-deploy-and-load-test.sh`; it deploys a
 testing namespace, smoke-checks the gateway, and runs the load-test harness.
 
+## Per-caller rate limits
+
+The gateway applies the household API's request rate limits per caller
+before forwarding requests (`policyengine_household_failover/rate_limits.py`;
+limits and settings are listed in `projects/cloud-run-failover-api/README.md`).
+It marks every forwarded request with `gateway_rate_limited`, and the
+household app skips its own Flask-Limiter limits for marked requests, because
+workers replay every caller's request from `127.0.0.1`. Unmarked requests keep
+the app's limits, so workers deployed before the gateway stay limited.
+
+- Keep the gateway's route rules in step with the `@limiter.limit`
+  decorators in `policyengine_household_api.api`.
+- The load test sends every request with one Auth0 client's token, so it is
+  rejected after 60 calculate requests per minute per gateway process. The
+  disposable testing deploy sets `HOUSEHOLD_FAILOVER_RATE_LIMIT_ENABLED=false`
+  when it deploys; with `--skip-deploy`, or against the staging or production
+  gateway, keep the request count under the limit or deploy that gateway with
+  the variable set to `false` first.
+- `HOUSEHOLD_FAILOVER_TRUSTED_PROXY_COUNT` must match the proxies in front of
+  the gateway, or client IPs are read from the wrong `X-Forwarded-For` entry.
+  Behind a load balancer, also restrict gateway ingress to the load balancer
+  (`HOUSEHOLD_CLOUD_RUN_GATEWAY_INGRESS`); otherwise callers can reach the
+  `run.app` URL directly and choose the entry that is read.
+
 Do not recursively `chown` the Cloud Run worker virtualenv at `/opt/venv`.
 The runtime user only needs read and execute access to run Python and installed
 console scripts. Keep `/opt/venv` root-owned, set `PYTHONDONTWRITEBYTECODE=1`,

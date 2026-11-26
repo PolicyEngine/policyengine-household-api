@@ -1,0 +1,1 @@
+Applied request rate limits per caller in the Cloud Run gateway, counting by Auth0 client ID or client IP. Modal and Cloud Run workers skip their own limits, which counted every caller as `127.0.0.1`, for requests the gateway has already counted.
